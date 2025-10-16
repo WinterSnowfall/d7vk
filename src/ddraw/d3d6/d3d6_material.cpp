@@ -1,0 +1,111 @@
+#include "d3d6_material.h"
+
+#include "d3d6_interface.h"
+#include "d3d6_viewport.h"
+
+#include "../d3d_common_device.h"
+
+#include "../ddraw4/ddraw4_interface.h"
+
+namespace dxvk {
+
+  uint32_t D3D6Material::s_materialCount = 0;
+
+  D3D6Material::D3D6Material(
+        D3D6Interface* pParent,
+        D3DMATERIALHANDLE handle)
+    : DDrawChildObject<D3D6Interface, IDirect3DMaterial3>(pParent) {
+    m_commonMaterial = new D3DCommonMaterial(handle);
+
+    m_commonMaterial->SetD3D6Material(this);
+
+    m_materialCount = ++s_materialCount;
+
+    Logger::debug(str::format("D3D6Material: Created a new material nr. [[3-", m_materialCount, "]]"));
+  }
+
+  D3D6Material::~D3D6Material() {
+    m_commonMaterial->SetD3D6Material(nullptr);
+
+    Logger::debug(str::format("D3D6Material: Material nr. [[3-", m_materialCount, "]] bites the dust"));
+  }
+
+  HRESULT STDMETHODCALLTYPE D3D6Material::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> D3D6Material::QueryInterface");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirect3DMaterial3))) {
+      *ppvObject = ref(this);
+      return S_OK;
+    }
+
+    Logger::warn("D3D6Material::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
+  }
+
+  HRESULT STDMETHODCALLTYPE D3D6Material::SetMaterial(D3DMATERIAL *data) {
+    Logger::debug(">>> D3D6Material::SetMaterial");
+
+    if (unlikely(data == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(!data->dwSize))
+      return DDERR_INVALIDPARAMS;
+
+    d3d9::D3DMATERIAL9* material9 = m_commonMaterial->GetD3D9Material();
+
+    material9->Diffuse  = data->dcvDiffuse;
+    material9->Ambient  = data->dcvAmbient;
+    material9->Specular = data->dcvSpecular;
+    material9->Emissive = data->dcvEmissive;
+    material9->Power    = data->dvPower;
+
+    // Update the D3D9 material directly if it's actively being used
+    D3DCommonDevice* commonDevice = m_parent->GetCommonInterface()->GetCommonD3DDevice();
+    if (likely(commonDevice != nullptr)) {
+      const D3DMATERIALHANDLE handle        = m_commonMaterial->GetMaterialHandle();
+      const D3DMATERIALHANDLE currentHandle = commonDevice->GetCurrentMaterialHandle();
+      if (currentHandle == handle) {
+        Logger::debug(str::format("D3D6Material::SetMaterial: Applying material nr. ", handle, " to D3D9"));
+        commonDevice->GetD3D9Device()->SetMaterial(material9);
+      }
+    }
+
+    return D3D_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE D3D6Material::GetMaterial(D3DMATERIAL *data) {
+    Logger::debug(">>> D3D6Material::GetMaterial");
+
+    if (unlikely(data == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    d3d9::D3DMATERIAL9* material9 = m_commonMaterial->GetD3D9Material();
+
+    data->dcvDiffuse  = material9->Diffuse;
+    data->dcvAmbient  = material9->Ambient;
+    data->dcvSpecular = material9->Specular;
+    data->dcvEmissive = material9->Emissive;
+    data->dvPower     = material9->Power;
+
+    return D3D_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE D3D6Material::GetHandle(IDirect3DDevice3 *device, D3DMATERIALHANDLE *handle) {
+    Logger::debug(">>> D3D6Material::GetHandle");
+
+    if(unlikely(device == nullptr || handle == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    *handle = m_commonMaterial->GetMaterialHandle();
+
+    return D3D_OK;
+  }
+
+}

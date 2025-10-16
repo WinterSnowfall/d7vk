@@ -20,6 +20,7 @@ IDxvkD3D8Bridge : public IUnknown {
   #ifdef DXVK_D3D9_NAMESPACE
     using IDirect3DSurface9 = d3d9::IDirect3DSurface9;
     using D3DFORMAT = d3d9::D3DFORMAT;
+    using D3DPRESENT_PARAMETERS = d3d9::D3DPRESENT_PARAMETERS;
   #endif
 
   /**
@@ -42,6 +43,39 @@ IDxvkD3D8Bridge : public IUnknown {
    * \param [in] Format D3DFORMAT value to be checked
    */
   virtual bool IsSupportedSurfaceFormat(D3DFORMAT Format) = 0;
+
+  /**
+   * \brief Determines the initial amount of texture memory for a device
+   */
+  virtual uint32_t DetermineInitialTextureMemory() = 0;
+
+  /**
+   * \brief Resets the D3D9 swapchain, skipping a general device reset
+   *
+   * \param [in] Params D3DPRESENT_PARAMETERS* value to be used
+   */
+  virtual HRESULT ResetSwapChain(D3DPRESENT_PARAMETERS* Params) = 0;
+
+  /**
+   * \brief Updates the color key transparency state in D3D9
+   *
+   * \param [in] Params bool value to be used
+   */
+  virtual HRESULT SetColorKeyState(bool colorKeyState) = 0;
+
+  /**
+   * \brief Updates the color key transparency value in D3D9
+   *
+   * \param [in] Params DWORD, DWORD low and high values to be used
+   */
+  virtual HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh) = 0;
+
+  /**
+   * \brief Updates the legacy light state in D3D9
+   *
+   * \param [in] Params bool value to be used
+   */
+  virtual HRESULT SetLegacyLightsState(bool legacyLightsState) = 0;
 };
 
 /**
@@ -49,6 +83,26 @@ IDxvkD3D8Bridge : public IUnknown {
  */
 MIDL_INTERFACE("D3D9D3D8-A407-773E-18E9-CAFEBEEF3000")
 IDxvkD3D8InterfaceBridge : public IUnknown {
+ /**
+   * \brief Enforces D3D3-specific features and validations
+   */
+  virtual void EnableD3D3CompatibilityMode() = 0;
+
+  /**
+   * \brief Enforces D3D5-specific features and validations
+   */
+  virtual void EnableD3D5CompatibilityMode() = 0;
+
+  /**
+   * \brief Enforces D3D6-specific features and validations
+   */
+  virtual void EnableD3D6CompatibilityMode() = 0;
+
+  /**
+   * \brief Enforces D3D7-specific features and validations
+   */
+  virtual void EnableD3D7CompatibilityMode() = 0;
+
   /**
    * \brief Enforces D3D8-specific features and validations
    */
@@ -94,6 +148,16 @@ namespace dxvk {
 
     bool IsSupportedSurfaceFormat(D3DFORMAT Format);
 
+    uint32_t DetermineInitialTextureMemory();
+
+    HRESULT ResetSwapChain(D3DPRESENT_PARAMETERS* Params);
+
+    HRESULT SetColorKeyState(bool colorKeyState);
+
+    HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh);
+
+    HRESULT SetLegacyLightsState(bool legacyLightsState);
+
   private:
 
     D3D9DeviceEx* m_device;
@@ -113,6 +177,14 @@ namespace dxvk {
     HRESULT STDMETHODCALLTYPE QueryInterface(
             REFIID  riid,
             void** ppvObject);
+
+    void EnableD3D3CompatibilityMode();
+
+    void EnableD3D5CompatibilityMode();
+
+    void EnableD3D6CompatibilityMode();
+
+    void EnableD3D7CompatibilityMode();
 
     void EnableD3D8CompatibilityMode();
 

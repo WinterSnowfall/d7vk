@@ -54,6 +54,10 @@ namespace dxvk {
     , m_stagingBufferFence ( new sync::Fence() )
     , m_multithread        ( BehaviorFlags & D3DCREATE_MULTITHREADED )
     , m_isSWVP             ( (BehaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING) != 0 )
+    , m_isD3D3Compatible   ( pParent->IsD3D3Compatible() )
+    , m_isD3D5Compatible   ( pParent->IsD3D5Compatible() )
+    , m_isD3D6Compatible   ( pParent->IsD3D6Compatible() )
+    , m_isD3D7Compatible   ( pParent->IsD3D7Compatible() )
     , m_isD3D8Compatible   ( pParent->IsD3D8Compatible() )
     , m_csThread           ( dxvkDevice, dxvkDevice->createContext() )
     , m_csChunk            ( AllocCsChunk() )
@@ -510,7 +514,8 @@ namespace dxvk {
       * We have to check after ResetState clears the references held by SetTexture, etc.
       * This matches what Windows D3D9 does.
     */
-    if (unlikely(m_losableResourceCounter.load() != 0 && !IsExtended() && m_d3d9Options.countLosableResources)) {
+    if (unlikely(m_losableResourceCounter.load() != 0 && !IsExtended() &&
+                !m_isD3D7Compatible && m_d3d9Options.countLosableResources)) {
       Logger::warn(str::format("Device reset failed because device still has alive losable resources: Device not reset. Remaining resources: ", m_losableResourceCounter.load()));
       m_deviceLostState = D3D9DeviceLostState::NotReset;
       // D3D8 returns D3DERR_DEVICELOST here, whereas D3D9 returns D3DERR_INVALIDCALL.
@@ -4357,7 +4362,9 @@ namespace dxvk {
 
     // Because they are always lockable, image surfaces / offscreen plain surfaces
     // are restricted to using lockable depth stencil formats.
-    if (unlikely(IsDepthStencilFormat(desc.Format) && !IsLockableDepthStencilFormat(desc.Format)))
+    if (unlikely(!m_isD3D7Compatible &&
+                 IsDepthStencilFormat(desc.Format) &&
+                 !IsLockableDepthStencilFormat(desc.Format)))
       return D3DERR_INVALIDCALL;
 
     HRESULT hr = D3D9CommonTexture::NormalizeTextureProperties(this, D3DRTYPE_SURFACE, &desc);
@@ -4436,7 +4443,7 @@ namespace dxvk {
     desc.MultisampleQuality = MultisampleQuality;
     desc.IsBackBuffer       = FALSE;
     desc.IsAttachmentOnly   = TRUE;
-    desc.IsLockable         = IsLockableDepthStencilFormat(desc.Format);
+    desc.IsLockable         = !m_isD3D7Compatible ? IsLockableDepthStencilFormat(desc.Format) : TRUE;
 
     HRESULT hr = D3D9CommonTexture::NormalizeTextureProperties(this, D3DRTYPE_SURFACE, &desc);
     if (FAILED(hr))
@@ -4569,6 +4576,30 @@ namespace dxvk {
 
     if (unlikely(Type == D3DSAMP_MAGFILTER && (m_textureSlotTracking.fetch4SamplerState & samplerBit)))
       UpdateActiveFetch4(StateSampler);
+
+    if (StateSampler == RemapSamplerState(0)) {
+      if (Type == D3DSAMP_ADDRESSU) {
+        auto& sampler = state[RemapSamplerState(0)];
+
+        uint16_t addressU = sampler[D3DSAMP_ADDRESSU] == D3DTADDRESS_CLAMP ? 1u
+                          : sampler[D3DSAMP_ADDRESSU] == D3DTADDRESS_MIRROR ? 2u : 0u;
+
+        if (m_pushData.ffps.addressU != addressU) {
+          m_pushData.ffps.addressU = addressU;
+          m_dirty.set(D3D9DeviceDirtyFlag::PushDataFfps);
+        }
+      } else if (Type == D3DSAMP_ADDRESSV) {
+        auto& sampler = state[RemapSamplerState(0)];
+
+        uint16_t addressV = sampler[D3DSAMP_ADDRESSV] == D3DTADDRESS_CLAMP ? 1u
+                          : sampler[D3DSAMP_ADDRESSV] == D3DTADDRESS_MIRROR ? 2u : 0u;
+
+        if (m_pushData.ffps.addressV != addressV) {
+          m_pushData.ffps.addressV = addressV;
+          m_dirty.set(D3D9DeviceDirtyFlag::PushDataFfps);
+        }
+      }
+    }
 
     return D3D_OK;
   }
@@ -8685,11 +8716,11 @@ namespace dxvk {
     rs[D3DRS_COLORVERTEX]            = TRUE;
     rs[D3DRS_LOCALVIEWER]            = TRUE;
     rs[D3DRS_RANGEFOGENABLE]         = FALSE;
-    rs[D3DRS_NORMALIZENORMALS]       = FALSE;
+    rs[D3DRS_NORMALIZENORMALS]       = m_isD3D6Compatible ? TRUE : FALSE;
     m_dirty.set(D3D9DeviceDirtyFlag::FFVertexData);
 
     // PS
-    rs[D3DRS_SPECULARENABLE] = FALSE;
+    rs[D3DRS_SPECULARENABLE] = m_isD3D5Compatible ? TRUE : FALSE;
 
     rs[D3DRS_AMBIENT]                = 0;
     m_dirty.set(D3D9DeviceDirtyFlag::FFVertexData);
@@ -8697,8 +8728,8 @@ namespace dxvk {
     rs[D3DRS_FOGENABLE]                  = FALSE;
     rs[D3DRS_FOGCOLOR]                   = 0;
     rs[D3DRS_FOGTABLEMODE]               = D3DFOG_NONE;
-    rs[D3DRS_FOGSTART]                   = bit::cast<DWORD>(0.0f);
-    rs[D3DRS_FOGEND]                     = bit::cast<DWORD>(1.0f);
+    rs[D3DRS_FOGSTART]                   = m_isD3D6Compatible ? bit::cast<DWORD>(1.0f)   : bit::cast<DWORD>(0.0f);
+    rs[D3DRS_FOGEND]                     = m_isD3D6Compatible ? bit::cast<DWORD>(100.0f) : bit::cast<DWORD>(1.0f);
     rs[D3DRS_FOGDENSITY]                 = bit::cast<DWORD>(1.0f);
     rs[D3DRS_FOGVERTEXMODE]              = D3DFOG_NONE;
     m_dirty.set(D3D9DeviceDirtyFlag::Fog);
@@ -8743,7 +8774,7 @@ namespace dxvk {
     rs[D3DRS_WRAP6]                      = 0;
     rs[D3DRS_WRAP7]                      = 0;
     rs[D3DRS_CLIPPING]                   = TRUE;
-    rs[D3DRS_MULTISAMPLEANTIALIAS]       = TRUE;
+    rs[D3DRS_MULTISAMPLEANTIALIAS]       = m_isD3D7Compatible ? FALSE : TRUE;
     rs[D3DRS_PATCHEDGESTYLE]             = D3DPATCHEDGE_DISCRETE;
     rs[D3DRS_DEBUGMONITORTOKEN]          = D3DDMT_ENABLE;
     rs[D3DRS_POSITIONDEGREE]             = D3DDEGREE_CUBIC;
@@ -8928,7 +8959,7 @@ namespace dxvk {
       desc.MultisampleQuality = pPresentationParameters->MultiSampleQuality;
       desc.IsBackBuffer       = FALSE;
       desc.IsAttachmentOnly   = TRUE;
-      desc.IsLockable         = IsLockableDepthStencilFormat(desc.Format);
+      desc.IsLockable         = !m_isD3D7Compatible ? IsLockableDepthStencilFormat(desc.Format) : TRUE;
 
       if (FAILED(D3D9CommonTexture::NormalizeTextureProperties(this, D3DRTYPE_SURFACE, &desc)))
         return D3DERR_NOTAVAILABLE;

@@ -1,0 +1,55 @@
+#pragma once
+
+#include "ddraw_include.h"
+#include "ddraw_format.h"
+
+#include "ddraw_common_interface.h"
+#include "ddraw_common_surface.h"
+
+namespace dxvk {
+
+  class DDrawSurface;
+
+  class D3DCommonTexture : public ComObjectClamp<IUnknown> {
+
+  public:
+
+    D3DCommonTexture(DDrawCommonSurface* commonSurf, D3DTEXTUREHANDLE textureHandle);
+
+    ~D3DCommonTexture();
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
+      *ppvObject = this;
+      return S_OK;
+    }
+
+    DDrawCommonSurface* GetCommonSurface() const {
+      return m_commonSurf;
+    }
+
+    // Needed for SwapTextureHandles device calls
+    void SetTextureHandle(D3DTEXTUREHANDLE handle) {
+      m_textureHandle = handle;
+    }
+
+    D3DTEXTUREHANDLE GetTextureHandle() const {
+      return m_textureHandle;
+    }
+
+    DDrawSurface* GetDDSurface() const {
+      return m_commonSurf->GetDDSurface();
+    }
+
+    DDraw4Surface* GetDD4Surface() const {
+      return m_commonSurf->GetDD4Surface();
+    }
+
+  private:
+
+    DDrawCommonSurface*     m_commonSurf;
+
+    D3DTEXTUREHANDLE        m_textureHandle = 0;
+
+  };
+
+}

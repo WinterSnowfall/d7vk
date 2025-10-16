@@ -1134,6 +1134,22 @@ namespace dxvk {
       return m_recorder != nullptr;
     }
 
+    bool IsD3D3Compatible() const {
+      return m_isD3D3Compatible;
+    }
+
+    bool IsD3D5Compatible() const {
+      return m_isD3D5Compatible;
+    }
+
+    bool IsD3D6Compatible() const {
+      return m_isD3D6Compatible;
+    }
+
+    bool IsD3D7Compatible() const {
+      return m_isD3D7Compatible;
+    }
+
     bool IsD3D8Compatible() const {
       return m_isD3D8Compatible;
     }
@@ -1435,6 +1451,34 @@ namespace dxvk {
         : GetHelper(m_state.psConsts);
     }
 
+    HRESULT SetColorKeyState(bool colorKeyState) {
+      if (m_specData.setColorKeyEnable(colorKeyState))
+        m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
+
+      return D3D_OK;
+    }
+
+    HRESULT SetLegacyLightsState(bool legacyLightState) {
+      if (m_specData.setLegacyLights(legacyLightState))
+        m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
+
+      return D3D_OK;
+    }
+
+    HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh) {
+      if (m_pushData.ffps.colorKeyLow != colorKeyLow) {
+        m_pushData.ffps.colorKeyLow = colorKeyLow;
+        m_dirty.set(D3D9DeviceDirtyFlag::PushDataFfps);
+      }
+
+      if (m_pushData.ffps.colorKeyHigh != colorKeyHigh) {
+        m_pushData.ffps.colorKeyHigh = colorKeyHigh;
+        m_dirty.set(D3D9DeviceDirtyFlag::PushDataFfps);
+      }
+
+      return D3D_OK;
+    }
+
     void UpdateFixedFunctionVS();
 
     void UpdateFixedFunctionPS();
@@ -1627,7 +1671,12 @@ namespace dxvk {
     D3D9VBSlotTracking              m_vbSlotTracking;
 
     bool                            m_isSWVP;
+    bool                            m_isD3D3Compatible;
+    bool                            m_isD3D5Compatible;
+    bool                            m_isD3D6Compatible;
+    bool                            m_isD3D7Compatible;
     bool                            m_isD3D8Compatible;
+
     bool                            m_ffZTest          = false;
 
     // the enablement of below features is tracked independently
