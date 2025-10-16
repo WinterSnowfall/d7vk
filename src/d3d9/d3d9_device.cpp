@@ -4362,7 +4362,9 @@ namespace dxvk {
 
     // Because they are always lockable, image surfaces / offscreen plain surfaces
     // are restricted to using lockable depth stencil formats.
-    if (unlikely(IsDepthStencilFormat(desc.Format) && !IsLockableDepthStencilFormat(desc.Format)))
+    if (unlikely(!m_d3dCompatibility.test(D3DCompatibility::D3D7) &&
+                 IsDepthStencilFormat(desc.Format) &&
+                 !IsLockableDepthStencilFormat(desc.Format)))
       return D3DERR_INVALIDCALL;
 
     HRESULT hr = D3D9CommonTexture::NormalizeTextureProperties(this, D3DRTYPE_SURFACE, &desc);
@@ -4436,7 +4438,7 @@ namespace dxvk {
     desc.MultisampleQuality = MultisampleQuality;
     desc.IsBackBuffer       = FALSE;
     desc.IsAttachmentOnly   = TRUE;
-    desc.IsLockable         = IsLockableDepthStencilFormat(desc.Format);
+    desc.IsLockable         = !m_d3dCompatibility.test(D3DCompatibility::D3D7) ? IsLockableDepthStencilFormat(desc.Format) : TRUE;
 
     HRESULT hr = D3D9CommonTexture::NormalizeTextureProperties(this, D3DRTYPE_SURFACE, &desc);
     if (FAILED(hr))
@@ -4569,6 +4571,30 @@ namespace dxvk {
 
     if (unlikely(Type == D3DSAMP_MAGFILTER && (m_textureSlotTracking.fetch4SamplerState & samplerBit)))
       UpdateActiveFetch4(StateSampler);
+
+    if (StateSampler == RemapSamplerState(0)) {
+      if (Type == D3DSAMP_ADDRESSU) {
+        auto& sampler = state[RemapSamplerState(0)];
+
+        uint16_t addressU = sampler[D3DSAMP_ADDRESSU] == D3DTADDRESS_CLAMP ? 1u
+                          : sampler[D3DSAMP_ADDRESSU] == D3DTADDRESS_MIRROR ? 2u : 0u;
+
+        if (m_pushData.ffps.addressU != addressU) {
+          m_pushData.ffps.addressU = addressU;
+          m_dirty.set(D3D9DeviceDirtyFlag::PushDataFfps);
+        }
+      } else if (Type == D3DSAMP_ADDRESSV) {
+        auto& sampler = state[RemapSamplerState(0)];
+
+        uint16_t addressV = sampler[D3DSAMP_ADDRESSV] == D3DTADDRESS_CLAMP ? 1u
+                          : sampler[D3DSAMP_ADDRESSV] == D3DTADDRESS_MIRROR ? 2u : 0u;
+
+        if (m_pushData.ffps.addressV != addressV) {
+          m_pushData.ffps.addressV = addressV;
+          m_dirty.set(D3D9DeviceDirtyFlag::PushDataFfps);
+        }
+      }
+    }
 
     return D3D_OK;
   }
@@ -5051,6 +5077,38 @@ namespace dxvk {
       }
 
       if (pResource->GetImage() != nullptr) {
+        Rc<DxvkImage> resourceImage = pResource->GetImage();
+        Rc<DxvkImage> mappedImage;
+
+        // When using any map mode which requires the image contents
+         // to be preserved, and if the GPU has write access to the
+        // image, copy the current image contents into the buffer.
+        auto subresourceLayers = vk::makeSubresourceLayers(subresource);
+
+        // In D3D7 and earlier we may need to lock multisampled depth/render targets
+        if (unlikely(resourceImage->info().sampleCount != 1
+                  && m_d3dCompatibility.test(D3DCompatibility::D3D7))) {
+          mappedImage = pResource->GetResolveImage();
+
+          EmitCs([
+            cMainImage    = resourceImage,
+            cResolveImage = mappedImage,
+            cSubresource  = subresourceLayers
+          ] (DxvkContext* ctx) {
+            VkFormat format = cMainImage->info().format;
+
+            VkImageResolve region;
+            region.srcSubresource = cSubresource;
+            region.srcOffset      = VkOffset3D { 0, 0, 0 };
+            region.dstSubresource = cSubresource;
+            region.dstOffset      = VkOffset3D { 0, 0, 0 };
+            region.extent         = cMainImage->mipLevelExtent(cSubresource.mipLevel);
+
+            ctx->resolveImage(cResolveImage, cMainImage, region, format,
+              getDefaultResolveMode(format), VK_RESOLVE_MODE_SAMPLE_ZERO_BIT);
+          });
+        }
+
         // If an image exists, all GPU writes modify that. Copy it to the mapping buffer.
 
         // if packedFormat is VK_FORMAT_UNDEFINED
@@ -5059,8 +5117,8 @@ namespace dxvk {
 
         EmitCs([
           cImageBufferSlice = pResource->GetBufferSlice(Subresource),
-          cImage            = pResource->GetImage(),
-          cSubresources     = vk::makeSubresourceLayers(subresource),
+          cImage            = !mappedImage ? resourceImage : mappedImage,
+          cSubresources     = subresourceLayers,
           cLevelExtent      = levelExtent,
           cPackedFormat     = packedFormat
         ] (DxvkContext* ctx) {
@@ -8648,7 +8706,7 @@ namespace dxvk {
     rs[D3DRS_ALPHAREF]                   = 0;
     m_pushData.shared.alphaRef           = rs[D3DRS_ALPHAREF];
 
-    rs[D3DRS_MULTISAMPLEANTIALIAS]       = TRUE;
+    rs[D3DRS_MULTISAMPLEANTIALIAS]       = m_d3dCompatibility.test(D3DCompatibility::D3D7) ? FALSE : TRUE;
     rs[D3DRS_MULTISAMPLEMASK]            = 0xffffffff;
     BindMultiSampleState();
 
@@ -8663,11 +8721,11 @@ namespace dxvk {
     rs[D3DRS_COLORVERTEX]                = TRUE;
     rs[D3DRS_LOCALVIEWER]                = TRUE;
     rs[D3DRS_RANGEFOGENABLE]             = FALSE;
-    rs[D3DRS_NORMALIZENORMALS]           = FALSE;
+    rs[D3DRS_NORMALIZENORMALS]           = m_d3dCompatibility.test(D3DCompatibility::D3D6) ? TRUE : FALSE;
     m_dirty.set(D3D9DeviceDirtyFlag::FFVertexData);
 
     // PS
-    rs[D3DRS_SPECULARENABLE]             = FALSE;
+    rs[D3DRS_SPECULARENABLE]             = m_d3dCompatibility.test(D3DCompatibility::D3D5) ? TRUE : FALSE;
 
     rs[D3DRS_AMBIENT]                    = 0;
     m_dirty.set(D3D9DeviceDirtyFlag::FFVertexData);
@@ -8675,8 +8733,10 @@ namespace dxvk {
     rs[D3DRS_FOGENABLE]                  = FALSE;
     rs[D3DRS_FOGCOLOR]                   = 0;
     rs[D3DRS_FOGTABLEMODE]               = D3DFOG_NONE;
-    rs[D3DRS_FOGSTART]                   = bit::cast<DWORD>(0.0f);
-    rs[D3DRS_FOGEND]                     = bit::cast<DWORD>(1.0f);
+    rs[D3DRS_FOGSTART]                   = m_d3dCompatibility.test(D3DCompatibility::D3D6) ? bit::cast<DWORD>(1.0f)
+                                                                                           : bit::cast<DWORD>(0.0f);
+    rs[D3DRS_FOGEND]                     = m_d3dCompatibility.test(D3DCompatibility::D3D6) ? bit::cast<DWORD>(100.0f)
+                                                                                           : bit::cast<DWORD>(1.0f);
     rs[D3DRS_FOGDENSITY]                 = bit::cast<DWORD>(1.0f);
     rs[D3DRS_FOGVERTEXMODE]              = D3DFOG_NONE;
     m_dirty.set(D3D9DeviceDirtyFlag::Fog);
@@ -8908,7 +8968,7 @@ namespace dxvk {
       desc.MultisampleQuality = pPresentationParameters->MultiSampleQuality;
       desc.IsBackBuffer       = FALSE;
       desc.IsAttachmentOnly   = TRUE;
-      desc.IsLockable         = IsLockableDepthStencilFormat(desc.Format);
+      desc.IsLockable         = !m_d3dCompatibility.test(D3DCompatibility::D3D7) ? IsLockableDepthStencilFormat(desc.Format) : TRUE;
 
       if (FAILED(D3D9CommonTexture::NormalizeTextureProperties(this, D3DRTYPE_SURFACE, &desc)))
         return D3DERR_NOTAVAILABLE;
