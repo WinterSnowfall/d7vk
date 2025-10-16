@@ -1,0 +1,729 @@
+#include "ddraw2_interface.h"
+
+#include "../d3d_common_device.h"
+
+#include "../ddraw_clipper.h"
+#include "../ddraw_palette.h"
+
+#include "../ddraw/ddraw_surface.h"
+#include "../ddraw4/ddraw4_interface.h"
+#include "../ddraw7/ddraw7_interface.h"
+
+#include "../d3d3/d3d3_interface.h"
+#include "../d3d5/d3d5_interface.h"
+#include "../d3d6/d3d6_interface.h"
+
+namespace dxvk {
+
+  uint32_t DDraw2Interface::s_intfCount = 0;
+
+  DDraw2Interface::DDraw2Interface(
+        DDrawCommonInterface* commonIntf,
+        Com<IDirectDraw2>&& proxyIntf)
+    : DDrawWrappedObject<IUnknown, IDirectDraw2>(nullptr, std::move(proxyIntf))
+    , m_commonIntf ( commonIntf ) {
+    // Hold a reference to the parent IDirectDraw object, since
+    // it is needed to be able to create surfaces from this interface
+    if (likely(commonIntf->GetDDInterface() != nullptr)) {
+      m_parentIntf = commonIntf->GetDDInterface();
+    } else {
+      // Manually retrieve an IDirectDraw parent object if it doesn't otherwise exist,
+      // which can happen if this interface is created directly from an IDirectDraw4 origin
+      Com<IDirectDraw> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(__uuidof(IDirectDraw), reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        throw DxvkError("DDraw2Interface: ERROR! Failed to retrieve a parent IDirectDraw interface!");
+
+      m_parentIntf = new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject));
+    }
+
+    // Note: IDirectDraw2 can never be the origin interface
+
+    m_commonIntf->SetDD2Interface(this);
+
+    m_intfCount = ++s_intfCount;
+
+    Logger::debug(str::format("DDraw2Interface: Created a new interface nr. <<2-", m_intfCount, ">>"));
+  }
+
+  DDraw2Interface::~DDraw2Interface() {
+    m_commonIntf->SetDD2Interface(nullptr);
+
+    Logger::debug(str::format("DDraw2Interface: Interface nr. <<2-", m_intfCount, ">> bites the dust"));
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> DDraw2Interface::QueryInterface");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    // Standard way of retrieving a D3D5 interface
+    if (riid == __uuidof(IDirect3D2)) {
+      if (m_commonIntf->GetDDInterface() != nullptr) {
+        Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D2");
+        return m_commonIntf->GetDDInterface()->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::warn("DDraw2Interface::QueryInterface: Query for IDirect3D2");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    // Some games query for legacy DDraw interfaces
+    if (unlikely(riid == __uuidof(IDirectDraw))) {
+      if (m_commonIntf->GetDDInterface() != nullptr) {
+        Logger::debug("DDraw2Interface::QueryInterface: Query for existing IDirectDraw");
+        return m_commonIntf->GetDDInterface()->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirectDraw");
+
+      Com<IDirectDraw> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+
+      return S_OK;
+    }
+    // Legacy way of getting a DDraw4 interface
+    if (riid == __uuidof(IDirectDraw4)) {
+      if (m_commonIntf->GetDD4Interface() != nullptr) {
+        Logger::debug("DDraw2Interface::QueryInterface: Query for existing IDirectDraw4");
+        return m_commonIntf->GetDD4Interface()->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirectDraw4");
+
+      Com<IDirectDraw4> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+
+      return S_OK;
+    }
+    // Legacy way of getting a DDraw7 interface
+    if (unlikely(riid == __uuidof(IDirectDraw7))) {
+      if (m_commonIntf->GetDD7Interface() != nullptr) {
+        Logger::debug("DDraw2Interface::QueryInterface: Query for existing IDirectDraw7");
+        return m_commonIntf->GetDD7Interface()->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirectDraw7");
+
+      Com<IDirectDraw7> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+
+      return S_OK;
+    }
+    // Standard way of retrieving a D3D3 interface
+    if (unlikely(riid == __uuidof(IDirect3D))) {
+      if (m_commonIntf->GetDDInterface() != nullptr) {
+        Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D");
+        return m_commonIntf->GetDDInterface()->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D");
+
+      Com<D3D3Interface> d3d3Intf = new D3D3Interface(m_commonIntf.ptr(), nullptr, this);
+      m_commonIntf->SetD3D3Interface(d3d3Intf.ptr());
+      *ppvObject = d3d3Intf.ref();
+
+      return S_OK;
+    }
+    // Standard way of retrieving a D3D5 interface
+    if (unlikely(riid == __uuidof(IDirect3D2))) {
+      if (m_commonIntf->GetDDInterface() != nullptr) {
+        Logger::debug("DDraw2Interface::QueryInterface: Forwarded query for IDirect3D2");
+        return m_commonIntf->GetDDInterface()->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D2");
+
+      Com<D3D5Interface> d3d5Intf = new D3D5Interface(m_commonIntf.ptr(), nullptr, this);
+      *ppvObject = d3d5Intf.ref();
+
+      return S_OK;
+    }
+    // Standard way of retrieving a D3D6 interface
+    if (unlikely(riid == __uuidof(IDirect3D3))) {
+      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D3");
+
+      Com<IDirect3D3> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      Com<D3D6Interface> d3d6Intf = new D3D6Interface(m_commonIntf.ptr(), nullptr, std::move(ppvProxyObject), this);
+      *ppvObject = d3d6Intf.ref();
+
+      return S_OK;
+    }
+    // Quite a lot of games query for this IID during intro playback
+    if (unlikely(riid == GUID_IAMMediaStream)) {
+      Logger::debug("DDraw2Interface::QueryInterface: Query for IAMMediaStream");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    // Also seen queried by some games, such as V-Rally 2: Expert Edition
+    if (unlikely(riid == GUID_IMediaStream)) {
+      Logger::debug("DDraw2Interface::QueryInterface: Query for IMediaStream");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
+
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirectDraw2))) {
+      *ppvObject = ref(this);
+      return S_OK;
+    }
+
+    Logger::warn("DDraw2Interface::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
+  }
+
+  // The documentation states: "The IDirectDraw2::Compact method is not currently implemented."
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::Compact() {
+    Logger::debug(">>> DDraw2Interface::Compact");
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
+    Logger::debug(">>> DDraw2Interface::CreateClipper");
+
+    if (unlikely(lplpDDClipper == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDClipper);
+
+    Com<IDirectDrawClipper> lplpDDClipperProxy;
+    HRESULT hr = m_proxy->CreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
+
+    if (likely(SUCCEEDED(hr))) {
+      *lplpDDClipper = ref(new DDrawClipper(m_commonIntf.ptr(), std::move(lplpDDClipperProxy), this));
+    } else {
+      Logger::warn("DDraw2Interface::CreateClipper: Failed to create proxy clipper");
+      return hr;
+    }
+
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpColorTable, LPDIRECTDRAWPALETTE *lplpDDPalette, IUnknown *pUnkOuter) {
+    Logger::debug(">>> DDraw2Interface::CreatePalette");
+
+    if (unlikely(lplpDDPalette == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDPalette);
+
+    Com<IDirectDrawPalette> lplpDDPaletteProxy;
+    HRESULT hr = m_proxy->CreatePalette(dwFlags, lpColorTable, &lplpDDPaletteProxy, pUnkOuter);
+
+    if (likely(SUCCEEDED(hr))) {
+      // Palettes created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
+      *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), nullptr));
+    } else {
+      Logger::warn("DDraw2Interface::CreatePalette: Failed to create proxy palette");
+      return hr;
+    }
+
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE *lplpDDSurface, IUnknown *pUnkOuter) {
+    Logger::debug(">>> DDraw2Interface::CreateSurface");
+
+    // The cooperative level is always checked first
+    if (unlikely(!m_commonIntf->IsCooperativeLevelSet()))
+      return DDERR_NOCOOPERATIVELEVELSET;
+
+    if (unlikely(lpDDSurfaceDesc == nullptr || lplpDDSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDSurface);
+
+    // Because we are removing the DDSCAPS_WRITEONLY flag below, we need
+    // to first validate the combinations that would otherwise cause issues
+    HRESULT hr = ValidateSurfaceFlags(lpDDSurfaceDesc);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    // We need to ensure we can always read from surfaces for upload to
+    // D3D9, so always strip the DDSCAPS_WRITEONLY flag on creation
+    lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_WRITEONLY;
+
+    if (unlikely((lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)
+              && (lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF))) {
+      if (m_commonIntf->GetOptions()->useD24X8forD32) {
+        // In case of up-front unsupported and unadvertised D32 depth stencil use,
+        // replace it with D24X8, as some games, such as Sacrifice, rely on it
+        // to properly enable 32-bit display modes (and revert to 16-bit otherwise)
+        Logger::info("DDraw2Interface::CreateSurface: Using D24X8 instead of D32");
+        lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask = 0xFFFFFF;
+      } else {
+        Logger::warn("DDraw2Interface::CreateSurface: Use of unsupported D32");
+      }
+    }
+
+    Com<IDirectDrawSurface> ddrawSurfaceProxied;
+    hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddrawSurfaceProxied, pUnkOuter);
+
+    if (likely(SUCCEEDED(hr))) {
+      try{
+        // Surfaces created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
+        Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied),
+                                                     m_commonIntf->GetDDInterface(), nullptr, false);
+
+        if (unlikely(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)) {
+          m_commonIntf->SetPrimarySurface(surface->GetCommonSurface());
+
+          // Shadow surface creation for the primary surface
+          // (it needs to be based on the same incoming desc)
+          if (unlikely(!surface->GetCommonSurface()->Is8BitFormat() &&
+                        m_commonIntf->GetOptions()->forceLegacyPresent)) {
+            Logger::debug("DDraw2Interface::CreateSurface: Creating shadow surface");
+
+            DDSURFACEDESC shadowDesc = *lpDDSurfaceDesc;
+            const DDSURFACEDESC* primaryDesc = surface->GetCommonSurface()->GetDesc();
+
+            shadowDesc.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE & ~DDSCAPS_FRONTBUFFER & ~DDSCAPS_COMPLEX & ~DDSCAPS_FLIP;
+            shadowDesc.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
+            shadowDesc.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
+            // Dimensions aren't specified in the incoming desc,
+            // but are explicitly needed for non-primary surfaces
+            shadowDesc.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
+            shadowDesc.dwWidth  = primaryDesc->dwWidth;
+            shadowDesc.dwHeight = primaryDesc->dwHeight;
+
+            Com<IDirectDrawSurface> ddrawSurfaceShadow;
+            hr = m_proxy->CreateSurface(&shadowDesc, &ddrawSurfaceShadow, pUnkOuter);
+            if (unlikely(FAILED(hr))) {
+              Logger::warn("DDraw2Interface::CreateSurface: Failed to create shadow surface");
+            } else {
+              Com<DDrawSurface> shadowSurf = new DDrawSurface(nullptr, std::move(ddrawSurfaceShadow),
+                                                              m_commonIntf->GetDDInterface(), nullptr, false);
+              surface->SetShadowSurface(std::move(shadowSurf));
+            }
+          }
+        }
+
+        *lplpDDSurface = surface.ref();
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+    } else {
+      Logger::debug("DDraw2Interface::CreateSurface: Failed to create proxy surface");
+      return hr;
+    }
+
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::DuplicateSurface(LPDIRECTDRAWSURFACE lpDDSurface, LPDIRECTDRAWSURFACE *lplpDupDDSurface) {
+    Logger::debug("<<< DDraw2Interface::DuplicateSurface: Proxy");
+
+    if (DDrawCommonInterface::IsWrappedSurface(lpDDSurface)) {
+      InitReturnPtr(lplpDupDDSurface);
+
+      DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSurface);
+      Com<IDirectDrawSurface> dupSurface;
+      HRESULT hr = m_proxy->DuplicateSurface(ddrawSurface->GetProxied(), &dupSurface);
+      if (likely(SUCCEEDED(hr))) {
+        try {
+          *lplpDupDDSurface = ref(new DDrawSurface(nullptr, std::move(dupSurface),
+                                                   m_commonIntf->GetDDInterface(), nullptr, false));
+        } catch (const DxvkError& e) {
+          Logger::err(e.message());
+          return DDERR_GENERIC;
+        }
+      }
+      return hr;
+    } else {
+      if (unlikely(lpDDSurface != nullptr)) {
+        Logger::warn("DDraw2Interface::DuplicateSurface: Received an unwrapped source surface");
+        return DDERR_UNSUPPORTED;
+      }
+      return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
+    }
+
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK lpEnumModesCallback) {
+    Logger::debug("<<< DDraw2Interface::EnumDisplayModes: Proxy");
+    return m_proxy->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSD, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback) {
+    if (unlikely(m_commonIntf->GetDDInterface() == nullptr)) {
+      Logger::warn("!!! DDraw2Interface::EnumSurfaces: Stub");
+      return DDERR_UNSUPPORTED;
+    }
+
+    Logger::warn(">>> DDraw2Interface::EnumSurfaces");
+    return m_commonIntf->GetDDInterface()->EnumSurfaces(dwFlags, lpDDSD, lpContext, lpEnumSurfacesCallback);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::FlipToGDISurface() {
+    Logger::debug("*** DDraw2Interface::FlipToGDISurface: Ignoring");
+
+    DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();
+
+    // A primary surface must exist for a GDI flip to be possible
+    if (unlikely(ps == nullptr))
+      return DDERR_NOTFOUND;
+
+    if (unlikely(!ps->IsFlippable()))
+      return DDERR_NOTFLIPPABLE;
+
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps) {
+    Logger::debug("<<< DDraw2Interface::GetCaps: Proxy");
+
+    if (unlikely(lpDDDriverCaps == nullptr && lpDDHELCaps == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    // Interstate '76 sends invalid dwSizes part of the structs,
+    // and that explodes in Wine, so validate it before proxying
+    if (unlikely(lpDDDriverCaps != nullptr && !IsValidDDrawCapsSize(lpDDDriverCaps->dwSize)))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(lpDDHELCaps != nullptr && !IsValidDDrawCapsSize(lpDDHELCaps->dwSize)))
+      return DDERR_INVALIDPARAMS;
+
+    HRESULT hr = m_proxy->GetCaps(lpDDDriverCaps, lpDDHELCaps);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    static constexpr DWORD Megabytes = 1024 * 1024;
+    static constexpr DWORD MaxMemory = ddrawCaps::MaxTextureMemory * Megabytes;
+    static constexpr DWORD ReservedMemory = ddrawCaps::ReservedTextureMemory * Megabytes;
+
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+    // Properly fill in the dwVidMemTotal / dwVidMemFree fields
+    DWORD total9 = 0;
+    DWORD free9  = 0;
+
+    D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+    if (likely(commonDevice != nullptr)) {
+      Logger::debug("DDraw2Interface::GetCaps: Getting memory stats from D3D9");
+
+      d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
+
+      total9 = static_cast<DWORD>(commonDevice->GetTotalTextureMemory());
+      free9  = static_cast<DWORD>(d3d9Device->GetAvailableTextureMem());
+
+      if (likely(total9 >= MaxMemory)) {
+        const DWORD delta = total9 - MaxMemory;
+        total9 = MaxMemory - ReservedMemory;
+        free9 = free9 > delta + ReservedMemory ? free9 - (delta + ReservedMemory) : 0;
+      }
+
+      Logger::debug(str::format("DDraw2Interface::GetCaps: Total: ", total9));
+      Logger::debug(str::format("DDraw2Interface::GetCaps: Free : ", free9));
+    } else {
+      Logger::debug("DDraw2Interface::GetCaps: Getting memory stats from DDraw");
+
+      const DWORD total5 = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemTotal : 0;
+      const DWORD free5  = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemFree  : 0;
+
+      Logger::debug(str::format("DDraw2Interface::GetCaps: DDraw Total: ", total5));
+      Logger::debug(str::format("DDraw2Interface::GetCaps: DDraw Free : ", free5));
+
+      if (unlikely(total5 < MaxMemory)) {
+        total9 = total5;
+        free9 = free5;
+      } else {
+        const DWORD delta = total5 - MaxMemory;
+        total9 = MaxMemory - ReservedMemory;
+        free9 = free5 > delta + ReservedMemory ? free5 - (delta + ReservedMemory) : 0;
+      }
+
+      Logger::debug(str::format("DDraw2Interface::GetCaps: Total: ", total9));
+      Logger::debug(str::format("DDraw2Interface::GetCaps: Free : ", free9));
+    }
+
+    if (lpDDDriverCaps != nullptr) {
+      lpDDDriverCaps->dwZBufferBitDepths = d3dOptions->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
+      lpDDDriverCaps->dwVidMemTotal = total9;
+      lpDDDriverCaps->dwVidMemFree  = free9;
+      lpDDDriverCaps->dwNumFourCCCodes = ddrawCaps::NumberOfFOURCCCodes;
+    }
+    if (lpDDHELCaps != nullptr) {
+      lpDDHELCaps->dwZBufferBitDepths = d3dOptions->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
+      lpDDHELCaps->dwVidMemTotal = total9;
+      lpDDHELCaps->dwVidMemFree  = free9;
+      lpDDHELCaps->dwNumFourCCCodes = ddrawCaps::NumberOfFOURCCCodes;
+    }
+
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetDisplayMode(LPDDSURFACEDESC lpDDSurfaceDesc) {
+    Logger::debug("<<< DDraw2Interface::GetDisplayMode: Proxy");
+
+    if (unlikely(lpDDSurfaceDesc == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    HRESULT hr = m_proxy->GetDisplayMode(lpDDSurfaceDesc);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+    if (unlikely(d3dOptions->mask8BitModes && lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount == 8))
+      lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = 16;
+
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes) {
+    Logger::debug(">>> DDraw2Interface::GetFourCCCodes");
+
+    if (likely(lpNumCodes != nullptr && lpCodes != nullptr)) {
+      const uint32_t copyNumCodes = std::min<uint32_t>(ddrawCaps::NumberOfFOURCCCodes, *lpNumCodes);
+      for (uint32_t i = 0; i < copyNumCodes; i++) {
+        lpCodes[i] = ddrawCaps::SupportedFourCCs[i];
+      }
+    }
+
+    if (lpNumCodes != nullptr)
+      *lpNumCodes = ddrawCaps::NumberOfFOURCCCodes;
+
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetGDISurface(LPDIRECTDRAWSURFACE *lplpGDIDDSurface) {
+    Logger::debug("<<< DDraw2Interface::GetGDISurface: Proxy");
+
+    if(unlikely(lplpGDIDDSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpGDIDDSurface);
+
+    Com<IDirectDrawSurface> gdiSurface;
+    HRESULT hr = m_proxy->GetGDISurface(&gdiSurface);
+
+    if (unlikely(FAILED(hr))) {
+      Logger::debug("DDraw2Interface::GetGDISurface: Failed to retrieve GDI surface");
+      return hr;
+    }
+
+    if (unlikely(DDrawCommonInterface::IsWrappedSurface(gdiSurface.ptr()))) {
+      *lplpGDIDDSurface = gdiSurface.ref();
+    } else {
+      Logger::debug("DDraw2Interface::GetGDISurface: Received a non-wrapped GDI surface");
+      try {
+        *lplpGDIDDSurface = ref(new DDrawSurface(nullptr, std::move(gdiSurface),
+                                                 m_commonIntf->GetDDInterface(), nullptr, false));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+    }
+
+    return hr;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetMonitorFrequency(LPDWORD lpdwFrequency) {
+    Logger::debug("<<< DDraw2Interface::GetMonitorFrequency: Proxy");
+    return m_proxy->GetMonitorFrequency(lpdwFrequency);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetScanLine(LPDWORD lpdwScanLine) {
+    Logger::debug("<<< DDraw2Interface::GetScanLine: Proxy");
+    return m_proxy->GetScanLine(lpdwScanLine);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetVerticalBlankStatus(LPBOOL lpbIsInVB) {
+    Logger::debug("<<< DDraw2Interface::GetVerticalBlankStatus: Proxy");
+    return m_proxy->GetVerticalBlankStatus(lpbIsInVB);
+  }
+
+  // Should technically always return DDERR_ALREADYINITIALIZED, unless the
+  // interface is created via IClassFactory, however Requiem: Avenging Angel
+  // expects it to work on a regular interface too, after initially creating
+  // and releasing an interface through IClassFactory (but never initializing it).
+  // On native DDraw the initial interface most likely gets reused. In practice,
+  // applications that don't use IClassFactory won't call this, so keep it simple.
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::Initialize(GUID* lpGUID) {
+    Logger::debug(">>> DDraw2Interface::Initialize");
+
+    if (unlikely(m_commonIntf->IsInitialized()))
+      return DDERR_ALREADYINITIALIZED;
+
+    m_commonIntf->MarkAsInitialized();
+
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::RestoreDisplayMode() {
+    Logger::debug("<<< DDraw2Interface::RestoreDisplayMode: Proxy");
+    return m_proxy->RestoreDisplayMode();
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
+    Logger::debug("<<< DDraw2Interface::SetCooperativeLevel: Proxy");
+
+    // DDSCL_CREATEDEVICEWINDOW doesn't appear to behave properly in
+    // Wine, so use the cached hWnd to set the device window instead
+    if (unlikely((dwFlags & DDSCL_CREATEDEVICEWINDOW) && hWnd == nullptr
+               && m_commonIntf->GetHWND() != nullptr)) {
+      dwFlags &= ~DDSCL_CREATEDEVICEWINDOW;
+      dwFlags |= DDSCL_SETDEVICEWINDOW;
+      hWnd = m_commonIntf->GetHWND();
+    }
+
+    HRESULT hr = m_proxy->SetCooperativeLevel(hWnd, dwFlags);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    m_commonIntf->SetCooperativeLevel(hWnd, dwFlags);
+
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags) {
+    Logger::debug("<<< DDraw2Interface::SetDisplayMode: Proxy");
+
+    Logger::debug(str::format("DDraw2Interface::SetDisplayMode: ", dwWidth, "x", dwHeight, ":", dwBPP, "@", dwRefreshRate));
+
+    HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();
+
+    if (likely(ps != nullptr)) {
+      hr = ps->RefreshSurfaceDescripton();
+      if (unlikely(FAILED(hr)))
+        Logger::warn("DDraw2Interface::SetDisplayMode: Failed to update primary surface desc");
+    }
+
+    if (likely(m_commonIntf->GetOptions()->backBufferResize)) {
+      const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+
+      // Ignore any mode size dimensions when in windowed present mode
+      if (exclusiveMode) {
+        Logger::debug("DDraw2Interface::SetDisplayMode: Exclusive full-screen present mode in use");
+        DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
+        if (modeSize->width != dwWidth || modeSize->height != dwHeight) {
+          modeSize->width  = dwWidth;
+          modeSize->height = dwHeight;
+        }
+      }
+    }
+
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
+    Logger::debug(">>> DDraw2Interface::WaitForVerticalBlank");
+
+    if (unlikely(dwFlags & DDWAITVB_BLOCKBEGINEVENT))
+      return DDERR_UNSUPPORTED;
+
+    // Switch to a default presentation interval when an application
+    // tries to wait for vertical blank, if we're not already doing so
+    D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+    if (unlikely(commonDevice != nullptr && !m_commonIntf->GetWaitForVBlank())) {
+      Logger::info("DDraw2Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
+
+      d3d9::D3DPRESENT_PARAMETERS resetParams = *commonDevice->GetPresentParameters();
+      resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+      HRESULT hrReset = commonDevice->ResetD3D9Swapchain(&resetParams);
+      if (likely(SUCCEEDED(hrReset)))
+        m_commonIntf->SetWaitForVBlank(true);
+    }
+
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetAvailableVidMem(LPDDSCAPS lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree) {
+    Logger::debug(">>> DDraw2Interface::GetAvailableVidMem");
+
+    if (unlikely(lpdwTotal == nullptr && lpdwFree == nullptr))
+      return DD_OK;
+
+    static constexpr DWORD Megabytes = 1024 * 1024;
+    static constexpr DWORD MaxMemory = ddrawCaps::MaxTextureMemory * Megabytes;
+    static constexpr DWORD ReservedMemory = ddrawCaps::ReservedTextureMemory * Megabytes;
+
+    D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+    if (likely(commonDevice != nullptr)) {
+      Logger::debug("DDraw2Interface::GetAvailableVidMem: Getting memory stats from D3D9");
+
+      d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
+
+      DWORD total9 = static_cast<DWORD>(commonDevice->GetTotalTextureMemory());
+      DWORD free9  = static_cast<DWORD>(d3d9Device->GetAvailableTextureMem());
+
+      if (likely(total9 >= MaxMemory)) {
+        const DWORD delta = total9 - MaxMemory;
+        total9 = MaxMemory - ReservedMemory;
+        free9 = free9 > delta + ReservedMemory ? free9 - (delta + ReservedMemory) : 0;
+      }
+
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Total: ", total9));
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Free : ", free9));
+
+      if (lpdwTotal != nullptr)
+        *lpdwTotal = total9;
+      if (lpdwFree != nullptr)
+        *lpdwFree  = free9;
+
+    } else {
+      Logger::debug("DDraw2Interface::GetAvailableVidMem: Getting memory stats from DDraw");
+
+      DWORD total5 = 0;
+      DWORD free5  = 0;
+
+      HRESULT hr = m_proxy->GetAvailableVidMem(lpDDCaps, &total5, &free5);
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw2Interface::GetAvailableVidMem: Failed proxied call");
+        if (lpdwTotal != nullptr)
+          *lpdwTotal = 0;
+        if (lpdwFree != nullptr)
+          *lpdwFree  = 0;
+        return hr;
+      }
+
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: DDraw Total: ", total5));
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: DDraw Free : ", free5));
+
+      DWORD total9 = 0;
+      DWORD free9  = 0;
+
+      if (unlikely(total5 < MaxMemory)) {
+        total9 = total5;
+        free9 = free5;
+      } else {
+        const DWORD delta = total5 - MaxMemory;
+        total9 = MaxMemory - ReservedMemory;
+        free9 = free5 > delta + ReservedMemory ? free5 - (delta + ReservedMemory) : 0;
+      }
+
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Total: ", total9));
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Free : ", free9));
+
+      if (lpdwTotal != nullptr)
+        *lpdwTotal = total9;
+      if (lpdwFree != nullptr)
+        *lpdwFree  = free9;
+    }
+
+    return DD_OK;
+  }
+
+}
