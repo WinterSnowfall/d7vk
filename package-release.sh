@@ -74,6 +74,10 @@ function build_arch {
         --libdir "x$1"                                      \
         -Db_ndebug=if-release                               \
         -Dbuild_id=$opt_buildid                             \
+        -Denable_dxgi=false                                 \
+        -Denable_d3d8=false                                 \
+        -Denable_d3d10=false                                \
+        -Denable_d3d11=false                                \
         "$DXVK_BUILD_DIR/build.$1"
 
   cd "$DXVK_BUILD_DIR/build.$1"
@@ -92,9 +96,9 @@ function package {
   rm -R "dxvk-$DXVK_VERSION"
 }
 
-if [ $opt_32_only -eq 0 ]; then
-  build_arch 64
-fi
+#if [ $opt_32_only -eq 0 ]; then
+#  build_arch 64
+#fi
 if [ $opt_64_only -eq 0 ]; then
   build_arch 32
 fi
