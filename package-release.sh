@@ -26,7 +26,7 @@ opt_nopackage=0
 opt_devbuild=0
 opt_buildid=false
 opt_64_only=0
-opt_32_only=0
+opt_32_only=1
 opt_arm64x_only=0
 opt_build_arm64x=0
 
@@ -82,6 +82,10 @@ function build_arch {
         --libdir "$2"                                      \
         -Db_ndebug=if-release                               \
         -Dbuild_id=$opt_buildid                             \
+        -Denable_dxgi=false                                 \
+        -Denable_d3d8=false                                 \
+        -Denable_d3d10=false                                \
+        -Denable_d3d11=false                                \
         "$DXVK_BUILD_DIR/build.$1"
 
   cd "$DXVK_BUILD_DIR/build.$1"
