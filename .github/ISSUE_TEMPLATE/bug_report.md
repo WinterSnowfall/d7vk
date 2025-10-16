@@ -18,7 +18,7 @@ Name of the game, settings used etc. Include any mods or add-ons if applicable.
 - GPU:
 - Driver:
 - Wine version: 
-- DXVK version: 
+- D7VK version: 
 
 ### Apitrace file(s)
 - Put a link here
