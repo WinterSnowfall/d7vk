@@ -10,6 +10,7 @@ namespace dxvk {
   DDraw7Interface::DDraw7Interface(Com<IDirectDraw7>&& proxyIntf)
     : m_proxy ( std::move(proxyIntf) ) {
     void* d3d7IntfProxiedVoid = nullptr;
+    // This can never reasonably fail
     m_proxy->QueryInterface(__uuidof(IDirect3D7), &d3d7IntfProxiedVoid);
     Com<IDirect3D7> d3d7IntfProxied = static_cast<IDirect3D7*>(d3d7IntfProxiedVoid);
     m_d3d7Intf = new D3D7Interface(std::move(d3d7IntfProxied), this);
@@ -18,7 +19,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::QueryInterface(REFIID riid, void** ppvObject) {
     Logger::debug(">>> DDraw7Interface::QueryInterface");
 
-    if (ppvObject == nullptr)
+    if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
     *ppvObject = nullptr;
@@ -57,10 +58,13 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPDIRECTDRAWSURFACE7 *lplpDDSurface, IUnknown *pUnkOuter) {
     Logger::debug(">>> DDraw7Interface::CreateSurface");
 
+    if (unlikely(lpDDSurfaceDesc == nullptr || lplpDDSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     Com<IDirectDrawSurface7> ddraw7SurfaceProxied;
     HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddraw7SurfaceProxied, pUnkOuter);
 
-    if (SUCCEEDED(hr)) {
+    if (likely(SUCCEEDED(hr))) {
       *lplpDDSurface = ref(new DDraw7Surface(std::move(ddraw7SurfaceProxied), this, nullptr, *lpDDSurfaceDesc));
     } else {
       Logger::err("DDraw7Interface::CreateSurface: Failed to create proxy surface");
@@ -72,11 +76,6 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIRECTDRAWSURFACE7 *lplpDupDDSurface) {
     Logger::debug("<<< DDraw7Interface::DuplicateSurface: Proxy");
-
-    if (lpDDSurface == nullptr) {
-      Logger::warn("DDraw7Interface::DuplicateSurface:: NULL source surface");
-      return D3DERR_INVALIDCALL;
-    }
 
     if (IsWrappedSurface(lpDDSurface)) {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSurface);
@@ -100,10 +99,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::FlipToGDISurface() {
     Logger::debug("*** DDraw7Interface::FlipToGDISurface: Presenting");
 
-    m_proxy->FlipToGDISurface();
-
+    // TODO: Does it even make any sense to present here?
     D3D7Device* d3d7Device = GetD3D7Device();
-    if (d3d7Device != nullptr) {
+    if (likely(d3d7Device != nullptr)) {
       d3d7Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
     }
 
@@ -128,18 +126,22 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetGDISurface(IDirectDrawSurface7** lplpGDIDDSurface) {
     Logger::debug("<<< DDraw7Interface::GetGDISurface: Proxy");
 
+    if(unlikely(lplpGDIDDSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     Com<IDirectDrawSurface7> gdiSurface = nullptr;
     HRESULT hr = m_proxy->GetGDISurface(&gdiSurface);
 
-    if (FAILED(hr)) {
+    if (unlikely(FAILED(hr))) {
       Logger::err("DDraw7Interface::GetGDISurface: Failed to retrieve GDI surface");
       return hr;
     }
 
-    if (IsWrappedSurface(gdiSurface.ptr())) {
+    if (unlikely(IsWrappedSurface(gdiSurface.ptr()))) {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(gdiSurface.ptr());
       *lplpGDIDDSurface = ddraw7Surface->GetProxied();
     } else {
+      Logger::debug("DDraw7Interface::GetGDISurface: Received a non-wrapped GDI surface");
       DDSURFACEDESC2 desc;
       desc.dwSize = sizeof(DDSURFACEDESC2);
       gdiSurface->GetSurfaceDesc(&desc);
@@ -177,6 +179,8 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
     Logger::debug("<<< DDraw7Interface::SetCooperativeLevel: Proxy");
+    // This needs to be called on interface init, so is a reliable
+    // way of getting the needed hWnd for d3d7 device creation
     m_d3d7Intf->SetHwnd(hWnd);
     return m_proxy->SetCooperativeLevel(hWnd, dwFlags);
   }
@@ -193,16 +197,21 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetAvailableVidMem(LPDDSCAPS2 lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree) {
     Logger::debug("<<< DDraw7Interface::GetAvailableVidMem: Proxy");
+    // TODO: Implement memory limit reporting based
+    // on returned data, as some games will need it
     return m_proxy->GetAvailableVidMem(lpDDCaps, lpdwTotal, lpdwFree);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetSurfaceFromDC(HDC hdc, IDirectDrawSurface7** pSurf) {
     Logger::debug(">>> DDraw7Interface::GetSurfaceFromDC");
 
+    if (unlikely(pSurf == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     Com<IDirectDrawSurface7> surface = nullptr;
     HRESULT hr = m_proxy->GetSurfaceFromDC(hdc, &surface);
 
-    if (FAILED(hr)) {
+    if (unlikely(FAILED(hr))) {
       Logger::err("DDraw7Interface::GetSurfaceFromDC: Failed to get surface from DC");
       return hr;
     }
@@ -246,7 +255,7 @@ namespace dxvk {
 
     DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(surface);
     auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddraw7Surface);
-    if (it != m_surfaces.end())
+    if (likely(it != m_surfaces.end()))
       return true;
 
     return false;
@@ -257,7 +266,7 @@ namespace dxvk {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(surface);
 
       auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddraw7Surface);
-      if (it != m_surfaces.end()) {
+      if (unlikely(it != m_surfaces.end())) {
           Logger::err("DDraw7Interface::AddWrappedSurface: Pre-existing wrapped surface found");
       } else {
         m_surfaces.push_back(ddraw7Surface);
@@ -270,7 +279,7 @@ namespace dxvk {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(surface);
 
       auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddraw7Surface);
-      if (it != m_surfaces.end()) {
+      if (likely(it != m_surfaces.end())) {
           m_surfaces.erase(it);
       }
     }
