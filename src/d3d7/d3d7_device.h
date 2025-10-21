@@ -126,6 +126,10 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetInfo(DWORD info_id, void *info, DWORD info_size);
 
+    DDraw7Surface* GetRenderTarget() const {
+      return m_rt.ptr();
+    }
+
   private:
 
     void UploadIndices(void* indices, DWORD indexCount);
