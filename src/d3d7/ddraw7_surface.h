@@ -127,66 +127,55 @@ namespace dxvk {
       m_d3d9 = std::move(surface);
     }
 
-    bool IsAttached() const {
+    inline bool IsAttached() const {
       return m_parentSurf != nullptr;
     }
 
-    bool IsNotKnown() const {
+    inline bool IsNotKnown() const {
       return !(m_desc.dwFlags & DDSD_CAPS);
     }
 
-    bool IsFrontBuffer() const {
+    inline bool IsFrontBuffer() const {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE;
     }
 
-    bool IsBackBuffer() const {
+    inline bool IsBackBuffer() const {
       return m_desc.ddsCaps.dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP);
     }
 
-    bool IsOffScreenPlainSurface() const {
+    inline bool IsOffScreenPlainSurface() const {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN;
     }
 
-    bool IsDepthStencil() const {
+    inline bool IsDepthStencil() const {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_ZBUFFER;
     }
 
-    bool IsTexture() const {
+    inline bool IsTexture() const {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_TEXTURE;
     }
 
-    bool IsTextureMip() const {
+    inline bool IsTextureMip() const {
       return m_desc.ddsCaps.dwCaps & (DDSCAPS_TEXTURE | DDSCAPS_MIPMAP) ||
              m_desc.ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL;
     }
 
-    bool IsCubeMap() const {
+    inline bool IsCubeMap() const {
       return m_desc.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP;
     }
 
     // TODO: Probably wrong, need a more accurate way
-    bool IsRenderTarget() const {
+    inline bool IsRenderTarget() const {
       return IsFrontBuffer() || IsBackBuffer() || IsOffScreenPlainSurface();
     }
 
-    HRESULT InitializeOrUploadD3D9() {
-      HRESULT hr = D3DERR_NOTAVAILABLE;
-
-      refreshD3D7Device();
-
-      if (!IsInitialized())
-        hr = IntializeD3D9();
-      else
-        hr = UploadTextureData();
-
-      return hr;
-    }
+    HRESULT InitializeOrUploadD3D9();
 
   private:
 
-    HRESULT IntializeD3D9();
+    inline HRESULT IntializeD3D9();
 
-    HRESULT UploadTextureData();
+    inline HRESULT UploadTextureData();
 
     inline bool IsInitialized() const {
       return m_d3d9 != nullptr || m_texture != nullptr || m_cubeMap != nullptr;
@@ -197,7 +186,7 @@ namespace dxvk {
     inline void refreshD3D7Device() {
       D3D7Device* d3d7device = m_parent->GetD3D7Device();
       // Check if the device has been lost
-      if (m_d3d7device != nullptr && m_d3d7device != d3d7device) {
+      if (unlikely(m_d3d7device != nullptr && m_d3d7device != d3d7device)) {
         Logger::warn("D3D9 device has been recreated, clearing all d3d9 resources");
         m_d3d9 = nullptr;
         m_texture = nullptr;
@@ -226,6 +215,7 @@ namespace dxvk {
       Logger::info(str::format("   Type:       ", type));
       Logger::info(str::format("   Dimensions: ", m_desc.dwWidth, "x", m_desc.dwHeight));
       Logger::info(str::format("   Format:     ", format));
+      Logger::info(str::format("   MipLevels:  ", m_desc.dwMipMapCount + 1));
       Logger::info(str::format("   IsAttached: ", attached));
     }
 

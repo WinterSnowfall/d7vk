@@ -171,7 +171,7 @@ namespace dxvk {
                               | D3DPMISCCAPS_CULLCW
                               | D3DPMISCCAPS_CULLNONE
                            // | D3DPMISCCAPS_LINEPATTERNREP // Not implemented in D3D9
-                              | D3DPMISCCAPS_MASKPLANES // ?????
+                              | D3DPMISCCAPS_MASKPLANES
                               | D3DPMISCCAPS_MASKZ;
 
     prim.dwRasterCaps         = D3DPRASTERCAPS_ANISOTROPY
@@ -184,8 +184,8 @@ namespace dxvk {
                               | D3DPRASTERCAPS_FOGVERTEX
                               | D3DPRASTERCAPS_MIPMAPLODBIAS
                            // | D3DPRASTERCAPS_PAT // Not implemented in D3D9
-                              | D3DPRASTERCAPS_ROP2 // ?????
-                              | D3DPRASTERCAPS_STIPPLE // Not entirely sure if we should expose this
+                              | D3DPRASTERCAPS_ROP2 // Huh?
+                              | D3DPRASTERCAPS_STIPPLE
                               | D3DPRASTERCAPS_SUBPIXEL // I guess...
                            // | D3DPRASTERCAPS_SUBPIXELX
                               | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
@@ -193,7 +193,7 @@ namespace dxvk {
                               | D3DPRASTERCAPS_WFOG
                               | D3DPRASTERCAPS_XOR
                               | D3DPRASTERCAPS_ZBIAS
-                              | D3DPRASTERCAPS_ZBUFFERLESSHSR // Sure, sure
+                              | D3DPRASTERCAPS_ZBUFFERLESSHSR // Emh, sure?
                               | D3DPRASTERCAPS_ZFOG
                               | D3DPRASTERCAPS_ZTEST;
 
@@ -225,7 +225,7 @@ namespace dxvk {
     prim.dwAlphaCmpCaps       = prim.dwZCmpCaps;
 
     prim.dwShadeCaps          = D3DPSHADECAPS_ALPHAFLATBLEND
-                              | D3DPSHADECAPS_ALPHAFLATSTIPPLED // "To stipple or not to stipple?", that is the question
+                              | D3DPSHADECAPS_ALPHAFLATSTIPPLED
                               | D3DPSHADECAPS_ALPHAGOURAUDBLEND
                               | D3DPSHADECAPS_ALPHAGOURAUDSTIPPLED
                               | D3DPSHADECAPS_ALPHAPHONGBLEND
@@ -249,7 +249,7 @@ namespace dxvk {
     prim.dwTextureCaps        = D3DPTEXTURECAPS_ALPHA
                               | D3DPTEXTURECAPS_ALPHAPALETTE
                               | D3DPTEXTURECAPS_BORDER
-                           // | D3DPTEXTURECAPS_COLORKEYBLEND // Let's say we don't support this (not present in d3d8/9)
+                              | D3DPTEXTURECAPS_COLORKEYBLEND // Technically not implemented/present in D3D8/D3D9
                               | D3DPTEXTURECAPS_CUBEMAP
                            // | D3DPTEXTURECAPS_NONPOW2CONDITIONAL
                               | D3DPTEXTURECAPS_PERSPECTIVE

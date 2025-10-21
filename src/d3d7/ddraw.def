@@ -6,9 +6,9 @@ EXPORTS
   DDGetAttachedSurfaceLcl     @5
   DDInternalLock              @6
   DDInternalUnlock            @7
-  DirectDrawCreate		    @9
+  DirectDrawCreate		        @9
   DirectDrawCreateClipper	    @10
-  DirectDrawCreateEx		    @11
+  DirectDrawCreateEx		      @11
   DirectDrawEnumerateA        @12
   DirectDrawEnumerateExA      @13
   DirectDrawEnumerateExW      @14

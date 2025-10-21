@@ -34,16 +34,16 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSAttachedSurface) {
     Logger::debug("<<< DDraw7Surface::AddAttachedSurface: Proxy");
 
-    if (lpDDSAttachedSurface == nullptr) {
+    if (unlikely(lpDDSAttachedSurface == nullptr)) {
       Logger::err("DDraw7Surface::AddAttachedSurface: Called with NULL surface");
-      return D3DERR_INVALIDCALL;
+      return DDERR_INVALIDPARAMS;
     }
 
-    if (m_parent->IsWrappedSurface(lpDDSAttachedSurface)) {
+    if (likely(m_parent->IsWrappedSurface(lpDDSAttachedSurface))) {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSAttachedSurface);
 
       auto it = std::find(m_attachedSurfaces.begin(), m_attachedSurfaces.end(), ddraw7Surface);
-      if (it == m_attachedSurfaces.end()) {
+      if (likely(it == m_attachedSurfaces.end())) {
           m_attachedSurfaces.push_back(ddraw7Surface);
           Logger::debug("DDraw7Surface::AddAttachedSurface: Attached new surface");
       } else {
@@ -65,19 +65,21 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
     Logger::debug("<<< DDraw7Surface::Blt: Proxy");
 
-    if (IsFrontBuffer() || IsBackBuffer())
+    if (unlikely(IsFrontBuffer() || IsBackBuffer()))
       return DD_OK;
 
     HRESULT hr;
 
-    if (lpDDSrcSurface != nullptr && m_parent->IsWrappedSurface(lpDDSrcSurface)) {
+    if (likely(m_parent->IsWrappedSurface(lpDDSrcSurface))) {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
       hr = m_proxy->Blt(lpDestRect, ddraw7Surface->GetProxied(), lpSrcRect, dwFlags, lpDDBltFx);
     } else {
+      Logger::warn("DDraw7Surface::Blt: Received an unwrapped source surface");
       hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     }
 
-    if (SUCCEEDED(hr))
+    //TODO: Check if we can get away to only upload on SetTexture()
+    if (likely(SUCCEEDED(hr)))
       InitializeOrUploadD3D9();
 
     return hr;
@@ -92,19 +94,21 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDraw7Surface::BltFast: Proxy");
 
-    if (IsFrontBuffer() || IsBackBuffer())
+    if (unlikely(IsFrontBuffer() || IsBackBuffer()))
       return DD_OK;
 
     HRESULT hr;
 
-    if (lpDDSrcSurface != nullptr && m_parent->IsWrappedSurface(lpDDSrcSurface)) {
+    if (likely(lpDDSrcSurface != nullptr && m_parent->IsWrappedSurface(lpDDSrcSurface))) {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
       hr = m_proxy->BltFast(dwX, dwY, ddraw7Surface->GetProxied(), lpSrcRect, dwTrans);
     } else {
+      Logger::warn("DDraw7Surface::BltFast: Received an unwrapped source surface");
       hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
     }
 
-    if (SUCCEEDED(hr))
+    //TODO: Check if we can get away to only upload on SetTexture()
+    if (likely(SUCCEEDED(hr)))
       InitializeOrUploadD3D9();
 
     return hr;
@@ -113,16 +117,16 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE7 lpDDSAttachedSurface) {
     Logger::debug("<<< DDraw7Surface::DeleteAttachedSurface: Proxy");
 
-    if (lpDDSAttachedSurface == nullptr) {
+    if (unlikely(lpDDSAttachedSurface == nullptr)) {
       Logger::err("DDraw7Surface::DeleteAttachedSurface: Called with NULL surface");
-      return D3DERR_INVALIDCALL;
+      return DDERR_INVALIDPARAMS;
     }
 
-    if (m_parent->IsWrappedSurface(lpDDSAttachedSurface)) {
+    if (likely(m_parent->IsWrappedSurface(lpDDSAttachedSurface))) {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSAttachedSurface);
 
       auto it = std::find(m_attachedSurfaces.begin(), m_attachedSurfaces.end(), ddraw7Surface);
-      if (it != m_attachedSurfaces.end()) {
+      if (likely(it != m_attachedSurfaces.end())) {
           m_attachedSurfaces.erase(it);
           Logger::debug("DDraw7Surface::DeleteAttachedSurface: Removed attached surface");
       } else {
@@ -149,20 +153,22 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride, DWORD dwFlags) {
     Logger::debug("*** DDraw7Surface::Flip: Presenting");
 
-    if (lpDDSurfaceTargetOverride != nullptr)
+    if (unlikely(lpDDSurfaceTargetOverride != nullptr))
       Logger::warn("DDraw7Surface::Flip: use of non-NULL lpDDSurfaceTargetOverride");
 
     refreshD3D7Device();
-    if (m_d3d7device != nullptr) {
+    if (likely(m_d3d7device != nullptr)) {
       m_d3d7device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
     }
 
-    //return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
     return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetAttachedSurface(LPDDSCAPS2 lpDDSCaps, LPDIRECTDRAWSURFACE7 *lplpDDAttachedSurface) {
     Logger::debug("<<< DDraw7Surface::GetAttachedSurface: Proxy");
+
+    if (unlikely(lpDDSCaps == nullptr || lplpDDAttachedSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
 
     if (lpDDSCaps->dwCaps & DDSCAPS_PRIMARYSURFACE)
       Logger::info("DDraw7Surface::GetAttachedSurface: Querying for the front buffer");
@@ -183,13 +189,13 @@ namespace dxvk {
     Com<IDirectDrawSurface7> surface = nullptr;
     HRESULT hr = m_proxy->GetAttachedSurface(lpDDSCaps, &surface);
 
-    if (FAILED(hr)) {
+    if (unlikely(FAILED(hr))) {
       Logger::warn("DDraw7Surface::GetAttachedSurface: Failed to find the requested surface");
       *lplpDDAttachedSurface = surface.ptr();
       return hr;
     }
 
-    if (!m_parent->IsWrappedSurface(surface.ptr())) {
+    if (likely(!m_parent->IsWrappedSurface(surface.ptr()))) {
       Logger::info("DDraw7Surface::GetAttachedSurface: Got a new unwrapped surface");
       DDSURFACEDESC2 desc;
       desc.dwSize = sizeof(DDSURFACEDESC2);
@@ -212,6 +218,7 @@ namespace dxvk {
     return m_proxy->GetBltStatus(dwFlags);
   }
 
+  // TODO: Maybe cache the caps during surface creation?
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetCaps(LPDDSCAPS2 lpDDSCaps) {
     Logger::debug("<<< DDraw7Surface::GetCaps: Proxy");
     return m_proxy->GetCaps(lpDDSCaps);
@@ -254,7 +261,8 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc) {
     Logger::debug("<<< DDraw7Surface::GetSurfaceDesc: Proxy");
-    // Don't return what we cache for now, since validatinons need to be performed
+    // Don't return what we cache for now, since validatinons
+    // need to be performed and some games actually depend on it
     return m_proxy->GetSurfaceDesc(lpDDSurfaceDesc);
   }
 
@@ -308,6 +316,7 @@ namespace dxvk {
 
     HRESULT hr = m_proxy->Unlock(lpSurfaceData);
 
+    //TODO: Check if we can get away to only upload on SetTexture()
     if (SUCCEEDED(hr))
       InitializeOrUploadD3D9();
 
@@ -317,12 +326,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFACE7 lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx) {
     Logger::debug("<<< DDraw7Surface::UpdateOverlay: Proxy");
 
-    if (lpDDDestSurface == nullptr) {
-      Logger::warn("DDraw7Surface::UpdateOverlay: NULL destination surface");
-      return D3D_OK;
-    }
-
-    if (m_parent->IsWrappedSurface(lpDDDestSurface)) {
+    if (likely(m_parent->IsWrappedSurface(lpDDDestSurface))) {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDDestSurface);
       return m_proxy->UpdateOverlay(lpSrcRect, ddraw7Surface->GetProxied(), lpDestRect, dwFlags, lpDDOverlayFx);
     } else {
@@ -338,12 +342,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE7 lpDDSReference) {
     Logger::debug("<<< DDraw7Surface::UpdateOverlayZOrder: Proxy");
 
-    if (lpDDSReference == nullptr) {
-      Logger::warn("DDraw7Surface::UpdateOverlayZOrder: NULL reference surface");
-      return D3D_OK;
-    }
-
-    if (m_parent->IsWrappedSurface(lpDDSReference)) {
+    if (likely(m_parent->IsWrappedSurface(lpDDSReference))) {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSReference);
       return m_proxy->UpdateOverlayZOrder(dwFlags, ddraw7Surface->GetProxied());
     } else {
@@ -353,7 +352,13 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetDDInterface(void **lplpDD) {
     Logger::debug(">>> DDraw7Surface::GetDDInterface");
+
+    if (unlikely(lplpDD == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    // Was an easy footgun to return a proxied interface
     *lplpDD = m_parent;
+
     return DD_OK;
   }
 
@@ -370,9 +375,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetSurfaceDesc(LPDDSURFACEDESC2 lpDDSD, DWORD dwFlags) {
     Logger::debug("<<< DDraw7Surface::SetSurfaceDesc: Proxy");
 
+    if (unlikely(lpDDSD == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     HRESULT hr = m_proxy->SetSurfaceDesc(lpDDSD, dwFlags);
     // Make sure we don't store crap desc data
-    if (FAILED(hr)) {
+    if (unlikely(FAILED(hr))) {
       Logger::err("DDraw7Surface::SetSurfaceDesc: Failed to set surface desc");
     } else {
       m_desc = *lpDDSD;
@@ -443,7 +451,20 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  HRESULT DDraw7Surface::IntializeD3D9() {
+  HRESULT DDraw7Surface::InitializeOrUploadD3D9() {
+    HRESULT hr = D3DERR_NOTAVAILABLE;
+
+    refreshD3D7Device();
+
+    if (!IsInitialized())
+      hr = IntializeD3D9();
+    else
+      hr = UploadTextureData();
+
+    return hr;
+  }
+
+  inline HRESULT DDraw7Surface::IntializeD3D9() {
     Logger::info(str::format("DDraw7Surface::IntializeD3D9: Initializing nr. [[[", m_surfCount, "]]]"));
 
     if (m_d3d7device == nullptr) {
@@ -453,8 +474,8 @@ namespace dxvk {
 
     HRESULT hr;
 
-    if (m_desc.dwHeight == 0 || m_desc.dwWidth == 0) {
-      Logger::warn("DDraw7Surface::IntializeD3D9: 0 dimensions, skipping");
+    if (unlikely(m_desc.dwHeight == 0 || m_desc.dwWidth == 0)) {
+      Logger::warn("DDraw7Surface::IntializeD3D9: Surface has 0 height or width");
       return DD_OK;
     }
 
@@ -462,15 +483,11 @@ namespace dxvk {
     // Place all possible render targets in DEFAULT
     if (IsRenderTarget())
       pool = d3d9::D3DPOOL_DEFAULT;
-    // Not sure if this all that good idea for perf in our case...
+    // Not sure if this all that good for perf in our case...
     //else if (m_desc.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
       //pool = d3d9::D3DPOOL_SYSTEMMEM;
 
     auto rawMips = m_desc.dwMipMapCount + 1;
-
-    if (rawMips > caps7::MaxMipLevels)
-      Logger::warn("DDraw7Surface::IntializeD3D9: Holy mips, Batman!");
-
     uint32_t mips = std::min(static_cast<uint32_t>(rawMips), caps7::MaxMipLevels);
 
     // Render Target / various base surface types
@@ -481,13 +498,13 @@ namespace dxvk {
 
       if (IsFrontBuffer()) {
         hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
-        if (SUCCEEDED(hr))
+        if (likely(SUCCEEDED(hr)))
           Logger::info("DDraw7Surface::IntializeD3D9: Created front buffer surface");
       }
 
       else if (IsBackBuffer()) {
         hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
-        if (SUCCEEDED(hr))
+        if (likely(SUCCEEDED(hr)))
           Logger::info("DDraw7Surface::IntializeD3D9: Created back buffer surface");
       }
 
@@ -495,7 +512,7 @@ namespace dxvk {
         hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
           m_desc.dwWidth, m_desc.dwHeight, ConvertFormat(m_desc.ddpfPixelFormat),
           pool, &rt, nullptr);
-        if (SUCCEEDED(hr))
+        if (likely(SUCCEEDED(hr)))
           Logger::info("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
       }
 
@@ -503,11 +520,11 @@ namespace dxvk {
         hr = m_d3d7device->GetD3D9()->CreateRenderTarget(
           m_desc.dwWidth, m_desc.dwHeight, ConvertFormat(m_desc.ddpfPixelFormat),
           d3d9::D3DMULTISAMPLE_NONE, 0, FALSE, &rt, nullptr);
-        if (SUCCEEDED(hr))
+        if (likely(SUCCEEDED(hr)))
           Logger::info("DDraw7Surface::IntializeD3D9: Created generic RT");
       }
 
-      if (FAILED(hr)) {
+      if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create RT");
         return hr;
       }
@@ -524,13 +541,13 @@ namespace dxvk {
         d3d9::D3DMULTISAMPLE_NONE, 0, FALSE, &ds, nullptr);
       Logger::info("DDraw7Surface::IntializeD3D9: Created DS");
 
-      if (FAILED(hr)) {
+      if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create DS");
         return hr;
       }
 
       m_d3d9 = std::move(ds);
-    // Textures
+    // Cube maps
     } else if (IsCubeMap()) {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing cube map...");
 
@@ -541,7 +558,7 @@ namespace dxvk {
         m_desc.dwWidth, mips, IsRenderTarget() ? D3DUSAGE_RENDERTARGET : 0,
         ConvertFormat(m_desc.ddpfPixelFormat), pool, &cubetex, nullptr);
 
-      if (FAILED(hr)) {
+      if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create cube map");
         return hr;
       } else {
@@ -556,10 +573,8 @@ namespace dxvk {
       // Attach sides 1-5 to each attached surface.
       EnumAttachedSurfaces(cubetex.ptr(), EnumAndAttachSurfacesCallback);
 
-      // TODO: Upload all cubemap faces. Worth generalizing below UploadTextureData.
-
       m_cubeMap = std::move(cubetex);
-      Logger::debug("DDraw7Surface::IntializeD3D9: Created d3d9 cube map");
+    // Textures
     } else if (IsTexture()) {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing a texture...");
 
@@ -569,16 +584,15 @@ namespace dxvk {
         m_desc.dwWidth, m_desc.dwHeight, mips, 0,
         ConvertFormat(m_desc.ddpfPixelFormat), pool, &tex, nullptr);
 
-      if (FAILED(hr)) {
+      if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create texture");
         m_texture = nullptr;
         return hr;
       }
 
-      m_texture = std::move(tex);
       Logger::debug("DDraw7Surface::IntializeD3D9: Created d3d9 texture");
-
-    // TODO: Figure out why we end up here somtimes... might be video surfaces and whatnot
+      m_texture = std::move(tex);
+    // Something... else?
     } else {
       Logger::warn("DDraw7Surface::IntializeD3D9: Initializing unknown/unhandled surface type");
 
@@ -588,7 +602,7 @@ namespace dxvk {
           m_desc.dwWidth, m_desc.dwHeight, ConvertFormat(m_desc.ddpfPixelFormat),
           d3d9::D3DMULTISAMPLE_NONE, 0, FALSE, &rt, nullptr);
 
-      if (FAILED(hr)) {
+      if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create RT");
         return hr;
       } else {
@@ -601,18 +615,18 @@ namespace dxvk {
     return DD_OK;
   }
 
-  // TODO: Consider using the device Load call rather that this silly GDI stuff
-  HRESULT DDraw7Surface::UploadTextureData() {
+  // TODO: Blit more effectively, rather than with this silly GDI stuff
+  inline HRESULT DDraw7Surface::UploadTextureData() {
     Logger::info(str::format("DDraw7Surface::UploadTextureData: Uploading nr. [[[", m_surfCount, "]]]"));
 
     // Nothing to upload
-    if (!IsInitialized()) {
+    if (unlikely(!IsInitialized())) {
       Logger::warn("DDraw7Surface::UploadTextureData: No wrapped surface or texture");
       return DD_OK;
     }
 
-    if (m_desc.dwHeight == 0 || m_desc.dwWidth == 0) {
-      Logger::warn("DDraw7Surface::UploadTextureData: 0 dimensions, skipping");
+    if (unlikely(m_desc.dwHeight == 0 || m_desc.dwWidth == 0)) {
+      Logger::warn("DDraw7Surface::UploadTextureData: Surface has 0 height or width");
       return DD_OK;
     }
 
@@ -621,32 +635,30 @@ namespace dxvk {
     // Get ddraw surface DC
     HDC dc7;
     hr = this->GetDC(&dc7);
-    if (FAILED(hr)) {
+    if (unlikely(FAILED(hr))) {
       Logger::err("DDraw7Surface::UploadTextureData: Failed GetDC for main surface");
       return hr;
     }
 
     Com<d3d9::IDirect3DSurface9> level = nullptr;
 
+    // TODO: Handle uploading all cubemap faces
+
     // Blit all the mips for textures
     if (m_texture != nullptr) {
       auto rawMips = m_desc.dwMipMapCount + 1;
-
-      if (rawMips > caps7::MaxMipLevels)
-        Logger::warn("DDraw7Surface::UploadTextureData: Holy mips, Batman!");
-
       uint32_t mips = std::min(static_cast<uint32_t>(rawMips), caps7::MaxMipLevels);
 
       for (uint32_t i = 0; i < mips; i++) {
         hr = m_texture->GetSurfaceLevel(i, &level);
-        if (FAILED(hr)) {
+        if (unlikely(FAILED(hr))) {
           Logger::warn(str::format("DDraw7Surface::UploadTextureData: Failed to get surface for level ", i));
           continue;
         }
 
         HDC levelDC;
         hr = level->GetDC(&levelDC);
-        if (FAILED(hr)) {
+        if (unlikely(FAILED(hr))) {
           Logger::warn(str::format("DDraw7Surface::UploadTextureData: Failed GetDC for mip level ", i));
           continue;
         }
@@ -657,13 +669,12 @@ namespace dxvk {
       }
     // Blit surfaces directly
     // TODO: does this even work with depth stencils and other misc types?
-    // Need to find a better way, potentially Load() or lock/unlock memcpys
     } else if (m_d3d9 != nullptr) {
       level = m_d3d9.ptr();
 
       HDC levelDC;
       hr = level->GetDC(&levelDC);
-      if (FAILED(hr)) {
+      if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::UploadTextureData: Failed GetDC for surface");
         return hr;
       }
