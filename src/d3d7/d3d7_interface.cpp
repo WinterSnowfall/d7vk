@@ -9,9 +9,9 @@
 namespace dxvk {
 
   // TODO: Figure out why these can't be used directly
-  static constexpr IID IID_IDirect3DRGBDevice    = { 0xa4665c60, 0x2673, 0x11cf, {0xa3, 0x1a, 0x00, 0xaa, 0x00, 0xb9, 0x33, 0x56}};
-  static constexpr IID IID_IDirect3DHALDevice    = { 0x84e63de0, 0x46aa, 0x11cf, {0x81, 0x6f, 0x00, 0x00, 0xc0, 0x20, 0x15, 0x6e}};
-  static constexpr IID IID_IDirect3DTnLHalDevice = { 0xf5049e78, 0x4861, 0x11d2, {0xa4, 0x07, 0x00, 0xa0, 0xc9, 0x06, 0x29, 0xa8}};
+  static constexpr IID IID_IDirect3DRGBDevice    = { 0xa4665c60, 0x2673, 0x11cf, {0xa3, 0x1a, 0x00, 0xaa, 0x00, 0xb9, 0x33, 0x56} };
+  static constexpr IID IID_IDirect3DHALDevice    = { 0x84e63de0, 0x46aa, 0x11cf, {0x81, 0x6f, 0x00, 0x00, 0xc0, 0x20, 0x15, 0x6e} };
+  static constexpr IID IID_IDirect3DTnLHalDevice = { 0xf5049e78, 0x4861, 0x11d2, {0xa4, 0x07, 0x00, 0xa0, 0xc9, 0x06, 0x29, 0xa8} };
 
   D3D7Interface::D3D7Interface(Com<IDirect3D7>&& d3d7IntfProxy, DDraw7Interface* pParent)
     : DDrawWrappedObject<d3d9::IDirect3D9, IDirect3D7>(std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)), std::move(d3d7IntfProxy))
@@ -21,12 +21,15 @@ namespace dxvk {
       throw DxvkError("D3D7Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
-    // TODO:
-    // m_bridge->EnableD3D7CompatibilityMode();
+    // TODO: Probably a good idea to piggy-back on the D3D8 compat mode for starters
+    //m_bridge->EnableD3D7CompatibilityMode();
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK7 cb, void *ctx) {
     Logger::debug(">>> D3D7Interface::EnumDevices");
+
+    if (unlikely(cb == nullptr))
+      return DDERR_INVALIDPARAMS;
 
     // Ideally we should take all the adapters into account, however
     // D3D7 supports one HAL device, one HAL T&L device, and one
@@ -68,9 +71,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Interface::CreateDevice(const IID& rclsid, IDirectDrawSurface7 *surface, IDirect3DDevice7 **ppd3dDevice) {
     Logger::debug(">>> D3D7Interface::CreateDevice");
 
-    if (surface == nullptr) {
+    if (unlikely(ppd3dDevice == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(surface == nullptr)) {
       Logger::err("D3D7Interface::CreateDevice: Null surface provided");
-      return D3DERR_INVALIDCALL;
+      return DDERR_INVALIDPARAMS;
     }
 
     DDSURFACEDESC2 desc;
@@ -79,9 +85,9 @@ namespace dxvk {
 
     Logger::info(str::format("D3D7Interface::CreateDevice: RenderTarget: ", desc.dwWidth, "x", desc.dwHeight));
 
-    if (m_hwnd == nullptr) {
+    if (unlikely(m_hwnd == nullptr)) {
       Logger::err("D3D7Interface::CreateDevice: HWND is NULL");
-      return D3DERR_NOTAVAILABLE;
+      return DDERR_GENERIC;
     }
 
     d3d9::D3DPRESENT_PARAMETERS params;
@@ -110,7 +116,7 @@ namespace dxvk {
       &params,
       &device9
     );
-    if (FAILED(hr)) {
+    if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Interface::CreateDevice: Failed to created the nested D3D9 device");
       return hr;
     }
@@ -118,15 +124,15 @@ namespace dxvk {
     Com<IDirect3DDevice7> d3d7DeviceProxy;
     DDraw7Surface* ddraw7Surface;
 
-    if (m_parent->IsWrappedSurface(surface)) {
+    if (likely(m_parent->IsWrappedSurface(surface))) {
       ddraw7Surface = static_cast<DDraw7Surface*>(surface);
       hr = m_proxy->CreateDevice(rclsid, ddraw7Surface->GetProxied(), &d3d7DeviceProxy);
     } else {
       Logger::err("D3D7Interface::CreateDevice: Non wrapped surface passed as RT");
-      return D3DERR_NOTAVAILABLE;
+      return DDERR_GENERIC;
     }
 
-    if (FAILED(hr)) {
+    if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Interface::CreateDevice: Failed to created the proxy device");
       return hr;
     }
@@ -152,7 +158,7 @@ namespace dxvk {
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       *ppd3dDevice = nullptr;
-      return D3DERR_NOTAVAILABLE;
+      return DDERR_GENERIC;
     }
 
     return D3D_OK;
@@ -161,21 +167,29 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Interface::CreateVertexBuffer(D3DVERTEXBUFFERDESC *desc, IDirect3DVertexBuffer7 **ppVertexBuffer, DWORD usage) {
     Logger::debug(">>> D3D7Interface::CreateVertexBuffer");
 
+    if (unlikely(desc == nullptr || ppVertexBuffer == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     IDirect3DVertexBuffer7* vertexBuffer7 = nullptr;
     HRESULT hr = m_proxy->CreateVertexBuffer(desc, &vertexBuffer7, usage);
-    if (FAILED(hr)) {
+    if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Interface::CreateVertexBuffer: Failed to create proxy vertex buffer");
       return hr;
     }
 
     // Can't create anything without a valid device
-    if (m_device == nullptr)
+    if (unlikely(m_device == nullptr))
       return D3DERR_INVALIDCALL;
 
     Com<d3d9::IDirect3DVertexBuffer9> buffer = nullptr;
     DWORD Flags = ConvertUsageFlags(desc->dwCaps);
     DWORD Size  = GetFVFSize(desc->dwFVF) * desc->dwNumVertices;
     hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Flags | D3DUSAGE_DYNAMIC, desc->dwFVF, d3d9::D3DPOOL_DEFAULT, &buffer, nullptr);
+
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D7Interface::CreateVertexBuffer: Failed to create vertex buffer");
+      return hr;
+    }
 
     *ppVertexBuffer = ref(new D3D7VertexBuffer(vertexBuffer7, std::move(buffer), this, *desc));
 
@@ -191,6 +205,8 @@ namespace dxvk {
     Logger::debug(">>> D3D7Interface::EvictManagedTextures");
     if (m_device != nullptr)
       m_device->GetD3D9()->EvictManagedResources();
+    // TODO: Check if this does more harm than good, because we keep hard
+    // references to wrapped textures, which might blow up on eviction
     return m_proxy->EvictManagedTextures();
   }
 
