@@ -52,7 +52,7 @@ namespace dxvk {
     }
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) final {
-      if (ppvObject == nullptr)
+      if (unlikely(ppvObject == nullptr))
         return E_POINTER;
 
       *ppvObject = nullptr;
