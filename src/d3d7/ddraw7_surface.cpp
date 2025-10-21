@@ -1,6 +1,5 @@
 #include "ddraw7_surface.h"
 
-#include "d3d7_device.h"
 #include "d3d7_caps.h"
 
 #include <algorithm>
@@ -78,8 +77,7 @@ namespace dxvk {
       hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     }
 
-    //TODO: Check if we can get away to only upload on SetTexture()
-    if (likely(SUCCEEDED(hr)))
+    if (SUCCEEDED(hr) && NeedsUpload())
       InitializeOrUploadD3D9();
 
     return hr;
@@ -107,8 +105,7 @@ namespace dxvk {
       hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
     }
 
-    //TODO: Check if we can get away to only upload on SetTexture()
-    if (likely(SUCCEEDED(hr)))
+    if (SUCCEEDED(hr) && NeedsUpload())
       InitializeOrUploadD3D9();
 
     return hr;
@@ -316,8 +313,7 @@ namespace dxvk {
 
     HRESULT hr = m_proxy->Unlock(lpSurfaceData);
 
-    //TODO: Check if we can get away to only upload on SetTexture()
-    if (SUCCEEDED(hr))
+    if (SUCCEEDED(hr) && NeedsUpload())
       InitializeOrUploadD3D9();
 
     return hr;
