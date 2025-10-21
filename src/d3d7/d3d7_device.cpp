@@ -24,8 +24,13 @@ namespace dxvk {
     }
 
     m_rtOrig = m_rt.ptr();
-    m_d3d9->GetRenderTarget(0, &m_rt9);
-    m_d3d9->GetDepthStencilSurface(&m_ds9);
+    HRESULT hr = m_d3d9->GetRenderTarget(0, &m_rt9);
+    if(unlikely(FAILED(hr)))
+      Logger::err("D3D7Device: Failed to get d3d9 RT");
+
+    hr = m_d3d9->GetDepthStencilSurface(&m_ds9);
+    if(unlikely(FAILED(hr)))
+      Logger::err("D3D7Device: Failed to get d3d9 depth stencil");
 
     // Textures
     m_textures.fill(nullptr);
@@ -39,7 +44,12 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetCaps(D3DDEVICEDESC7 *desc) {
     Logger::debug(">>> D3D7Device::GetCaps");
+
+    if (unlikely(desc == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     *desc = m_parent->GetDesc();
+
     return D3D_OK;
   }
 
@@ -60,7 +70,12 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetDirect3D(IDirect3D7 **d3d) {
     Logger::debug(">>> D3D7Device::GetDirect3D");
+
+    if (unlikely(d3d == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     *d3d = ref(m_parent);
+
     return D3D_OK;
   }
 
@@ -69,16 +84,16 @@ namespace dxvk {
 
     if (surface == nullptr) {
       Logger::err("D3D7Device::SetRenderTarget: NULL render target");
-      return D3DERR_INVALIDCALL;
+      return DDERR_INVALIDPARAMS;
     }
 
-    if (m_DD7Parent->IsWrappedSurface(surface)) {
+    if (likely(m_DD7Parent->IsWrappedSurface(surface))) {
       DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
 
       // We may not have a valid d3d9 objects at this point
       HRESULT hr = surface7->InitializeOrUploadD3D9();
 
-      if (FAILED(hr)) {
+      if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Device::SetRenderTarget: Failed to initialize/upload d3d9 RT");
         return hr;
       }
@@ -88,10 +103,11 @@ namespace dxvk {
         m_d3d9->SetDepthStencilSurface(m_ds9.ptr());
       } else {
         hr = m_d3d9->SetRenderTarget(0, m_rt->GetSurface());
-        //TODO: Get the depth stencil from the RT as well and set it?
+        // TODO: Get the depth stencil from the RT as well and set it?
+        // Not entirely sure how depth stencil use is set up in D3D7
       }
 
-      if (SUCCEEDED(hr)) {
+      if (likely(SUCCEEDED(hr))) {
         m_rt = surface7;
       } else {
         Logger::err("D3D7Device::SetRenderTarget: Failed to set RT");
@@ -106,6 +122,9 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetRenderTarget(IDirectDrawSurface7 **surface) {
     Logger::debug(">>> D3D7Device::GetRenderTarget");
+
+    if (unlikely(surface == nullptr))
+      return DDERR_INVALIDPARAMS;
 
     *surface = m_rt.ref();
 
@@ -246,7 +265,7 @@ namespace dxvk {
     Logger::debug(">>> D3D7Device::GetRenderState");
 
     if (unlikely(lpdwRenderState == nullptr))
-      return D3DERR_INVALIDCALL;
+      return DDERR_INVALIDPARAMS;
 
     d3d9::D3DRENDERSTATETYPE State9 = (d3d9::D3DRENDERSTATETYPE)dwRenderStateType;
 
@@ -324,7 +343,7 @@ namespace dxvk {
     Logger::debug(">>> D3D7Device::BeginStateBlock");
 
     if (unlikely(m_recorder != nullptr))
-      return D3DERR_INVALIDCALL;
+      return D3DERR_INBEGINSTATEBLOCK;
 
     HRESULT hr = m_d3d9->BeginStateBlock();
 
@@ -343,8 +362,11 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::EndStateBlock(LPDWORD lpdwBlockHandle) {
     Logger::debug(">>> D3D7Device::EndStateBlock");
 
-    if (unlikely(lpdwBlockHandle == nullptr || m_recorder == nullptr))
-      return D3DERR_INVALIDCALL;
+    if (unlikely(lpdwBlockHandle == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(m_recorder == nullptr))
+      return D3DERR_NOTINBEGINSTATEBLOCK;
 
     Com<d3d9::IDirect3DStateBlock9> pStateBlock;
     HRESULT hr = m_d3d9->EndStateBlock(&pStateBlock);
@@ -366,13 +388,13 @@ namespace dxvk {
 
     // Applications cannot apply a state block while another is being recorded
     if (unlikely(ShouldRecord()))
-      return D3DERR_INVALIDCALL;
+      return D3DERR_INBEGINSTATEBLOCK;
 
     auto stateBlockIter = m_stateBlocks.find(dwBlockHandle);
 
     if (unlikely(stateBlockIter == m_stateBlocks.end())) {
-      Logger::warn(str::format("D3D7Device::ApplyStateBlock: Invalid dwBlockHandle: ", std::hex, dwBlockHandle));
-      return D3D_OK;
+      Logger::err(str::format("D3D7Device::ApplyStateBlock: Invalid dwBlockHandle: ", std::hex, dwBlockHandle));
+      return D3DERR_INVALIDSTATEBLOCK;
     }
 
     return stateBlockIter->second.Apply();
@@ -383,13 +405,13 @@ namespace dxvk {
 
     // Applications cannot capture a state block while another is being recorded
     if (unlikely(ShouldRecord()))
-      return D3DERR_INVALIDCALL;
+      return D3DERR_INBEGINSTATEBLOCK;
 
     auto stateBlockIter = m_stateBlocks.find(dwBlockHandle);
 
     if (unlikely(stateBlockIter == m_stateBlocks.end())) {
-      Logger::warn(str::format("D3D7Device::CaptureStateBlock: Invalid dwBlockHandle: ", std::hex, dwBlockHandle));
-      return D3D_OK;
+      Logger::err(str::format("D3D7Device::CaptureStateBlock: Invalid dwBlockHandle: ", std::hex, dwBlockHandle));
+      return D3DERR_INVALIDSTATEBLOCK;
     }
 
     return stateBlockIter->second.Capture();
@@ -400,13 +422,13 @@ namespace dxvk {
 
     // Applications cannot delete a state block while another is being recorded
     if (unlikely(ShouldRecord()))
-      return D3DERR_INVALIDCALL;
+      return D3DERR_INBEGINSTATEBLOCK;
 
     auto stateBlockIter = m_stateBlocks.find(dwBlockHandle);
 
     if (unlikely(stateBlockIter == m_stateBlocks.end())) {
-      Logger::warn(str::format("D3D7Device::DeleteStateBlock: Invalid dwBlockHandle: ", std::hex, dwBlockHandle));
-      return D3D_OK;
+      Logger::err(str::format("D3D7Device::DeleteStateBlock: Invalid dwBlockHandle: ", std::hex, dwBlockHandle));
+      return D3DERR_INVALIDSTATEBLOCK;
     }
 
     m_stateBlocks.erase(stateBlockIter);
@@ -424,17 +446,17 @@ namespace dxvk {
     Logger::debug(">>> D3D7Device::CreateStateBlock");
 
     if (unlikely(lpdwBlockHandle == nullptr))
-      return D3DERR_INVALIDCALL;
+      return DDERR_INVALIDPARAMS;
 
     // Applications cannot create a state block while another is being recorded
     if (unlikely(ShouldRecord()))
-      return D3DERR_INVALIDCALL;
+      return D3DERR_INBEGINSTATEBLOCK;
 
     D3D7StateBlockType stateBlockType = ConvertStateBlockType(d3dsbType);
 
     if (unlikely(stateBlockType == D3D7StateBlockType::Unknown)) {
       Logger::warn(str::format("D3D7Device::CreateStateBlock: Invalid state block type: ", d3dsbType));
-      return D3DERR_INVALIDCALL;
+      return DDERR_INVALIDPARAMS;
     }
 
     Com<d3d9::IDirect3DStateBlock9> pStateBlock9;
@@ -454,22 +476,26 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::PreLoad(IDirectDrawSurface7 *surface) {
     Logger::debug("<<< D3D7Device::PreLoad: Proxy");
 
-    HRESULT hr = D3D_OK;
-
-    if (m_DD7Parent->IsWrappedSurface(surface)) {
+    if (likely(m_DD7Parent->IsWrappedSurface(surface))) {
       DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
       // This won't return anything
       surface7->GetSurface()->PreLoad();
+      return D3D_OK;
     } else {
       Logger::warn("D3D7Device::PreLoad: Pre-loading a non-wrapped surface");
-      hr = m_proxy->PreLoad(surface);
+      return m_proxy->PreLoad(surface);
     }
-
-    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags) {
     Logger::debug(">>> D3D7Device::DrawPrimitive");
+
+    // TODO: Many other validations to be done on primitive type, vertex type etc.
+    if (unlikely(lpvVertices == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(!dwVertexCount))
+      return D3D_OK;
 
     GetD3D9()->SetFVF(dwVertexTypeDesc);
     return GetD3D9()->DrawPrimitiveUP(
@@ -481,6 +507,13 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
     Logger::debug(">>> D3D7Device::DrawIndexedPrimitive");
+
+    // TODO: Many other validations to be done on primitive type, vertex type etc.
+    if (unlikely(lpvVertices == nullptr || lpwIndices == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(!dwVertexCount || !dwIndexCount))
+      return D3D_OK;
 
     m_d3d9->SetFVF(dwVertexTypeDesc);
     return m_d3d9->DrawIndexedPrimitiveUP(
@@ -497,6 +530,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::SetClipStatus(D3DCLIPSTATUS *clip_status) {
     Logger::debug(">>> D3D7Device::SetClipStatus");
 
+    if (unlikely(clip_status == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     d3d9::D3DCLIPSTATUS9 clipStatus9;
     // TODO: Split the union and intersection flags
     clipStatus9.ClipUnion        = clip_status->dwStatus;
@@ -507,6 +543,9 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetClipStatus(D3DCLIPSTATUS *clip_status) {
     Logger::debug(">>> D3D7Device::GetClipStatus");
+
+    if (unlikely(clip_status == nullptr))
+      return DDERR_INVALIDPARAMS;
 
     d3d9::D3DCLIPSTATUS9 clipStatus9;
     HRESULT hr = m_d3d9->GetClipStatus(&clipStatus9);
@@ -536,9 +575,16 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, DWORD dwFlags) {
     Logger::debug(">>> D3D7Device::DrawPrimitiveVB");
 
+    // TODO: Many other validations to be done on primitive type, vertex type etc.
+    if (unlikely(lpd3dVertexBuffer == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(!dwNumVertices))
+      return D3D_OK;
+
     D3D7VertexBuffer* vb = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
 
-    if (vb->IsLocked()) {
+    if (unlikely(vb->IsLocked())) {
       Logger::err("D3D7Device::DrawPrimitiveVB: Buffer is locked");
       return D3DERR_VERTEXBUFFERLOCKED;
     }
@@ -554,9 +600,16 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
     Logger::debug(">>> D3D7Device::DrawIndexedPrimitiveVB");
 
+    // TODO: Many other validations to be done on primitive type, vertex type etc.
+    if (unlikely(lpd3dVertexBuffer == nullptr || lpwIndices == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(!dwNumVertices || !dwIndexCount))
+      return D3D_OK;
+
     D3D7VertexBuffer* vb = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
 
-    if (vb->IsLocked()) {
+    if (unlikely(vb->IsLocked())) {
       Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Buffer is locked");
       return D3DERR_VERTEXBUFFERLOCKED;
     }
@@ -582,6 +635,14 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::GetTexture(DWORD stage, IDirectDrawSurface7 **surface) {
     Logger::debug(">>> D3D7Device::GetTexture");
 
+    if (unlikely(surface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(stage >= caps7::TextureStageCount)) {
+      Logger::err(str::format("D3D7Device::GetTexture: Invalid texture stage: ", stage));
+      return DDERR_INVALIDPARAMS;
+    }
+
     *surface = m_textures[stage].ref();
 
     return D3D_OK;
@@ -592,7 +653,7 @@ namespace dxvk {
 
     if (unlikely(stage >= caps7::TextureStageCount)) {
       Logger::err(str::format("D3D7Device::SetTexture: Invalid texture stage: ", stage));
-      return D3DERR_INVALIDCALL;
+      return DDERR_INVALIDPARAMS;
     }
 
     if (unlikely(ShouldRecord()))
@@ -600,18 +661,19 @@ namespace dxvk {
 
     HRESULT hr;
 
+    // This isn't that unlikely, actually
     if (surface == nullptr) {
       m_textures[stage] == nullptr;
       hr = m_d3d9->SetTexture(stage, nullptr);
       return hr;
     }
 
-    if (m_DD7Parent->IsWrappedSurface(surface)) {
+    if (likely(m_DD7Parent->IsWrappedSurface(surface))) {
       DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
       // We may not have a valid d3d9 objects at this point
       hr = surface7->InitializeOrUploadD3D9();
 
-      if (FAILED(hr)) {
+      if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Device::SetTexture: Failed to initialize/upload d3d9 texture");
         return hr;
       }
@@ -619,7 +681,7 @@ namespace dxvk {
       m_textures[stage] = surface7;
 
       hr = m_d3d9->SetTexture(stage, m_textures[stage]->GetTexture());
-      if (FAILED(hr)) {
+      if (unlikely(FAILED(hr))) {
         Logger::warn("D3D7Device::SetTexture: Failed to set d3d9 texture");
         return hr;
       }
@@ -632,6 +694,9 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGESTATETYPE d3dTexStageStateType, LPDWORD lpdwState) {
     Logger::debug(">>> D3D7Device::GetTextureStageState");
+
+    if (unlikely(lpdwState == nullptr))
+      return DDERR_INVALIDPARAMS;
 
     d3d9::D3DSAMPLERSTATETYPE stateType = ConvertSamplerStateType(d3dTexStageStateType);
 
@@ -667,13 +732,13 @@ namespace dxvk {
 
     if (dst_surface == nullptr || src_surface == nullptr) {
       Logger::warn("D3D7Device::Load: null source or destination");
-      return D3DERR_INVALIDCALL;
+      return DDERR_INVALIDPARAMS;
     }
 
     IDirectDrawSurface7* loadSource      = src_surface;
     IDirectDrawSurface7* loadDestination = dst_surface;
 
-    if (m_DD7Parent->IsWrappedSurface(src_surface)) {
+    if (likely(m_DD7Parent->IsWrappedSurface(src_surface))) {
       DDraw7Surface* ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
       loadSource = ddraw7SurfaceSrc->GetProxied();
     } else {
@@ -681,7 +746,7 @@ namespace dxvk {
       loadSource = src_surface;
     }
 
-    if (m_DD7Parent->IsWrappedSurface(dst_surface)) {
+    if (likely(m_DD7Parent->IsWrappedSurface(dst_surface))) {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
       loadDestination = ddraw7SurfaceDst->GetProxied();
     } else {
@@ -691,24 +756,24 @@ namespace dxvk {
 
     // We need to copy to/from the proxied surfaces first, before we forward the actual call
     HRESULT hr = m_proxy->Load(loadDestination, dst_point, loadSource, src_rect, flags);
-    if (FAILED(hr)) {
+    if (unlikely(FAILED(hr))) {
       Logger::warn("D3D7Device::Load: Failed to load surfaces");
     }
 
-    if (m_DD7Parent->IsWrappedSurface(src_surface)) {
+    if (likely(m_DD7Parent->IsWrappedSurface(src_surface))) {
       DDraw7Surface* ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
 
       HRESULT hrInitSrc = ddraw7SurfaceSrc->InitializeOrUploadD3D9();
-      if (FAILED(hrInitSrc)) {
+      if (unlikely(FAILED(hrInitSrc))) {
         Logger::warn("D3D7Device::Load: Failed to upload d3d9 source surface data");
       }
     }
 
-    if (m_DD7Parent->IsWrappedSurface(dst_surface)) {
+    if (likely(m_DD7Parent->IsWrappedSurface(dst_surface))) {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
 
       HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
-      if (FAILED(hrInitDst)) {
+      if (unlikely(FAILED(hrInitDst))) {
         Logger::warn("D3D7Device::Load: Failed to upload d3d9 destination surface data");
       }
     }
@@ -736,10 +801,10 @@ namespace dxvk {
     return m_d3d9->GetClipPlane(dwIndex, pPlaneEquation);
   }
 
+  // Docs state: "This method returns S_FALSE on retail builds of DirectX."
   HRESULT STDMETHODCALLTYPE D3D7Device::GetInfo(DWORD info_id, void *info, DWORD info_size) {
-    Logger::debug("<<< D3D7Device::GetInfo: Proxy");
-    // TODO: D3D9 queries?
-    return m_proxy->GetInfo(info_id, info, info_size);
+    Logger::debug(">>> D3D7Device::GetInfo");
+    return S_FALSE;
   }
 
 }
