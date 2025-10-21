@@ -90,7 +90,7 @@ namespace dxvk {
     if (likely(m_DD7Parent->IsWrappedSurface(surface))) {
       DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
 
-      // We may not have a valid d3d9 objects at this point
+      // Will always be needed at this point
       HRESULT hr = surface7->InitializeOrUploadD3D9();
 
       if (unlikely(FAILED(hr))) {
@@ -661,16 +661,30 @@ namespace dxvk {
 
     HRESULT hr;
 
-    // This isn't that unlikely, actually
+    // Unbinding texture stages
     if (surface == nullptr) {
-      m_textures[stage] == nullptr;
+      Logger::debug("D3D7Device::SetTexture: Unbiding d3d9 texture");
+
       hr = m_d3d9->SetTexture(stage, nullptr);
+
+      if (likely(SUCCEEDED(hr))) {
+        if (m_textures[stage] != nullptr) {
+          m_textures[stage]->MarkAsUnbound();
+          m_textures[stage] = nullptr;
+        }
+      } else {
+        Logger::err("D3D7Device::SetTexture: Failed to unbind d3d9 texture");
+      }
+
       return hr;
     }
 
+    // Binding texture stages
     if (likely(m_DD7Parent->IsWrappedSurface(surface))) {
+      Logger::debug("D3D7Device::SetTexture: Binding d3d9 texture");
+
       DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
-      // We may not have a valid d3d9 objects at this point
+      // Will always be needed at this point
       hr = surface7->InitializeOrUploadD3D9();
 
       if (unlikely(FAILED(hr))) {
@@ -678,13 +692,14 @@ namespace dxvk {
         return hr;
       }
 
-      m_textures[stage] = surface7;
-
-      hr = m_d3d9->SetTexture(stage, m_textures[stage]->GetTexture());
+      hr = m_d3d9->SetTexture(stage, surface7->GetTexture());
       if (unlikely(FAILED(hr))) {
-        Logger::warn("D3D7Device::SetTexture: Failed to set d3d9 texture");
+        Logger::warn("D3D7Device::SetTexture: Failed to bind d3d9 texture");
         return hr;
       }
+
+      m_textures[stage] = surface7;
+      m_textures[stage]->MarkAsBound();
     } else {
       Logger::warn("D3D7Device::SetTexture: Received a non-wrapped texture");
     }
@@ -763,18 +778,22 @@ namespace dxvk {
     if (likely(m_DD7Parent->IsWrappedSurface(src_surface))) {
       DDraw7Surface* ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
 
-      HRESULT hrInitSrc = ddraw7SurfaceSrc->InitializeOrUploadD3D9();
-      if (unlikely(FAILED(hrInitSrc))) {
-        Logger::warn("D3D7Device::Load: Failed to upload d3d9 source surface data");
+      if (ddraw7SurfaceSrc->NeedsUpload()) {
+        HRESULT hrInitSrc = ddraw7SurfaceSrc->InitializeOrUploadD3D9();
+        if (unlikely(FAILED(hrInitSrc))) {
+          Logger::warn("D3D7Device::Load: Failed to upload d3d9 source surface data");
+        }
       }
     }
 
     if (likely(m_DD7Parent->IsWrappedSurface(dst_surface))) {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
 
-      HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
-      if (unlikely(FAILED(hrInitDst))) {
-        Logger::warn("D3D7Device::Load: Failed to upload d3d9 destination surface data");
+      if (ddraw7SurfaceDst->NeedsUpload()) {
+        HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
+        if (unlikely(FAILED(hrInitDst))) {
+          Logger::warn("D3D7Device::Load: Failed to upload d3d9 destination surface data");
+        }
       }
     }
 

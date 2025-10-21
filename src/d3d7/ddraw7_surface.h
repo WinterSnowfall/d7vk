@@ -1,6 +1,7 @@
 #pragma once
 
 #include "d3d7_include.h"
+#include "d3d7_device.h"
 #include "d3d7_util.h"
 #include "ddraw7_interface.h"
 #include "ddraw7_wrapped_object.h"
@@ -8,8 +9,6 @@
 #include <vector>
 
 namespace dxvk {
-
-  class D3D7Device;
 
   class DDraw7Surface final : public DDrawWrappedObject<d3d9::IDirect3DSurface9, IDirectDrawSurface7> {
 
@@ -123,6 +122,26 @@ namespace dxvk {
       return m_d3d9.ptr();
     }
 
+    void MarkAsBound() {
+      m_isBound = true;
+    }
+
+    void MarkAsUnbound() {
+      m_isBound = false;
+    }
+
+    bool NeedsUpload() {
+      refreshD3D7Device();
+
+      bool IsCurrentRenderTarget = false;
+
+      if (m_d3d7device != nullptr)
+        IsCurrentRenderTarget = m_d3d7device->GetRenderTarget() == this;
+
+      return IsFrontBuffer() || IsBackBuffer()
+          || m_isBound || IsCurrentRenderTarget;
+    }
+
     void SetSurface(Com<d3d9::IDirect3DSurface9>&& surface) {
       m_d3d9 = std::move(surface);
     }
@@ -221,6 +240,9 @@ namespace dxvk {
 
     static uint32_t   s_surfCount;
     uint32_t          m_surfCount  = 0;
+
+    // Determines if the textures have been bound to a slot
+    bool              m_isBound    = false;
 
     DDraw7Interface*  m_parent     = nullptr;
 
