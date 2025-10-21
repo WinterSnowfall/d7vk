@@ -34,6 +34,9 @@ namespace dxvk {
     if (unlikely(lpVBDesc == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    if (unlikely(lpVBDesc->dwSize != sizeof(LPD3DVERTEXBUFFERDESC)))
+      return DDERR_INVALIDOBJECT;
+
     *lpVBDesc = m_desc;
 
     return D3D_OK;
