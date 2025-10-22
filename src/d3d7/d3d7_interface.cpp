@@ -21,8 +21,7 @@ namespace dxvk {
       throw DxvkError("D3D7Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
-    // TODO: Probably a good idea to piggy-back on the D3D8 compat mode for starters
-    //m_bridge->EnableD3D7CompatibilityMode();
+    m_bridge->EnableD3D7CompatibilityMode();
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK7 cb, void *ctx) {
