@@ -7,22 +7,28 @@
 
 namespace dxvk {
 
-  inline d3d9::D3DFORMAT ConvertFormat(DDPIXELFORMAT& fmt) {
-    if (fmt.dwFlags & DDPF_RGB) {
+  static inline d3d9::D3DFORMAT ConvertFormat(DDPIXELFORMAT& fmt) {
+    if (likely(fmt.dwFlags & DDPF_RGB)) {
       // R bitmask: 0111 1100 0000 0000
       // G bitmask: 0000 0011 1110 0000
       // B bitmask: 0000 0000 0001 1111
       switch (fmt.dwRGBBitCount) {
         case 16:
           return d3d9::D3DFMT_X1R5G5B5;
+        case 24:
+          return d3d9::D3DFMT_R8G8B8;
         case 32:
-          return d3d9::D3DFMT_A8R8G8B8;
+          // TODO: Consider D3DFMT_A8R8G8B8 when GetDC() is deprecated
+          return d3d9::D3DFMT_X8R8G8B8;
       }
+    } else {
+      Logger::warn("ConvertFormat: Using a partially supported non-RGB format");
     }
+    // TODO: Not a good option, since GetDC() does not work on it
     return d3d9::D3DFMT_A8B8G8R8;
   }
 
-  inline d3d9::D3DCUBEMAP_FACES GetCubemapFace(DDSURFACEDESC2* desc) {
+  static inline d3d9::D3DCUBEMAP_FACES GetCubemapFace(DDSURFACEDESC2* desc) {
     if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEX) return d3d9::D3DCUBEMAP_FACE_POSITIVE_X;
     if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEX) return d3d9::D3DCUBEMAP_FACE_NEGATIVE_X;
     if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEY) return d3d9::D3DCUBEMAP_FACE_POSITIVE_Y;
@@ -32,7 +38,7 @@ namespace dxvk {
     return d3d9::D3DCUBEMAP_FACE_POSITIVE_X;
   }
 
-  inline d3d9::D3DTRANSFORMSTATETYPE ConvertTransformState(D3DTRANSFORMSTATETYPE tst) {
+  static inline d3d9::D3DTRANSFORMSTATETYPE ConvertTransformState(D3DTRANSFORMSTATETYPE tst) {
     switch (tst) {
       case D3DTRANSFORMSTATE_WORLD:  return d3d9::D3DTRANSFORMSTATETYPE(D3DTS_WORLD);
       case D3DTRANSFORMSTATE_WORLD1: return d3d9::D3DTRANSFORMSTATETYPE(D3DTS_WORLD1);
@@ -42,7 +48,7 @@ namespace dxvk {
     }
   }
 
-  inline DWORD ConvertLockFlags(DWORD lockFlags) {
+  static inline DWORD ConvertLockFlags(DWORD lockFlags) {
     DWORD lockFlagsD3D9 = 0;
 
     if (lockFlags & DDLOCK_NOSYSLOCK) {
@@ -66,7 +72,7 @@ namespace dxvk {
     return lockFlagsD3D9;
   }
 
-  inline DWORD ConvertUsageFlags(DWORD usageFlags) {
+  static inline DWORD ConvertUsageFlags(DWORD usageFlags) {
     DWORD usageFlagsD3D9 = 0;
 
     if (usageFlags & D3DVBCAPS_DONOTCLIP) {
@@ -83,34 +89,72 @@ namespace dxvk {
     return usageFlagsD3D9;
   }
 
-  inline size_t GetFVFSize(DWORD FVF) {
-    size_t stride = 3;
-    switch (FVF & D3DFVF_POSITION_MASK) {
-      case D3DFVF_XYZRHW: stride += 1; break;
-      case D3DFVF_XYZB1:  stride += 1; break;
-      case D3DFVF_XYZB2:  stride += 2; break;
-      case D3DFVF_XYZB3:  stride += 3; break;
-      case D3DFVF_XYZB4:  stride += 4; break;
-      case D3DFVF_XYZB5:  stride += 5; break;
-    }
-    if (FVF & D3DFVF_NORMAL)    stride += 3;
-    if (FVF & D3DFVF_RESERVED1) stride += 1; // TODO: What is D3DFVF_RESERVED1? Point size?
-    if (FVF & D3DFVF_DIFFUSE)   stride += 1;
-    if (FVF & D3DFVF_SPECULAR)  stride += 1;
+  static inline size_t GetFVFSize(DWORD fvf) {
+    size_t size = 0;
 
-    if (FVF & D3DFVF_TEXCOUNT_MASK) {
-      DWORD texCount = GET_BIT_FIELD(FVF, D3DFVF_TEXCOUNT);
-      for (DWORD i = 0; i < texCount; i++) {
-        if      ((FVF & D3DFVF_TEXCOORDSIZE1(i)) == D3DFVF_TEXCOORDSIZE1(i)) stride += 1;  // & 3
-        else if ((FVF & D3DFVF_TEXCOORDSIZE3(i)) == D3DFVF_TEXCOORDSIZE3(i)) stride += 3;  // & 1
-        else if ((FVF & D3DFVF_TEXCOORDSIZE4(i)) == D3DFVF_TEXCOORDSIZE4(i)) stride += 4;  // & 2
-        else if ((FVF & D3DFVF_TEXCOORDSIZE2(i)) == D3DFVF_TEXCOORDSIZE2(i)) stride += 2;  // & 0 (default)
+    switch (fvf & D3DFVF_POSITION_MASK) {
+      case D3DFVF_XYZ:
+          size += 3 * sizeof(FLOAT);
+          break;
+      case D3DFVF_XYZRHW:
+          size += 4 * sizeof(FLOAT);
+          break;
+      case D3DFVF_XYZB1:
+          size += 4 * sizeof(FLOAT);
+          break;
+      case D3DFVF_XYZB2:
+          size += 5 * sizeof(FLOAT);
+          break;
+      case D3DFVF_XYZB3:
+          size += 6 * sizeof(FLOAT);
+          break;
+      case D3DFVF_XYZB4:
+          size += 7 * sizeof(FLOAT);
+          break;
+      case D3DFVF_XYZB5:
+          size += 8 * sizeof(FLOAT);
+          break;
+    }
+
+    if (fvf & D3DFVF_NORMAL) {
+        size += 3 * sizeof(FLOAT);
+    }
+    if (fvf & D3DFVF_RESERVED1) {
+        size += sizeof(DWORD);
+    }
+    if (fvf & D3DFVF_DIFFUSE) {
+        size += sizeof(D3DCOLOR);
+    }
+    if (fvf & D3DFVF_SPECULAR) {
+        size += sizeof(D3DCOLOR);
+    }
+
+    DWORD textureCount = (fvf & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+    for (DWORD coord = 0; coord < textureCount; ++coord) {
+        
+      DWORD texCoordSize = (fvf >> (coord * 2 + 16)) & 3;
+
+      switch (texCoordSize) {
+        case D3DFVF_TEXTUREFORMAT1:
+            size += 1 * sizeof(FLOAT);
+            break;
+        case D3DFVF_TEXTUREFORMAT2:
+            size += 2 * sizeof(FLOAT);
+            break;
+        case D3DFVF_TEXTUREFORMAT3:
+            size += 3 * sizeof(FLOAT);
+            break;
+        case D3DFVF_TEXTUREFORMAT4:
+            size += 4 * sizeof(FLOAT);
+            break;
       }
     }
-    return stride * sizeof(float);
+
+    return size;
   }
 
-  inline UINT GetPrimitiveCount(D3DPRIMITIVETYPE PrimitiveType, DWORD VertexCount) {
+
+  static inline UINT GetPrimitiveCount(D3DPRIMITIVETYPE PrimitiveType, DWORD VertexCount) {
     switch (PrimitiveType) {
       default:
       case D3DPT_TRIANGLELIST:  return static_cast<UINT>(VertexCount / 3);
@@ -124,8 +168,7 @@ namespace dxvk {
 
   // If this D3DTEXTURESTAGESTATETYPE has been remapped to a d3d9::D3DSAMPLERSTATETYPE
   // it will be returned, otherwise returns -1
-  // TODO: Verify.
-  inline d3d9::D3DSAMPLERSTATETYPE ConvertSamplerStateType(const D3DTEXTURESTAGESTATETYPE StageType) {
+  static inline d3d9::D3DSAMPLERSTATETYPE ConvertSamplerStateType(const D3DTEXTURESTAGESTATETYPE StageType) {
     switch (StageType) {
       // 13-21:
       case D3DTSS_ADDRESSU:       return d3d9::D3DSAMP_ADDRESSU;
@@ -135,13 +178,13 @@ namespace dxvk {
       case D3DTSS_MINFILTER:      return d3d9::D3DSAMP_MINFILTER;
       case D3DTSS_MIPFILTER:      return d3d9::D3DSAMP_MIPFILTER;
       case D3DTSS_MIPMAPLODBIAS:  return d3d9::D3DSAMP_MIPMAPLODBIAS;
-      case D3DTSS_MAXMIPLEVEL:    return d3d9::D3DSAMP_MIPFILTER;
+      case D3DTSS_MAXMIPLEVEL:    return d3d9::D3DSAMP_MAXMIPLEVEL;
       case D3DTSS_MAXANISOTROPY:  return d3d9::D3DSAMP_MAXANISOTROPY;
       default:                    return d3d9::D3DSAMPLERSTATETYPE(-1);
     }
   }
 
-  inline D3DDEVICEDESC7 GetBaseD3D7Caps() {
+  static inline D3DDEVICEDESC7 GetBaseD3D7Caps() {
     D3DDEVICEDESC7 desc7;
 
     desc7.dwDevCaps = D3DDEVCAPS_CANBLTSYSTONONLOCAL

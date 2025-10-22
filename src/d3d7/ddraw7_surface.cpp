@@ -479,12 +479,15 @@ namespace dxvk {
     // Place all possible render targets in DEFAULT
     if (IsRenderTarget())
       pool = d3d9::D3DPOOL_DEFAULT;
-    // Not sure if this all that good for perf in our case...
-    //else if (m_desc.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
-      //pool = d3d9::D3DPOOL_SYSTEMMEM;
+    // Not sure if this is all that good for perf,
+    // but let's respect what the application asks for
+    else if (m_desc.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
+      pool = d3d9::D3DPOOL_SYSTEMMEM;
 
     auto rawMips = m_desc.dwMipMapCount + 1;
     uint32_t mips = std::min(static_cast<uint32_t>(rawMips), caps7::MaxMipLevels);
+    if (mips > 1)
+      Logger::debug(str::format("DDraw7Surface::UploadTextureData: Found ", mips, " mip maps"));
 
     // Render Target / various base surface types
     if (IsRenderTarget()) {
@@ -513,9 +516,10 @@ namespace dxvk {
       }
 
       else {
+        // Must be lockable for GetDC() to work
         hr = m_d3d7device->GetD3D9()->CreateRenderTarget(
           m_desc.dwWidth, m_desc.dwHeight, ConvertFormat(m_desc.ddpfPixelFormat),
-          d3d9::D3DMULTISAMPLE_NONE, 0, FALSE, &rt, nullptr);
+          d3d9::D3DMULTISAMPLE_NONE, 0, TRUE, &rt, nullptr);
         if (likely(SUCCEEDED(hr)))
           Logger::info("DDraw7Surface::IntializeD3D9: Created generic RT");
       }
@@ -576,6 +580,8 @@ namespace dxvk {
 
       Com<d3d9::IDirect3DTexture9> tex = nullptr;
 
+      // Should be good on managed, however in DEFAULT they must
+      // have D3DUSAGE_DYNAMIC for GetDC() to work
       hr = m_d3d7device->GetD3D9()->CreateTexture(
         m_desc.dwWidth, m_desc.dwHeight, mips, 0,
         ConvertFormat(m_desc.ddpfPixelFormat), pool, &tex, nullptr);
@@ -594,9 +600,10 @@ namespace dxvk {
 
       Com<d3d9::IDirect3DSurface9> rt = nullptr;
 
+       // Must be lockable for GetDC() to work
       hr = m_d3d7device->GetD3D9()->CreateRenderTarget(
           m_desc.dwWidth, m_desc.dwHeight, ConvertFormat(m_desc.ddpfPixelFormat),
-          d3d9::D3DMULTISAMPLE_NONE, 0, FALSE, &rt, nullptr);
+          d3d9::D3DMULTISAMPLE_NONE, 0, TRUE, &rt, nullptr);
 
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create RT");
@@ -644,6 +651,9 @@ namespace dxvk {
     if (m_texture != nullptr) {
       auto rawMips = m_desc.dwMipMapCount + 1;
       uint32_t mips = std::min(static_cast<uint32_t>(rawMips), caps7::MaxMipLevels);
+      
+      if (mips > 1)
+        Logger::debug(str::format("DDraw7Surface::UploadTextureData: Blitting ", mips, " mip maps"));
 
       for (uint32_t i = 0; i < mips; i++) {
         hr = m_texture->GetSurfaceLevel(i, &level);
