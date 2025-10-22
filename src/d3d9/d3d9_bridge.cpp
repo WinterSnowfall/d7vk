@@ -119,6 +119,10 @@ namespace dxvk {
     m_interface->EnableD3D8CompatibilityMode();
   }
 
+  void DxvkD3D8InterfaceBridge::EnableD3D7CompatibilityMode() {
+    m_interface->EnableD3D7CompatibilityMode();
+  }
+
   const Config* DxvkD3D8InterfaceBridge::GetConfig() const {
     return &m_interface->GetInstance()->config();
   }
