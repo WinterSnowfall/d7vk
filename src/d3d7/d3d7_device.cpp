@@ -684,6 +684,10 @@ namespace dxvk {
       Logger::debug("D3D7Device::SetTexture: Binding d3d9 texture");
 
       DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
+
+      if (unlikely(m_textures[stage] == surface7))
+        return D3D_OK;
+
       // Will always be needed at this point
       hr = surface7->InitializeOrUploadD3D9();
 
@@ -729,7 +733,7 @@ namespace dxvk {
 
     d3d9::D3DSAMPLERSTATETYPE stateType = ConvertSamplerStateType(d3dTexStageStateType);
 
-    if (stateType != -1) {
+    if (stateType != -1u) {
       // If the type has been remapped to a sampler state type
       return m_d3d9->SetSamplerState(dwStage, stateType, dwState);
     } else {
