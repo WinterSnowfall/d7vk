@@ -1,6 +1,7 @@
 #pragma once
 
 #include "d3d7_include.h"
+#include "d3d7_singlethread.h"
 #include "d3d7_caps.h"
 #include "ddraw7_wrapped_object.h"
 #include "../d3d9/d3d9_bridge.h"
@@ -130,6 +131,10 @@ namespace dxvk {
       return m_rt.ptr();
     }
 
+    D3D7DeviceLock LockDevice() {
+      return m_singlethread.AcquireLock();
+    }
+
   private:
 
     void UploadIndices(void* indices, DWORD indexCount);
@@ -140,6 +145,8 @@ namespace dxvk {
 
     D3D7Interface*                   m_parent;
     DDraw7Interface*                 m_DD7Parent;
+
+    D3D7Singlethread                 m_singlethread;
 
     Com<IDxvkD3D8InterfaceBridge>    m_bridge;
 

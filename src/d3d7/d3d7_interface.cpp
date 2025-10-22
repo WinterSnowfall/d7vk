@@ -202,8 +202,10 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::EvictManagedTextures() {
     Logger::debug(">>> D3D7Interface::EvictManagedTextures");
-    if (m_device != nullptr)
+    if (m_device != nullptr) {
+      m_device->LockDevice();
       m_device->GetD3D9()->EvictManagedResources();
+    }
     // TODO: Check if this does more harm than good, because we keep hard
     // references to wrapped textures, which might blow up on eviction
     return m_proxy->EvictManagedTextures();
