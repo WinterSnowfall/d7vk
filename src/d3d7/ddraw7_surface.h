@@ -130,18 +130,6 @@ namespace dxvk {
       m_isBound = false;
     }
 
-    bool NeedsUpload() {
-      refreshD3D7Device();
-
-      bool IsCurrentRenderTarget = false;
-
-      if (m_d3d7device != nullptr)
-        IsCurrentRenderTarget = m_d3d7device->GetRenderTarget() == this;
-
-      return IsFrontBuffer() || IsBackBuffer()
-          || m_isBound || IsCurrentRenderTarget;
-    }
-
     void SetSurface(Com<d3d9::IDirect3DSurface9>&& surface) {
       m_d3d9 = std::move(surface);
     }
@@ -256,7 +244,9 @@ namespace dxvk {
     Com<d3d9::IDirect3DTexture9>           m_texture;
     Com<d3d9::IDirect3DCubeTexture9>       m_cubeMap;
 
-    // Mip maps should exist for the entire lifecycle of a texture
+    // These are attached surfaces, which can be mips, back buffers, depth buffers, etc.
+    // They are implemented with linked list, so for example only one mip level will be
+    // held in a parent texture, and the next mip level will be held in the previous mip
     std::vector<Com<DDraw7Surface, false>> m_attachedSurfaces;
 
   };
