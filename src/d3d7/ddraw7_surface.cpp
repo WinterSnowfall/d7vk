@@ -77,7 +77,7 @@ namespace dxvk {
       hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     }
 
-    if (SUCCEEDED(hr) && NeedsUpload())
+    if (SUCCEEDED(hr))
       InitializeOrUploadD3D9();
 
     return hr;
@@ -105,7 +105,7 @@ namespace dxvk {
       hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
     }
 
-    if (SUCCEEDED(hr) && NeedsUpload())
+    if (SUCCEEDED(hr))
       InitializeOrUploadD3D9();
 
     return hr;
@@ -313,7 +313,7 @@ namespace dxvk {
 
     HRESULT hr = m_proxy->Unlock(lpSurfaceData);
 
-    if (SUCCEEDED(hr) && NeedsUpload())
+    if (SUCCEEDED(hr))
       InitializeOrUploadD3D9();
 
     return hr;
@@ -443,6 +443,19 @@ namespace dxvk {
 
     DDraw7Surface* ddraw7surface = static_cast<DDraw7Surface*>(subsurf);
     ddraw7surface->SetSurface(std::move(face));
+
+    return DDENUMRET_OK;
+  }
+
+  // Callback function used to navigate the linked mip map chain
+  HRESULT STDMETHODCALLTYPE ListMipChainSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+    IDirectDrawSurface7** nextMip = static_cast<IDirectDrawSurface7**>(ctx);
+
+    if (desc->ddsCaps.dwCaps & (DDSCAPS_TEXTURE | DDSCAPS_MIPMAP)
+     || desc->ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL) {
+      *nextMip = subsurf;
+      return DDENUMRET_CANCEL;
+    }
 
     return DDENUMRET_OK;
   }
@@ -618,7 +631,6 @@ namespace dxvk {
     return DD_OK;
   }
 
-  // TODO: Blit more effectively, rather than with this silly GDI stuff
   inline HRESULT DDraw7Surface::UploadTextureData() {
     Logger::info(str::format("DDraw7Surface::UploadTextureData: Uploading nr. [[", m_surfCount, "]]"));
 
@@ -633,43 +645,71 @@ namespace dxvk {
       return DD_OK;
     }
 
-    HRESULT hr;
-
-    // Get ddraw surface DC
-    HDC dc7;
-    hr = this->GetDC(&dc7);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("DDraw7Surface::UploadTextureData: Failed GetDC for main surface");
-      return hr;
-    }
-
-    Com<d3d9::IDirect3DSurface9> level = nullptr;
-
     // Blit all the mips for textures
     if (m_texture != nullptr) {
+      Logger::debug(str::format("DDraw7Surface::UploadTextureData: Blitting base texture surface"));
+
+      d3d9::D3DLOCKED_RECT rect9;
+      HRESULT hr9 = m_texture->LockRect(0, &rect9, 0, D3DLOCK_READONLY);
+      if (SUCCEEDED(hr9)) {
+        DDSURFACEDESC2 desc;
+        desc.dwSize = sizeof(DDSURFACEDESC2);
+        HRESULT hr7 = m_proxy->Lock(0, &desc, DDLOCK_WRITEONLY, 0);
+        if (SUCCEEDED(hr7)) {
+          Logger::debug(str::format("desc.dwWidth:  ", desc.dwWidth));
+          Logger::debug(str::format("desc.dwHeight: ", desc.dwHeight));
+          Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));
+          Logger::debug(str::format("rect.Pitch:    ", rect9.Pitch));
+          if (unlikely(desc.lPitch != rect9.Pitch)) {
+            Logger::err("DDraw7Surface::UploadTextureData: Incompatible texture pitch");
+          } else {
+            size_t size = static_cast<size_t>(desc.dwHeight * desc.lPitch);
+            memcpy(rect9.pBits, desc.lpSurface, size);
+          }
+          m_proxy->Unlock(0);
+        }
+        m_texture->UnlockRect(0);
+      }
+
       auto rawMips = m_desc.dwMipMapCount + 1;
       uint32_t mips = std::min(static_cast<uint32_t>(rawMips), caps7::MaxMipLevels);
-      
-      if (mips > 1)
+
+      if (mips > 1) {
         Logger::debug(str::format("DDraw7Surface::UploadTextureData: Blitting ", mips, " mip maps"));
+      } else {
+        Logger::warn("DDraw7Surface::UploadTextureData: Texture has no mip maps");
+      }
+
+      IDirectDrawSurface7* parentSurface = GetProxied();
 
       for (uint32_t i = 0; i < mips; i++) {
-        hr = m_texture->GetSurfaceLevel(i, &level);
-        if (unlikely(FAILED(hr))) {
-          Logger::warn(str::format("DDraw7Surface::UploadTextureData: Failed to get surface for level ", i));
-          continue;
+        d3d9::D3DLOCKED_RECT rect9mip;
+        HRESULT hr9mip = m_texture->LockRect(i + 1, &rect9mip, 0, D3DLOCK_READONLY);
+        if (SUCCEEDED(hr9mip)) {
+          IDirectDrawSurface7* mipMap = nullptr;
+          parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
+          if (mipMap == nullptr)
+            break;
+          DDSURFACEDESC2 descMip;
+          descMip.dwSize = sizeof(DDSURFACEDESC2);
+          HRESULT hr7mip = mipMap->Lock(0, &descMip, DDLOCK_WRITEONLY, 0);
+          if (SUCCEEDED(hr7mip)) {
+            Logger::debug(str::format("descMip.dwWidth:  ", descMip.dwWidth));
+            Logger::debug(str::format("descMip.dwHeight: ", descMip.dwHeight));
+            Logger::debug(str::format("descMip.lPitch:   ", descMip.lPitch));
+            Logger::debug(str::format("rect9mip.Pitch:    ", rect9mip.Pitch));
+            if (unlikely(descMip.lPitch != rect9mip.Pitch)) {
+              Logger::err(str::format("DDraw7Surface::UploadTextureData: Incompatible mip map ", i + 1, " pitch"));
+            } else {
+              size_t size = static_cast<size_t>(descMip.dwHeight * descMip.lPitch);
+              memcpy(rect9mip.pBits, descMip.lpSurface, size);
+            }
+            mipMap->Unlock(0);
+          }
+          m_texture->UnlockRect(i + 1);
+          parentSurface = mipMap;
+          Logger::debug(str::format("DDraw7Surface::UploadTextureData: Done blitting mip ", i));
         }
-
-        HDC levelDC;
-        hr = level->GetDC(&levelDC);
-        if (unlikely(FAILED(hr))) {
-          Logger::warn(str::format("DDraw7Surface::UploadTextureData: Failed GetDC for mip level ", i));
-          continue;
-        }
-
-        BitBlt(levelDC, 0, 0, m_desc.dwWidth, m_desc.dwHeight, dc7, 0, 0, SRCCOPY);
-
-        level->ReleaseDC(levelDC);
       }
 
     } else if (m_cubeMap != nullptr) {
@@ -679,24 +719,34 @@ namespace dxvk {
     // Blit surfaces directly
     // TODO: does this even work with depth stencils and other misc types?
     } else if (m_d3d9 != nullptr) {
-      level = m_d3d9.ptr();
 
-      HDC levelDC;
-      hr = level->GetDC(&levelDC);
-      if (unlikely(FAILED(hr))) {
-        Logger::err("DDraw7Surface::UploadTextureData: Failed GetDC for surface");
-        return hr;
+      d3d9::D3DLOCKED_RECT rect9;
+      HRESULT hr9 = m_d3d9->LockRect(&rect9, 0, D3DLOCK_READONLY);
+      if (SUCCEEDED(hr9)) {
+        DDSURFACEDESC2 desc;
+        desc.dwSize = sizeof(DDSURFACEDESC2);
+        HRESULT hr7 = m_proxy->Lock(0, &desc, DDLOCK_WRITEONLY, 0);
+        if (SUCCEEDED(hr7)) {
+          Logger::debug(str::format("desc.dwWidth:  ", desc.dwWidth));
+          Logger::debug(str::format("desc.dwHeight: ", desc.dwHeight));
+          Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));
+          Logger::debug(str::format("rect.Pitch:    ", rect9.Pitch));
+          if (unlikely(desc.lPitch != rect9.Pitch)) {
+            Logger::err("DDraw7Surface::UploadTextureData: Incompatible surface pitch");
+          } else {
+            size_t size = static_cast<size_t>(desc.dwHeight * desc.lPitch);
+            memcpy(rect9.pBits, desc.lpSurface, size);
+          }
+          m_proxy->Unlock(0);
+        }
+        m_d3d9->UnlockRect();
       }
 
-      BitBlt(levelDC, 0, 0, m_desc.dwWidth, m_desc.dwHeight, dc7, 0, 0, SRCCOPY);
-
-      level->ReleaseDC(levelDC);
     } else {
       // Shouldn't ever happen, we've checked for it above
       Logger::err("DDraw7Surface::UploadTextureData: DDraw7Surface has neither a d3d9 surface or texture attached");
+      return DDERR_GENERIC;
     }
-
-    this->ReleaseDC(dc7);
 
     Logger::debug("DDraw7Surface::UploadTextureData: Upload complete");
 
