@@ -198,7 +198,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
     D3D7DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D7Device::SetRenderState");
+    Logger::debug(str::format(">>> D3D7Device::SetRenderState: ", dwRenderStateType));
 
     d3d9::D3DRENDERSTATETYPE State9 = (d3d9::D3DRENDERSTATETYPE)dwRenderStateType;
 
@@ -277,7 +277,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType, LPDWORD lpdwRenderState) {
     D3D7DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D7Device::GetRenderState");
+    Logger::debug(str::format(">>> D3D7Device::GetRenderState: ", dwRenderStateType));
 
     if (unlikely(lpdwRenderState == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -313,7 +313,7 @@ namespace dxvk {
         *lpdwRenderState = bit::cast<DWORD>(m_linePattern);
         return D3D_OK;
 
-      // Not supported by D3D8, but its value is stored.
+      // Not supported by D3D7 either, but its value is stored.
       case D3DRENDERSTATE_ZVISIBLE:
         *lpdwRenderState = m_zVisible;
         return D3D_OK;
@@ -654,16 +654,30 @@ namespace dxvk {
     }
 
     vb->UploadIndices(lpwIndices, dwIndexCount);
-    m_d3d9->SetFVF(vb->GetFVF());
-    m_d3d9->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
-    m_d3d9->SetIndices(vb->GetIndexBuffer());
-    return m_d3d9->DrawIndexedPrimitive(
-                        d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
-                        0,
-                        0,
-                        dwNumVertices,
-                        dwStartVertex,
-                        GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount));
+    HRESULT hr = m_d3d9->SetIndices(vb->GetIndexBuffer());
+    if(unlikely(FAILED(hr)))
+      Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed to set d3d9 indices");
+
+    hr = m_d3d9->SetFVF(vb->GetFVF());
+    if(unlikely(FAILED(hr)))
+      Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed to set d3d9 FVF");
+
+    hr = m_d3d9->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
+    if(unlikely(FAILED(hr)))
+      Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed to set d3d9 stream source");
+
+    hr = m_d3d9->DrawIndexedPrimitive(
+                  d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                  0,
+                  0,
+                  dwNumVertices,
+                  dwStartVertex,
+                  GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount));
+
+    if(unlikely(FAILED(hr)))
+      Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed d3d9 call to DrawIndexedPrimitive");
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::ComputeSphereVisibility(D3DVECTOR *centers, D3DVALUE *radii, DWORD sphere_count, DWORD sphereCount, DWORD *visibility) {
