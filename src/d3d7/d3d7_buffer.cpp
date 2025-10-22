@@ -82,6 +82,8 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
+    device->LockDevice();
+
     device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, m_stride);
     return device->GetD3D9()->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_d3d9.ptr(), nullptr, dwFlags);
   }
@@ -99,6 +101,8 @@ namespace dxvk {
       Logger::err(">>> D3D7VertexBuffer::ProcessVerticesStrided: Incompatible or null device");
       return DDERR_GENERIC;
     }
+
+    //device->LockDevice();
 
     return D3D_OK;
   }
