@@ -102,7 +102,7 @@ namespace dxvk {
     params.Windowed           = TRUE;
     params.EnableAutoDepthStencil     = TRUE;
     params.AutoDepthStencilFormat     = d3d9::D3DFMT_D16;
-    params.Flags                      = 0;
+    params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
     params.FullScreen_RefreshRateInHz = 0;
     params.PresentationInterval       = D3DPRESENT_INTERVAL_ONE;
 
