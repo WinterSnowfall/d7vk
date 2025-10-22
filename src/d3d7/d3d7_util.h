@@ -9,21 +9,66 @@ namespace dxvk {
 
   static inline d3d9::D3DFORMAT ConvertFormat(DDPIXELFORMAT& fmt) {
     if (likely(fmt.dwFlags & DDPF_RGB)) {
-      // R bitmask: 0111 1100 0000 0000
-      // G bitmask: 0000 0011 1110 0000
-      // B bitmask: 0000 0000 0001 1111
       switch (fmt.dwRGBBitCount) {
-        case 16:
+        case 16: {
+          switch (fmt.dwRBitMask) {
+            // R: 0000 1111 0000 0000
+            // A: 1111 0000 0000 0000
+            case (0xF << 8):
+              return fmt.dwRGBAlphaBitMask ? d3d9::D3DFMT_A4R4G4B4 : d3d9::D3DFMT_X4R4G4B4;
+            // R: 0111 1100 0000 0000
+            // A: 1000 0000 0000 0000
+            case (0x1F << 10):
+              return fmt.dwRGBAlphaBitMask ? d3d9::D3DFMT_A1R5G5B5 : d3d9::D3DFMT_X1R5G5B5;
+            // R: 1111 1000 0000 0000
+            case (0x1F << 11):
+              return d3d9::D3DFMT_R5G6B5;
+            // TODO: Check if we've missed anything. Maybe A8?
+          }
           return d3d9::D3DFMT_X1R5G5B5;
+        }
         case 24:
+          // TODO: Anything else here?
           return d3d9::D3DFMT_R8G8B8;
-        case 32:
-          // TODO: Consider D3DFMT_A8R8G8B8 when GetDC() is deprecated
-          return d3d9::D3DFMT_X8R8G8B8;
+        case 32: {
+          switch (fmt.dwRBitMask) {
+            // R: 0000 0000 1111 1111 0000 0000 0000 0000
+            // A: 1111 1111 0000 0000 0000 0000 0000 0000
+            case (0xFF << 16):
+              return fmt.dwRGBAlphaBitMask ? d3d9::D3DFMT_A8R8G8B8 : d3d9::D3DFMT_X8B8G8R8;
+            // R: 0011 1111 1111 0000 0000 0000 0000 0000
+            // A: 1100 0000 0000 0000 0000 0000 0000 0000
+            case (0x3FF << 20):
+              return d3d9::D3DFMT_A2R10G10B10;
+            case (0xFF):
+            // R: 0000 0000 0000 0000 0000 0000 1111 1111
+            // A: 1111 1111 0000 0000 0000 0000 0000 0000
+              return fmt.dwRGBAlphaBitMask ? d3d9::D3DFMT_A8B8G8R8 : d3d9::D3DFMT_X8B8G8R8;
+          }
+          return d3d9::D3DFMT_X8B8G8R8;
+        }
+      }
+    // TODO: Check if these are actually correct and work
+    } else if ((fmt.dwFlags & DDPF_ZBUFFER)) {
+      switch (fmt.dwZBufferBitDepth) {
+        case 16:
+          return fmt.dwStencilBitMask ? d3d9::D3DFMT_D15S1 : d3d9::D3DFMT_D16;
+        case 32: {
+          switch (fmt.dwStencilBitMask) {
+            case 0:
+              return d3d9::D3DFMT_D24X8;
+            case (0xFF):
+              return d3d9::D3DFMT_D24S8;
+            case (0xF):
+              return d3d9::D3DFMT_D24X4S4;
+          }
+        }
+        return d3d9::D3DFMT_D24S8;
       }
     }
-    // TODO: Consider D3DFMT_A8B8G8R8 when GetDC() is deprecated
-    return d3d9::D3DFMT_X8B8G8R8;
+
+    // TODO: Do we even need a catch-all default?
+    return d3d9::D3DFMT_A8R8G8B8;
   }
 
   static inline d3d9::D3DCUBEMAP_FACES GetCubemapFace(DDSURFACEDESC2* desc) {
@@ -129,7 +174,7 @@ namespace dxvk {
 
     DWORD textureCount = (fvf & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
     for (DWORD coord = 0; coord < textureCount; ++coord) {
-        
+
       DWORD texCoordSize = (fvf >> (coord * 2 + 16)) & 3;
 
       switch (texCoordSize) {
