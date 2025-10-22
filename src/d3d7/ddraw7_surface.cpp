@@ -461,7 +461,7 @@ namespace dxvk {
   }
 
   inline HRESULT DDraw7Surface::IntializeD3D9() {
-    Logger::info(str::format("DDraw7Surface::IntializeD3D9: Initializing nr. [[[", m_surfCount, "]]]"));
+    Logger::info(str::format("DDraw7Surface::IntializeD3D9: Initializing nr. [[", m_surfCount, "]]"));
 
     if (m_d3d7device == nullptr) {
       Logger::warn("DDraw7Surface::IntializeD3D9: Null D3D7 device, can't initalize right now");
@@ -620,7 +620,7 @@ namespace dxvk {
 
   // TODO: Blit more effectively, rather than with this silly GDI stuff
   inline HRESULT DDraw7Surface::UploadTextureData() {
-    Logger::info(str::format("DDraw7Surface::UploadTextureData: Uploading nr. [[[", m_surfCount, "]]]"));
+    Logger::info(str::format("DDraw7Surface::UploadTextureData: Uploading nr. [[", m_surfCount, "]]"));
 
     // Nothing to upload
     if (unlikely(!IsInitialized())) {
@@ -644,8 +644,6 @@ namespace dxvk {
     }
 
     Com<d3d9::IDirect3DSurface9> level = nullptr;
-
-    // TODO: Handle uploading all cubemap faces
 
     // Blit all the mips for textures
     if (m_texture != nullptr) {
@@ -673,6 +671,11 @@ namespace dxvk {
 
         level->ReleaseDC(levelDC);
       }
+
+    } else if (m_cubeMap != nullptr) {
+    // TODO: Handle uploading all cubemap faces
+      Logger::warn("DDraw7Surface::UploadTextureData: Unhandled upload of cube map");
+
     // Blit surfaces directly
     // TODO: does this even work with depth stencils and other misc types?
     } else if (m_d3d9 != nullptr) {

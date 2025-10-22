@@ -45,6 +45,11 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::Lock(DWORD flags, void **data, DWORD *data_size) {
     Logger::debug(">>> D3D7VertexBuffer::Lock");
 
+    D3D7Device* d3d7Device = GetDevice();
+
+    if (likely(d3d7Device != nullptr))
+      d3d7Device->LockDevice();
+
     if (data_size != nullptr)
       *data_size = m_size;
 
@@ -58,6 +63,11 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::Unlock() {
     Logger::debug(">>> D3D7VertexBuffer::Unlock");
+
+    D3D7Device* d3d7Device = GetDevice();
+
+    if (likely(d3d7Device != nullptr))
+      d3d7Device->LockDevice();
 
     HRESULT hr = m_d3d9->Unlock();
 

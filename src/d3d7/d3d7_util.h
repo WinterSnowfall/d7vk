@@ -21,11 +21,9 @@ namespace dxvk {
           // TODO: Consider D3DFMT_A8R8G8B8 when GetDC() is deprecated
           return d3d9::D3DFMT_X8R8G8B8;
       }
-    } else {
-      Logger::warn("ConvertFormat: Using a partially supported non-RGB format");
     }
-    // TODO: Not a good option, since GetDC() does not work on it
-    return d3d9::D3DFMT_A8B8G8R8;
+    // TODO: Consider D3DFMT_A8B8G8R8 when GetDC() is deprecated
+    return d3d9::D3DFMT_X8B8G8R8;
   }
 
   static inline d3d9::D3DCUBEMAP_FACES GetCubemapFace(DDSURFACEDESC2* desc) {
