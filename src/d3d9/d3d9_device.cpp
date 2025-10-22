@@ -55,6 +55,7 @@ namespace dxvk {
     , m_d3d9Options        ( dxvkDevice, pParent->GetInstance()->config() )
     , m_multithread        ( BehaviorFlags & D3DCREATE_MULTITHREADED )
     , m_isSWVP             ( (BehaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING) != 0 )
+    , m_isD3D7Compatible   ( pParent->IsD3D7Compatible() )
     , m_isD3D8Compatible   ( pParent->IsD3D8Compatible() )
     , m_csThread           ( dxvkDevice, dxvkDevice->createContext() )
     , m_csChunk            ( AllocCsChunk() )
