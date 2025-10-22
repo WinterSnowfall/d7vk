@@ -843,22 +843,18 @@ namespace dxvk {
     if (likely(m_DD7Parent->IsWrappedSurface(src_surface))) {
       DDraw7Surface* ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
 
-      if (ddraw7SurfaceSrc->NeedsUpload()) {
-        HRESULT hrInitSrc = ddraw7SurfaceSrc->InitializeOrUploadD3D9();
-        if (unlikely(FAILED(hrInitSrc))) {
-          Logger::warn("D3D7Device::Load: Failed to upload d3d9 source surface data");
-        }
+      HRESULT hrInitSrc = ddraw7SurfaceSrc->InitializeOrUploadD3D9();
+      if (unlikely(FAILED(hrInitSrc))) {
+        Logger::warn("D3D7Device::Load: Failed to upload d3d9 source surface data");
       }
     }
 
     if (likely(m_DD7Parent->IsWrappedSurface(dst_surface))) {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
 
-      if (ddraw7SurfaceDst->NeedsUpload()) {
-        HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
-        if (unlikely(FAILED(hrInitDst))) {
-          Logger::warn("D3D7Device::Load: Failed to upload d3d9 destination surface data");
-        }
+      HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
+      if (unlikely(FAILED(hrInitDst))) {
+        Logger::warn("D3D7Device::Load: Failed to upload d3d9 destination surface data");
       }
     }
 
