@@ -89,18 +89,34 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
+    IDirectDrawSurface7* depthStencil = nullptr;
+    DDSURFACEDESC2 descDS;
+    descDS.dwSize = sizeof(DDSURFACEDESC2);
+
+    if (likely(m_parent->IsWrappedSurface(surface))) {
+      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(surface);
+      depthStencil = ddraw7Surface->GetAttachedDepthStencil();
+      if (depthStencil != nullptr) {
+        Logger::debug("D3D7Interface::CreateDevice: Retrieved depth stencil");
+        depthStencil->GetSurfaceDesc(&descDS);
+        Logger::info(str::format("D3D7Interface::CreateDevice: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
+      } else {
+        Logger::warn("D3D7Interface::CreateDevice: Unable to retrieve depth stencil");
+      }
+    }
+
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = desc.dwWidth;
     params.BackBufferHeight   = desc.dwHeight;
-    params.BackBufferFormat   = d3d9::D3DFMT_UNKNOWN;
+    params.BackBufferFormat   = ConvertFormat(desc.ddpfPixelFormat);
     params.BackBufferCount    = 1;
     params.MultiSampleType    = d3d9::D3DMULTISAMPLE_NONE;
     params.MultiSampleQuality = 0;
     params.SwapEffect         = d3d9::D3DSWAPEFFECT_DISCARD;
     params.hDeviceWindow      = m_hwnd;
-    params.Windowed           = TRUE;
+    params.Windowed           = TRUE; // TODO: Always windowed?
     params.EnableAutoDepthStencil     = TRUE;
-    params.AutoDepthStencilFormat     = d3d9::D3DFMT_D16;
+    params.AutoDepthStencilFormat     = depthStencil != nullptr ? ConvertFormat(descDS.ddpfPixelFormat) : d3d9::D3DFMT_D16;
     params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
     params.FullScreen_RefreshRateInHz = 0;
     params.PresentationInterval       = D3DPRESENT_INTERVAL_ONE;

@@ -122,14 +122,6 @@ namespace dxvk {
       return m_d3d9.ptr();
     }
 
-    void MarkAsBound() {
-      m_isBound = true;
-    }
-
-    void MarkAsUnbound() {
-      m_isBound = false;
-    }
-
     void SetSurface(Com<d3d9::IDirect3DSurface9>&& surface) {
       m_d3d9 = std::move(surface);
     }
@@ -175,6 +167,8 @@ namespace dxvk {
     inline bool IsRenderTarget() const {
       return IsFrontBuffer() || IsBackBuffer() || IsOffScreenPlainSurface();
     }
+
+    IDirectDrawSurface7* GetAttachedDepthStencil();
 
     HRESULT InitializeOrUploadD3D9();
 
@@ -228,9 +222,6 @@ namespace dxvk {
 
     static uint32_t   s_surfCount;
     uint32_t          m_surfCount  = 0;
-
-    // Determines if the textures have been bound to a slot
-    bool              m_isBound    = false;
 
     DDraw7Interface*  m_parent     = nullptr;
 
