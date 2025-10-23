@@ -186,8 +186,10 @@ namespace dxvk {
     Com<IDirectDrawSurface7> surface = nullptr;
     HRESULT hr = m_proxy->GetAttachedSurface(lpDDSCaps, &surface);
 
-    if (unlikely(FAILED(hr))) {
-      Logger::warn("DDraw7Surface::GetAttachedSurface: Failed to find the requested surface");
+    // These are rather common, as some games query expecting to get nothing in return, for
+    // example it's a common use case to query the mip attach chain until nothing is returned
+    if (FAILED(hr)) {
+      Logger::debug("DDraw7Surface::GetAttachedSurface: Failed to find the requested surface");
       *lplpDDAttachedSurface = surface.ptr();
       return hr;
     }
@@ -529,9 +531,9 @@ namespace dxvk {
       pool = d3d9::D3DPOOL_SYSTEMMEM;
 
     auto rawMips = m_desc.dwMipMapCount + 1;
-    uint32_t mips = std::min(static_cast<uint32_t>(rawMips), caps7::MaxMipLevels);
-    if (mips > 1)
-      Logger::debug(str::format("DDraw7Surface::UploadTextureData: Found ", mips, " mip maps"));
+    uint32_t mipLevels = std::min(static_cast<uint32_t>(rawMips), caps7::MaxMipLevels);
+    if (mipLevels > 1)
+      Logger::debug(str::format("DDraw7Surface::UploadTextureData: Found ", mipLevels - 1, " mip maps"));
 
     // Render Target / various base surface types
     if (IsRenderTarget()) {
@@ -602,7 +604,7 @@ namespace dxvk {
       // TODO: Pool for non-RT cubemaps. Better check if cube maps
       // can even be render targets in d3d7...
       hr = m_d3d7device->GetD3D9()->CreateCubeTexture(
-        m_desc.dwWidth, mips, IsRenderTarget() ? D3DUSAGE_RENDERTARGET : 0,
+        m_desc.dwWidth, mipLevels, IsRenderTarget() ? D3DUSAGE_RENDERTARGET : 0,
         ConvertFormat(m_desc.ddpfPixelFormat), pool, &cubetex, nullptr);
 
       if (unlikely(FAILED(hr))) {
@@ -630,7 +632,7 @@ namespace dxvk {
       // Should be good on managed, however in DEFAULT they must
       // have D3DUSAGE_DYNAMIC for GetDC() to work
       hr = m_d3d7device->GetD3D9()->CreateTexture(
-        m_desc.dwWidth, m_desc.dwHeight, mips, 0,
+        m_desc.dwWidth, m_desc.dwHeight, mipLevels, 0,
         ConvertFormat(m_desc.ddpfPixelFormat), pool, &tex, nullptr);
 
       if (unlikely(FAILED(hr))) {
@@ -674,7 +676,13 @@ namespace dxvk {
       return DD_OK;
     }
 
-    if (unlikely(m_desc.dwHeight == 0 || m_desc.dwWidth == 0)) {
+    // TODO: In the case of uploading to front buffers, we need to get the back buffer
+    // attached surface and upload data from there... this is needed for some cursed GDI
+    // inter-op in Praetorians and most likely other games that use GetDC on the front buffer
+    if (IsFrontBuffer())
+      return DD_OK;
+
+    if (m_desc.dwHeight == 0 || m_desc.dwWidth == 0) {
       Logger::warn("DDraw7Surface::UploadTextureData: Surface has 0 height or width");
       return DD_OK;
     }
@@ -706,17 +714,15 @@ namespace dxvk {
       }
 
       auto rawMips = m_desc.dwMipMapCount + 1;
-      uint32_t mips = std::min(static_cast<uint32_t>(rawMips), caps7::MaxMipLevels) - 1;
+      uint32_t mipLevels = std::min(static_cast<uint32_t>(rawMips), caps7::MaxMipLevels);
 
-      if (mips > 0) {
-        Logger::debug(str::format("DDraw7Surface::UploadTextureData: Blitting ", mips, " mip maps"));
-      } else {
-        Logger::warn("DDraw7Surface::UploadTextureData: Texture has no mip maps");
+      if (mipLevels > 1) {
+        Logger::debug(str::format("DDraw7Surface::UploadTextureData: Blitting ", mipLevels - 1, " mip maps"));
       }
 
       IDirectDrawSurface7* parentSurface = GetProxied();
 
-      for (uint32_t i = 0; i < mips; i++) {
+      for (uint32_t i = 0; i < mipLevels - 1; i++) {
         d3d9::D3DLOCKED_RECT rect9mip;
         HRESULT hr9mip = m_texture->LockRect(i + 1, &rect9mip, 0, D3DLOCK_READONLY);
         if (SUCCEEDED(hr9mip)) {
