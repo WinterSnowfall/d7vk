@@ -232,8 +232,17 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetDC(HDC *lphDC) {
-    Logger::debug("<<< DDraw7Surface::GetDC: Proxy");
-    return m_proxy->GetDC(lphDC);
+    Logger::debug(">>> DDraw7Surface::GetDC");
+
+    InitializeOrUploadD3D9();
+
+    HRESULT hr = GetD3D9()->GetDC(lphDC);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("DDraw7Surface::GetDC: Failed to get d3d9 DC");
+      return m_proxy->GetDC(lphDC);
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetFlipStatus(DWORD dwFlags) {
@@ -279,8 +288,15 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::ReleaseDC(HDC hDC) {
-    Logger::debug("<<< DDraw7Surface::ReleaseDC: Proxy");
-    return m_proxy->ReleaseDC(hDC);
+    Logger::debug(">>> DDraw7Surface::ReleaseDC");
+
+    HRESULT hr = GetD3D9()->ReleaseDC(hDC);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("DDraw7Surface::ReleaseDC: Failed to release d3d9 DC");
+      return m_proxy->ReleaseDC(hDC);
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Restore() {
@@ -460,6 +476,20 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
+  // Callback function used to return the depth stencil
+  // The depth stencil is held as an attached surface of the render target
+  HRESULT STDMETHODCALLTYPE DepthStencilSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+    IDirectDrawSurface7** depthStencil = static_cast<IDirectDrawSurface7**>(ctx);
+
+    // This should typically hit on the first attached surface of an RT
+    if (desc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) {
+      *depthStencil = subsurf;
+      return DDENUMRET_CANCEL;
+    }
+
+    return DDENUMRET_OK;
+  }
+
   HRESULT DDraw7Surface::InitializeOrUploadD3D9() {
     HRESULT hr = D3DERR_NOTAVAILABLE;
 
@@ -483,7 +513,8 @@ namespace dxvk {
 
     HRESULT hr;
 
-    if (unlikely(m_desc.dwHeight == 0 || m_desc.dwWidth == 0)) {
+    // This is normal for front buffers apparently...
+    if (unlikely(!IsFrontBuffer() && (m_desc.dwHeight == 0 || m_desc.dwWidth == 0))) {
       Logger::warn("DDraw7Surface::IntializeD3D9: Surface has 0 height or width");
       return DD_OK;
     }
@@ -549,10 +580,13 @@ namespace dxvk {
 
       Com<d3d9::IDirect3DSurface9> ds = nullptr;
 
-      hr = m_d3d7device->GetD3D9()->CreateDepthStencilSurface(
+      // Bind the auto depth stencil
+      hr = m_d3d7device->GetD3D9()->GetDepthStencilSurface(&ds);
+
+      /*hr = m_d3d7device->GetD3D9()->CreateDepthStencilSurface(
         m_desc.dwWidth, m_desc.dwHeight, ConvertFormat(m_desc.ddpfPixelFormat),
         d3d9::D3DMULTISAMPLE_NONE, 0, FALSE, &ds, nullptr);
-      Logger::info("DDraw7Surface::IntializeD3D9: Created DS");
+      Logger::info("DDraw7Surface::IntializeD3D9: Created DS");*/
 
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create DS");
@@ -672,9 +706,9 @@ namespace dxvk {
       }
 
       auto rawMips = m_desc.dwMipMapCount + 1;
-      uint32_t mips = std::min(static_cast<uint32_t>(rawMips), caps7::MaxMipLevels);
+      uint32_t mips = std::min(static_cast<uint32_t>(rawMips), caps7::MaxMipLevels) - 1;
 
-      if (mips > 1) {
+      if (mips > 0) {
         Logger::debug(str::format("DDraw7Surface::UploadTextureData: Blitting ", mips, " mip maps"));
       } else {
         Logger::warn("DDraw7Surface::UploadTextureData: Texture has no mip maps");
@@ -708,7 +742,7 @@ namespace dxvk {
           }
           m_texture->UnlockRect(i + 1);
           parentSurface = mipMap;
-          Logger::debug(str::format("DDraw7Surface::UploadTextureData: Done blitting mip ", i));
+          Logger::debug(str::format("DDraw7Surface::UploadTextureData: Done blitting mip ", i + 1));
         }
       }
 
@@ -751,6 +785,12 @@ namespace dxvk {
     Logger::debug("DDraw7Surface::UploadTextureData: Upload complete");
 
     return DD_OK;
+  }
+
+  IDirectDrawSurface7* DDraw7Surface::GetAttachedDepthStencil() {
+    IDirectDrawSurface7* depthStencil = nullptr;
+    EnumAttachedSurfaces(&depthStencil, DepthStencilSurfacesCallback);
+    return depthStencil;
   }
 
 }
