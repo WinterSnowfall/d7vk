@@ -82,12 +82,55 @@ namespace dxvk {
         }
         return d3d9::D3DFMT_D24S8;
       }
+    } else if ((fmt.dwFlags & DDPF_ALPHA)) {
+      // Alpha only surfaces. I sincerely hope d3d7 doesn't need anything else
+      return d3d9::D3DFMT_A8;
+    } else if ((fmt.dwFlags & DDPF_LUMINANCE)) {
+      switch (fmt.dwLuminanceBitCount) {
+        case 8: {
+          switch (fmt.dwLuminanceBitMask) {
+            // L: 1111 1111
+            case (0xF):
+              return d3d9::D3DFMT_L8;
+            // L: 0000 1111
+            // A: 1111 0000
+            case (0x8):
+              return d3d9::D3DFMT_A4L4;
+          }
+          return d3d9::D3DFMT_A4L4;
+        }
+        // L: 0000 0000 1111 1111
+        // A: 1111 1111 0000 0000
+        case 16:
+          return d3d9::D3DFMT_A8L8;
+      }
+      return d3d9::D3DFMT_A8L8;
+    // Hopefully there will be none of this
+    } else if ((fmt.dwFlags & DDPF_YUV)) {
+      Logger::info(str::format("ConvertFormat: fmt.dwYUVBitCount: ", fmt.dwYUVBitCount));
+      Logger::info(str::format("ConvertFormat: fmt.dwYBitMask: ",    fmt.dwYBitMask));
+      Logger::info(str::format("ConvertFormat: fmt.dwUBitMask: ",    fmt.dwUBitMask));
+      Logger::info(str::format("ConvertFormat: fmt.dwVBitMask: ",    fmt.dwVBitMask));
+
+      Logger::warn("ConvertFormat: Unhandled YUV payload");
+    // I guess there are some thing here we can convert...
+    } else if ((fmt.dwFlags & DDPF_FOURCC)) {
+      Logger::warn("ConvertFormat: Detected a FOURCC payload");
+      switch (fmt.dwFourCC) {
+        case MAKEFOURCC('U', 'Y', 'V', 'Y'): return d3d9::D3DFMT_UYVY;
+        case MAKEFOURCC('D', 'X', 'T', '1'): return d3d9::D3DFMT_DXT1;
+        case MAKEFOURCC('D', 'X', 'T', '2'): return d3d9::D3DFMT_DXT2;
+        case MAKEFOURCC('D', 'X', 'T', '3'): return d3d9::D3DFMT_DXT3;
+        case MAKEFOURCC('D', 'X', 'T', '4'): return d3d9::D3DFMT_DXT4;
+        case MAKEFOURCC('D', 'X', 'T', '5'): return d3d9::D3DFMT_DXT5;
+      }
+      Logger::warn("ConvertFormat: Unhandled FOURCC payload");
     } else {
       Logger::warn("ConvertFormat: Unhandled bit payload");
     }
 
-    // TODO: Do we even need a catch-all default?
-    return d3d9::D3DFMT_A8R8G8B8;
+    // TODO: Not sure if this is a good idea or we need a "catch-all"
+    return d3d9::D3DFMT_UNKNOWN;
   }
 
   static inline d3d9::D3DCUBEMAP_FACES GetCubemapFace(DDSURFACEDESC2* desc) {

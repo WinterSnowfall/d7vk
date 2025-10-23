@@ -97,11 +97,11 @@ namespace dxvk {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(surface);
       depthStencil = ddraw7Surface->GetAttachedDepthStencil();
       if (depthStencil != nullptr) {
-        Logger::debug("D3D7Interface::CreateDevice: Retrieved depth stencil");
+        Logger::debug("D3D7Interface::CreateDevice: Got depth stencil from RT");
         depthStencil->GetSurfaceDesc(&descDS);
         Logger::info(str::format("D3D7Interface::CreateDevice: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
       } else {
-        Logger::warn("D3D7Interface::CreateDevice: Unable to retrieve depth stencil");
+        Logger::debug("D3D7Interface::CreateDevice: RT has no depth stencil attached");
       }
     }
 

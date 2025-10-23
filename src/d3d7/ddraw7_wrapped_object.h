@@ -59,10 +59,11 @@ namespace dxvk {
 
       // TODO: Uncomment once things are in a decent state
       // in order to enable surface gamma and color control
-      /*if (riid == __uuidof(IDirectDrawColorControl)
+      if (riid == __uuidof(IDirectDrawColorControl)
        || riid == __uuidof(IDirectDrawGammaControl)) {
-        return m_proxy->QueryInterface(riid, ppvObject);
-      }*/
+        return E_NOINTERFACE;
+        //return m_proxy->QueryInterface(riid, ppvObject);
+      }
 
       try {
         *ppvObject = ref(this->GetInterface(riid));
