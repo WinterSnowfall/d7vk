@@ -96,27 +96,28 @@ namespace dxvk {
     }
 
     if (likely(m_DD7Parent->IsWrappedSurface(surface))) {
-      DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
+      DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
 
       // Will always be needed at this point
-      HRESULT hr = surface7->InitializeOrUploadD3D9();
+      HRESULT hr = rt7->InitializeOrUploadD3D9();
 
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Device::SetRenderTarget: Failed to initialize/upload d3d9 RT");
         return hr;
       }
 
-      if (surface7 == m_rtOrig) {
+      if (rt7 == m_rtOrig) {
         hr = m_d3d9->SetRenderTarget(0, m_rt9.ptr());
         m_d3d9->SetDepthStencilSurface(m_ds9.ptr());
       } else {
         hr = m_d3d9->SetRenderTarget(0, m_rt->GetSurface());
-        // TODO: Get the depth stencil from the RT as well and set it?
-        // Not entirely sure how depth stencil use is set up in D3D7
+        // TODO: Get the depth stencil from the RT as well and recreate
+        // it if the format has changed for some reason?
       }
 
       if (likely(SUCCEEDED(hr))) {
-        m_rt = surface7;
+        Logger::debug("D3D7Device::SetRenderTarget: Set a new RT");
+        m_rt = rt7;
       } else {
         Logger::err("D3D7Device::SetRenderTarget: Failed to set RT");
         return hr;

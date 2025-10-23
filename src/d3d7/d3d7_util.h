@@ -115,14 +115,25 @@ namespace dxvk {
       Logger::warn("ConvertFormat: Unhandled YUV payload");
     // I guess there are some thing here we can convert...
     } else if ((fmt.dwFlags & DDPF_FOURCC)) {
-      Logger::warn("ConvertFormat: Detected a FOURCC payload");
       switch (fmt.dwFourCC) {
-        case MAKEFOURCC('U', 'Y', 'V', 'Y'): return d3d9::D3DFMT_UYVY;
-        case MAKEFOURCC('D', 'X', 'T', '1'): return d3d9::D3DFMT_DXT1;
-        case MAKEFOURCC('D', 'X', 'T', '2'): return d3d9::D3DFMT_DXT2;
-        case MAKEFOURCC('D', 'X', 'T', '3'): return d3d9::D3DFMT_DXT3;
-        case MAKEFOURCC('D', 'X', 'T', '4'): return d3d9::D3DFMT_DXT4;
-        case MAKEFOURCC('D', 'X', 'T', '5'): return d3d9::D3DFMT_DXT5;
+        case MAKEFOURCC('U', 'Y', 'V', 'Y'):
+          Logger::warn("ConvertFormat: Detected a FOURCC payload: UYVY");
+          return d3d9::D3DFMT_UYVY;
+        case MAKEFOURCC('D', 'X', 'T', '1'):
+          Logger::warn("ConvertFormat: Detected a FOURCC payload: DXT1");
+          return d3d9::D3DFMT_DXT1;
+        case MAKEFOURCC('D', 'X', 'T', '2'):
+          Logger::warn("ConvertFormat: Detected a FOURCC payload: DXT2");
+          return d3d9::D3DFMT_DXT2;
+        case MAKEFOURCC('D', 'X', 'T', '3'):
+          Logger::warn("ConvertFormat: Detected a FOURCC payload: DXT3");
+          return d3d9::D3DFMT_DXT3;
+        case MAKEFOURCC('D', 'X', 'T', '4'):
+          Logger::warn("ConvertFormat: Detected a FOURCC payload: DXT4");
+          return d3d9::D3DFMT_DXT4;
+        case MAKEFOURCC('D', 'X', 'T', '5'):
+          Logger::warn("ConvertFormat: Detected a FOURCC payload: DXT5");
+          return d3d9::D3DFMT_DXT5;
       }
       Logger::warn("ConvertFormat: Unhandled FOURCC payload");
     } else {
@@ -505,6 +516,14 @@ namespace dxvk {
                                 // | D3DVTXPCAPS_NONLOCALVIEWER; // Described in the official docs, otherwise a ghost
 
     return desc7;
+  }
+
+  static inline bool IsDXTFormat(d3d9::D3DFORMAT fmt) {
+    return fmt == d3d9::D3DFMT_DXT1
+        || fmt == d3d9::D3DFMT_DXT2
+        || fmt == d3d9::D3DFMT_DXT3
+        || fmt == d3d9::D3DFMT_DXT4
+        || fmt == d3d9::D3DFMT_DXT5;
   }
 
 }
