@@ -163,6 +163,10 @@ namespace dxvk {
       return m_desc.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP;
     }
 
+    inline bool IsOverlay() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_OVERLAY;
+    }
+
     // TODO: Probably wrong, need a more accurate way
     inline bool IsRenderTarget() const {
       return IsFrontBuffer() || IsBackBuffer() || IsOffScreenPlainSurface();
@@ -213,15 +217,21 @@ namespace dxvk {
       // but let's at least try to determine the format in those cases
       auto format = !IsFrontBuffer() ? ConvertFormat(m_desc.ddpfPixelFormat) : d3d9::D3DFMT_UNKNOWN;
 
+      if (IsDXTFormat(format))
+        m_isDXT = true;
+
       const char* attached = IsAttached() ? "yes" : "no";
 
       Logger::info(str::format("DDraw7Surface: Created a new surface nr. [[", m_surfCount, "]]:"));
       Logger::info(str::format("   Type:       ", type));
       Logger::info(str::format("   Dimensions: ", m_desc.dwWidth, "x", m_desc.dwHeight));
       Logger::info(str::format("   Format:     ", format));
-      Logger::info(str::format("   MipLevels:  ", m_desc.dwMipMapCount + 1));
+      Logger::info(str::format("   HasMips:    ", m_desc.dwMipMapCount ? "yes" : "no"));
       Logger::info(str::format("   IsAttached: ", attached));
     }
+
+    bool              m_isDXT      = false;
+    uint32_t          m_mipCount   = 0;
 
     static uint32_t   s_surfCount;
     uint32_t          m_surfCount  = 0;

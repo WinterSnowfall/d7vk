@@ -521,22 +521,48 @@ namespace dxvk {
       return DD_OK;
     }
 
-    d3d9::D3DPOOL pool = d3d9::D3DPOOL_MANAGED;
-    // Place all possible render targets in DEFAULT
-    if (IsRenderTarget())
-      pool = d3d9::D3DPOOL_DEFAULT;
+    // Textures should be fine in MANAGED as a rule of thumb
+    d3d9::D3DPOOL pool  = d3d9::D3DPOOL_MANAGED;
+    DWORD         usage = 0;
+    // Place all possible render targets in DEFAULT,
+    // as well as any overlays (typically used for video)
+    if (IsRenderTarget() || IsOverlay()) {
+      pool  = d3d9::D3DPOOL_DEFAULT;
+      usage = D3DUSAGE_RENDERTARGET;
+    }
+    if (m_isDXT) {
+      pool  = d3d9::D3DPOOL_DEFAULT;
+      // This is needed for us to be able to lock the texture
+      usage = D3DUSAGE_DYNAMIC;
+    }
     // Not sure if this is all that good for perf,
     // but let's respect what the application asks for
-    else if (m_desc.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
+    if (pool == d3d9::D3DPOOL_MANAGED && (m_desc.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY))
       pool = d3d9::D3DPOOL_SYSTEMMEM;
 
-    auto rawMips = m_desc.dwMipMapCount + 1;
-    uint32_t mipLevels = std::min(static_cast<uint32_t>(rawMips), caps7::MaxMipLevels);
+    // We need to count the number of actual mips on initialization by going through
+    // the mip chain, since the dwMipMapCount number may or may not be accurate. I am
+    // guess it was intended more a hint, not neceesarily how many mips ended up on the GPU.
+
+    IDirectDrawSurface7* mipMap = GetProxied();
+
+    while (mipMap != nullptr) {
+      IDirectDrawSurface7* parentSurface = mipMap;
+      mipMap = nullptr;
+      parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
+      if (mipMap != nullptr) {
+        m_mipCount++;
+      }
+    }
+
+    Logger::debug(str::format("DDraw7Surface::UploadTextureData: Found ", m_mipCount, " mips"));
+
+    uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
     if (mipLevels > 1)
-      Logger::debug(str::format("DDraw7Surface::UploadTextureData: Found ", mipLevels - 1, " mip maps"));
+      Logger::debug(str::format("DDraw7Surface::UploadTextureData: Found ", mipLevels, " mip levels"));
 
     // Render Target / various base surface types
-    if (IsRenderTarget()) {
+    if (IsRenderTarget() || IsOverlay()) {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing render target (allegedly)...");
 
       Com<d3d9::IDirect3DSurface9> rt = nullptr;
@@ -561,17 +587,24 @@ namespace dxvk {
           Logger::info("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
       }
 
+      else if (IsOverlay()) {
+        hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
+        if (likely(SUCCEEDED(hr)))
+          Logger::info("DDraw7Surface::IntializeD3D9: Created overlay surface");
+      }
+
       else {
-        // Must be lockable for GetDC() to work
+        // Must be lockable for blitting to work
         hr = m_d3d7device->GetD3D9()->CreateRenderTarget(
           m_desc.dwWidth, m_desc.dwHeight, ConvertFormat(m_desc.ddpfPixelFormat),
-          d3d9::D3DMULTISAMPLE_NONE, 0, TRUE, &rt, nullptr);
+          d3d9::D3DMULTISAMPLE_NONE, usage, TRUE, &rt, nullptr);
         if (likely(SUCCEEDED(hr)))
           Logger::info("DDraw7Surface::IntializeD3D9: Created generic RT");
       }
 
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create RT");
+        m_d3d9 = nullptr;
         return hr;
       }
 
@@ -592,6 +625,7 @@ namespace dxvk {
 
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create DS");
+        m_d3d9 = nullptr;
         return hr;
       }
 
@@ -604,11 +638,12 @@ namespace dxvk {
       // TODO: Pool for non-RT cubemaps. Better check if cube maps
       // can even be render targets in d3d7...
       hr = m_d3d7device->GetD3D9()->CreateCubeTexture(
-        m_desc.dwWidth, mipLevels, IsRenderTarget() ? D3DUSAGE_RENDERTARGET : 0,
+        m_desc.dwWidth, mipLevels, usage,
         ConvertFormat(m_desc.ddpfPixelFormat), pool, &cubetex, nullptr);
 
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create cube map");
+        m_cubeMap = nullptr;
         return hr;
       } else {
         Logger::info("DDraw7Surface::IntializeD3D9: Created cube map");
@@ -629,10 +664,8 @@ namespace dxvk {
 
       Com<d3d9::IDirect3DTexture9> tex = nullptr;
 
-      // Should be good on managed, however in DEFAULT they must
-      // have D3DUSAGE_DYNAMIC for GetDC() to work
       hr = m_d3d7device->GetD3D9()->CreateTexture(
-        m_desc.dwWidth, m_desc.dwHeight, mipLevels, 0,
+        m_desc.dwWidth, m_desc.dwHeight, mipLevels, usage,
         ConvertFormat(m_desc.ddpfPixelFormat), pool, &tex, nullptr);
 
       if (unlikely(FAILED(hr))) {
@@ -643,23 +676,24 @@ namespace dxvk {
 
       Logger::debug("DDraw7Surface::IntializeD3D9: Created d3d9 texture");
       m_texture = std::move(tex);
-    // Something... else?
+
     } else {
-      Logger::warn("DDraw7Surface::IntializeD3D9: Initializing unknown/unhandled surface type");
+      Logger::warn("DDraw7Surface::IntializeD3D9: Unknown surface type");
 
-      Com<d3d9::IDirect3DSurface9> rt = nullptr;
+      Com<d3d9::IDirect3DSurface9> surf = nullptr;
 
-       // Must be lockable for GetDC() to work
-      hr = m_d3d7device->GetD3D9()->CreateRenderTarget(
+      hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
           m_desc.dwWidth, m_desc.dwHeight, ConvertFormat(m_desc.ddpfPixelFormat),
-          d3d9::D3DMULTISAMPLE_NONE, 0, TRUE, &rt, nullptr);
+          d3d9::D3DPOOL_MANAGED, &surf, nullptr);
 
       if (unlikely(FAILED(hr))) {
-        Logger::err("DDraw7Surface::IntializeD3D9: Failed to create RT");
+        Logger::err("DDraw7Surface::IntializeD3D9: Failed to create offscreen plain surface");
+        m_d3d9 = nullptr;
         return hr;
-      } else {
-        Logger::info("DDraw7Surface::IntializeD3D9: Created a generic RT");
       }
+
+      Logger::info("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
+      m_d3d9 = std::move(surf);
     }
 
     UploadTextureData();
@@ -689,47 +723,16 @@ namespace dxvk {
 
     // Blit all the mips for textures
     if (m_texture != nullptr) {
-      Logger::debug(str::format("DDraw7Surface::UploadTextureData: Blitting base texture surface"));
+      uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
 
-      d3d9::D3DLOCKED_RECT rect9;
-      HRESULT hr9 = m_texture->LockRect(0, &rect9, 0, D3DLOCK_READONLY);
-      if (SUCCEEDED(hr9)) {
-        DDSURFACEDESC2 desc;
-        desc.dwSize = sizeof(DDSURFACEDESC2);
-        HRESULT hr7 = m_proxy->Lock(0, &desc, DDLOCK_WRITEONLY, 0);
-        if (SUCCEEDED(hr7)) {
-          Logger::debug(str::format("desc.dwWidth:  ", desc.dwWidth));
-          Logger::debug(str::format("desc.dwHeight: ", desc.dwHeight));
-          Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));
-          Logger::debug(str::format("rect.Pitch:    ", rect9.Pitch));
-          if (unlikely(desc.lPitch != rect9.Pitch)) {
-            Logger::err("DDraw7Surface::UploadTextureData: Incompatible texture pitch");
-          } else {
-            size_t size = static_cast<size_t>(desc.dwHeight * desc.lPitch);
-            memcpy(rect9.pBits, desc.lpSurface, size);
-          }
-          m_proxy->Unlock(0);
-        }
-        m_texture->UnlockRect(0);
-      }
+      Logger::debug(str::format("DDraw7Surface::UploadTextureData: Blitting ", mipLevels, " mip map(s)"));
 
-      auto rawMips = m_desc.dwMipMapCount + 1;
-      uint32_t mipLevels = std::min(static_cast<uint32_t>(rawMips), caps7::MaxMipLevels);
+      IDirectDrawSurface7* mipMap = GetProxied();
 
-      if (mipLevels > 1) {
-        Logger::debug(str::format("DDraw7Surface::UploadTextureData: Blitting ", mipLevels - 1, " mip maps"));
-      }
-
-      IDirectDrawSurface7* parentSurface = GetProxied();
-
-      for (uint32_t i = 0; i < mipLevels - 1; i++) {
+      for (uint32_t i = 0; i < mipLevels; i++) {
         d3d9::D3DLOCKED_RECT rect9mip;
-        HRESULT hr9mip = m_texture->LockRect(i + 1, &rect9mip, 0, D3DLOCK_READONLY);
+        HRESULT hr9mip = m_texture->LockRect(i, &rect9mip, 0, D3DLOCK_READONLY);
         if (SUCCEEDED(hr9mip)) {
-          IDirectDrawSurface7* mipMap = nullptr;
-          parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
-          if (mipMap == nullptr)
-            break;
           DDSURFACEDESC2 descMip;
           descMip.dwSize = sizeof(DDSURFACEDESC2);
           HRESULT hr7mip = mipMap->Lock(0, &descMip, DDLOCK_WRITEONLY, 0);
@@ -737,7 +740,7 @@ namespace dxvk {
             Logger::debug(str::format("descMip.dwWidth:  ", descMip.dwWidth));
             Logger::debug(str::format("descMip.dwHeight: ", descMip.dwHeight));
             Logger::debug(str::format("descMip.lPitch:   ", descMip.lPitch));
-            Logger::debug(str::format("rect9mip.Pitch:    ", rect9mip.Pitch));
+            Logger::debug(str::format("rect9mip.Pitch:   ", rect9mip.Pitch));
             if (unlikely(descMip.lPitch != rect9mip.Pitch)) {
               Logger::err(str::format("DDraw7Surface::UploadTextureData: Incompatible mip map ", i + 1, " pitch"));
             } else {
@@ -746,9 +749,19 @@ namespace dxvk {
             }
             mipMap->Unlock(0);
           }
-          m_texture->UnlockRect(i + 1);
-          parentSurface = mipMap;
+          m_texture->UnlockRect(i);
+
+          IDirectDrawSurface7* parentSurface = mipMap;
+          mipMap = nullptr;
+          parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
+          if (mipMap == nullptr) {
+            Logger::warn(str::format("DDraw7Surface::UploadTextureData: Last source mip nr. ", i + 1));
+            break;
+          }
+
           Logger::debug(str::format("DDraw7Surface::UploadTextureData: Done blitting mip ", i + 1));
+        } else {
+          Logger::warn(str::format("DDraw7Surface::UploadTextureData: Failed to lock d3d9 mip ", i + 1));
         }
       }
 
@@ -781,11 +794,6 @@ namespace dxvk {
         }
         m_d3d9->UnlockRect();
       }
-
-    } else {
-      // Shouldn't ever happen, we've checked for it above
-      Logger::err("DDraw7Surface::UploadTextureData: DDraw7Surface has neither a d3d9 surface or texture attached");
-      return DDERR_GENERIC;
     }
 
     Logger::debug("DDraw7Surface::UploadTextureData: Upload complete");
