@@ -726,7 +726,7 @@ namespace dxvk {
 
       if (likely(SUCCEEDED(hr))) {
         if (m_textures[stage] != nullptr) {
-          m_textures[stage]->MarkAsUnbound();
+          Logger::debug("D3D7Device::SetTexture: Unbinding local texture");
           m_textures[stage] = nullptr;
         }
       } else {
@@ -760,7 +760,6 @@ namespace dxvk {
       }
 
       m_textures[stage] = surface7;
-      m_textures[stage]->MarkAsBound();
     } else {
       Logger::warn("D3D7Device::SetTexture: Received a non-wrapped texture");
     }
