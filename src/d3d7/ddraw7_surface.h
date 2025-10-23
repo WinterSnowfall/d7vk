@@ -208,7 +208,10 @@ namespace dxvk {
       else if (IsCubeMap())               type = "cube map";
       else if (IsNotKnown())              type = "unknown";
 
-      auto format = ConvertFormat(m_desc.ddpfPixelFormat);
+      // Front buffer surfaces apparently don't specify any pixel format info
+      // Offscreen plain surfaces can also be created with unsupported formats,
+      // but let's at least try to determine the format in those cases
+      auto format = !IsFrontBuffer() ? ConvertFormat(m_desc.ddpfPixelFormat) : d3d9::D3DFMT_UNKNOWN;
 
       const char* attached = IsAttached() ? "yes" : "no";
 

@@ -139,8 +139,7 @@ namespace dxvk {
     }
 
     void* pData = nullptr;
-    // TODO: See if it even makes sense to use D3DLOCK_DISCARD
-    HRESULT hr = m_ib9->Lock(0, size, &pData, 0);
+    HRESULT hr = m_ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7VertexBuffer::UploadIndices: Failed to lock destination buffer");
