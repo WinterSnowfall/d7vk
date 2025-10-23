@@ -7,8 +7,15 @@
 
 namespace dxvk {
 
-  static inline d3d9::D3DFORMAT ConvertFormat(DDPIXELFORMAT& fmt) {
-    if (likely(fmt.dwFlags & DDPF_RGB)) {
+  // TODO: Make this static and comment the loggers once everything is sorted (probably never)
+  inline d3d9::D3DFORMAT ConvertFormat(DDPIXELFORMAT& fmt) {
+    if (fmt.dwFlags & DDPF_RGB) {
+      Logger::info(str::format("ConvertFormat: fmt.dwRGBBitCount: ",     fmt.dwRGBBitCount));
+      Logger::info(str::format("ConvertFormat: fmt.dwRBitMask: ",        fmt.dwRBitMask));
+      Logger::info(str::format("ConvertFormat: fmt.dwGBitMask: ",        fmt.dwRBitMask));
+      Logger::info(str::format("ConvertFormat: fmt.dwBBitMask: ",        fmt.dwRBitMask));
+      Logger::info(str::format("ConvertFormat: fmt.dwRGBAlphaBitMask: ", fmt.dwRGBAlphaBitMask));
+
       switch (fmt.dwRGBBitCount) {
         case 16: {
           switch (fmt.dwRBitMask) {
@@ -35,7 +42,7 @@ namespace dxvk {
             // R: 0000 0000 1111 1111 0000 0000 0000 0000
             // A: 1111 1111 0000 0000 0000 0000 0000 0000
             case (0xFF << 16):
-              return fmt.dwRGBAlphaBitMask ? d3d9::D3DFMT_A8R8G8B8 : d3d9::D3DFMT_X8B8G8R8;
+              return fmt.dwRGBAlphaBitMask ? d3d9::D3DFMT_A8R8G8B8 : d3d9::D3DFMT_X8R8G8B8;
             // R: 0011 1111 1111 0000 0000 0000 0000 0000
             // A: 1100 0000 0000 0000 0000 0000 0000 0000
             case (0x3FF << 20):
@@ -50,7 +57,13 @@ namespace dxvk {
       }
     // TODO: Check if these are actually correct and work
     } else if ((fmt.dwFlags & DDPF_ZBUFFER)) {
+      Logger::info(str::format("ConvertFormat: fmt.dwZBufferBitDepth: ", fmt.dwZBufferBitDepth));
+      Logger::info(str::format("ConvertFormat: fmt.dwZBitMask: ",        fmt.dwRBitMask));
+      Logger::info(str::format("ConvertFormat: fmt.dwStencilBitMask: ",  fmt.dwStencilBitMask));
+
       switch (fmt.dwZBufferBitDepth) {
+        // D: 1111 1111 1111 1110
+        // S: 0000 0000 0000 0001
         case 16:
           return fmt.dwStencilBitMask ? d3d9::D3DFMT_D15S1 : d3d9::D3DFMT_D16;
         case 32: {
@@ -58,13 +71,19 @@ namespace dxvk {
             case 0:
               return d3d9::D3DFMT_D24X8;
             case (0xFF):
+              // D: 1111 1111 1111 1111 1111 1111 0000 0000
+              // S: 0000 0000 0000 0000 0000 0000 1111 1111
               return d3d9::D3DFMT_D24S8;
             case (0xF):
+              // D: 1111 1111 1111 1111 1111 1111 0000 0000
+              // S: 0000 0000 0000 0000 0000 0000 0000 1111
               return d3d9::D3DFMT_D24X4S4;
           }
         }
         return d3d9::D3DFMT_D24S8;
       }
+    } else {
+      Logger::warn("ConvertFormat: Unhandled bit payload");
     }
 
     // TODO: Do we even need a catch-all default?
