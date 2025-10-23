@@ -150,7 +150,11 @@ namespace dxvk {
 
     Com<IDxvkD3D8InterfaceBridge>    m_bridge;
 
+    // TODO: All DDraw7Surfaces need to be held as reference by the ddraw7
+    // interface, since that is where they are created. They are NOT tied
+    // to the device, and need to exist even after its destruction.
     Com<DDraw7Surface, false>        m_rt;
+    Com<DDraw7Surface, false>        m_ds;
     DDraw7Surface*                   m_rtOrig = nullptr;
 
     std::array<Com<DDraw7Surface, false>, caps7::TextureStageCount> m_textures;
