@@ -31,7 +31,7 @@ namespace dxvk {
         D3D7Interface* pParent,
         DDraw7Interface* pDD7Parent,
         Com<d3d9::IDirect3DDevice9>&& pDevice,
-        DDraw7Surface* pSurface);
+        DDraw7Surface* pRT);
 
     ~D3D7Device();
 

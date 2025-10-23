@@ -89,6 +89,8 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
+    // Determine the format for the auto depth stencil, if
+    // the application provides a depth stencil surface
     IDirectDrawSurface7* depthStencil = nullptr;
     DDSURFACEDESC2 descDS;
     descDS.dwSize = sizeof(DDSURFACEDESC2);
@@ -137,11 +139,11 @@ namespace dxvk {
     }
 
     Com<IDirect3DDevice7> d3d7DeviceProxy;
-    DDraw7Surface* ddraw7Surface;
+    DDraw7Surface* rt7 = nullptr;
 
     if (likely(m_parent->IsWrappedSurface(surface))) {
-      ddraw7Surface = static_cast<DDraw7Surface*>(surface);
-      hr = m_proxy->CreateDevice(rclsid, ddraw7Surface->GetProxied(), &d3d7DeviceProxy);
+      rt7 = static_cast<DDraw7Surface*>(surface);
+      hr = m_proxy->CreateDevice(rclsid, rt7->GetProxied(), &d3d7DeviceProxy);
     } else {
       Logger::err("D3D7Interface::CreateDevice: Non wrapped surface passed as RT");
       return DDERR_GENERIC;
@@ -166,7 +168,7 @@ namespace dxvk {
     m_desc.deviceGUID = rclsid;
 
     try{
-      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, m_parent, std::move(device9), ddraw7Surface);
+      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, m_parent, std::move(device9), rt7);
       // Hold the address of the most recently created device, not a reference
       m_device = device.ptr();
       *ppd3dDevice = device.ref();
