@@ -8,13 +8,7 @@
 namespace dxvk {
 
   DDraw7Interface::DDraw7Interface(Com<IDirectDraw7>&& proxyIntf)
-    : m_proxy ( std::move(proxyIntf) ) {
-    void* d3d7IntfProxiedVoid = nullptr;
-    // This can never reasonably fail
-    m_proxy->QueryInterface(__uuidof(IDirect3D7), &d3d7IntfProxiedVoid);
-    Com<IDirect3D7> d3d7IntfProxied = static_cast<IDirect3D7*>(d3d7IntfProxiedVoid);
-    m_d3d7Intf = new D3D7Interface(std::move(d3d7IntfProxied), this);
-  }
+    : m_proxy ( std::move(proxyIntf) ) {}
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::QueryInterface(REFIID riid, void** ppvObject) {
     Logger::debug(">>> DDraw7Interface::QueryInterface");
@@ -31,7 +25,14 @@ namespace dxvk {
     }
 
     if (riid == __uuidof(IDirect3D7)) {
-      *ppvObject = m_d3d7Intf.ref();
+      void* d3d7IntfProxiedVoid = nullptr;
+      // This can never reasonably fail
+      m_proxy->QueryInterface(__uuidof(IDirect3D7), &d3d7IntfProxiedVoid);
+      Com<IDirect3D7> d3d7IntfProxied = static_cast<IDirect3D7*>(d3d7IntfProxiedVoid);
+      // Hold the address, not a reference, to newly created interfaces, otherwise
+      // things may explode during an application's resource release cycle
+      m_d3d7Intf = ref(new D3D7Interface(std::move(d3d7IntfProxied), this));
+      *ppvObject = m_d3d7Intf;
       return S_OK;
     }
 
@@ -181,7 +182,7 @@ namespace dxvk {
     Logger::debug("<<< DDraw7Interface::SetCooperativeLevel: Proxy");
     // This needs to be called on interface init, so is a reliable
     // way of getting the needed hWnd for d3d7 device creation
-    m_d3d7Intf->SetHwnd(hWnd);
+    m_hwnd = hWnd;
     return m_proxy->SetCooperativeLevel(hWnd, dwFlags);
   }
 

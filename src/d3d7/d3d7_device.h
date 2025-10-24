@@ -23,7 +23,7 @@ namespace dxvk {
   */
   class D3D7Device final : public DDrawWrappedObject<d3d9::IDirect3DDevice9, IDirect3DDevice7> {
 
-    friend class D3D7StateBlock;
+  friend class D3D7StateBlock;
 
   public:
     D3D7Device(
@@ -149,6 +149,9 @@ namespace dxvk {
     D3D7Singlethread                 m_singlethread;
 
     Com<IDxvkD3D8InterfaceBridge>    m_bridge;
+
+    static uint32_t                  s_deviceCount;
+    uint32_t                         m_deviceCount = 0;
 
     // TODO: All DDraw7Surfaces need to be held as reference by the ddraw7
     // interface, since that is where they are created. They are NOT tied
