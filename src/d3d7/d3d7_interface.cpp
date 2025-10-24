@@ -8,6 +8,8 @@
 
 namespace dxvk {
 
+  uint32_t D3D7Interface::s_intfCount = 0;
+
   // TODO: Figure out why these can't be used directly
   static constexpr IID IID_IDirect3DRGBDevice    = { 0xa4665c60, 0x2673, 0x11cf, {0xa3, 0x1a, 0x00, 0xaa, 0x00, 0xb9, 0x33, 0x56} };
   static constexpr IID IID_IDirect3DHALDevice    = { 0x84e63de0, 0x46aa, 0x11cf, {0x81, 0x6f, 0x00, 0x00, 0xc0, 0x20, 0x15, 0x6e} };
@@ -15,13 +17,29 @@ namespace dxvk {
 
   D3D7Interface::D3D7Interface(Com<IDirect3D7>&& d3d7IntfProxy, DDraw7Interface* pParent)
     : DDrawWrappedObject<d3d9::IDirect3D9, IDirect3D7>(std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)), std::move(d3d7IntfProxy))
-    , m_parent ( pParent ) {
+    , m_parent ( pParent )
+    , m_desc ( GetBaseD3D7Caps() ) {
     // Get the bridge interface to D3D9.
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
       throw DxvkError("D3D7Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
     m_bridge->EnableD3D7CompatibilityMode();
+
+    // Let's assume a HAL device always ends up being selected
+    m_desc.deviceGUID = IID_IDirect3DTnLHalDevice;
+
+    m_intfCount = ++s_intfCount;
+
+    Logger::info(str::format("D3D7Interface: Created a new interface nr. ((", m_intfCount, "))"));
+  }
+
+  D3D7Interface::~D3D7Interface() {
+    // Clear up the d3d7 interface device pointer if it points to this interface
+    if (m_parent->GetD3D7Interface() == this)
+      m_parent->ClearD3D7Interface();
+
+    Logger::info(str::format("D3D7Interface: Interface nr. ((", m_intfCount, ")) bites the dust"));
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK7 cb, void *ctx) {
@@ -33,7 +51,7 @@ namespace dxvk {
     // Ideally we should take all the adapters into account, however
     // D3D7 supports one HAL device, one HAL T&L device, and one
     // RGB (software emulation) device, all indentified via GUIDs
-    m_desc = GetBaseD3D7Caps();
+
     // Make a copy, because we need to alter stuff
     D3DDEVICEDESC7 desc7 = m_desc;
 
@@ -84,7 +102,9 @@ namespace dxvk {
 
     Logger::info(str::format("D3D7Interface::CreateDevice: RenderTarget: ", desc.dwWidth, "x", desc.dwHeight));
 
-    if (unlikely(m_hwnd == nullptr)) {
+    HWND hwnd = m_parent->GetHWND();
+
+    if (unlikely(hwnd == nullptr)) {
       Logger::err("D3D7Interface::CreateDevice: HWND is NULL");
       return DDERR_GENERIC;
     }
@@ -115,7 +135,7 @@ namespace dxvk {
     params.MultiSampleType    = d3d9::D3DMULTISAMPLE_NONE;
     params.MultiSampleQuality = 0;
     params.SwapEffect         = d3d9::D3DSWAPEFFECT_DISCARD;
-    params.hDeviceWindow      = m_hwnd;
+    params.hDeviceWindow      = hwnd;
     params.Windowed           = TRUE; // TODO: Always windowed?
     params.EnableAutoDepthStencil     = TRUE;
     params.AutoDepthStencilFormat     = depthStencil != nullptr ? ConvertFormat(descDS.ddpfPixelFormat) : d3d9::D3DFMT_D16;
@@ -128,7 +148,7 @@ namespace dxvk {
     HRESULT hr = m_d3d9->CreateDevice(
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
-      m_hwnd,
+      hwnd,
       D3DCREATE_HARDWARE_VERTEXPROCESSING,
       &params,
       &device9

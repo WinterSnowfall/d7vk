@@ -79,13 +79,27 @@ namespace dxvk {
     void RemoveWrappedSurface(IDirectDrawSurface7* surface);
 
     D3D7Device* GetD3D7Device() const {
-      return m_d3d7Intf->GetDevice();
+      return m_d3d7Intf != nullptr ? m_d3d7Intf->GetDevice() : nullptr;
+    }
+
+    D3D7Interface* GetD3D7Interface() const {
+      return m_d3d7Intf;
+    }
+
+    void ClearD3D7Interface() {
+      m_d3d7Intf = nullptr;
+    }
+
+    HWND GetHWND() const {
+      return m_hwnd;
     }
 
   private:
     Com<IDirectDraw7>                      m_proxy;
 
-    Com<D3D7Interface, false>              m_d3d7Intf;
+    D3D7Interface*                         m_d3d7Intf;
+
+    HWND                                   m_hwnd = nullptr;
 
     std::vector<DDraw7Surface*>            m_surfaces;
 

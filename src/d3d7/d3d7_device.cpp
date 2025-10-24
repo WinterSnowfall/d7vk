@@ -8,6 +8,8 @@
 
 namespace dxvk {
 
+  uint32_t D3D7Device::s_deviceCount = 0;
+
   D3D7Device::D3D7Device(
       Com<IDirect3DDevice7>&& d3d7DeviceProxy,
       D3D7Interface* pParent,
@@ -36,12 +38,17 @@ namespace dxvk {
 
     // Textures
     m_textures.fill(nullptr);
+
+    m_deviceCount = ++s_deviceCount;
+
+    Logger::info(str::format("D3D7Device: Created a new device nr. ((", m_deviceCount, "))"));
   }
 
   D3D7Device::~D3D7Device() {
     // Clear up the interface device pointer if it points to this device
     if (m_parent->GetDevice() == this)
       m_parent->ClearDevice();
+    Logger::info(str::format("D3D7Device: Device nr. ((", m_deviceCount, ")) bites the dust"));
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetCaps(D3DDEVICEDESC7 *desc) {
@@ -193,7 +200,7 @@ namespace dxvk {
   }
 
   // ZBIAS can be an integer from 0 to 16 and needs to be remapped to float
-  static constexpr float ZBIAS_SCALE     = -1.0 / (1 << 16); // Consider D16 precision
+  static constexpr float ZBIAS_SCALE     = -1.0f / (1 << 16); // Consider D16 precision
   static constexpr float ZBIAS_SCALE_INV = 1 / ZBIAS_SCALE;
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
@@ -743,11 +750,12 @@ namespace dxvk {
 
       DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
 
+      // We always need to upload the textures, even if the slot
+      // has not changed, due to potential mip map updates
+      hr = surface7->InitializeOrUploadD3D9();
+
       if (unlikely(m_textures[stage] == surface7))
         return D3D_OK;
-
-      // Will always be needed at this point
-      hr = surface7->InitializeOrUploadD3D9();
 
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Device::SetTexture: Failed to initialize/upload d3d9 texture");
