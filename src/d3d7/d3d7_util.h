@@ -343,7 +343,7 @@ namespace dxvk {
                               | D3DPRASTERCAPS_FOGVERTEX
                               | D3DPRASTERCAPS_MIPMAPLODBIAS
                            // | D3DPRASTERCAPS_PAT // Not implemented in D3D9
-                              | D3DPRASTERCAPS_ROP2 // Huh?
+                              | D3DPRASTERCAPS_ROP2
                               | D3DPRASTERCAPS_STIPPLE
                               | D3DPRASTERCAPS_SUBPIXEL // I guess...
                            // | D3DPRASTERCAPS_SUBPIXELX
@@ -352,7 +352,7 @@ namespace dxvk {
                               | D3DPRASTERCAPS_WFOG
                               | D3DPRASTERCAPS_XOR
                               | D3DPRASTERCAPS_ZBIAS
-                              | D3DPRASTERCAPS_ZBUFFERLESSHSR // Emh, sure?
+                              | D3DPRASTERCAPS_ZBUFFERLESSHSR
                               | D3DPRASTERCAPS_ZFOG
                               | D3DPRASTERCAPS_ZTEST;
 
