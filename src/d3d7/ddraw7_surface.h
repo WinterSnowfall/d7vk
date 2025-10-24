@@ -126,6 +126,16 @@ namespace dxvk {
       m_d3d9 = std::move(surface);
     }
 
+    bool IsInitialized() const {
+      return m_d3d9 != nullptr || m_texture != nullptr || m_cubeMap != nullptr;
+    }
+
+    IDirectDrawSurface7* GetAttachedDepthStencil();
+
+    HRESULT InitializeOrUploadD3D9();
+
+  private:
+
     inline bool IsAttached() const {
       return m_parentSurf != nullptr;
     }
@@ -172,19 +182,9 @@ namespace dxvk {
       return IsFrontBuffer() || IsBackBuffer() || IsOffScreenPlainSurface();
     }
 
-    IDirectDrawSurface7* GetAttachedDepthStencil();
-
-    HRESULT InitializeOrUploadD3D9();
-
-  private:
-
     inline HRESULT IntializeD3D9();
 
     inline HRESULT UploadTextureData();
-
-    inline bool IsInitialized() const {
-      return m_d3d9 != nullptr || m_texture != nullptr || m_cubeMap != nullptr;
-    }
 
     // TODO: Need to do this on every device use
     // and refresh derp out if the device is lost
