@@ -21,6 +21,8 @@ namespace dxvk {
   public:
     D3D7Interface(Com<IDirect3D7>&& d3d7Intf, DDraw7Interface* pParent);
 
+    ~D3D7Interface();
+
     HRESULT STDMETHODCALLTYPE EnumDevices(LPD3DENUMDEVICESCALLBACK7 cb, void *ctx);
 
     HRESULT STDMETHODCALLTYPE CreateDevice(const IID& rclsid, IDirectDrawSurface7 *surface, IDirect3DDevice7 **ppd3dDevice);
@@ -30,11 +32,6 @@ namespace dxvk {
     HRESULT STDMETHODCALLTYPE EnumZBufferFormats(const IID& device_iid, LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx);
 
     HRESULT STDMETHODCALLTYPE EvictManagedTextures();
-
-    void SetHwnd(HWND hwnd) {
-      if (m_hwnd == nullptr)
-        m_hwnd = hwnd;
-    }
 
     D3D7Device* GetDevice() const {
       return m_device;
@@ -55,11 +52,13 @@ namespace dxvk {
 
     Com<IDxvkD3D8InterfaceBridge>                   m_bridge;
 
+    static uint32_t                                 s_intfCount;
+    uint32_t                                        m_intfCount = 0;
+
     // TODO: Move to the devices, don't keep in the parent
     D3DDEVICEDESC7                                  m_desc;
 
     D3D7Device*                                     m_device;
-    HWND                                            m_hwnd = nullptr;
 
   };
 

@@ -67,6 +67,9 @@ namespace dxvk {
     if (unlikely(IsFrontBuffer() || IsBackBuffer()))
       return DD_OK;
 
+    if (unlikely(m_isDXT))
+      Logger::info("DDraw7Surface::Blt: Proxy: Destination is a compressed texture format");
+
     HRESULT hr;
 
     if (likely(m_parent->IsWrappedSurface(lpDDSrcSurface))) {
@@ -238,9 +241,16 @@ namespace dxvk {
 
     InitializeOrUploadD3D9();
 
-    HRESULT hr = GetD3D9()->GetDC(lphDC);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("DDraw7Surface::GetDC: Failed to get d3d9 DC");
+    HRESULT hr = DD_OK;
+
+    if (likely(IsInitialized())) {
+      hr = m_d3d9->GetDC(lphDC);
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw7Surface::GetDC: Failed to get d3d9 DC");
+        return m_proxy->GetDC(lphDC);
+      }
+    } else {
+      Logger::warn("DDraw7Surface::GetDC: Not yet initialized");
       return m_proxy->GetDC(lphDC);
     }
 
@@ -292,9 +302,16 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::ReleaseDC(HDC hDC) {
     Logger::debug(">>> DDraw7Surface::ReleaseDC");
 
-    HRESULT hr = GetD3D9()->ReleaseDC(hDC);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("DDraw7Surface::ReleaseDC: Failed to release d3d9 DC");
+    HRESULT hr = DD_OK;
+
+    if (likely(IsInitialized())) {
+      hr = m_d3d9->ReleaseDC(hDC);
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw7Surface::ReleaseDC: Failed to release d3d9 DC");
+        return m_proxy->ReleaseDC(hDC);
+      }
+    } else {
+      Logger::warn("DDraw7Surface::ReleaseDC: Not yet initialized");
       return m_proxy->ReleaseDC(hDC);
     }
 
@@ -696,6 +713,7 @@ namespace dxvk {
       m_d3d9 = std::move(surf);
     }
 
+    // Always upload the texture content post-init
     UploadTextureData();
 
     return DD_OK;
@@ -722,30 +740,45 @@ namespace dxvk {
     }
 
     // Blit all the mips for textures
-    if (m_texture != nullptr) {
+    if (IsTexture()) {
       uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
 
       Logger::debug(str::format("DDraw7Surface::UploadTextureData: Blitting ", mipLevels, " mip map(s)"));
 
+      // TODO: This can't ever work on compressed textures due to GPU-side compression,
+      // so we need to come up with a way to intercept the content before it gets on the GPU
+      if (unlikely(m_isDXT))
+        Logger::err("DDraw7Surface::UploadTextureData: Unsupported compressed texture format");
+
       IDirectDrawSurface7* mipMap = GetProxied();
 
       for (uint32_t i = 0; i < mipLevels; i++) {
+        // Should never occur normally, but acts as a last ditch safety check
+        if (unlikely(mipMap == nullptr)) {
+          Logger::warn(str::format("DDraw7Surface::UploadTextureData: Last found source mip ", i));
+          break;
+        }
+
         d3d9::D3DLOCKED_RECT rect9mip;
         HRESULT hr9mip = m_texture->LockRect(i, &rect9mip, 0, D3DLOCK_READONLY);
-        if (SUCCEEDED(hr9mip)) {
+        if (likely(SUCCEEDED(hr9mip))) {
           DDSURFACEDESC2 descMip;
           descMip.dwSize = sizeof(DDSURFACEDESC2);
           HRESULT hr7mip = mipMap->Lock(0, &descMip, DDLOCK_WRITEONLY, 0);
-          if (SUCCEEDED(hr7mip)) {
+          if (likely(SUCCEEDED(hr7mip))) {
             Logger::debug(str::format("descMip.dwWidth:  ", descMip.dwWidth));
             Logger::debug(str::format("descMip.dwHeight: ", descMip.dwHeight));
             Logger::debug(str::format("descMip.lPitch:   ", descMip.lPitch));
             Logger::debug(str::format("rect9mip.Pitch:   ", rect9mip.Pitch));
             if (unlikely(descMip.lPitch != rect9mip.Pitch)) {
-              Logger::err(str::format("DDraw7Surface::UploadTextureData: Incompatible mip map ", i + 1, " pitch"));
+              // TODO: It looks like the mimimum pitch for d3d7 textures is 8,
+              // so we'll need to do a row by row memcpy for such small mip
+              // maps, because d3d9 correctly supports pitches down to 1.
+              Logger::warn(str::format("DDraw7Surface::UploadTextureData: Incompatible mip map ", i + 1, " pitch"));
             } else {
               size_t size = static_cast<size_t>(descMip.dwHeight * descMip.lPitch);
               memcpy(rect9mip.pBits, descMip.lpSurface, size);
+              Logger::debug(str::format("DDraw7Surface::UploadTextureData: Done blitting mip ", i + 1));
             }
             mipMap->Unlock(0);
           }
@@ -754,25 +787,21 @@ namespace dxvk {
           IDirectDrawSurface7* parentSurface = mipMap;
           mipMap = nullptr;
           parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
-          if (mipMap == nullptr) {
-            Logger::warn(str::format("DDraw7Surface::UploadTextureData: Last source mip nr. ", i + 1));
-            break;
-          }
-
-          Logger::debug(str::format("DDraw7Surface::UploadTextureData: Done blitting mip ", i + 1));
         } else {
           Logger::warn(str::format("DDraw7Surface::UploadTextureData: Failed to lock d3d9 mip ", i + 1));
         }
       }
 
-    } else if (m_cubeMap != nullptr) {
+    } else if (IsDepthStencil()) {
+      Logger::debug("DDraw7Surface::UploadTextureData: Skipping upload of depth stencil");
+
     // TODO: Handle uploading all cubemap faces
+    } else if (IsCubeMap()) {
       Logger::warn("DDraw7Surface::UploadTextureData: Unhandled upload of cube map");
 
     // Blit surfaces directly
     // TODO: does this even work with depth stencils and other misc types?
     } else if (m_d3d9 != nullptr) {
-
       d3d9::D3DLOCKED_RECT rect9;
       HRESULT hr9 = m_d3d9->LockRect(&rect9, 0, D3DLOCK_READONLY);
       if (SUCCEEDED(hr9)) {
@@ -789,14 +818,13 @@ namespace dxvk {
           } else {
             size_t size = static_cast<size_t>(desc.dwHeight * desc.lPitch);
             memcpy(rect9.pBits, desc.lpSurface, size);
+            Logger::debug("DDraw7Surface::UploadTextureData: Upload complete");
           }
           m_proxy->Unlock(0);
         }
         m_d3d9->UnlockRect();
       }
     }
-
-    Logger::debug("DDraw7Surface::UploadTextureData: Upload complete");
 
     return DD_OK;
   }
