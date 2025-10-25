@@ -178,8 +178,8 @@ namespace dxvk {
       Logger::info("DDraw7Surface::GetAttachedSurface: Querying for an offscreen plain surface");
     if (lpDDSCaps->dwCaps & DDSCAPS_ZBUFFER)
       Logger::info("DDraw7Surface::GetAttachedSurface: Querying for a depth stencil");
-    if (lpDDSCaps->dwCaps & (DDSCAPS_TEXTURE | DDSCAPS_MIPMAP)
-     || lpDDSCaps->dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL)
+    if ((lpDDSCaps->dwCaps  & DDSCAPS_MIPMAP)
+     || (lpDDSCaps->dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL))
       Logger::info("DDraw7Surface::GetAttachedSurface: Querying for a texture mip map");
     else if (lpDDSCaps->dwCaps & DDSCAPS_TEXTURE)
       Logger::info("DDraw7Surface::GetAttachedSurface: Querying for a texture");
@@ -486,10 +486,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE ListMipChainSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     IDirectDrawSurface7** nextMip = static_cast<IDirectDrawSurface7**>(ctx);
 
-    if (desc->ddsCaps.dwCaps & (DDSCAPS_TEXTURE | DDSCAPS_MIPMAP)
-     || desc->ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL) {
+    if ((desc->ddsCaps.dwCaps  & DDSCAPS_MIPMAP)
+     || (desc->ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL)) {
       *nextMip = subsurf;
-      return DDENUMRET_CANCEL;
+      //return DDENUMRET_CANCEL;
     }
 
     return DDENUMRET_OK;
@@ -557,11 +557,13 @@ namespace dxvk {
     if (pool == d3d9::D3DPOOL_MANAGED && (m_desc.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY))
       pool = d3d9::D3DPOOL_SYSTEMMEM;
 
+    Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Declared mips ", m_desc.dwMipMapCount));
+
     // We need to count the number of actual mips on initialization by going through
     // the mip chain, since the dwMipMapCount number may or may not be accurate. I am
     // guess it was intended more a hint, not neceesarily how many mips ended up on the GPU.
 
-    IDirectDrawSurface7* mipMap = GetProxied();
+    IDirectDrawSurface7* mipMap = m_proxy.ptr();
 
     while (mipMap != nullptr) {
       IDirectDrawSurface7* parentSurface = mipMap;
@@ -572,11 +574,11 @@ namespace dxvk {
       }
     }
 
-    Logger::debug(str::format("DDraw7Surface::UploadTextureData: Found ", m_mipCount, " mips"));
+    Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Found ", m_mipCount, " mips"));
 
     uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
     if (mipLevels > 1)
-      Logger::debug(str::format("DDraw7Surface::UploadTextureData: Found ", mipLevels, " mip levels"));
+      Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Found ", mipLevels, " mip levels"));
 
     // Render Target / various base surface types
     if (IsRenderTarget() || IsOverlay()) {
@@ -728,10 +730,8 @@ namespace dxvk {
       return DD_OK;
     }
 
-    // TODO: In the case of uploading to front buffers, we need to get the back buffer
-    // attached surface and upload data from there... this is needed for some cursed GDI
-    // inter-op in Praetorians and most likely other games that use GetDC on the front buffer
-    if (IsFrontBuffer())
+    // TODO: See if we can do anything about surfaces used for movie/cutscene playback
+    if (IsFrontBuffer() || IsBackBuffer())
       return DD_OK;
 
     if (m_desc.dwHeight == 0 || m_desc.dwWidth == 0) {
@@ -741,6 +741,8 @@ namespace dxvk {
 
     // Blit all the mips for textures
     if (IsTexture()) {
+      Logger::debug(str::format("DDraw7Surface::UploadTextureData: Declared mips ", m_desc.dwMipMapCount));
+
       uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
 
       Logger::debug(str::format("DDraw7Surface::UploadTextureData: Blitting ", mipLevels, " mip map(s)"));
@@ -750,7 +752,7 @@ namespace dxvk {
       if (unlikely(m_isDXT))
         Logger::err("DDraw7Surface::UploadTextureData: Unsupported compressed texture format");
 
-      IDirectDrawSurface7* mipMap = GetProxied();
+      IDirectDrawSurface7* mipMap = m_proxy.ptr();
 
       for (uint32_t i = 0; i < mipLevels; i++) {
         // Should never occur normally, but acts as a last ditch safety check
@@ -760,11 +762,11 @@ namespace dxvk {
         }
 
         d3d9::D3DLOCKED_RECT rect9mip;
-        HRESULT hr9mip = m_texture->LockRect(i, &rect9mip, 0, D3DLOCK_READONLY);
+        HRESULT hr9mip = m_texture->LockRect(i, &rect9mip, 0, D3DLOCK_DISCARD);
         if (likely(SUCCEEDED(hr9mip))) {
           DDSURFACEDESC2 descMip;
           descMip.dwSize = sizeof(DDSURFACEDESC2);
-          HRESULT hr7mip = mipMap->Lock(0, &descMip, DDLOCK_WRITEONLY, 0);
+          HRESULT hr7mip = mipMap->Lock(0, &descMip, DDLOCK_READONLY, 0);
           if (likely(SUCCEEDED(hr7mip))) {
             Logger::debug(str::format("descMip.dwWidth:  ", descMip.dwWidth));
             Logger::debug(str::format("descMip.dwHeight: ", descMip.dwHeight));
@@ -803,11 +805,11 @@ namespace dxvk {
     // TODO: does this even work with depth stencils and other misc types?
     } else if (m_d3d9 != nullptr) {
       d3d9::D3DLOCKED_RECT rect9;
-      HRESULT hr9 = m_d3d9->LockRect(&rect9, 0, D3DLOCK_READONLY);
+      HRESULT hr9 = m_d3d9->LockRect(&rect9, 0, D3DLOCK_DISCARD);
       if (SUCCEEDED(hr9)) {
         DDSURFACEDESC2 desc;
         desc.dwSize = sizeof(DDSURFACEDESC2);
-        HRESULT hr7 = m_proxy->Lock(0, &desc, DDLOCK_WRITEONLY, 0);
+        HRESULT hr7 = m_proxy->Lock(0, &desc, DDLOCK_READONLY, 0);
         if (SUCCEEDED(hr7)) {
           Logger::debug(str::format("desc.dwWidth:  ", desc.dwWidth));
           Logger::debug(str::format("desc.dwHeight: ", desc.dwHeight));
