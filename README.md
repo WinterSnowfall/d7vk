@@ -1,13 +1,13 @@
 # D7VK
 
-A Vulkan-based translation layer for Direct3D 7, which allows running 3D applications on Linux using Wine. It uses DXVK's D3D9 backend as well as Wine's DDRAW implementation (or the windows native DDRAW) and acts as a proxy between the two, providing a minimal D3D7-on-D3D9 implementation. The project is currently in its VERY early days. Expect most things to run, but not correctly or optimally.
+A Vulkan-based translation layer for Direct3D 7, which allows running 3D applications on Linux using Wine. It uses DXVK's D3D9 backend as well as Wine's DDRAW implementation (or the windows native DDRAW) and acts as a proxy between the two, providing a minimal D3D7-on-D3D9 implementation. The project is currently in its early days. Expect most things to run, but not necessarily correctly or optimally.
 
 ## How to use
-As of now, you will have to compile the project manually. This is expected to change once it reaches a relatively decent state, but there are no timelines: this is entirely a hobby project.
+Grab the latest release or compile the project manually if you want to be "on the bleeding edge".
 
-If you do want to give it a spin into a given Wine prefix, copy the generated `ddraw.dll` and `d3d9.dll` files next to the game/application executable, then open `winecfg` and manually add `native, builtin` (in that order) DLL overrides for `ddraw` and `d3d9` under the Libraries tab. There's no need to worry about bitness or anything like that, since D3D7 always was 32-bit exclusive, and as such the modified compilation script will only generate x86-32 builds.
+To give it a spin in a Wine prefix of choice, copy the `ddraw.dll` and `d3d9.dll` files next to the game/application executable, then open `winecfg` and manually add `native, builtin` (explicitly in that order) DLL overrides for `ddraw` and `d3d9` under the Libraries tab. There's no need to worry about bitness or anything like that, since D3D7 always has been 32-bit exclusive.
 
-On Windows, simply copying the two files next to the game executable will work just fine.
+On Windows, simply copying the two files next to the game executable should work just fine.
 
 Do NOT, I repeat, do NOT copy those files in your Wine or Windows system directories, as you will need access to an actual DDRAW implementation for any of this to work.
 
@@ -59,5 +59,5 @@ No.
 
 Please refer to the upstream DXVK wiki and documentation, available [here](https://github.com/doitsujin/dxvk).
 
-Feel free to report any issues you encounter, but things are really at a stage where reports of working games are more welcome.
+Feel free to report any issues you encounter, however things are still at a stage where reports of working games are more welcome.
 
