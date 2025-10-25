@@ -276,6 +276,24 @@ namespace dxvk {
         State9         = d3d9::D3DRS_DEPTHBIAS;
         dwRenderState  = bit::cast<DWORD>(static_cast<float>(dwRenderState) * ZBIAS_SCALE);
         break;
+
+      // TODO:
+      case D3DRENDERSTATE_EXTENTS:
+        static bool s_extentsErrorShown;
+
+        if (!std::exchange(s_extentsErrorShown, true))
+          Logger::warn("D3D7Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_EXTENTS");
+
+        return D3D_OK;
+
+      // TODO:
+      case D3DRENDERSTATE_COLORKEYBLENDENABLE:
+        static bool s_colorKeyBlendEnableErrorShown;
+
+        if (!std::exchange(s_colorKeyBlendEnableErrorShown, true))
+          Logger::warn("D3D7Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_COLORKEYBLENDENABLE");
+
+        return D3D_OK;
     }
 
     // This call will never fail
@@ -356,6 +374,26 @@ namespace dxvk {
         *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(bias) * ZBIAS_SCALE_INV);
         return res;
       } break;
+
+      // TODO:
+      case D3DRENDERSTATE_EXTENTS:
+        static bool s_extentsErrorShown;
+
+        if (!std::exchange(s_extentsErrorShown, true))
+          Logger::warn("D3D7Device::GetRenderState: Unimplemented render state D3DRENDERSTATE_EXTENTS");
+
+        *lpdwRenderState = FALSE;
+        return D3D_OK;
+
+      // TODO:
+      case D3DRENDERSTATE_COLORKEYBLENDENABLE:
+        static bool s_colorKeyBlendEnableErrorShown;
+
+        if (!std::exchange(s_colorKeyBlendEnableErrorShown, true))
+          Logger::warn("D3D7Device::GetRenderState: Unimplemented render state D3DRENDERSTATE_COLORKEYBLENDENABLE");
+
+        *lpdwRenderState = FALSE;
+        return D3D_OK;
     }
 
     // This call will never fail
@@ -754,13 +792,13 @@ namespace dxvk {
       // has not changed, due to potential mip map updates
       hr = surface7->InitializeOrUploadD3D9();
 
-      if (unlikely(m_textures[stage] == surface7))
-        return D3D_OK;
-
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Device::SetTexture: Failed to initialize/upload d3d9 texture");
         return hr;
       }
+
+      if (unlikely(m_textures[stage] == surface7))
+        return D3D_OK;
 
       hr = m_d3d9->SetTexture(stage, surface7->GetTexture());
       if (unlikely(FAILED(hr))) {
@@ -842,21 +880,12 @@ namespace dxvk {
       loadDestination = dst_surface;
     }
 
-    // We need to copy to/from the proxied surfaces first, before we forward the actual call
     HRESULT hr = m_proxy->Load(loadDestination, dst_point, loadSource, src_rect, flags);
     if (unlikely(FAILED(hr))) {
       Logger::warn("D3D7Device::Load: Failed to load surfaces");
     }
 
-    if (likely(m_DD7Parent->IsWrappedSurface(src_surface))) {
-      DDraw7Surface* ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
-
-      HRESULT hrInitSrc = ddraw7SurfaceSrc->InitializeOrUploadD3D9();
-      if (unlikely(FAILED(hrInitSrc))) {
-        Logger::warn("D3D7Device::Load: Failed to upload d3d9 source surface data");
-      }
-    }
-
+    // Only upload the destination surface
     if (likely(m_DD7Parent->IsWrappedSurface(dst_surface))) {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
 
