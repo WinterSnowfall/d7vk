@@ -12,8 +12,8 @@ namespace dxvk {
     if (fmt.dwFlags & DDPF_RGB) {
       Logger::info(str::format("ConvertFormat: fmt.dwRGBBitCount: ",     fmt.dwRGBBitCount));
       Logger::info(str::format("ConvertFormat: fmt.dwRBitMask: ",        fmt.dwRBitMask));
-      Logger::info(str::format("ConvertFormat: fmt.dwGBitMask: ",        fmt.dwRBitMask));
-      Logger::info(str::format("ConvertFormat: fmt.dwBBitMask: ",        fmt.dwRBitMask));
+      Logger::info(str::format("ConvertFormat: fmt.dwGBitMask: ",        fmt.dwGBitMask));
+      Logger::info(str::format("ConvertFormat: fmt.dwBBitMask: ",        fmt.dwBBitMask));
       Logger::info(str::format("ConvertFormat: fmt.dwRGBAlphaBitMask: ", fmt.dwRGBAlphaBitMask));
 
       switch (fmt.dwRGBBitCount) {
@@ -32,7 +32,8 @@ namespace dxvk {
               return d3d9::D3DFMT_R5G6B5;
             // TODO: Check if we've missed anything. Maybe A8?
           }
-          return d3d9::D3DFMT_X1R5G5B5;
+          Logger::warn("ConvertFormat: dwRGBBitCount 16 default format");
+          return d3d9::D3DFMT_R5G6B5;
         }
         case 24:
           // TODO: Anything else here?
@@ -52,8 +53,11 @@ namespace dxvk {
             // A: 1111 1111 0000 0000 0000 0000 0000 0000
               return fmt.dwRGBAlphaBitMask ? d3d9::D3DFMT_A8B8G8R8 : d3d9::D3DFMT_X8B8G8R8;
           }
-          return d3d9::D3DFMT_X8B8G8R8;
+          Logger::warn("ConvertFormat: dwRGBBitCount 32 default format");
+          return d3d9::D3DFMT_X8R8G8B8;
         }
+        Logger::warn("ConvertFormat: dwRGBBitCount default format");
+        return d3d9::D3DFMT_A8R8G8B8;
       }
     // TODO: Check if these are actually correct and work
     } else if ((fmt.dwFlags & DDPF_ZBUFFER)) {
@@ -79,8 +83,11 @@ namespace dxvk {
               // S: 0000 0000 0000 0000 0000 0000 0000 1111
               return d3d9::D3DFMT_D24X4S4;
           }
+          Logger::warn("ConvertFormat: dwStencilBitMask 32 default format");
+          return d3d9::D3DFMT_D24S8;
         }
-        return d3d9::D3DFMT_D24S8;
+        Logger::warn("ConvertFormat: dwZBufferBitDepth default format");
+        return d3d9::D3DFMT_D16;
       }
     } else if ((fmt.dwFlags & DDPF_ALPHA)) {
       // Alpha only surfaces. I sincerely hope d3d7 doesn't need anything else
@@ -97,6 +104,7 @@ namespace dxvk {
             case (0x8):
               return d3d9::D3DFMT_A4L4;
           }
+          Logger::warn("ConvertFormat: dwLuminanceBitCount 8 default format");
           return d3d9::D3DFMT_A4L4;
         }
         // L: 0000 0000 1111 1111
@@ -104,6 +112,7 @@ namespace dxvk {
         case 16:
           return d3d9::D3DFMT_A8L8;
       }
+      Logger::warn("ConvertFormat: dwLuminanceBitCount default format");
       return d3d9::D3DFMT_A8L8;
     // Hopefully there will be none of this
     } else if ((fmt.dwFlags & DDPF_YUV)) {
@@ -384,11 +393,11 @@ namespace dxvk {
     prim.dwAlphaCmpCaps       = prim.dwZCmpCaps;
 
     prim.dwShadeCaps          = D3DPSHADECAPS_ALPHAFLATBLEND
-                              | D3DPSHADECAPS_ALPHAFLATSTIPPLED
+                           // | D3DPSHADECAPS_ALPHAFLATSTIPPLED
                               | D3DPSHADECAPS_ALPHAGOURAUDBLEND
-                              | D3DPSHADECAPS_ALPHAGOURAUDSTIPPLED
+                           // | D3DPSHADECAPS_ALPHAGOURAUDSTIPPLED
                               | D3DPSHADECAPS_ALPHAPHONGBLEND
-                              | D3DPSHADECAPS_ALPHAPHONGSTIPPLED
+                           // | D3DPSHADECAPS_ALPHAPHONGSTIPPLED
                               | D3DPSHADECAPS_COLORFLATMONO
                               | D3DPSHADECAPS_COLORFLATRGB
                               | D3DPSHADECAPS_COLORGOURAUDMONO
