@@ -153,6 +153,72 @@ namespace dxvk {
     return d3d9::D3DFMT_UNKNOWN;
   }
 
+  static inline DDPIXELFORMAT GetZBufferFormat (d3d9::D3DFORMAT format) {
+    DDPIXELFORMAT zformat = { };
+    zformat.dwSize = sizeof(DDPIXELFORMAT);
+
+    switch (format) {
+      case d3d9::D3DFMT_D15S1:
+        zformat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
+        zformat.dwZBufferBitDepth = 16;
+        zformat.dwZBitMask = 0xfff7;
+        zformat.dwStencilBitDepth = 1;
+        zformat.dwStencilBitMask = 0x0008;
+        break;
+
+      case d3d9::D3DFMT_D16:
+        zformat.dwFlags = DDPF_ZBUFFER;
+        zformat.dwZBufferBitDepth = 16;
+        zformat.dwZBitMask = 0xffff;
+        zformat.dwStencilBitDepth = 0;
+        zformat.dwStencilBitMask = 0x0000;
+        break;
+
+      case d3d9::D3DFMT_D24X4S4:
+        zformat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
+        zformat.dwZBufferBitDepth = 32;
+        zformat.dwZBitMask = 0xffffff00;
+        zformat.dwStencilBitDepth = 4;
+        zformat.dwStencilBitMask = 0x0000000f;
+        break;
+
+      case d3d9::D3DFMT_D24X8:
+        zformat.dwFlags = DDPF_ZBUFFER;
+        zformat.dwZBufferBitDepth = 32;
+        zformat.dwZBitMask = 0xffffff00;
+        zformat.dwStencilBitDepth = 0;
+        zformat.dwStencilBitMask = 0x00000000;
+        break;
+
+      case d3d9::D3DFMT_D24S8:
+        zformat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
+        zformat.dwZBufferBitDepth = 32;
+        zformat.dwZBitMask = 0xffffff00;
+        zformat.dwStencilBitDepth = 8;
+        zformat.dwStencilBitMask = 0x000000ff;
+        break;
+
+      case d3d9::D3DFMT_D32:
+        zformat.dwFlags = DDPF_ZBUFFER;
+        zformat.dwZBufferBitDepth = 32;
+        zformat.dwZBitMask = 0xffffffff;
+        zformat.dwStencilBitDepth = 0;
+        zformat.dwStencilBitMask = 0x00000000;
+        break;
+
+      // d3d9::D3DFMT_D16 in case of any weirdness
+      default:
+        zformat.dwFlags = DDPF_ZBUFFER;
+        zformat.dwZBufferBitDepth = 16;
+        zformat.dwZBitMask = 0xffff;
+        zformat.dwStencilBitDepth = 0;
+        zformat.dwStencilBitMask = 0x0000;
+        break;
+    }
+
+    return zformat;
+  }
+
   static inline d3d9::D3DCUBEMAP_FACES GetCubemapFace(DDSURFACEDESC2* desc) {
     if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEX) return d3d9::D3DCUBEMAP_FACE_POSITIVE_X;
     if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEX) return d3d9::D3DCUBEMAP_FACE_NEGATIVE_X;
