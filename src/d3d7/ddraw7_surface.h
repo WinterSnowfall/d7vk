@@ -140,6 +140,10 @@ namespace dxvk {
       return m_parentSurf != nullptr;
     }
 
+    inline bool IsComplex() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_COMPLEX;
+    }
+
     inline bool IsNotKnown() const {
       return !(m_desc.dwFlags & DDSD_CAPS);
     }
@@ -210,6 +214,7 @@ namespace dxvk {
       else if (IsTextureMip())            type = "texture mipmap";
       else if (IsTexture())               type = "texture";
       else if (IsCubeMap())               type = "cube map";
+      else if (IsOverlay())               type = "overlay";
       else if (IsNotKnown())              type = "unknown";
 
       // Front buffer surfaces apparently don't specify any pixel format info
@@ -226,6 +231,7 @@ namespace dxvk {
       Logger::info(str::format("   Type:       ", type));
       Logger::info(str::format("   Dimensions: ", m_desc.dwWidth, "x", m_desc.dwHeight));
       Logger::info(str::format("   Format:     ", format));
+      Logger::info(str::format("   IsComplex:  ", IsComplex() ? "yes" : "no"));
       Logger::info(str::format("   HasMips:    ", m_desc.dwMipMapCount ? "yes" : "no"));
       Logger::info(str::format("   IsAttached: ", attached));
     }
@@ -245,12 +251,13 @@ namespace dxvk {
     DDSURFACEDESC2    m_desc;
 
     // TODO: Might be worth making this a single generic type at some point
-    Com<d3d9::IDirect3DTexture9>           m_texture;
-    Com<d3d9::IDirect3DCubeTexture9>       m_cubeMap;
+    Com<d3d9::IDirect3DTexture9>     m_texture;
+    Com<d3d9::IDirect3DCubeTexture9> m_cubeMap;
 
-    // These are attached surfaces, which can be mips, back buffers, depth buffers, etc.
-    // They are implemented with linked list, so for example only one mip level will be
-    // held in a parent texture, and the next mip level will be held in the previous mip
+    // These are attached surfaces, which are typically mips or other types of generated
+    // surfaces, which need to exist for the entire lifecycle of their parent surface.
+    // They are implemented with linked list, so for example only one mip level
+    // will be held in a parent texture, and the next mip level will be held in the previous mip.
     std::vector<Com<DDraw7Surface, false>> m_attachedSurfaces;
 
   };
