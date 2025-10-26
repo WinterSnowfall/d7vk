@@ -15,6 +15,8 @@ namespace dxvk {
     , m_parent     ( pParent )
     , m_parentSurf ( pParentSurf )
     , m_desc       ( desc ) {
+    m_parent->AddRef();
+
     m_parent->AddWrappedSurface(this);
 
     m_surfCount = ++s_surfCount;
@@ -25,7 +27,9 @@ namespace dxvk {
   DDraw7Surface::~DDraw7Surface() {
     m_parent->RemoveWrappedSurface(this);
 
-    Logger::info(str::format("DDraw7Surface: Surface nr. [[", m_surfCount, "]] bites the dust"));
+    Logger::debug(str::format("DDraw7Surface: Surface nr. [[", m_surfCount, "]] bites the dust"));
+
+    m_parent->Release();
   }
 
   // This call will only attach DDSCAPS_ZBUFFER type surfaces and will reject anything else.
@@ -127,13 +131,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE7 lpDDSAttachedSurface) {
     Logger::debug("<<< DDraw7Surface::DeleteAttachedSurface: Proxy");
 
-    if (unlikely(lpDDSAttachedSurface == nullptr)) {
-      Logger::err("DDraw7Surface::DeleteAttachedSurface: Called with NULL surface");
-      return DDERR_INVALIDPARAMS;
-    }
-
+    // If lpDDSAttachedSurface is NULL, then all surfaces are detached.
     if (unlikely(!(m_parent->IsWrappedSurface(lpDDSAttachedSurface)))) {
-      Logger::warn("DDraw7Surface::DeleteAttachedSurface: Deleting non-wrapped surface");
+      Logger::debug("DDraw7Surface::DeleteAttachedSurface: Deleting null or non-wrapped surface");
       return m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
     }
 
@@ -247,6 +247,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetDC(HDC *lphDC) {
     Logger::debug(">>> DDraw7Surface::GetDC");
 
+    if (unlikely(lphDC == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     HRESULT hrUpload = InitializeOrUploadD3D9();
     if (unlikely(FAILED(hrUpload)))
       Logger::warn("DDraw7Surface::GetDC: Failed upload to d3d9 surface");
@@ -256,7 +259,19 @@ namespace dxvk {
       return m_proxy->GetDC(lphDC);
     }
 
-    HRESULT hr = m_d3d9->GetDC(lphDC);
+    d3d9::IDirect3DSurface9* surface = nullptr;
+
+    // If this is a texture, retrieve the top level surface
+    if (IsTexture()) {
+      m_texture->GetSurfaceLevel(0, &surface);
+    } else if (IsCubeMap()) {
+      //TODO: Get the +X face?
+      return D3DERR_NOTAVAILABLE;
+    } else {
+      surface = m_d3d9.ptr();
+    }
+
+    HRESULT hr = surface->GetDC(lphDC);
     if (unlikely(FAILED(hr))) {
       Logger::err("DDraw7Surface::GetDC: Failed to get d3d9 DC");
       return m_proxy->GetDC(lphDC);
@@ -317,7 +332,19 @@ namespace dxvk {
       return m_proxy->ReleaseDC(hDC);
     }
 
-    hr = m_d3d9->ReleaseDC(hDC);
+    d3d9::IDirect3DSurface9* surface = nullptr;
+
+    // If this is a texture, retrieve the top level surface
+    if (IsTexture()) {
+      m_texture->GetSurfaceLevel(0, &surface);
+    } else if (IsCubeMap()) {
+      //TODO: Get the +X face?
+      return D3DERR_NOTAVAILABLE;
+    } else {
+      surface = m_d3d9.ptr();
+    }
+
+    hr = surface->ReleaseDC(hDC);
     if (unlikely(FAILED(hr))) {
       Logger::err("DDraw7Surface::ReleaseDC: Failed to release d3d9 DC");
       return m_proxy->ReleaseDC(hDC);
@@ -524,9 +551,34 @@ namespace dxvk {
       return DD_OK;
     }
 
+    d3d9::D3DFORMAT format = ConvertFormat(m_desc.ddpfPixelFormat);
     // Textures should be fine in MANAGED as a rule of thumb
-    d3d9::D3DPOOL pool  = d3d9::D3DPOOL_MANAGED;
-    DWORD         usage = 0;
+    d3d9::D3DPOOL   pool   = d3d9::D3DPOOL_MANAGED;
+    DWORD           usage  = 0;
+
+    // In some cases we get passed offscreen plain surfaces with no data whatsoever in
+    // ddpfPixelFormat, so we need to fall back to whatever the d3d9 back buffer is using.
+    if (unlikely(IsOffScreenPlainSurface() && format == d3d9::D3DFMT_UNKNOWN)) {
+      Com<d3d9::IDirect3DSurface9> backBuffer;
+      d3d9::D3DSURFACE_DESC bbDesc;
+
+      hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &backBuffer);
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw7Surface::IntializeD3D9: Failed to get d3d9 back buffer");
+        return hr;
+      }
+
+      hr = backBuffer->GetDesc(&bbDesc);
+
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw7Surface::IntializeD3D9: Failed to determine format for offscreen plain surface");
+        return hr;
+      }
+
+      format = bbDesc.Format;
+      Logger::info(str::format("DDraw7Surface::IntializeD3D9: Offscreen plain surface format set to ", format));
+    }
+
     // Place all possible render targets in DEFAULT,
     // as well as any cube maps and overlays
     if (IsRenderTarget() || IsCubeMap() || IsOverlay()) {
@@ -584,7 +636,7 @@ namespace dxvk {
 
       else if (IsOffScreenPlainSurface()) {
         hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
-          m_desc.dwWidth, m_desc.dwHeight, ConvertFormat(m_desc.ddpfPixelFormat),
+          m_desc.dwWidth, m_desc.dwHeight, format,
           pool, &rt, nullptr);
         if (likely(SUCCEEDED(hr)))
           Logger::info("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
@@ -599,7 +651,7 @@ namespace dxvk {
       else {
         // Must be lockable for blitting to work
         hr = m_d3d7device->GetD3D9()->CreateRenderTarget(
-          m_desc.dwWidth, m_desc.dwHeight, ConvertFormat(m_desc.ddpfPixelFormat),
+          m_desc.dwWidth, m_desc.dwHeight, format,
           d3d9::D3DMULTISAMPLE_NONE, usage, TRUE, &rt, nullptr);
         if (likely(SUCCEEDED(hr)))
           Logger::info("DDraw7Surface::IntializeD3D9: Created generic RT");
@@ -622,7 +674,7 @@ namespace dxvk {
       hr = m_d3d7device->GetD3D9()->GetDepthStencilSurface(&ds);
 
       /*hr = m_d3d7device->GetD3D9()->CreateDepthStencilSurface(
-        m_desc.dwWidth, m_desc.dwHeight, ConvertFormat(m_desc.ddpfPixelFormat),
+        m_desc.dwWidth, m_desc.dwHeight, format,
         d3d9::D3DMULTISAMPLE_NONE, 0, FALSE, &ds, nullptr);
       Logger::info("DDraw7Surface::IntializeD3D9: Created DS");*/
 
@@ -640,7 +692,7 @@ namespace dxvk {
       Com<d3d9::IDirect3DCubeTexture9> cubetex = nullptr;
       hr = m_d3d7device->GetD3D9()->CreateCubeTexture(
         m_desc.dwWidth, mipLevels, usage,
-        ConvertFormat(m_desc.ddpfPixelFormat), pool, &cubetex, nullptr);
+        format, pool, &cubetex, nullptr);
 
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create cube map");
@@ -667,7 +719,7 @@ namespace dxvk {
 
       hr = m_d3d7device->GetD3D9()->CreateTexture(
         m_desc.dwWidth, m_desc.dwHeight, mipLevels, usage,
-        ConvertFormat(m_desc.ddpfPixelFormat), pool, &tex, nullptr);
+        format, pool, &tex, nullptr);
 
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create texture");
@@ -684,7 +736,7 @@ namespace dxvk {
       Com<d3d9::IDirect3DSurface9> surf = nullptr;
 
       hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
-          m_desc.dwWidth, m_desc.dwHeight, ConvertFormat(m_desc.ddpfPixelFormat),
+          m_desc.dwWidth, m_desc.dwHeight, format,
           d3d9::D3DPOOL_MANAGED, &surf, nullptr);
 
       if (unlikely(FAILED(hr))) {

@@ -139,18 +139,18 @@ namespace dxvk {
 
     inline bool ShouldRecord() { return m_recorder != nullptr; }
 
-    D3D7Interface*                   m_parent    = nullptr;
-    DDraw7Interface*                 m_DD7Parent = nullptr;
+    D3D7Interface*                m_parent    = nullptr;
+    DDraw7Interface*              m_DD7Parent = nullptr;
 
-    D3D7Singlethread                 m_singlethread;
+    D3D7Singlethread              m_singlethread;
 
-    Com<IDxvkD3D8InterfaceBridge>    m_bridge;
+    Com<IDxvkD3D8InterfaceBridge> m_bridge;
 
-    static uint32_t                  s_deviceCount;
-    uint32_t                         m_deviceCount = 0;
+    static uint32_t               s_deviceCount;
+    uint32_t                      m_deviceCount = 0;
 
-    DDraw7Surface*                   m_rt     = nullptr;
-    DDraw7Surface*                   m_rtOrig = nullptr;
+    DDraw7Surface*                m_rt     = nullptr;
+    DDraw7Surface*                m_rtOrig = nullptr;
 
     std::array<Com<DDraw7Surface, false>, caps7::TextureStageCount> m_textures;
 

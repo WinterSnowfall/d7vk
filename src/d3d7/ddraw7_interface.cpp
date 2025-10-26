@@ -7,8 +7,18 @@
 
 namespace dxvk {
 
+  uint32_t DDraw7Interface::s_intfCount = 0;
+
   DDraw7Interface::DDraw7Interface(Com<IDirectDraw7>&& proxyIntf)
-    : m_proxy ( std::move(proxyIntf) ) {}
+    : m_proxy ( std::move(proxyIntf) ) {
+    m_intfCount = ++s_intfCount;
+
+    Logger::debug(str::format("DDraw7Interface: Created a new interface nr. <<", m_intfCount, ">>"));
+  }
+
+  DDraw7Interface::~DDraw7Interface() {
+    Logger::debug(str::format("DDraw7Interface: Interface nr. <<", m_intfCount, ">> bites the dust"));
+  }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::QueryInterface(REFIID riid, void** ppvObject) {
     Logger::debug(">>> DDraw7Interface::QueryInterface");
