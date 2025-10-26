@@ -46,19 +46,19 @@ namespace dxvk {
     }
 
   private:
-    DDraw7Interface*                                m_parent;
+    DDraw7Interface*              m_parent;
 
-    Com<IDirect3D7>                                 m_d3d7IntfProxy;
+    Com<IDirect3D7>               m_d3d7IntfProxy;
 
-    Com<IDxvkD3D8InterfaceBridge>                   m_bridge;
+    Com<IDxvkD3D8InterfaceBridge> m_bridge;
 
-    static uint32_t                                 s_intfCount;
-    uint32_t                                        m_intfCount = 0;
+    static uint32_t               s_intfCount;
+    uint32_t                      m_intfCount = 0;
 
     // TODO: Move to the devices, don't keep in the parent
-    D3DDEVICEDESC7                                  m_desc;
+    D3DDEVICEDESC7                m_desc;
 
-    D3D7Device*                                     m_device = nullptr;
+    D3D7Device*                   m_device = nullptr;
 
   };
 
