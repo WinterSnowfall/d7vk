@@ -601,4 +601,94 @@ namespace dxvk {
         || fmt == d3d9::D3DFMT_DXT5;
   }
 
+  // Callback function used to navigate the linked mip map chain
+  inline HRESULT STDMETHODCALLTYPE ListMipChainSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+    IDirectDrawSurface7** nextMip = static_cast<IDirectDrawSurface7**>(ctx);
+
+    if ((desc->ddsCaps.dwCaps  & DDSCAPS_MIPMAP)
+     || (desc->ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL)) {
+      *nextMip = subsurf;
+      //return DDENUMRET_CANCEL;
+    }
+
+    return DDENUMRET_OK;
+  }
+
+  inline void BlitToD3D9Texture(d3d9::IDirect3DTexture9* texture9, IDirectDrawSurface7* surface7, uint32_t mipLevels) {
+    IDirectDrawSurface7* mipMap = surface7;
+
+    Logger::debug(str::format("BlitToD3D9Texture: Blitting ", mipLevels, " mip map(s)"));
+
+    for (uint32_t i = 0; i < mipLevels; i++) {
+      // Should never occur normally, but acts as a last ditch safety check
+      if (unlikely(mipMap == nullptr)) {
+        Logger::warn(str::format("BlitToD3D9Texture: Last found source mip ", i));
+        break;
+      }
+
+      d3d9::D3DLOCKED_RECT rect9mip;
+      HRESULT hr9mip = texture9->LockRect(i, &rect9mip, 0, D3DLOCK_DISCARD);
+      if (likely(SUCCEEDED(hr9mip))) {
+        DDSURFACEDESC2 descMip;
+        descMip.dwSize = sizeof(DDSURFACEDESC2);
+        HRESULT hr7mip = mipMap->Lock(0, &descMip, DDLOCK_READONLY, 0);
+        if (likely(SUCCEEDED(hr7mip))) {
+          Logger::debug(str::format("descMip.dwWidth:  ", descMip.dwWidth));
+          Logger::debug(str::format("descMip.dwHeight: ", descMip.dwHeight));
+          Logger::debug(str::format("descMip.lPitch:   ", descMip.lPitch));
+          Logger::debug(str::format("rect9mip.Pitch:   ", rect9mip.Pitch));
+          if (unlikely(descMip.lPitch != rect9mip.Pitch)) {
+            // TODO: It looks like the mimimum pitch for d3d7 textures is 8,
+            // so we'll need to do a row by row memcpy for such small mip
+            // maps, because d3d9 correctly supports pitches down to 1.
+            Logger::warn(str::format("BlitToD3D9Texture: Incompatible mip map ", i + 1, " pitch"));
+          } else {
+            size_t size = static_cast<size_t>(descMip.dwHeight * descMip.lPitch);
+            memcpy(rect9mip.pBits, descMip.lpSurface, size);
+            Logger::debug(str::format("BlitToD3D9Texture: Done blitting mip ", i + 1));
+          }
+          mipMap->Unlock(0);
+        } else {
+          Logger::warn(str::format("BlitToD3D9Texture: Failed to lock d3d7 mip ", i + 1));
+        }
+        texture9->UnlockRect(i);
+
+        IDirectDrawSurface7* parentSurface = mipMap;
+        mipMap = nullptr;
+        parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
+      } else {
+        Logger::warn(str::format("BlitToD3D9Texture: Failed to lock d3d9 mip ", i + 1));
+      }
+    }
+  }
+
+  inline void BlitToD3D9Surface(d3d9::IDirect3DSurface9* surface9, IDirectDrawSurface7* surface7) {
+    d3d9::D3DLOCKED_RECT rect9;
+    HRESULT hr9 = surface9->LockRect(&rect9, 0, D3DLOCK_DISCARD);
+    if (SUCCEEDED(hr9)) {
+      DDSURFACEDESC2 desc;
+      desc.dwSize = sizeof(DDSURFACEDESC2);
+      HRESULT hr7 = surface7->Lock(0, &desc, DDLOCK_READONLY, 0);
+      if (SUCCEEDED(hr7)) {
+        Logger::debug(str::format("desc.dwWidth:  ", desc.dwWidth));
+        Logger::debug(str::format("desc.dwHeight: ", desc.dwHeight));
+        Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));
+        Logger::debug(str::format("rect.Pitch:    ", rect9.Pitch));
+        if (unlikely(desc.lPitch != rect9.Pitch)) {
+          Logger::err("BlitToD3D9Surface: Incompatible surface pitch");
+        } else {
+          size_t size = static_cast<size_t>(desc.dwHeight * desc.lPitch);
+          memcpy(rect9.pBits, desc.lpSurface, size);
+          Logger::debug("BlitToD3D9Surface: Upload complete");
+        }
+        surface7->Unlock(0);
+      } else {
+        Logger::warn("BlitToD3D9Surface: Failed to lock d3d7 surface");
+      }
+      surface9->UnlockRect();
+    } else {
+      Logger::warn("BlitToD3D9Surface: Failed to lock d3d9 surface");
+    }
+  }
+
 }
