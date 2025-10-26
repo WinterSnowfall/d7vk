@@ -25,7 +25,7 @@ namespace dxvk {
   }
 
   D3D7VertexBuffer::~D3D7VertexBuffer() {
-    Logger::info(str::format("D3D7VertexBuffer: Buffer nr. {{", m_buffCount, "}} bites the dust"));
+    Logger::debug(str::format("D3D7VertexBuffer: Buffer nr. {{", m_buffCount, "}} bites the dust"));
   }
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC lpVBDesc) {
