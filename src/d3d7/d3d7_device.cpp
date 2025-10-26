@@ -27,7 +27,7 @@ namespace dxvk {
       throw DxvkError("D3D7Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
-    m_rtOrig = m_rt.ptr();
+    m_rtOrig = m_rt;
     HRESULT hr = m_d3d9->GetRenderTarget(0, &m_rt9);
     if(unlikely(FAILED(hr)))
       Logger::err("D3D7Device: Failed to get d3d9 RT");
@@ -144,7 +144,7 @@ namespace dxvk {
     if (unlikely(surface == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *surface = m_rt.ref();
+    *surface = m_rt;
 
     return D3D_OK;
   }

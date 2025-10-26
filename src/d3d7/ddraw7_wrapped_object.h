@@ -57,10 +57,11 @@ namespace dxvk {
 
       *ppvObject = nullptr;
 
-      // TODO: Uncomment once things are in a decent state
-      // in order to enable surface gamma and color control
+      // Used to enable surface gamma and color control
       if (riid == __uuidof(IDirectDrawColorControl)
        || riid == __uuidof(IDirectDrawGammaControl)) {
+        // TODO: Needed by Vampire: The Masquerade - Redemption to not crash
+        // on exit, but commented for now due to annoying gamma persistence
         return E_NOINTERFACE;
         //return m_proxy->QueryInterface(riid, ppvObject);
       }
