@@ -127,10 +127,6 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetInfo(DWORD info_id, void *info, DWORD info_size);
 
-    DDraw7Surface* GetRenderTarget() const {
-      return m_rt.ptr();
-    }
-
     D3D7DeviceLock LockDevice() {
       return m_singlethread.AcquireLock();
     }
@@ -143,8 +139,8 @@ namespace dxvk {
 
     inline bool ShouldRecord() { return m_recorder != nullptr; }
 
-    D3D7Interface*                   m_parent;
-    DDraw7Interface*                 m_DD7Parent;
+    D3D7Interface*                   m_parent    = nullptr;
+    DDraw7Interface*                 m_DD7Parent = nullptr;
 
     D3D7Singlethread                 m_singlethread;
 
@@ -153,11 +149,7 @@ namespace dxvk {
     static uint32_t                  s_deviceCount;
     uint32_t                         m_deviceCount = 0;
 
-    // TODO: All DDraw7Surfaces need to be held as reference by the ddraw7
-    // interface, since that is where they are created. They are NOT tied
-    // to the device, and need to exist even after its destruction.
-    Com<DDraw7Surface, false>        m_rt;
-    Com<DDraw7Surface, false>        m_ds;
+    DDraw7Surface*                   m_rt     = nullptr;
     DDraw7Surface*                   m_rtOrig = nullptr;
 
     std::array<Com<DDraw7Surface, false>, caps7::TextureStageCount> m_textures;
@@ -172,8 +164,8 @@ namespace dxvk {
     // Value of D3DRS_ZVISIBLE (although the RS is not supported, its value is stored)
     DWORD           m_zVisible      = 0;
 
-    Com<d3d9::IDirect3DSurface9>     m_rt9;
-    Com<d3d9::IDirect3DSurface9>     m_ds9;
+    Com<d3d9::IDirect3DSurface9> m_rt9;
+    Com<d3d9::IDirect3DSurface9> m_ds9;
 
   };
 
