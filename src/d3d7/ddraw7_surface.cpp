@@ -465,8 +465,21 @@ namespace dxvk {
     return m_proxy->GetLOD(lod);
   }
 
+  HRESULT DDraw7Surface::InitializeOrUploadD3D9() {
+    HRESULT hr = D3DERR_NOTAVAILABLE;
+
+    refreshD3D7Device();
+
+    if (!IsInitialized())
+      hr = IntializeD3D9();
+    else
+      hr = UploadTextureData();
+
+    return hr;
+  }
+
   // Callback function used in cube map face/surface initialization
-  HRESULT STDMETHODCALLTYPE EnumAndAttachSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+  inline HRESULT STDMETHODCALLTYPE EnumAndAttachSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     d3d9::IDirect3DCubeTexture9* cube = static_cast<d3d9::IDirect3DCubeTexture9*>(ctx);
 
     // Skip zbuffer. (Are we expecting a Z-buffer by default? Just for RT?)
@@ -480,46 +493,6 @@ namespace dxvk {
     ddraw7surface->SetSurface(std::move(face));
 
     return DDENUMRET_OK;
-  }
-
-  // Callback function used to navigate the linked mip map chain
-  HRESULT STDMETHODCALLTYPE ListMipChainSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
-    IDirectDrawSurface7** nextMip = static_cast<IDirectDrawSurface7**>(ctx);
-
-    if ((desc->ddsCaps.dwCaps  & DDSCAPS_MIPMAP)
-     || (desc->ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL)) {
-      *nextMip = subsurf;
-      //return DDENUMRET_CANCEL;
-    }
-
-    return DDENUMRET_OK;
-  }
-
-  // Callback function used to return the depth stencil
-  // The depth stencil is held as an attached surface of the render target
-  HRESULT STDMETHODCALLTYPE DepthStencilSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
-    IDirectDrawSurface7** depthStencil = static_cast<IDirectDrawSurface7**>(ctx);
-
-    // This should typically hit on the first attached surface of an RT
-    if (desc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) {
-      *depthStencil = subsurf;
-      return DDENUMRET_CANCEL;
-    }
-
-    return DDENUMRET_OK;
-  }
-
-  HRESULT DDraw7Surface::InitializeOrUploadD3D9() {
-    HRESULT hr = D3DERR_NOTAVAILABLE;
-
-    refreshD3D7Device();
-
-    if (!IsInitialized())
-      hr = IntializeD3D9();
-    else
-      hr = UploadTextureData();
-
-    return hr;
   }
 
   inline HRESULT DDraw7Surface::IntializeD3D9() {
@@ -542,8 +515,8 @@ namespace dxvk {
     d3d9::D3DPOOL pool  = d3d9::D3DPOOL_MANAGED;
     DWORD         usage = 0;
     // Place all possible render targets in DEFAULT,
-    // as well as any overlays (typically used for video)
-    if (IsRenderTarget() || IsOverlay()) {
+    // as well as any cube maps and overlays
+    if (IsRenderTarget() || IsCubeMap() || IsOverlay()) {
       pool  = d3d9::D3DPOOL_DEFAULT;
       usage = D3DUSAGE_RENDERTARGET;
     }
@@ -573,8 +546,6 @@ namespace dxvk {
         m_mipCount++;
       }
     }
-
-    Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Found ", m_mipCount, " mips"));
 
     uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
     if (mipLevels > 1)
@@ -654,8 +625,6 @@ namespace dxvk {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing cube map...");
 
       Com<d3d9::IDirect3DCubeTexture9> cubetex = nullptr;
-      // TODO: Pool for non-RT cubemaps. Better check if cube maps
-      // can even be render targets in d3d7...
       hr = m_d3d7device->GetD3D9()->CreateCubeTexture(
         m_desc.dwWidth, mipLevels, usage,
         ConvertFormat(m_desc.ddpfPixelFormat), pool, &cubetex, nullptr);
@@ -739,96 +708,43 @@ namespace dxvk {
       return DD_OK;
     }
 
+    if (IsDepthStencil()) {
+      Logger::debug("DDraw7Surface::UploadTextureData: Skipping upload of depth stencil");
+    // TODO: Handle uploading all cubemap faces
+    } else if (IsCubeMap()) {
+      Logger::warn("DDraw7Surface::UploadTextureData: Unhandled upload of cube map");
     // Blit all the mips for textures
-    if (IsTexture()) {
+    } else if (IsTexture()) {
       Logger::debug(str::format("DDraw7Surface::UploadTextureData: Declared mips ", m_desc.dwMipMapCount));
 
       uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
-
-      Logger::debug(str::format("DDraw7Surface::UploadTextureData: Blitting ", mipLevels, " mip map(s)"));
 
       // TODO: This can't ever work on compressed textures due to GPU-side compression,
       // so we need to come up with a way to intercept the content before it gets on the GPU
       if (unlikely(m_isDXT))
         Logger::err("DDraw7Surface::UploadTextureData: Unsupported compressed texture format");
 
-      IDirectDrawSurface7* mipMap = m_proxy.ptr();
-
-      for (uint32_t i = 0; i < mipLevels; i++) {
-        // Should never occur normally, but acts as a last ditch safety check
-        if (unlikely(mipMap == nullptr)) {
-          Logger::warn(str::format("DDraw7Surface::UploadTextureData: Last found source mip ", i));
-          break;
-        }
-
-        d3d9::D3DLOCKED_RECT rect9mip;
-        HRESULT hr9mip = m_texture->LockRect(i, &rect9mip, 0, D3DLOCK_DISCARD);
-        if (likely(SUCCEEDED(hr9mip))) {
-          DDSURFACEDESC2 descMip;
-          descMip.dwSize = sizeof(DDSURFACEDESC2);
-          HRESULT hr7mip = mipMap->Lock(0, &descMip, DDLOCK_READONLY, 0);
-          if (likely(SUCCEEDED(hr7mip))) {
-            Logger::debug(str::format("descMip.dwWidth:  ", descMip.dwWidth));
-            Logger::debug(str::format("descMip.dwHeight: ", descMip.dwHeight));
-            Logger::debug(str::format("descMip.lPitch:   ", descMip.lPitch));
-            Logger::debug(str::format("rect9mip.Pitch:   ", rect9mip.Pitch));
-            if (unlikely(descMip.lPitch != rect9mip.Pitch)) {
-              // TODO: It looks like the mimimum pitch for d3d7 textures is 8,
-              // so we'll need to do a row by row memcpy for such small mip
-              // maps, because d3d9 correctly supports pitches down to 1.
-              Logger::warn(str::format("DDraw7Surface::UploadTextureData: Incompatible mip map ", i + 1, " pitch"));
-            } else {
-              size_t size = static_cast<size_t>(descMip.dwHeight * descMip.lPitch);
-              memcpy(rect9mip.pBits, descMip.lpSurface, size);
-              Logger::debug(str::format("DDraw7Surface::UploadTextureData: Done blitting mip ", i + 1));
-            }
-            mipMap->Unlock(0);
-          }
-          m_texture->UnlockRect(i);
-
-          IDirectDrawSurface7* parentSurface = mipMap;
-          mipMap = nullptr;
-          parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
-        } else {
-          Logger::warn(str::format("DDraw7Surface::UploadTextureData: Failed to lock d3d9 mip ", i + 1));
-        }
-      }
-
-    } else if (IsDepthStencil()) {
-      Logger::debug("DDraw7Surface::UploadTextureData: Skipping upload of depth stencil");
-
-    // TODO: Handle uploading all cubemap faces
-    } else if (IsCubeMap()) {
-      Logger::warn("DDraw7Surface::UploadTextureData: Unhandled upload of cube map");
-
+      BlitToD3D9Texture(m_texture.ptr(), m_proxy.ptr(), mipLevels);
     // Blit surfaces directly
-    // TODO: does this even work with depth stencils and other misc types?
     } else if (m_d3d9 != nullptr) {
-      d3d9::D3DLOCKED_RECT rect9;
-      HRESULT hr9 = m_d3d9->LockRect(&rect9, 0, D3DLOCK_DISCARD);
-      if (SUCCEEDED(hr9)) {
-        DDSURFACEDESC2 desc;
-        desc.dwSize = sizeof(DDSURFACEDESC2);
-        HRESULT hr7 = m_proxy->Lock(0, &desc, DDLOCK_READONLY, 0);
-        if (SUCCEEDED(hr7)) {
-          Logger::debug(str::format("desc.dwWidth:  ", desc.dwWidth));
-          Logger::debug(str::format("desc.dwHeight: ", desc.dwHeight));
-          Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));
-          Logger::debug(str::format("rect.Pitch:    ", rect9.Pitch));
-          if (unlikely(desc.lPitch != rect9.Pitch)) {
-            Logger::err("DDraw7Surface::UploadTextureData: Incompatible surface pitch");
-          } else {
-            size_t size = static_cast<size_t>(desc.dwHeight * desc.lPitch);
-            memcpy(rect9.pBits, desc.lpSurface, size);
-            Logger::debug("DDraw7Surface::UploadTextureData: Upload complete");
-          }
-          m_proxy->Unlock(0);
-        }
-        m_d3d9->UnlockRect();
-      }
+      BlitToD3D9Surface(m_d3d9.ptr(), m_proxy.ptr());
     }
 
     return DD_OK;
+  }
+
+  // Callback function used to return the depth stencil
+  // The depth stencil is held as an attached surface of the render target
+  inline HRESULT STDMETHODCALLTYPE DepthStencilSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+    IDirectDrawSurface7** depthStencil = static_cast<IDirectDrawSurface7**>(ctx);
+
+    // This should typically hit on the first attached surface of an RT
+    if (desc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) {
+      *depthStencil = subsurf;
+      return DDENUMRET_CANCEL;
+    }
+
+    return DDENUMRET_OK;
   }
 
   IDirectDrawSurface7* DDraw7Surface::GetAttachedDepthStencil() {
