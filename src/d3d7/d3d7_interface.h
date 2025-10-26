@@ -58,7 +58,7 @@ namespace dxvk {
     // TODO: Move to the devices, don't keep in the parent
     D3DDEVICEDESC7                                  m_desc;
 
-    D3D7Device*                                     m_device;
+    D3D7Device*                                     m_device = nullptr;
 
   };
 
