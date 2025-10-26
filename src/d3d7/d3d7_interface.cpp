@@ -96,6 +96,11 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
+    if (unlikely(!(m_parent->IsWrappedSurface(surface)))) {
+      Logger::err("D3D7Interface::CreateDevice: Non wrapped surface passed as RT");
+      return DDERR_GENERIC;
+    }
+
     DDSURFACEDESC2 desc;
     desc.dwSize = sizeof(DDSURFACEDESC2);
     surface->GetSurfaceDesc(&desc);
@@ -109,22 +114,19 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
+    DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
     // Determine the format for the auto depth stencil, if
     // the application provides a depth stencil surface
-    IDirectDrawSurface7* depthStencil = nullptr;
     DDSURFACEDESC2 descDS;
     descDS.dwSize = sizeof(DDSURFACEDESC2);
+    IDirectDrawSurface7* depthStencil = rt7->GetAttachedDepthStencil();
 
-    if (likely(m_parent->IsWrappedSurface(surface))) {
-      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(surface);
-      depthStencil = ddraw7Surface->GetAttachedDepthStencil();
-      if (depthStencil != nullptr) {
-        Logger::debug("D3D7Interface::CreateDevice: Got depth stencil from RT");
-        depthStencil->GetSurfaceDesc(&descDS);
-        Logger::info(str::format("D3D7Interface::CreateDevice: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
-      } else {
-        Logger::debug("D3D7Interface::CreateDevice: RT has no depth stencil attached");
-      }
+    if (depthStencil != nullptr) {
+      Logger::debug("D3D7Interface::CreateDevice: Got depth stencil from RT");
+      depthStencil->GetSurfaceDesc(&descDS);
+      Logger::info(str::format("D3D7Interface::CreateDevice: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
+    } else {
+      Logger::debug("D3D7Interface::CreateDevice: RT has no depth stencil attached");
     }
 
     d3d9::D3DPRESENT_PARAMETERS params;
@@ -159,15 +161,7 @@ namespace dxvk {
     }
 
     Com<IDirect3DDevice7> d3d7DeviceProxy;
-    DDraw7Surface* rt7 = nullptr;
-
-    if (likely(m_parent->IsWrappedSurface(surface))) {
-      rt7 = static_cast<DDraw7Surface*>(surface);
-      hr = m_proxy->CreateDevice(rclsid, rt7->GetProxied(), &d3d7DeviceProxy);
-    } else {
-      Logger::err("D3D7Interface::CreateDevice: Non wrapped surface passed as RT");
-      return DDERR_GENERIC;
-    }
+    hr = m_proxy->CreateDevice(rclsid, rt7->GetProxied(), &d3d7DeviceProxy);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Interface::CreateDevice: Failed to created the proxy device");
@@ -234,18 +228,57 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::EnumZBufferFormats(const IID& device_iid, LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx) {
-    Logger::debug("<<< D3D7Interface::EnumZBufferFormats: Proxy");
-    return m_proxy->EnumZBufferFormats(device_iid, cb, ctx);
+    Logger::debug(">>> D3D7Interface::EnumZBufferFormats");
+
+    if (unlikely(cb == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    // There are just 3 supported depth stencil formats to worry about,
+    // so let's just enumerate them liniarly, for better clarity
+
+    // Unsupported in dxvk and native drivers
+    /*DDPIXELFORMAT depthFormat = GetZBufferFormat(d3d9::D3DFMT_D15S1);
+    HRESULT hr = cb(&depthFormat, ctx);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;*/
+
+    DDPIXELFORMAT depthFormat = GetZBufferFormat(d3d9::D3DFMT_D16);
+    HRESULT hr = cb(&depthFormat, ctx);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;
+
+    // Unsupported in dxvk and native drivers
+    /*depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X4S4);
+    hr = cb(&depthFormat, ctx);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;*/
+
+    depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
+    hr = cb(&depthFormat, ctx);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;
+
+    depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24S8);
+    hr = cb(&depthFormat, ctx);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;
+
+    // Unsupported in dxvk and native drivers
+    /*DDPIXELFORMAT depthFormat = GetZBufferFormat(d3d9::D3DFMT_D32);
+    hr = cb(&depthFormat, ctx);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;*/
+
+    return D3D_OK;
   }
 
+  // Typically gets called during tear-down, when it won't do much good anyway
   HRESULT STDMETHODCALLTYPE D3D7Interface::EvictManagedTextures() {
     Logger::debug(">>> D3D7Interface::EvictManagedTextures");
     if (m_device != nullptr) {
       m_device->LockDevice();
       m_device->GetD3D9()->EvictManagedResources();
     }
-    // TODO: Check if this does more harm than good, because we keep hard
-    // references to wrapped textures, which might blow up on eviction
     return m_proxy->EvictManagedTextures();
   }
 
