@@ -31,7 +31,7 @@ namespace dxvk {
 
     m_intfCount = ++s_intfCount;
 
-    Logger::info(str::format("D3D7Interface: Created a new interface nr. ((", m_intfCount, "))"));
+    Logger::debug(str::format("D3D7Interface: Created a new interface nr. ((", m_intfCount, "))"));
   }
 
   D3D7Interface::~D3D7Interface() {
@@ -39,7 +39,7 @@ namespace dxvk {
     if (m_parent->GetD3D7Interface() == this)
       m_parent->ClearD3D7Interface();
 
-    Logger::info(str::format("D3D7Interface: Interface nr. ((", m_intfCount, ")) bites the dust"));
+    Logger::debug(str::format("D3D7Interface: Interface nr. ((", m_intfCount, ")) bites the dust"));
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK7 cb, void *ctx) {
