@@ -27,6 +27,8 @@ namespace dxvk {
       throw DxvkError("D3D7Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
+    m_parent->AddRef();
+
     m_rtOrig = m_rt;
     HRESULT hr = m_d3d9->GetRenderTarget(0, &m_rt9);
     if(unlikely(FAILED(hr)))
@@ -41,14 +43,17 @@ namespace dxvk {
 
     m_deviceCount = ++s_deviceCount;
 
-    Logger::info(str::format("D3D7Device: Created a new device nr. ((", m_deviceCount, "))"));
+    Logger::debug(str::format("D3D7Device: Created a new device nr. ((", m_deviceCount, "))"));
   }
 
   D3D7Device::~D3D7Device() {
     // Clear up the interface device pointer if it points to this device
     if (m_parent->GetDevice() == this)
       m_parent->ClearDevice();
-    Logger::info(str::format("D3D7Device: Device nr. ((", m_deviceCount, ")) bites the dust"));
+
+    Logger::debug(str::format("D3D7Device: Device nr. ((", m_deviceCount, ")) bites the dust"));
+
+    m_parent->Release();
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetCaps(D3DDEVICEDESC7 *desc) {
@@ -87,7 +92,7 @@ namespace dxvk {
     if (unlikely(d3d == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *d3d = ref(m_parent);
+    *d3d = m_parent;
 
     return D3D_OK;
   }
@@ -144,7 +149,7 @@ namespace dxvk {
     if (unlikely(surface == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *surface = m_rt;
+    *surface = ref(m_rt);
 
     return D3D_OK;
   }

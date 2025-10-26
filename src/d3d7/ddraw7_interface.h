@@ -16,6 +16,8 @@ namespace dxvk {
   public:
     DDraw7Interface(Com<IDirectDraw7>&& proxyIntf);
 
+    ~DDraw7Interface();
+
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
     HRESULT STDMETHODCALLTYPE Compact();
@@ -95,13 +97,16 @@ namespace dxvk {
     }
 
   private:
-    Com<IDirectDraw7>                      m_proxy;
+    Com<IDirectDraw7>           m_proxy;
 
-    D3D7Interface*                         m_d3d7Intf;
+    static uint32_t             s_intfCount;
+    uint32_t                    m_intfCount  = 0;
 
-    HWND                                   m_hwnd = nullptr;
+    D3D7Interface*              m_d3d7Intf;
 
-    std::vector<DDraw7Surface*>            m_surfaces;
+    HWND                        m_hwnd = nullptr;
+
+    std::vector<DDraw7Surface*> m_surfaces;
 
   };
 
