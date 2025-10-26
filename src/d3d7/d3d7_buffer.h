@@ -58,23 +58,23 @@ namespace dxvk {
     inline void InitializeIndexBuffer();
 
     inline void ListBufferDetails() {
-      Logger::info(str::format("D3D7VertexBuffer: Created a new buffer nr. {{", m_buffCount, "}}:"));
-      Logger::info(str::format("   Size:     ", m_size));
-      Logger::info(str::format("   FVF:      ", m_desc.dwFVF));
-      Logger::info(str::format("   Vertices: ", m_size / m_stride));
+      Logger::debug(str::format("D3D7VertexBuffer: Created a new buffer nr. {{", m_buffCount, "}}:"));
+      Logger::debug(str::format("   Size:     ", m_size));
+      Logger::debug(str::format("   FVF:      ", m_desc.dwFVF));
+      Logger::debug(str::format("   Vertices: ", m_size / m_stride));
     }
 
-    static uint32_t   s_buffCount;
-    uint32_t          m_buffCount  = 0;
+    static uint32_t     s_buffCount;
+    uint32_t            m_buffCount  = 0;
 
-    D3D7Interface* m_parent = nullptr;
+    D3D7Interface*      m_parent = nullptr;
 
     D3DVERTEXBUFFERDESC m_desc;
 
-    DWORD  m_stride  = 0;
-    DWORD  m_size    = 0;
+    DWORD               m_stride  = 0;
+    DWORD               m_size    = 0;
 
-    bool   m_locked  = false;
+    bool                m_locked  = false;
 
     // Attached index buffer, same size as the vertex buffer
     Com<d3d9::IDirect3DIndexBuffer9> m_ib9;
