@@ -2,8 +2,6 @@
 
 #include "d3d7_caps.h"
 
-#include <algorithm>
-
 namespace dxvk {
 
   uint32_t DDraw7Surface::s_surfCount = 0;
@@ -30,6 +28,10 @@ namespace dxvk {
     Logger::info(str::format("DDraw7Surface: Surface nr. [[", m_surfCount, "]] bites the dust"));
   }
 
+  // This call will only attach DDSCAPS_ZBUFFER type surfaces and will reject anything else.
+  // More than that, the attached surfaces do not need to be manageed by the object, the docs state:
+  // "Unlike complex surfaces that you create with a single call to IDirectDraw7::CreateSurface, surfaces
+  // attached with this method are not automatically released."
   HRESULT STDMETHODCALLTYPE DDraw7Surface::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSAttachedSurface) {
     Logger::debug("<<< DDraw7Surface::AddAttachedSurface: Proxy");
 
@@ -38,22 +40,13 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    if (likely(m_parent->IsWrappedSurface(lpDDSAttachedSurface))) {
-      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSAttachedSurface);
-
-      auto it = std::find(m_attachedSurfaces.begin(), m_attachedSurfaces.end(), ddraw7Surface);
-      if (likely(it == m_attachedSurfaces.end())) {
-          m_attachedSurfaces.push_back(ddraw7Surface);
-          Logger::debug("DDraw7Surface::AddAttachedSurface: Attached new surface");
-      } else {
-          Logger::warn("DDraw7Surface::AddAttachedSurface: Surface is already attached");
-      }
-
-      return m_proxy->AddAttachedSurface(ddraw7Surface->GetProxied());
-    } else {
+    if (unlikely(!(m_parent->IsWrappedSurface(lpDDSAttachedSurface)))) {
       Logger::warn("DDraw7Surface::AddAttachedSurface: Attaching non-wrapped surface");
       return m_proxy->AddAttachedSurface(lpDDSAttachedSurface);
     }
+
+    DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSAttachedSurface);
+    return m_proxy->AddAttachedSurface(ddraw7Surface->GetProxied());
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::AddOverlayDirtyRect(LPRECT lpRect) {
@@ -64,6 +57,11 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
     Logger::debug("<<< DDraw7Surface::Blt: Proxy");
 
+    if (unlikely(lpDDSrcSurface == nullptr)) {
+      Logger::err("DDraw7Surface::Blt: Called with NULL source surface");
+      return DDERR_INVALIDPARAMS;
+    }
+
     if (unlikely(IsFrontBuffer() || IsBackBuffer()))
       return DD_OK;
 
@@ -72,16 +70,19 @@ namespace dxvk {
 
     HRESULT hr;
 
-    if (likely(m_parent->IsWrappedSurface(lpDDSrcSurface))) {
-      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
-      hr = m_proxy->Blt(lpDestRect, ddraw7Surface->GetProxied(), lpSrcRect, dwFlags, lpDDBltFx);
-    } else {
+    if (unlikely(!(m_parent->IsWrappedSurface(lpDDSrcSurface)))) {
       Logger::warn("DDraw7Surface::Blt: Received an unwrapped source surface");
       hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
+    } else {
+      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
+      hr = m_proxy->Blt(lpDestRect, ddraw7Surface->GetProxied(), lpSrcRect, dwFlags, lpDDBltFx);
     }
 
-    if (SUCCEEDED(hr))
-      InitializeOrUploadD3D9();
+    if (likely(SUCCEEDED(hr))) {
+      HRESULT hrUpload = InitializeOrUploadD3D9();
+      if (unlikely(FAILED(hrUpload)))
+        Logger::warn("DDraw7Surface::Blt: Failed upload to d3d9 surface");
+    }
 
     return hr;
   }
@@ -95,25 +96,34 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDraw7Surface::BltFast: Proxy");
 
+    if (unlikely(lpDDSrcSurface == nullptr)) {
+      Logger::err("DDraw7Surface::BltFast: Called with NULL source surface");
+      return DDERR_INVALIDPARAMS;
+    }
+
     if (unlikely(IsFrontBuffer() || IsBackBuffer()))
       return DD_OK;
 
     HRESULT hr;
 
-    if (likely(lpDDSrcSurface != nullptr && m_parent->IsWrappedSurface(lpDDSrcSurface))) {
-      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
-      hr = m_proxy->BltFast(dwX, dwY, ddraw7Surface->GetProxied(), lpSrcRect, dwTrans);
-    } else {
+    if (unlikely(!(m_parent->IsWrappedSurface(lpDDSrcSurface)))) {
       Logger::warn("DDraw7Surface::BltFast: Received an unwrapped source surface");
       hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
+    } else {
+      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
+      hr = m_proxy->BltFast(dwX, dwY, ddraw7Surface->GetProxied(), lpSrcRect, dwTrans);
     }
 
-    if (SUCCEEDED(hr))
-      InitializeOrUploadD3D9();
+    if (likely(SUCCEEDED(hr))) {
+      HRESULT hrUpload = InitializeOrUploadD3D9();
+      if (unlikely(FAILED(hrUpload)))
+        Logger::warn("DDraw7Surface::BltFast: Failed upload to d3d9 surface");
+    }
 
     return hr;
   }
 
+  // This call will only detach DDSCAPS_ZBUFFER type surfaces and will reject anything else.
   HRESULT STDMETHODCALLTYPE DDraw7Surface::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE7 lpDDSAttachedSurface) {
     Logger::debug("<<< DDraw7Surface::DeleteAttachedSurface: Proxy");
 
@@ -122,22 +132,13 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    if (likely(m_parent->IsWrappedSurface(lpDDSAttachedSurface))) {
-      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSAttachedSurface);
-
-      auto it = std::find(m_attachedSurfaces.begin(), m_attachedSurfaces.end(), ddraw7Surface);
-      if (likely(it != m_attachedSurfaces.end())) {
-          m_attachedSurfaces.erase(it);
-          Logger::debug("DDraw7Surface::DeleteAttachedSurface: Removed attached surface");
-      } else {
-          Logger::warn("DDraw7Surface::DeleteAttachedSurface: Surface not found");
-      }
-
-      return m_proxy->DeleteAttachedSurface(dwFlags, ddraw7Surface->GetProxied());
-    } else {
+    if (unlikely(!(m_parent->IsWrappedSurface(lpDDSAttachedSurface)))) {
       Logger::warn("DDraw7Surface::DeleteAttachedSurface: Deleting non-wrapped surface");
       return m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
     }
+
+    DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSAttachedSurface);
+    return m_proxy->DeleteAttachedSurface(dwFlags, ddraw7Surface->GetProxied());
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback) {
@@ -185,6 +186,8 @@ namespace dxvk {
       Logger::info("DDraw7Surface::GetAttachedSurface: Querying for a texture");
     if (lpDDSCaps->dwCaps2 & DDSCAPS2_CUBEMAP)
       Logger::info("DDraw7Surface::GetAttachedSurface: Querying for a cube map");
+    if (lpDDSCaps->dwCaps2 & DDSCAPS_OVERLAY)
+      Logger::info("DDraw7Surface::GetAttachedSurface: Querying for an overlay");
 
     Com<IDirectDrawSurface7> surface = nullptr;
     HRESULT hr = m_proxy->GetAttachedSurface(lpDDSCaps, &surface);
@@ -220,10 +223,15 @@ namespace dxvk {
     return m_proxy->GetBltStatus(dwFlags);
   }
 
-  // TODO: Maybe cache the caps during surface creation?
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetCaps(LPDDSCAPS2 lpDDSCaps) {
-    Logger::debug("<<< DDraw7Surface::GetCaps: Proxy");
-    return m_proxy->GetCaps(lpDDSCaps);
+    Logger::debug(">>> DDraw7Surface::GetCaps");
+
+    if (unlikely(lpDDSCaps == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    *lpDDSCaps = m_desc.ddsCaps;
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetClipper(IDirectDrawClipper **lplpDDClipper) {
@@ -239,18 +247,18 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetDC(HDC *lphDC) {
     Logger::debug(">>> DDraw7Surface::GetDC");
 
-    InitializeOrUploadD3D9();
+    HRESULT hrUpload = InitializeOrUploadD3D9();
+    if (unlikely(FAILED(hrUpload)))
+      Logger::warn("DDraw7Surface::GetDC: Failed upload to d3d9 surface");
 
-    HRESULT hr = DD_OK;
-
-    if (likely(IsInitialized())) {
-      hr = m_d3d9->GetDC(lphDC);
-      if (unlikely(FAILED(hr))) {
-        Logger::err("DDraw7Surface::GetDC: Failed to get d3d9 DC");
-        return m_proxy->GetDC(lphDC);
-      }
-    } else {
+    if (unlikely(!(IsInitialized()))) {
       Logger::warn("DDraw7Surface::GetDC: Not yet initialized");
+      return m_proxy->GetDC(lphDC);
+    }
+
+    HRESULT hr = m_d3d9->GetDC(lphDC);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("DDraw7Surface::GetDC: Failed to get d3d9 DC");
       return m_proxy->GetDC(lphDC);
     }
 
@@ -279,8 +287,8 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc) {
     Logger::debug("<<< DDraw7Surface::GetSurfaceDesc: Proxy");
-    // Don't return what we cache for now, since validatinons
-    // need to be performed and some games actually depend on it
+    // Don't return what we cache for now, since various validations
+    // need to be performed, and some games actually depend on it
     return m_proxy->GetSurfaceDesc(lpDDSurfaceDesc);
   }
 
@@ -304,14 +312,14 @@ namespace dxvk {
 
     HRESULT hr = DD_OK;
 
-    if (likely(IsInitialized())) {
-      hr = m_d3d9->ReleaseDC(hDC);
-      if (unlikely(FAILED(hr))) {
-        Logger::err("DDraw7Surface::ReleaseDC: Failed to release d3d9 DC");
-        return m_proxy->ReleaseDC(hDC);
-      }
-    } else {
+    if (unlikely(!(IsInitialized()))) {
       Logger::warn("DDraw7Surface::ReleaseDC: Not yet initialized");
+      return m_proxy->ReleaseDC(hDC);
+    }
+
+    hr = m_d3d9->ReleaseDC(hDC);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("DDraw7Surface::ReleaseDC: Failed to release d3d9 DC");
       return m_proxy->ReleaseDC(hDC);
     }
 
@@ -348,8 +356,11 @@ namespace dxvk {
 
     HRESULT hr = m_proxy->Unlock(lpSurfaceData);
 
-    if (SUCCEEDED(hr))
-      InitializeOrUploadD3D9();
+    if (likely(SUCCEEDED(hr))) {
+      HRESULT hrUpload = InitializeOrUploadD3D9();
+      if (unlikely(FAILED(hrUpload)))
+        Logger::warn("DDraw7Surface::Unlock: Failed upload to d3d9 surface");
+    }
 
     return hr;
   }
@@ -357,12 +368,13 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFACE7 lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx) {
     Logger::debug("<<< DDraw7Surface::UpdateOverlay: Proxy");
 
-    if (likely(m_parent->IsWrappedSurface(lpDDDestSurface))) {
-      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDDestSurface);
-      return m_proxy->UpdateOverlay(lpSrcRect, ddraw7Surface->GetProxied(), lpDestRect, dwFlags, lpDDOverlayFx);
-    } else {
+    if (unlikely(!(m_parent->IsWrappedSurface(lpDDDestSurface)))) {
+      Logger::warn("DDraw7Surface::UpdateOverlay: Called with an unwrapped surface");
       return m_proxy->UpdateOverlay(lpSrcRect, lpDDDestSurface, lpDestRect, dwFlags, lpDDOverlayFx);
     }
+
+    DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDDestSurface);
+    return m_proxy->UpdateOverlay(lpSrcRect, ddraw7Surface->GetProxied(), lpDestRect, dwFlags, lpDDOverlayFx);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::UpdateOverlayDisplay(DWORD dwFlags) {
@@ -373,12 +385,13 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE7 lpDDSReference) {
     Logger::debug("<<< DDraw7Surface::UpdateOverlayZOrder: Proxy");
 
-    if (likely(m_parent->IsWrappedSurface(lpDDSReference))) {
-      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSReference);
-      return m_proxy->UpdateOverlayZOrder(dwFlags, ddraw7Surface->GetProxied());
-    } else {
+    if (unlikely(!(m_parent->IsWrappedSurface(lpDDSReference)))) {
+      Logger::warn("DDraw7Surface::UpdateOverlayZOrder: Called with an unwrapped surface");
       return m_proxy->UpdateOverlayZOrder(dwFlags, lpDDSReference);
     }
+
+    DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSReference);
+    return m_proxy->UpdateOverlayZOrder(dwFlags, ddraw7Surface->GetProxied());
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetDDInterface(void **lplpDD) {
@@ -410,12 +423,12 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     HRESULT hr = m_proxy->SetSurfaceDesc(lpDDSD, dwFlags);
-    // Make sure we don't store crap desc data
     if (unlikely(FAILED(hr))) {
       Logger::err("DDraw7Surface::SetSurfaceDesc: Failed to set surface desc");
-    } else {
-      m_desc = *lpDDSD;
+      return hr;
     }
+
+    m_desc = *lpDDSD;
 
     return hr;
   }
