@@ -227,28 +227,28 @@ namespace dxvk {
 
       const char* attached = IsAttached() ? "yes" : "no";
 
-      Logger::info(str::format("DDraw7Surface: Created a new surface nr. [[", m_surfCount, "]]:"));
-      Logger::info(str::format("   Type:       ", type));
-      Logger::info(str::format("   Dimensions: ", m_desc.dwWidth, "x", m_desc.dwHeight));
-      Logger::info(str::format("   Format:     ", format));
-      Logger::info(str::format("   IsComplex:  ", IsComplex() ? "yes" : "no"));
-      Logger::info(str::format("   HasMips:    ", m_desc.dwMipMapCount ? "yes" : "no"));
-      Logger::info(str::format("   IsAttached: ", attached));
+      Logger::debug(str::format("DDraw7Surface: Created a new surface nr. [[", m_surfCount, "]]:"));
+      Logger::debug(str::format("   Type:       ", type));
+      Logger::debug(str::format("   Dimensions: ", m_desc.dwWidth, "x", m_desc.dwHeight));
+      Logger::debug(str::format("   Format:     ", format));
+      Logger::debug(str::format("   IsComplex:  ", IsComplex() ? "yes" : "no"));
+      Logger::debug(str::format("   HasMips:    ", m_desc.dwMipMapCount ? "yes" : "no"));
+      Logger::debug(str::format("   IsAttached: ", attached));
     }
 
-    bool              m_isDXT      = false;
-    uint32_t          m_mipCount   = 0;
+    bool             m_isDXT      = false;
+    uint32_t         m_mipCount   = 0;
 
-    static uint32_t   s_surfCount;
-    uint32_t          m_surfCount  = 0;
+    static uint32_t  s_surfCount;
+    uint32_t         m_surfCount  = 0;
 
-    DDraw7Interface*  m_parent     = nullptr;
+    DDraw7Interface* m_parent = nullptr;
 
-    DDraw7Surface*    m_parentSurf = nullptr;
+    DDraw7Surface*   m_parentSurf = nullptr;
 
-    D3D7Device*       m_d3d7device = nullptr;
+    D3D7Device*      m_d3d7device = nullptr;
 
-    DDSURFACEDESC2    m_desc;
+    DDSURFACEDESC2   m_desc;
 
     // TODO: Might be worth making this a single generic type at some point
     Com<d3d9::IDirect3DTexture9>     m_texture;
