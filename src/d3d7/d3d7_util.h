@@ -608,7 +608,7 @@ namespace dxvk {
     if ((desc->ddsCaps.dwCaps  & DDSCAPS_MIPMAP)
      || (desc->ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL)) {
       *nextMip = subsurf;
-      //return DDENUMRET_CANCEL;
+      return DDENUMRET_CANCEL;
     }
 
     return DDENUMRET_OK;
