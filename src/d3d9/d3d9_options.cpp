@@ -45,12 +45,12 @@ namespace dxvk {
     this->maxFrameRate                  = config.getOption<int32_t>     ("dxvk.maxFrameRate",
                                           config.getOption<int32_t>     ("d3d9.maxFrameRate",                  0));
     this->presentInterval               = config.getOption<int32_t>     ("d3d9.presentInterval",               -1);
-    this->shaderModel                   = config.getOption<int32_t>     ("d3d9.shaderModel",                   3u);
+    this->shaderModel                   = config.getOption<int32_t>     ("d3d9.shaderModel",                   0u);
     this->dpiAware                      = config.getOption<bool>        ("d3d9.dpiAware",                      true);
     this->lenientClear                  = config.getOption<bool>        ("d3d9.lenientClear",                  false);
     this->deferSurfaceCreation          = config.getOption<bool>        ("d3d9.deferSurfaceCreation",          false);
     this->samplerAnisotropy             = config.getOption<int32_t>     ("d3d9.samplerAnisotropy",             -1);
-    this->maxAvailableMemory            = config.getOption<int32_t>     ("d3d9.maxAvailableMemory",            4096);
+    this->maxAvailableMemory            = config.getOption<int32_t>     ("d3d9.maxAvailableMemory",            1024);
     this->supportCubeDepthFormats       = config.getOption<bool>        ("d3d9.supportCubeDepthFormats",       false);
     this->supportDFFormats              = config.getOption<bool>        ("d3d9.supportDFFormats",              true);
     this->supportX4R4G4B4               = config.getOption<bool>        ("d3d9.supportX4R4G4B4",               true);
