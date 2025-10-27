@@ -102,9 +102,9 @@ namespace dxvk {
     static uint32_t             s_intfCount;
     uint32_t                    m_intfCount  = 0;
 
-    D3D7Interface*              m_d3d7Intf;
+    D3D7Interface*              m_d3d7Intf   = nullptr;
 
-    HWND                        m_hwnd = nullptr;
+    HWND                        m_hwnd       = nullptr;
 
     std::vector<DDraw7Surface*> m_surfaces;
 

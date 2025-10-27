@@ -44,14 +44,14 @@ namespace dxvk {
     this->maxFrameLatency               = config.getOption<int32_t>     ("d3d9.maxFrameLatency",               0);
     this->maxFrameRate                  = config.getOption<int32_t>     ("d3d9.maxFrameRate",                  0);
     this->presentInterval               = config.getOption<int32_t>     ("d3d9.presentInterval",               -1);
-    this->shaderModel                   = config.getOption<int32_t>     ("d3d9.shaderModel",                   3u);
+    this->shaderModel                   = config.getOption<int32_t>     ("d3d9.shaderModel",                   0u);
     this->dpiAware                      = config.getOption<bool>        ("d3d9.dpiAware",                      true);
     this->strictConstantCopies          = config.getOption<bool>        ("d3d9.strictConstantCopies",          false);
     this->strictPow                     = config.getOption<bool>        ("d3d9.strictPow",                     true);
     this->lenientClear                  = config.getOption<bool>        ("d3d9.lenientClear",                  false);
     this->deferSurfaceCreation          = config.getOption<bool>        ("d3d9.deferSurfaceCreation",          false);
     this->samplerAnisotropy             = config.getOption<int32_t>     ("d3d9.samplerAnisotropy",             -1);
-    this->maxAvailableMemory            = config.getOption<int32_t>     ("d3d9.maxAvailableMemory",            4096);
+    this->maxAvailableMemory            = config.getOption<int32_t>     ("d3d9.maxAvailableMemory",            1024);
     this->supportDFFormats              = config.getOption<bool>        ("d3d9.supportDFFormats",              true);
     this->supportX4R4G4B4               = config.getOption<bool>        ("d3d9.supportX4R4G4B4",               true);
     this->useD32forD24                  = config.getOption<bool>        ("d3d9.useD32forD24",                  false);
@@ -87,7 +87,7 @@ namespace dxvk {
     // Clamp LOD bias so that people don't abuse this in unintended ways
     this->samplerLodBias = dxvk::fclamp(this->samplerLodBias, -2.0f, 1.0f);
 
-    std::string floatEmulation = Config::toLower(config.getOption<std::string>("d3d9.floatEmulation", "strict"));
+    std::string floatEmulation = Config::toLower(config.getOption<std::string>("d3d9.floatEmulation", "auto"));
     if (floatEmulation == "strict") {
       this->d3d9FloatEmulation = D3D9FloatEmulation::Strict;
     } else if (floatEmulation == "false") {
