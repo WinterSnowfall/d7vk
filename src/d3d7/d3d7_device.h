@@ -89,7 +89,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE DrawPrimitiveStrided(D3DPRIMITIVETYPE primitive_type, DWORD fvf, D3DDRAWPRIMITIVESTRIDEDDATA *pStridedData, DWORD stridedDataCount, DWORD flags);
 
-    HRESULT STDMETHODCALLTYPE DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD  dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD  dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags);
+    HRESULT STDMETHODCALLTYPE DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD  dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags);
 
     HRESULT STDMETHODCALLTYPE DrawPrimitiveVB(D3DPRIMITIVETYPE primitive_type, IDirect3DVertexBuffer7 *vb, DWORD startVertex, DWORD primitiveCount, DWORD flags);
 
@@ -127,15 +127,19 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetInfo(DWORD info_id, void *info, DWORD info_size);
 
+    void InitializeDS();
+
     D3D7DeviceLock LockDevice() {
       return m_singlethread.AcquireLock();
+    }
+
+    DDraw7Surface* GetRenderTarget() const {
+      return m_rt;
     }
 
   private:
 
     void UploadIndices(void* indices, DWORD indexCount);
-
-    inline HRESULT IntializeSurface9(DDraw7Surface* surface, bool renderTarget);
 
     inline bool ShouldRecord() { return m_recorder != nullptr; }
 

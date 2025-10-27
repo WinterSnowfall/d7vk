@@ -74,8 +74,8 @@ namespace dxvk {
     }
 #endif
 
-    if (unlikely(m_d3d9Options.shaderModel == 0))
-      Logger::warn("D3D9InterfaceEx: WARNING! Fixed-function exclusive mode is enabled.");
+    //if (unlikely(m_d3d9Options.shaderModel == 0))
+      //Logger::warn("D3D9InterfaceEx: WARNING! Fixed-function exclusive mode is enabled.");
   }
 
 
