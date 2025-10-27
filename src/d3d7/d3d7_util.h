@@ -509,7 +509,16 @@ namespace dxvk {
                               | D3DPTFILTERCAPS_MIPFLINEAR
                               | D3DPTFILTERCAPS_MIPFPOINT;
 
-    prim.dwTextureBlendCaps   = 0;
+    // Allegedly a deprecated item, but some d3d7 games,
+    // like Summoner, still expect it to contain legacy values
+    prim.dwTextureBlendCaps   = D3DPTBLENDCAPS_ADD
+                              | D3DPTBLENDCAPS_COPY
+                              | D3DPTBLENDCAPS_DECAL
+                              | D3DPTBLENDCAPS_DECALALPHA
+                              | D3DPTBLENDCAPS_DECALMASK
+                              | D3DPTBLENDCAPS_MODULATE
+                              | D3DPTBLENDCAPS_MODULATEALPHA
+                              | D3DPTBLENDCAPS_MODULATEMASK;
 
     prim.dwTextureAddressCaps = D3DPTADDRESSCAPS_BORDER
                               | D3DPTADDRESSCAPS_CLAMP

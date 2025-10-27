@@ -57,8 +57,8 @@ namespace dxvk {
 
     // Hardware acceleration with T&L
     desc7.deviceGUID = IID_IDirect3DTnLHalDevice;
-    char deviceNameTNL[50] = "D7VK T&L HAL";
-    char deviceDescTNL[50] = "D7VK Direct3D7 T&L HAL";
+    char deviceNameTNL[100] = "D7VK T&L HAL";
+    char deviceDescTNL[100] = "D7VK T&L HAL";
 
     HRESULT hr = cb(&deviceNameTNL[0], &deviceDescTNL[0], &desc7, ctx);
     if (hr == D3DENUMRET_CANCEL)
@@ -67,8 +67,8 @@ namespace dxvk {
     // Hardware acceleration (no T&L)
     desc7.deviceGUID = IID_IDirect3DHALDevice;
     desc7.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT;
-    char deviceNameHAL[50] = "D7VK HAL";
-    char deviceDescHAL[50] = "D7VK Direct3D7 HAL";
+    char deviceNameHAL[100] = "D7VK HAL";
+    char deviceDescHAL[100] = "D7VK HAL";
 
     hr = cb(&deviceNameHAL[0], &deviceDescHAL[0], &desc7, ctx);
     if (hr == D3DENUMRET_CANCEL)
@@ -76,9 +76,9 @@ namespace dxvk {
 
     // Software emulation, this is expected to be exposed
     desc7.deviceGUID = IID_IDirect3DRGBDevice;
-    desc7.dwDevCaps &= ~(D3DDEVCAPS_DRAWPRIMITIVES2EX | D3DDEVCAPS_HWRASTERIZATION);
-    char deviceNameRGB[50] = "D7VK RGB";
-    char deviceDescRGB[50] = "D7VK Direct3D7 RGB";
+    desc7.dwDevCaps &= ~D3DDEVCAPS_HWRASTERIZATION;
+    char deviceNameRGB[100] = "D7VK RGB";
+    char deviceDescRGB[100] = "D7VK RGB";
 
     cb(&deviceNameRGB[0], &deviceDescRGB[0], &desc7, ctx);
 

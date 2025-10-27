@@ -20,13 +20,10 @@ Name of the game, settings used etc. If using mods or addons, list them aswell.
 - Wine version: 
 - D7VK version: 
 
-### Apitrace file(s)
-- Put a link here
-
-For instructions on how to use apitrace, see: https://github.com/doitsujin/dxvk/wiki/Using-Apitrace
-
 ### Log files
 Please attach Proton or Wine logs as a text file:
+- Have `DXVK_LOG_LEVEL` set to `debug`.
 - When using Proton, set the Steam launch options for your game to `PROTON_LOG=1 %command%` and attach the corresponding `steam-xxxxx.log` file in your home directory.
 - When using regular Wine, use `wine game.exe > game.log 2>&1` and attach the resulting `game.log` file.
 - On Windows, log files will usually appear next to the games exe or in its base folder.
+- In case of huge log files, which aren't unexpected, please archive the log file first, upload it and share the download link.
