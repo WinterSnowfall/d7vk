@@ -4,7 +4,7 @@
 
 namespace dxvk {
 
-  Logger Logger::s_instance("d3d7.log");
+  //Logger Logger::s_instance("d3d7.log");
 
   HMODULE GetProxiedDDrawModule() {
     // TODO: This is very janky, but works for now
