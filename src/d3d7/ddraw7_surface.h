@@ -18,7 +18,8 @@ namespace dxvk {
           Com<IDirectDrawSurface7>&& surfProxy,
           DDraw7Interface* pParent,
           DDraw7Surface* pParentSurf,
-          DDSURFACEDESC2 desc);
+          DDSURFACEDESC2 desc,
+          bool isChildObject);
 
     ~DDraw7Surface();
 
@@ -130,7 +131,9 @@ namespace dxvk {
       return m_d3d9 != nullptr || m_texture != nullptr || m_cubeMap != nullptr;
     }
 
-    IDirectDrawSurface7* GetAttachedDepthStencil();
+    DDraw7Surface* GetAttachedDepthStencil() const {
+      return m_depthStencil.ptr();
+    }
 
     HRESULT InitializeOrUploadD3D9();
 
@@ -236,17 +239,18 @@ namespace dxvk {
       Logger::debug(str::format("   IsAttached: ", attached));
     }
 
-    bool             m_isDXT      = false;
-    uint32_t         m_mipCount   = 0;
+    bool             m_isChildObject = false;
+    bool             m_isDXT         = false;
+    uint32_t         m_mipCount      = 0;
 
     static uint32_t  s_surfCount;
-    uint32_t         m_surfCount  = 0;
+    uint32_t         m_surfCount     = 0;
 
-    DDraw7Interface* m_parent = nullptr;
+    DDraw7Interface* m_parent        = nullptr;
 
-    DDraw7Surface*   m_parentSurf = nullptr;
+    DDraw7Surface*   m_parentSurf    = nullptr;
 
-    D3D7Device*      m_d3d7device = nullptr;
+    D3D7Device*      m_d3d7device    = nullptr;
 
     DDSURFACEDESC2   m_desc;
 
@@ -254,6 +258,9 @@ namespace dxvk {
     Com<d3d9::IDirect3DTexture9>     m_texture;
     Com<d3d9::IDirect3DCubeTexture9> m_cubeMap;
 
+    // Back buffers will have depth stencil surfaces as attachments (in practice
+    // I have never seen more than one depth stencil being attached at a time)
+    Com<DDraw7Surface, false>              m_depthStencil;
     // These are attached surfaces, which are typically mips or other types of generated
     // surfaces, which need to exist for the entire lifecycle of their parent surface.
     // They are implemented with linked list, so for example only one mip level

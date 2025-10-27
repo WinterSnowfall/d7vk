@@ -32,11 +32,7 @@ namespace dxvk {
     m_rtOrig = m_rt;
     HRESULT hr = m_d3d9->GetRenderTarget(0, &m_rt9);
     if(unlikely(FAILED(hr)))
-      Logger::err("D3D7Device: Failed to get d3d9 RT");
-
-    hr = m_d3d9->GetDepthStencilSurface(&m_ds9);
-    if(unlikely(FAILED(hr)))
-      Logger::err("D3D7Device: Failed to get d3d9 depth stencil");
+      throw DxvkError("D3D7Device: ERROR! Failed to retrieve d3d9 render target!");
 
     // Textures
     m_textures.fill(nullptr);
@@ -92,7 +88,7 @@ namespace dxvk {
     if (unlikely(d3d == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *d3d = m_parent;
+    *d3d = ref(m_parent);
 
     return D3D_OK;
   }
@@ -120,16 +116,35 @@ namespace dxvk {
 
       if (rt7 == m_rtOrig) {
         hr = m_d3d9->SetRenderTarget(0, m_rt9.ptr());
-        m_d3d9->SetDepthStencilSurface(m_ds9.ptr());
       } else {
         hr = m_d3d9->SetRenderTarget(0, m_rt->GetSurface());
-        // TODO: Get the depth stencil from the RT as well and recreate
-        // it if the format has changed for some reason?
       }
 
       if (likely(SUCCEEDED(hr))) {
         Logger::debug("D3D7Device::SetRenderTarget: Set a new RT");
         m_rt = rt7;
+
+        DDraw7Surface* ds7 = m_rt->GetAttachedDepthStencil();
+
+        if (likely(ds7 != nullptr)) {
+          Logger::debug("D3D7Device::SetRenderTarget: Found an attached DS");
+
+          HRESULT hrDS = ds7->InitializeOrUploadD3D9();
+          if (unlikely(FAILED(hr))) {
+            Logger::err("D3D7Device::SetRenderTarget: Failed to initialize/upload d3d9 DS");
+            return hr;
+          }
+
+          m_ds9 = ds7->GetD3D9();
+          hrDS = m_d3d9->SetDepthStencilSurface(m_ds9.ptr());
+          if (unlikely(FAILED(hrDS))) {
+            Logger::err("D3D7Device::SetRenderTarget: Failed to set DS");
+            return hrDS;
+          }
+          Logger::debug("D3D7Device::SetRenderTarget: Set a new DS");
+        } else {
+          Logger::info("D3D7Device::SetRenderTarget: RT has no depth stencil attached");
+        }
       } else {
         Logger::err("D3D7Device::SetRenderTarget: Failed to set RT");
         return hr;
@@ -565,7 +580,7 @@ namespace dxvk {
     }
   }
 
-  HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags) {
+  HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitive(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags) {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D7Device::DrawPrimitive");
@@ -577,12 +592,17 @@ namespace dxvk {
     if (unlikely(!dwVertexCount))
       return D3D_OK;
 
-    GetD3D9()->SetFVF(dwVertexTypeDesc);
-    return GetD3D9()->DrawPrimitiveUP(
-                          d3d9::D3DPRIMITIVETYPE(dptPrimitiveType),
-                          GetPrimitiveCount(dptPrimitiveType, dwVertexCount),
-                          lpvVertices,
-                          GetFVFSize(dwVertexTypeDesc));
+    m_d3d9->SetFVF(dwVertexTypeDesc);
+    HRESULT hr = m_d3d9->DrawPrimitiveUP(
+                     d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                     GetPrimitiveCount(d3dptPrimitiveType, dwVertexCount),
+                     lpvVertices,
+                     GetFVFSize(dwVertexTypeDesc));
+
+    if (unlikely(FAILED(hr)))
+      Logger::warn("D3D7Device::DrawPrimitive: Failed d3d9 call to DrawPrimitiveUP");
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
@@ -598,15 +618,20 @@ namespace dxvk {
       return D3D_OK;
 
     m_d3d9->SetFVF(dwVertexTypeDesc);
-    return m_d3d9->DrawIndexedPrimitiveUP(
-                          d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
-                          0,
-                          dwVertexCount,
-                          GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount),
-                          lpwIndices,
-                          d3d9::D3DFMT_INDEX16,
-                          lpvVertices,
-                          GetFVFSize(dwVertexTypeDesc));
+    HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
+                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                      0,
+                      dwVertexCount,
+                      GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount),
+                      lpwIndices,
+                      d3d9::D3DFMT_INDEX16,
+                      lpvVertices,
+                      GetFVFSize(dwVertexTypeDesc));
+
+    if (unlikely(FAILED(hr)))
+      Logger::warn("D3D7Device::DrawIndexedPrimitive: Failed d3d9 call to DrawIndexedPrimitiveUP");
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetClipStatus(D3DCLIPSTATUS *clip_status) {
@@ -670,7 +695,7 @@ namespace dxvk {
     if (unlikely(!dwNumVertices))
       return D3D_OK;
 
-    D3D7VertexBuffer* vb = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
+    Com<D3D7VertexBuffer> vb = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
 
     if (unlikely(vb->IsLocked())) {
       Logger::err("D3D7Device::DrawPrimitiveVB: Buffer is locked");
@@ -679,10 +704,15 @@ namespace dxvk {
 
     m_d3d9->SetFVF(vb->GetFVF());
     m_d3d9->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
-    return m_d3d9->DrawPrimitive(
-                       d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
-                       dwStartVertex,
-                       GetPrimitiveCount(d3dptPrimitiveType, dwNumVertices));
+    HRESULT hr = m_d3d9->DrawPrimitive(
+                           d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                           dwStartVertex,
+                           GetPrimitiveCount(d3dptPrimitiveType, dwNumVertices));
+
+    if (unlikely(FAILED(hr)))
+      Logger::warn("D3D7Device::DrawPrimitiveVB: Failed d3d9 call to DrawPrimitive");
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
@@ -697,7 +727,7 @@ namespace dxvk {
     if (unlikely(!dwNumVertices || !dwIndexCount))
       return D3D_OK;
 
-    D3D7VertexBuffer* vb = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
+    Com<D3D7VertexBuffer> vb = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
 
     if (unlikely(vb->IsLocked())) {
       Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Buffer is locked");
@@ -831,10 +861,10 @@ namespace dxvk {
 
     if (stateType != -1u) {
       // If the type has been remapped to a sampler state type
-      return GetD3D9()->GetSamplerState(dwStage, stateType, lpdwState);
+      return m_d3d9->GetSamplerState(dwStage, stateType, lpdwState);
     }
     else {
-      return GetD3D9()->GetTextureStageState(dwStage, d3d9::D3DTEXTURESTAGESTATETYPE(d3dTexStageStateType), lpdwState);
+      return m_d3d9->GetTextureStageState(dwStage, d3d9::D3DTEXTURESTAGESTATETYPE(d3dTexStageStateType), lpdwState);
     }
   }
 
@@ -927,6 +957,39 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::GetInfo(DWORD info_id, void *info, DWORD info_size) {
     Logger::debug(">>> D3D7Device::GetInfo");
     return S_FALSE;
+  }
+
+  void D3D7Device::InitializeDS() {
+    DDraw7Surface* ds7 = m_rt->GetAttachedDepthStencil();
+
+    if (likely(ds7 != nullptr)) {
+      Logger::debug("D3D7Device::InitializeDS: Found an attached DS");
+
+      HRESULT hrDS = ds7->InitializeOrUploadD3D9();
+      if (unlikely(FAILED(hrDS))) {
+        Logger::err("D3D7Device::InitializeDS: Failed to initialize d3d9 DS");
+      } else {
+        m_ds9 = ds7->GetD3D9();
+        Logger::info("D3D7Device::InitializeDS: Got depth stencil from RT");
+
+        DDSURFACEDESC2 descDS;
+        descDS.dwSize = sizeof(DDSURFACEDESC2);
+        ds7->GetProxied()->GetSurfaceDesc(&descDS);
+        Logger::info(str::format("D3D7Device::InitializeDS: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
+
+        HRESULT hrDS9 = m_d3d9->SetDepthStencilSurface(m_ds9.ptr());
+        if(unlikely(FAILED(hrDS9)))
+          Logger::err("D3D7Device::InitializeDS: Failed to get d3d9 depth stencil");
+
+        // This needs to act like an auto depth stencil of sorts, so manually enable z-buffering
+        m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_TRUE);
+      }
+    } else {
+      Logger::info("D3D7Device::InitializeDS: RT has no depth stencil attached");
+      m_d3d9->SetDepthStencilSurface(nullptr);
+      // Should be superfluous, but play it safe
+      m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_FALSE);
+    }
   }
 
 }

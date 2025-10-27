@@ -344,14 +344,13 @@ namespace dxvk {
     return size;
   }
 
-
   static inline UINT GetPrimitiveCount(D3DPRIMITIVETYPE PrimitiveType, DWORD VertexCount) {
     switch (PrimitiveType) {
-      default:
-      case D3DPT_TRIANGLELIST:  return static_cast<UINT>(VertexCount / 3);
       case D3DPT_POINTLIST:     return static_cast<UINT>(VertexCount);
       case D3DPT_LINELIST:      return static_cast<UINT>(VertexCount / 2);
       case D3DPT_LINESTRIP:     return static_cast<UINT>(VertexCount - 1);
+      default:
+      case D3DPT_TRIANGLELIST:  return static_cast<UINT>(VertexCount / 3);
       case D3DPT_TRIANGLESTRIP: return static_cast<UINT>(VertexCount - 2);
       case D3DPT_TRIANGLEFAN:   return static_cast<UINT>(VertexCount - 2);
     }
@@ -387,9 +386,9 @@ namespace dxvk {
                     | D3DDEVCAPS_HWRASTERIZATION
                     | D3DDEVCAPS_HWTRANSFORMANDLIGHT
                  // | D3DDEVCAPS_SEPARATETEXTUREMEMORIES
-                    | D3DDEVCAPS_SORTDECREASINGZ
-                    | D3DDEVCAPS_SORTEXACT
-                    | D3DDEVCAPS_SORTINCREASINGZ
+                 // | D3DDEVCAPS_SORTDECREASINGZ
+                 // | D3DDEVCAPS_SORTEXACT
+                    | D3DDEVCAPS_SORTINCREASINGZ // TODO: Check native
                  // | D3DDEVCAPS_STRIDEDVERTICES // Mentioned in the docs, but apparently is a ghost
                     | D3DDEVCAPS_TEXTURENONLOCALVIDMEM
                  // | D3DDEVCAPS_TEXTURESYSTEMMEMORY
@@ -418,16 +417,16 @@ namespace dxvk {
                               | D3DPRASTERCAPS_FOGVERTEX
                               | D3DPRASTERCAPS_MIPMAPLODBIAS
                            // | D3DPRASTERCAPS_PAT // Not implemented in D3D9
-                              | D3DPRASTERCAPS_ROP2
-                              | D3DPRASTERCAPS_STIPPLE
-                              | D3DPRASTERCAPS_SUBPIXEL // I guess...
+                           // | D3DPRASTERCAPS_ROP2
+                           // | D3DPRASTERCAPS_STIPPLE
+                           // | D3DPRASTERCAPS_SUBPIXEL
                            // | D3DPRASTERCAPS_SUBPIXELX
-                              | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
+                           // | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
                            // | D3DPRASTERCAPS_WBUFFER
                               | D3DPRASTERCAPS_WFOG
-                              | D3DPRASTERCAPS_XOR
+                           // | D3DPRASTERCAPS_XOR
                               | D3DPRASTERCAPS_ZBIAS
-                              | D3DPRASTERCAPS_ZBUFFERLESSHSR
+                           // | D3DPRASTERCAPS_ZBUFFERLESSHSR // Easy footgun to not get a z-buffer
                               | D3DPRASTERCAPS_ZFOG
                               | D3DPRASTERCAPS_ZTEST;
 
@@ -462,28 +461,28 @@ namespace dxvk {
                            // | D3DPSHADECAPS_ALPHAFLATSTIPPLED
                               | D3DPSHADECAPS_ALPHAGOURAUDBLEND
                            // | D3DPSHADECAPS_ALPHAGOURAUDSTIPPLED
-                              | D3DPSHADECAPS_ALPHAPHONGBLEND
+                           // | D3DPSHADECAPS_ALPHAPHONGBLEND
                            // | D3DPSHADECAPS_ALPHAPHONGSTIPPLED
                               | D3DPSHADECAPS_COLORFLATMONO
                               | D3DPSHADECAPS_COLORFLATRGB
                               | D3DPSHADECAPS_COLORGOURAUDMONO
                               | D3DPSHADECAPS_COLORGOURAUDRGB
-                              | D3DPSHADECAPS_COLORPHONGMONO
-                              | D3DPSHADECAPS_COLORPHONGRGB
+                           // | D3DPSHADECAPS_COLORPHONGMONO
+                           // | D3DPSHADECAPS_COLORPHONGRGB
                               | D3DPSHADECAPS_FOGFLAT
                               | D3DPSHADECAPS_FOGGOURAUD
-                              | D3DPSHADECAPS_FOGPHONG
+                           // | D3DPSHADECAPS_FOGPHONG
                               | D3DPSHADECAPS_SPECULARFLATMONO
                               | D3DPSHADECAPS_SPECULARFLATRGB
                               | D3DPSHADECAPS_SPECULARGOURAUDMONO
-                              | D3DPSHADECAPS_SPECULARGOURAUDRGB
-                              | D3DPSHADECAPS_SPECULARPHONGMONO
-                              | D3DPSHADECAPS_SPECULARPHONGRGB;
+                              | D3DPSHADECAPS_SPECULARGOURAUDRGB;
+                           // | D3DPSHADECAPS_SPECULARPHONGMONO
+                           // | D3DPSHADECAPS_SPECULARPHONGRGB;
 
     prim.dwTextureCaps        = D3DPTEXTURECAPS_ALPHA
                               | D3DPTEXTURECAPS_ALPHAPALETTE
                               | D3DPTEXTURECAPS_BORDER
-                              | D3DPTEXTURECAPS_COLORKEYBLEND // Technically not implemented/present in D3D8/D3D9
+                              | D3DPTEXTURECAPS_COLORKEYBLEND // Hard required, but not implemented in/D3D9
                               | D3DPTEXTURECAPS_CUBEMAP
                            // | D3DPTEXTURECAPS_NONPOW2CONDITIONAL
                               | D3DPTEXTURECAPS_PERSPECTIVE
@@ -622,7 +621,7 @@ namespace dxvk {
     for (uint32_t i = 0; i < mipLevels; i++) {
       // Should never occur normally, but acts as a last ditch safety check
       if (unlikely(mipMap == nullptr)) {
-        Logger::warn(str::format("BlitToD3D9Texture: Last found source mip ", i));
+        Logger::warn(str::format("BlitToD3D9Texture: Last found source mip ", i - 1));
         break;
       }
 
@@ -641,15 +640,15 @@ namespace dxvk {
             // TODO: It looks like the mimimum pitch for d3d7 textures is 8,
             // so we'll need to do a row by row memcpy for such small mip
             // maps, because d3d9 correctly supports pitches down to 1.
-            Logger::warn(str::format("BlitToD3D9Texture: Incompatible mip map ", i + 1, " pitch"));
+            Logger::warn(str::format("BlitToD3D9Texture: Incompatible mip map ", i, " pitch"));
           } else {
             size_t size = static_cast<size_t>(descMip.dwHeight * descMip.lPitch);
             memcpy(rect9mip.pBits, descMip.lpSurface, size);
-            Logger::debug(str::format("BlitToD3D9Texture: Done blitting mip ", i + 1));
+            Logger::debug(str::format("BlitToD3D9Texture: Done blitting mip ", i));
           }
           mipMap->Unlock(0);
         } else {
-          Logger::warn(str::format("BlitToD3D9Texture: Failed to lock d3d7 mip ", i + 1));
+          Logger::warn(str::format("BlitToD3D9Texture: Failed to lock d3d7 mip ", i));
         }
         texture9->UnlockRect(i);
 
@@ -657,7 +656,7 @@ namespace dxvk {
         mipMap = nullptr;
         parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
       } else {
-        Logger::warn(str::format("BlitToD3D9Texture: Failed to lock d3d9 mip ", i + 1));
+        Logger::warn(str::format("BlitToD3D9Texture: Failed to lock d3d9 mip ", i));
       }
     }
   }

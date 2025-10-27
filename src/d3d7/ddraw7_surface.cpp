@@ -10,12 +10,15 @@ namespace dxvk {
         Com<IDirectDrawSurface7>&& surfProxy,
         DDraw7Interface* pParent,
         DDraw7Surface* pParentSurf,
-        DDSURFACEDESC2 desc)
+        DDSURFACEDESC2 desc,
+        bool isChildObject)
     : DDrawWrappedObject<d3d9::IDirect3DSurface9, IDirectDrawSurface7>(nullptr, std::move(surfProxy))
+    , m_isChildObject ( isChildObject )
     , m_parent     ( pParent )
     , m_parentSurf ( pParentSurf )
     , m_desc       ( desc ) {
-    m_parent->AddRef();
+    if (likely(m_isChildObject))
+      m_parent->AddRef();
 
     m_parent->AddWrappedSurface(this);
 
@@ -29,7 +32,8 @@ namespace dxvk {
 
     Logger::debug(str::format("DDraw7Surface: Surface nr. [[", m_surfCount, "]] bites the dust"));
 
-    m_parent->Release();
+    if (likely(m_isChildObject))
+      m_parent->Release();
   }
 
   // This call will only attach DDSCAPS_ZBUFFER type surfaces and will reject anything else.
@@ -50,6 +54,7 @@ namespace dxvk {
     }
 
     DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSAttachedSurface);
+    m_depthStencil = ddraw7Surface;
     return m_proxy->AddAttachedSurface(ddraw7Surface->GetProxied());
   }
 
@@ -61,11 +66,6 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
     Logger::debug("<<< DDraw7Surface::Blt: Proxy");
 
-    if (unlikely(lpDDSrcSurface == nullptr)) {
-      Logger::err("DDraw7Surface::Blt: Called with NULL source surface");
-      return DDERR_INVALIDPARAMS;
-    }
-
     if (unlikely(IsFrontBuffer() || IsBackBuffer()))
       return DD_OK;
 
@@ -75,7 +75,8 @@ namespace dxvk {
     HRESULT hr;
 
     if (unlikely(!(m_parent->IsWrappedSurface(lpDDSrcSurface)))) {
-      Logger::warn("DDraw7Surface::Blt: Received an unwrapped source surface");
+      if (unlikely(lpDDSrcSurface != nullptr))
+        Logger::warn("DDraw7Surface::Blt: Received an unwrapped source surface");
       hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     } else {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
@@ -100,18 +101,14 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDraw7Surface::BltFast: Proxy");
 
-    if (unlikely(lpDDSrcSurface == nullptr)) {
-      Logger::err("DDraw7Surface::BltFast: Called with NULL source surface");
-      return DDERR_INVALIDPARAMS;
-    }
-
     if (unlikely(IsFrontBuffer() || IsBackBuffer()))
       return DD_OK;
 
     HRESULT hr;
 
     if (unlikely(!(m_parent->IsWrappedSurface(lpDDSrcSurface)))) {
-      Logger::warn("DDraw7Surface::BltFast: Received an unwrapped source surface");
+      if (unlikely(lpDDSrcSurface != nullptr))
+        Logger::warn("DDraw7Surface::BltFast: Received an unwrapped source surface");
       hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
     } else {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
@@ -133,11 +130,14 @@ namespace dxvk {
 
     // If lpDDSAttachedSurface is NULL, then all surfaces are detached.
     if (unlikely(!(m_parent->IsWrappedSurface(lpDDSAttachedSurface)))) {
-      Logger::debug("DDraw7Surface::DeleteAttachedSurface: Deleting null or non-wrapped surface");
+      if (unlikely(lpDDSAttachedSurface != nullptr))
+        Logger::warn("DDraw7Surface::DeleteAttachedSurface: Deleting non-wrapped surface");
       return m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
     }
 
     DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSAttachedSurface);
+    if (m_depthStencil == ddraw7Surface)
+      m_depthStencil = nullptr;
     return m_proxy->DeleteAttachedSurface(dwFlags, ddraw7Surface->GetProxied());
   }
 
@@ -205,7 +205,7 @@ namespace dxvk {
       DDSURFACEDESC2 desc;
       desc.dwSize = sizeof(DDSURFACEDESC2);
       surface->GetSurfaceDesc(&desc);
-      Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(std::move(surface), m_parent, this, desc);
+      Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(std::move(surface), m_parent, this, desc, false);
       m_attachedSurfaces.push_back(ddraw7Surface.ptr());
       *lplpDDAttachedSurface = ddraw7Surface.ref();
     // Can potentially happen with manually attached surfaces
@@ -302,8 +302,7 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc) {
     Logger::debug("<<< DDraw7Surface::GetSurfaceDesc: Proxy");
-    // Don't return what we cache for now, since various validations
-    // need to be performed, and some games actually depend on it
+    // This is NOT the desc that was passed during surface creation
     return m_proxy->GetSurfaceDesc(lpDDSurfaceDesc);
   }
 
@@ -428,7 +427,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // Was an easy footgun to return a proxied interface
-    *lplpDD = m_parent;
+    *lplpDD = ref(m_parent);
 
     return DD_OK;
   }
@@ -558,7 +557,7 @@ namespace dxvk {
 
     // In some cases we get passed offscreen plain surfaces with no data whatsoever in
     // ddpfPixelFormat, so we need to fall back to whatever the d3d9 back buffer is using.
-    if (unlikely(IsOffScreenPlainSurface() && format == d3d9::D3DFMT_UNKNOWN)) {
+    if (unlikely(format == d3d9::D3DFMT_UNKNOWN)) {
       Com<d3d9::IDirect3DSurface9> backBuffer;
       d3d9::D3DSURFACE_DESC bbDesc;
 
@@ -618,20 +617,20 @@ namespace dxvk {
 
     // Render Target / various base surface types
     if (IsRenderTarget() || IsOverlay()) {
-      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing render target (allegedly)...");
+      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing render target...");
 
       Com<d3d9::IDirect3DSurface9> rt = nullptr;
 
       if (IsFrontBuffer()) {
         hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
         if (likely(SUCCEEDED(hr)))
-          Logger::info("DDraw7Surface::IntializeD3D9: Created front buffer surface");
+          Logger::info("DDraw7Surface::IntializeD3D9: Retrieved front buffer surface");
       }
 
       else if (IsBackBuffer()) {
         hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
         if (likely(SUCCEEDED(hr)))
-          Logger::info("DDraw7Surface::IntializeD3D9: Created back buffer surface");
+          Logger::info("DDraw7Surface::IntializeD3D9: Retrieved back buffer surface");
       }
 
       else if (IsOffScreenPlainSurface()) {
@@ -645,7 +644,7 @@ namespace dxvk {
       else if (IsOverlay()) {
         hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
         if (likely(SUCCEEDED(hr)))
-          Logger::info("DDraw7Surface::IntializeD3D9: Created overlay surface");
+          Logger::info("DDraw7Surface::IntializeD3D9: Retrieved overlay surface");
       }
 
       else {
@@ -670,19 +669,17 @@ namespace dxvk {
 
       Com<d3d9::IDirect3DSurface9> ds = nullptr;
 
-      // Bind the auto depth stencil
-      hr = m_d3d7device->GetD3D9()->GetDepthStencilSurface(&ds);
-
-      /*hr = m_d3d7device->GetD3D9()->CreateDepthStencilSurface(
+      hr = m_d3d7device->GetD3D9()->CreateDepthStencilSurface(
         m_desc.dwWidth, m_desc.dwHeight, format,
         d3d9::D3DMULTISAMPLE_NONE, 0, FALSE, &ds, nullptr);
-      Logger::info("DDraw7Surface::IntializeD3D9: Created DS");*/
 
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create DS");
         m_d3d9 = nullptr;
         return hr;
       }
+
+      Logger::info("DDraw7Surface::IntializeD3D9: Created depth stencil surface");
 
       m_d3d9 = std::move(ds);
     // Cube maps
@@ -698,9 +695,9 @@ namespace dxvk {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create cube map");
         m_cubeMap = nullptr;
         return hr;
-      } else {
-        Logger::info("DDraw7Surface::IntializeD3D9: Created cube map");
       }
+
+      Logger::info("DDraw7Surface::IntializeD3D9: Created cube map");
 
       // Attach face 0 to this surface.
       Com<d3d9::IDirect3DSurface9> face = nullptr;
@@ -708,7 +705,7 @@ namespace dxvk {
       m_d3d9 = (std::move(face));
 
       // Attach sides 1-5 to each attached surface.
-      EnumAttachedSurfaces(cubetex.ptr(), EnumAndAttachSurfacesCallback);
+      m_proxy->EnumAttachedSurfaces(cubetex.ptr(), EnumAndAttachSurfacesCallback);
 
       m_cubeMap = std::move(cubetex);
     // Textures
@@ -735,17 +732,33 @@ namespace dxvk {
 
       Com<d3d9::IDirect3DSurface9> surf = nullptr;
 
-      hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
-          m_desc.dwWidth, m_desc.dwHeight, format,
-          d3d9::D3DPOOL_MANAGED, &surf, nullptr);
+      // Sometimes we get passed unknown surfaces which should be tied to the back buffer
+      if (unlikely(m_d3d7device->GetRenderTarget() == this)) {
+        Logger::debug("DDraw7Surface::IntializeD3D9: Unknown surface is the current RT");
 
-      if (unlikely(FAILED(hr))) {
-        Logger::err("DDraw7Surface::IntializeD3D9: Failed to create offscreen plain surface");
-        m_d3d9 = nullptr;
-        return hr;
+        hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
+
+        if (unlikely(FAILED(hr))) {
+          Logger::err("DDraw7Surface::IntializeD3D9: Failed to retrieve back buffer");
+          m_d3d9 = nullptr;
+          return hr;
+        }
+
+        Logger::info("DDraw7Surface::IntializeD3D9: Retrieved back buffer surface");
+      } else {
+        hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
+            m_desc.dwWidth, m_desc.dwHeight, format,
+            d3d9::D3DPOOL_MANAGED, &surf, nullptr);
+
+        if (unlikely(FAILED(hr))) {
+          Logger::err("DDraw7Surface::IntializeD3D9: Failed to create offscreen plain surface");
+          m_d3d9 = nullptr;
+          return hr;
+        }
+
+        Logger::info("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
       }
 
-      Logger::info("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
       m_d3d9 = std::move(surf);
     }
 
@@ -796,26 +809,6 @@ namespace dxvk {
     }
 
     return DD_OK;
-  }
-
-  // Callback function used to return the depth stencil
-  // The depth stencil is held as an attached surface of the render target
-  inline HRESULT STDMETHODCALLTYPE DepthStencilSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
-    IDirectDrawSurface7** depthStencil = static_cast<IDirectDrawSurface7**>(ctx);
-
-    // This should typically hit on the first attached surface of an RT
-    if (desc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) {
-      *depthStencil = subsurf;
-      return DDENUMRET_CANCEL;
-    }
-
-    return DDENUMRET_OK;
-  }
-
-  IDirectDrawSurface7* DDraw7Surface::GetAttachedDepthStencil() {
-    IDirectDrawSurface7* depthStencil = nullptr;
-    EnumAttachedSurfaces(&depthStencil, DepthStencilSurfacesCallback);
-    return depthStencil;
   }
 
 }

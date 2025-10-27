@@ -29,7 +29,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE CreateVertexBuffer(D3DVERTEXBUFFERDESC *desc, IDirect3DVertexBuffer7 **ppVertexBuffer, DWORD usage);
 
-    HRESULT STDMETHODCALLTYPE EnumZBufferFormats(const IID& device_iid, LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx);
+    HRESULT STDMETHODCALLTYPE EnumZBufferFormats(REFCLSID device_iid, LPD3DENUMPIXELFORMATSCALLBACK cb, LPVOID ctx);
 
     HRESULT STDMETHODCALLTYPE EvictManagedTextures();
 

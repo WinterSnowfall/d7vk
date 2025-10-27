@@ -76,7 +76,7 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddraw7SurfaceProxied, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDSurface = ref(new DDraw7Surface(std::move(ddraw7SurfaceProxied), this, nullptr, *lpDDSurfaceDesc));
+      *lplpDDSurface = ref(new DDraw7Surface(std::move(ddraw7SurfaceProxied), this, nullptr, *lpDDSurfaceDesc, true));
     } else {
       Logger::err("DDraw7Interface::CreateSurface: Failed to create proxy surface");
       return hr;
@@ -157,7 +157,7 @@ namespace dxvk {
       desc.dwSize = sizeof(DDSURFACEDESC2);
       gdiSurface->GetSurfaceDesc(&desc);
       // TODO: Maybe we want to keep it around... as a sort of GDI front buffer ref?
-      *lplpGDIDDSurface = ref(new DDraw7Surface(std::move(gdiSurface), this, nullptr, desc));
+      *lplpGDIDDSurface = ref(new DDraw7Surface(std::move(gdiSurface), this, nullptr, desc, false));
     }
 
     return hr;
@@ -230,7 +230,7 @@ namespace dxvk {
     DDSURFACEDESC2 desc;
     desc.dwSize = sizeof(DDSURFACEDESC2);
     surface->GetSurfaceDesc(&desc);
-    *pSurf = ref(new DDraw7Surface(std::move(surface), this, nullptr, desc));
+    *pSurf = ref(new DDraw7Surface(std::move(surface), this, nullptr, desc, false));
 
     return hr;
   }
