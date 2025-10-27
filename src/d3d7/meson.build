@@ -21,17 +21,18 @@ if platform != 'windows'
 endif
 
 ddraw_dll = shared_library(dxvk_name_prefix+'ddraw', ddraw_src, ddraw_res,
-  dependencies        : [ lib_d3d9, util_dep, dxso_dep, dxvk_dep ],
+  dependencies        : [ util_dep, dxso_dep, dxvk_dep ],
   include_directories : dxvk_include_path,
   install             : true,
   vs_module_defs      : 'ddraw'+def_spec_ext,
   link_args           : ddraw_ld_args,
   link_depends        : [ ddraw_link_depends ],
   kwargs              : dxvk_so_version,
+  link_with           : [ d3d9_static ],
 )
 
 ddraw_dep = declare_dependency(
-  link_with           : [ ddraw_dll ],
+  link_with           : [ ddraw_dll, d3d9_static ],
   include_directories : [ dxvk_include_path ],
 )
 
