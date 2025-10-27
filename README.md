@@ -5,18 +5,18 @@ A Vulkan-based translation layer for Direct3D 7, which allows running 3D applica
 ## How to use
 Grab the latest release or compile the project manually if you want to be "on the bleeding edge".
 
-To give it a spin in a Wine prefix of choice, copy the `ddraw.dll` and `d3d9.dll` files next to the game/application executable, then open `winecfg` and manually add `native, builtin` (explicitly in that order) DLL overrides for `ddraw` and `d3d9` under the Libraries tab. There's no need to worry about bitness or anything like that, since D3D7 always has been 32-bit exclusive.
+To give it a spin in a Wine prefix of choice, copy the `ddraw.dll` file next to the game/application executable, then open `winecfg` and manually add `native, builtin` (explicitly in that order) DLL overrides for `ddraw` under the Libraries tab. There's no need to worry about bitness or anything like that, since D3D7 has always been 32-bit exclusive.
 
-On Windows, simply copying the two files next to the game executable should work just fine.
+On Windows, simply copying `ddraw.dll` next to the game executable should work just fine. Note that Windows use is largely untested and D7VK is primarily aimed at use with Wine/Linux, so your milage may vary.
 
-Do NOT, I repeat, do NOT copy those files in your Wine or Windows system directories, as you will need access to an actual DDRAW implementation for any of this to work.
+Do NOT, I repeat, do NOT copy `ddraw.dll` in your Wine or Windows system directories, as you will need access to an actual DDRAW implementation for any of this to work.
 
 Verify that your application uses D7VK instead of wined3d by enabling the HUD (see notes below).
 
 #### DLL dependencies
 Listed below are the DLL requirements for using DXVK with any single API.
 
-- d3d7: `ddraw.dll` and `d3d9.dll`
+- d3d7: `ddraw.dll`
 
 ### HUD
 The `DXVK_HUD` environment variable controls a HUD which can display the framerate and some stat counters. It accepts a comma-separated list of the following options:
@@ -34,9 +34,9 @@ The `DXVK_HUD` environment variable controls a HUD which can display the framera
 - `api`: Shows the D3D feature level used by the application.
 - `cs`: Shows worker thread statistics.
 - `compiler`: Shows shader compiler activity
-- `samplers`: Shows the current number of sampler pairs used *[D3D9 Only]*
-- `ffshaders`: Shows the current number of shaders generated from fixed function state *[D3D9 Only]*
-- `swvp`: Shows whether or not the device is running in software vertex processing mode *[D3D9 Only]*
+- `samplers`: Shows the current number of sampler pairs used
+- `ffshaders`: Shows the current number of shaders generated from fixed function state
+- `swvp`: Shows whether or not the device is running in software vertex processing mode
 - `scale=x`: Scales the HUD by a factor of `x` (e.g. `1.5`)
 - `opacity=y`: Adjusts the HUD opacity by a factor of `y` (e.g. `0.5`, `1.0` being fully opaque).
 
@@ -54,6 +54,10 @@ None of this would have ever been possible without DXVK and Wine, so remember to
 ### Will it be upstreamed at some point?
 
 No.
+
+### Will it be expanded to include support for earlier D3D APIs?
+
+Also no. D3D7 is enough of a challenge and a mess as it is. The further we stray from D3D9, the further we stray from the divine.
 
 ## Any other doubts?
 
