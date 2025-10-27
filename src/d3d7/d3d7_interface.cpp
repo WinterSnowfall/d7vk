@@ -114,21 +114,6 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
-    DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
-    // Determine the format for the auto depth stencil, if
-    // the application provides a depth stencil surface
-    DDSURFACEDESC2 descDS;
-    descDS.dwSize = sizeof(DDSURFACEDESC2);
-    IDirectDrawSurface7* depthStencil = rt7->GetAttachedDepthStencil();
-
-    if (depthStencil != nullptr) {
-      Logger::debug("D3D7Interface::CreateDevice: Got depth stencil from RT");
-      depthStencil->GetSurfaceDesc(&descDS);
-      Logger::info(str::format("D3D7Interface::CreateDevice: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
-    } else {
-      Logger::debug("D3D7Interface::CreateDevice: RT has no depth stencil attached");
-    }
-
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = desc.dwWidth;
     params.BackBufferHeight   = desc.dwHeight;
@@ -139,8 +124,8 @@ namespace dxvk {
     params.SwapEffect         = d3d9::D3DSWAPEFFECT_DISCARD;
     params.hDeviceWindow      = hwnd;
     params.Windowed           = TRUE; // TODO: Always windowed?
-    params.EnableAutoDepthStencil     = TRUE;
-    params.AutoDepthStencilFormat     = depthStencil != nullptr ? ConvertFormat(descDS.ddpfPixelFormat) : d3d9::D3DFMT_D16;
+    params.EnableAutoDepthStencil     = FALSE;
+    params.AutoDepthStencilFormat     = d3d9::D3DFMT_UNKNOWN;
     params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
     params.FullScreen_RefreshRateInHz = 0;
     params.PresentationInterval       = D3DPRESENT_INTERVAL_ONE;
@@ -161,6 +146,7 @@ namespace dxvk {
     }
 
     Com<IDirect3DDevice7> d3d7DeviceProxy;
+    DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
     hr = m_proxy->CreateDevice(rclsid, rt7->GetProxied(), &d3d7DeviceProxy);
 
     if (unlikely(FAILED(hr))) {
@@ -185,6 +171,8 @@ namespace dxvk {
       Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, m_parent, std::move(device9), rt7);
       // Hold the address of the most recently created device, not a reference
       m_device = device.ptr();
+      // Now that we have a valid d3d9 device pointer, we can initialize the depth stencil (if any)
+      device->InitializeDS();
       *ppd3dDevice = device.ref();
     } catch (const DxvkError& e) {
       Logger::err(e.message());
@@ -227,7 +215,7 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D7Interface::EnumZBufferFormats(const IID& device_iid, LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx) {
+  HRESULT STDMETHODCALLTYPE D3D7Interface::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK cb, LPVOID ctx) {
     Logger::debug(">>> D3D7Interface::EnumZBufferFormats");
 
     if (unlikely(cb == nullptr))
