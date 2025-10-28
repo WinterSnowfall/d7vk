@@ -30,6 +30,10 @@ namespace dxvk {
   DDraw7Surface::~DDraw7Surface() {
     m_parent->RemoveWrappedSurface(this);
 
+    // Make sure to invalidate any DS attachments on DS release
+    if (unlikely(m_parentSurf != nullptr && m_parentSurf->GetAttachedDepthStencil() == this))
+      m_parentSurf->ClearedAttachedDepthStencil();
+
     Logger::debug(str::format("DDraw7Surface: Surface nr. [[", m_surfCount, "]] bites the dust"));
 
     if (likely(m_isChildObject))
@@ -54,6 +58,7 @@ namespace dxvk {
     }
 
     DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSAttachedSurface);
+    ddraw7Surface->SetParentSurface(this);
     m_depthStencil = ddraw7Surface;
     return m_proxy->AddAttachedSurface(ddraw7Surface->GetProxied());
   }
@@ -136,8 +141,10 @@ namespace dxvk {
     }
 
     DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSAttachedSurface);
-    if (m_depthStencil == ddraw7Surface)
+    if (likely(m_depthStencil == ddraw7Surface)) {
+      ddraw7Surface->ClearParentSurface();
       m_depthStencil = nullptr;
+    }
     return m_proxy->DeleteAttachedSurface(dwFlags, ddraw7Surface->GetProxied());
   }
 
