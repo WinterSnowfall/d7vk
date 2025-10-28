@@ -646,10 +646,16 @@ namespace dxvk {
           Logger::debug(str::format("descMip.lPitch:   ", descMip.lPitch));
           Logger::debug(str::format("rect9mip.Pitch:   ", rect9mip.Pitch));
           if (unlikely(descMip.lPitch != rect9mip.Pitch)) {
-            // TODO: It looks like the mimimum pitch for d3d7 textures is 8,
-            // so we'll need to do a row by row memcpy for such small mip
-            // maps, because d3d9 correctly supports pitches down to 1.
             Logger::warn(str::format("BlitToD3D9Texture: Incompatible mip map ", i, " pitch"));
+
+            uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9mip.pBits);
+            uint8_t* data7 = reinterpret_cast<uint8_t*>(descMip.lpSurface);
+
+            size_t copyPitch = std::min<size_t>(descMip.lPitch, rect9mip.Pitch);
+            for (uint32_t h = 0; h < descMip.dwHeight; h++)
+              memcpy(&data9[h * rect9mip.Pitch], &data7[h * descMip.lPitch], copyPitch);
+
+            Logger::debug(str::format("BlitToD3D9Texture: Done row by row blitting mip ", i));
           } else {
             size_t size = static_cast<size_t>(descMip.dwHeight * descMip.lPitch);
             memcpy(rect9mip.pBits, descMip.lpSurface, size);
@@ -683,7 +689,16 @@ namespace dxvk {
         Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));
         Logger::debug(str::format("rect.Pitch:    ", rect9.Pitch));
         if (unlikely(desc.lPitch != rect9.Pitch)) {
-          Logger::err("BlitToD3D9Surface: Incompatible surface pitch");
+          Logger::warn("BlitToD3D9Surface: Incompatible surface pitch");
+
+          uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9.pBits);
+          uint8_t* data7 = reinterpret_cast<uint8_t*>(desc.lpSurface);
+
+          size_t copyPitch = std::min<size_t>(desc.lPitch, rect9.Pitch);
+          for (uint32_t h = 0; h < desc.dwHeight; h++)
+            memcpy(&data9[h * rect9.Pitch], &data7[h * desc.lPitch], copyPitch);
+
+          Logger::debug(str::format("BlitToD3D9Surface: Row by row update complete"));
         } else {
           size_t size = static_cast<size_t>(desc.dwHeight * desc.lPitch);
           memcpy(rect9.pBits, desc.lpSurface, size);
