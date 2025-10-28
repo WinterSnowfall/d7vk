@@ -49,13 +49,13 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // Ideally we should take all the adapters into account, however
-    // D3D7 supports one HAL device, one HAL T&L device, and one
+    // D3D7 supports one HAL T&L device, one HAL device, and one
     // RGB (software emulation) device, all indentified via GUIDs
 
     // Make a copy, because we need to alter stuff
     D3DDEVICEDESC7 desc7 = m_desc;
 
-    // Hardware acceleration with T&L
+    // Hardware acceleration with T&L (HWVP)
     desc7.deviceGUID = IID_IDirect3DTnLHalDevice;
     char deviceNameTNL[100] = "D7VK T&L HAL";
     char deviceDescTNL[100] = "D7VK T&L HAL";
@@ -64,7 +64,7 @@ namespace dxvk {
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
-    // Hardware acceleration (no T&L)
+    // Hardware acceleration (no T&L, SWVP)
     desc7.deviceGUID = IID_IDirect3DHALDevice;
     desc7.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT;
     char deviceNameHAL[100] = "D7VK HAL";
@@ -74,9 +74,9 @@ namespace dxvk {
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
-    // Software emulation, this is expected to be exposed
+    // Software emulation, this is expected to be exposed (SWVP)
     desc7.deviceGUID = IID_IDirect3DRGBDevice;
-    desc7.dwDevCaps &= ~D3DDEVCAPS_HWRASTERIZATION;
+    desc7.dwDevCaps &= ~(D3DDEVCAPS_HWTRANSFORMANDLIGHT | D3DDEVCAPS_HWRASTERIZATION);
     char deviceNameRGB[100] = "D7VK RGB";
     char deviceDescRGB[100] = "D7VK RGB";
 
@@ -96,6 +96,30 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
+    DWORD vertexProcessing = D3DCREATE_HARDWARE_VERTEXPROCESSING;
+    bool  isRGBDevice      = false;
+
+    if (rclsid == IID_IDirect3DTnLHalDevice) {
+      Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DTnLHalDevice device");
+    } else if (rclsid == IID_IDirect3DHALDevice) {
+      Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
+      vertexProcessing = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+    } else if (rclsid == IID_IDirect3DRGBDevice) {
+      Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
+      vertexProcessing = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+      isRGBDevice = true;
+    } else {
+      Logger::err("D3D7Interface::CreateDevice: Unknown device type");
+      return DDERR_INVALIDPARAMS;
+    }
+
+    HWND hwnd = m_parent->GetHWND();
+
+    if (unlikely(hwnd == nullptr)) {
+      Logger::err("D3D7Interface::CreateDevice: HWND is NULL");
+      return DDERR_NOHWND;
+    }
+
     if (unlikely(!(m_parent->IsWrappedSurface(surface)))) {
       Logger::err("D3D7Interface::CreateDevice: Non wrapped surface passed as RT");
       return DDERR_GENERIC;
@@ -106,13 +130,6 @@ namespace dxvk {
     surface->GetSurfaceDesc(&desc);
 
     Logger::info(str::format("D3D7Interface::CreateDevice: RenderTarget: ", desc.dwWidth, "x", desc.dwHeight));
-
-    HWND hwnd = m_parent->GetHWND();
-
-    if (unlikely(hwnd == nullptr)) {
-      Logger::err("D3D7Interface::CreateDevice: HWND is NULL");
-      return DDERR_GENERIC;
-    }
 
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = desc.dwWidth;
@@ -136,10 +153,11 @@ namespace dxvk {
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
       hwnd,
-      D3DCREATE_HARDWARE_VERTEXPROCESSING,
+      vertexProcessing,
       &params,
       &device9
     );
+
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Interface::CreateDevice: Failed to created the nested D3D9 device");
       return hr;
@@ -154,21 +172,12 @@ namespace dxvk {
       return hr;
     }
 
-    if (rclsid == IID_IDirect3DTnLHalDevice) {
-      Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DTnLHalDevice device");
-    } else if (rclsid == IID_IDirect3DHALDevice) {
-      Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
-    } else if (rclsid == IID_IDirect3DRGBDevice) {
-      Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
-    } else {
-      Logger::warn("D3D7Interface::CreateDevice: Created an unknown device type");
-    }
-
     // Store the GUID of the created device in m_desc
     m_desc.deviceGUID = rclsid;
 
     try{
-      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, m_parent, std::move(device9), rt7);
+      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, m_parent,
+                                              std::move(device9), rt7, isRGBDevice);
       // Hold the address of the most recently created device, not a reference
       m_device = device.ptr();
       // Now that we have a valid d3d9 device pointer, we can initialize the depth stencil (if any)
@@ -190,6 +199,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     IDirect3DVertexBuffer7* vertexBuffer7 = nullptr;
+    // TODO: We don't really need a proxy buffer, and it only serves as validation at this point
     HRESULT hr = m_proxy->CreateVertexBuffer(desc, &vertexBuffer7, usage);
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Interface::CreateVertexBuffer: Failed to create proxy vertex buffer");
@@ -201,9 +211,9 @@ namespace dxvk {
       return D3DERR_INVALIDCALL;
 
     Com<d3d9::IDirect3DVertexBuffer9> buffer = nullptr;
-    DWORD Flags = ConvertUsageFlags(desc->dwCaps);
+    DWORD Flags = ConvertUsageFlags(desc->dwCaps, m_device->IsRGBDevice());
     DWORD Size  = GetFVFSize(desc->dwFVF) * desc->dwNumVertices;
-    hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Flags | D3DUSAGE_DYNAMIC, desc->dwFVF, d3d9::D3DPOOL_DEFAULT, &buffer, nullptr);
+    hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Flags, desc->dwFVF, d3d9::D3DPOOL_DEFAULT, &buffer, nullptr);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Interface::CreateVertexBuffer: Failed to create vertex buffer");
