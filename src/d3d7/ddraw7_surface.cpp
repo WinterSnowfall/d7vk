@@ -158,7 +158,7 @@ namespace dxvk {
     Logger::debug("*** DDraw7Surface::Flip: Presenting");
 
     if (unlikely(lpDDSurfaceTargetOverride != nullptr))
-      Logger::warn("DDraw7Surface::Flip: use of non-NULL lpDDSurfaceTargetOverride");
+      Logger::debug("DDraw7Surface::Flip: Use of non-NULL lpDDSurfaceTargetOverride");
 
     refreshD3D7Device();
     if (likely(m_d3d7device != nullptr)) {
@@ -793,7 +793,7 @@ namespace dxvk {
     // TODO: Copies won't ever work on compressed textures due to GPU-side compression,
     // so we'll need to come up with a way to intercept the content before it gets on the GPU
     if (unlikely(m_isDXT)) {
-      Logger::err("DDraw7Surface::UploadTextureData: Unsupported compressed texture format");
+      Logger::warn("DDraw7Surface::UploadTextureData: Unsupported compressed texture format");
       // Partial copies on compressed formats will still blow up, so return here
       return DD_OK;
     }

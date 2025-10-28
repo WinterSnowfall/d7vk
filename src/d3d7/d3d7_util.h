@@ -263,21 +263,23 @@ namespace dxvk {
     return lockFlagsD3D9;
   }
 
-  static inline DWORD ConvertUsageFlags(DWORD usageFlags) {
+  static inline DWORD ConvertUsageFlags(DWORD usageFlags, bool isRGBDevice) {
     DWORD usageFlagsD3D9 = 0;
 
     if (usageFlags & D3DVBCAPS_DONOTCLIP) {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_DONOTCLIP;
     }
-    // Technically for SWVP, but let's ignore it
-    /*if (usageFlags & D3DVBCAPS_SYSTEMMEMORY) {
-      lockFlagsD3D9 |= (DWORD)D3DUSAGE_SOFTWAREPROCESSING;
-    }*/
+    // SWVP buffers used only on pure software devices
+    if (isRGBDevice && (usageFlags & D3DVBCAPS_SYSTEMMEMORY)) {
+      usageFlagsD3D9 |= (DWORD)D3DUSAGE_SOFTWAREPROCESSING;
+    }
     if (usageFlags & D3DVBCAPS_WRITEONLY) {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_WRITEONLY;
     }
 
-    return usageFlagsD3D9;
+    // Make all buffers dynamic in general
+    // TODO: Think about any performance implications later
+    return usageFlagsD3D9 | (DWORD)D3DUSAGE_DYNAMIC;
   }
 
   static inline size_t GetFVFSize(DWORD fvf) {
@@ -323,20 +325,24 @@ namespace dxvk {
     DWORD textureCount = (fvf & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
     for (DWORD coord = 0; coord < textureCount; ++coord) {
 
-      DWORD texCoordSize = (fvf >> (coord * 2 + 16)) & 3;
+      DWORD texCoordSize = (fvf >> (coord * 2 + 16)) & 0x3;
 
       switch (texCoordSize) {
-        case D3DFVF_TEXTUREFORMAT1:
-            size += 1 * sizeof(FLOAT);
-            break;
+        // D3DFVF_TEXTUREFORMAT2 0
         case D3DFVF_TEXTUREFORMAT2:
             size += 2 * sizeof(FLOAT);
             break;
+        // D3DFVF_TEXTUREFORMAT3 1
         case D3DFVF_TEXTUREFORMAT3:
             size += 3 * sizeof(FLOAT);
             break;
+        // D3DFVF_TEXTUREFORMAT4 2
         case D3DFVF_TEXTUREFORMAT4:
             size += 4 * sizeof(FLOAT);
+            break;
+        // D3DFVF_TEXTUREFORMAT1 3
+        case D3DFVF_TEXTUREFORMAT1:
+            size += sizeof(FLOAT);
             break;
       }
     }
@@ -532,7 +538,7 @@ namespace dxvk {
     desc7.dpcLineCaps         = prim;
     desc7.dpcTriCaps          = prim;
 
-    desc7.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
+    desc7.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_32;
     desc7.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
     desc7.dwMinTextureWidth        = 0;
     desc7.dwMinTextureHeight       = 0;

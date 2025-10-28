@@ -46,7 +46,7 @@ namespace dxvk {
     }
 
   private:
-    DDraw7Interface*              m_parent;
+    DDraw7Interface*              m_parent = nullptr;
 
     Com<IDirect3D7>               m_d3d7IntfProxy;
 
