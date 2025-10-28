@@ -132,7 +132,19 @@ namespace dxvk {
     }
 
     DDraw7Surface* GetAttachedDepthStencil() const {
-      return m_depthStencil.ptr();
+      return m_depthStencil;
+    }
+
+    void ClearedAttachedDepthStencil() {
+      m_depthStencil = nullptr;
+    }
+
+    void SetParentSurface(DDraw7Surface* surface) {
+      m_parentSurf = surface;
+    }
+
+    void ClearParentSurface() {
+      m_parentSurf = nullptr;
     }
 
     HRESULT InitializeOrUploadD3D9();
@@ -260,7 +272,7 @@ namespace dxvk {
 
     // Back buffers will have depth stencil surfaces as attachments (in practice
     // I have never seen more than one depth stencil being attached at a time)
-    Com<DDraw7Surface, false>              m_depthStencil;
+    DDraw7Surface*                   m_depthStencil = nullptr;
     // These are attached surfaces, which are typically mips or other types of generated
     // surfaces, which need to exist for the entire lifecycle of their parent surface.
     // They are implemented with linked list, so for example only one mip level
