@@ -31,7 +31,8 @@ namespace dxvk {
         D3D7Interface* pParent,
         DDraw7Interface* pDD7Parent,
         Com<d3d9::IDirect3DDevice9>&& pDevice,
-        DDraw7Surface* pRT);
+        DDraw7Surface* pRT,
+        bool isRGBDevice);
 
     ~D3D7Device();
 
@@ -137,11 +138,17 @@ namespace dxvk {
       return m_rt;
     }
 
+    bool IsRGBDevice() const {
+      return m_isRGBDevice;
+    }
+
   private:
 
     void UploadIndices(void* indices, DWORD indexCount);
 
     inline bool ShouldRecord() { return m_recorder != nullptr; }
+
+    bool                          m_isRGBDevice = false;
 
     D3D7Interface*                m_parent    = nullptr;
     DDraw7Interface*              m_DD7Parent = nullptr;
