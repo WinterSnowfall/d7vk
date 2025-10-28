@@ -1,6 +1,7 @@
 #pragma once
 
 #include "d3d7_include.h"
+#include "ddraw7_gamma.h"
 
 namespace dxvk {
 
@@ -57,13 +58,18 @@ namespace dxvk {
 
       *ppvObject = nullptr;
 
-      // Used to enable surface gamma and color control
-      if (riid == __uuidof(IDirectDrawColorControl)
-       || riid == __uuidof(IDirectDrawGammaControl)) {
-        // TODO: Needed by Vampire: The Masquerade - Redemption to not crash
-        // on exit, but commented for now due to annoying gamma persistence
-        return E_NOINTERFACE;
-        //return m_proxy->QueryInterface(riid, ppvObject);
+      if (riid == __uuidof(IDirectDrawColorControl)) {
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+
+      // Wrap IDirectDrawGammaControl, to potentially ignore application set gamma ramps
+      if (riid == __uuidof(IDirectDrawGammaControl)) {
+        void* d3d7GammaProxiedVoid = nullptr;
+        // This can never reasonably fail
+        m_proxy->QueryInterface(__uuidof(IDirectDrawGammaControl), &d3d7GammaProxiedVoid);
+        Com<IDirectDrawGammaControl> d3d7GammaProxied = static_cast<IDirectDrawGammaControl*>(d3d7GammaProxiedVoid);
+        *ppvObject = ref(new DDraw7GammaControl(std::move(d3d7GammaProxied)));
+        return S_OK;
       }
 
       try {
