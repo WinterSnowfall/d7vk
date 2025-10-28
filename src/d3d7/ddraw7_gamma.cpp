@@ -31,12 +31,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7GammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData) {
-    Logger::debug("<< DDraw7GammaControl::GetGammaRamp: Proxy");
+    Logger::debug("<<< DDraw7GammaControl::GetGammaRamp: Proxy");
     return m_proxy->GetGammaRamp(dwFlags, lpRampData);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7GammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData) {
-    Logger::debug("<< DDraw7GammaControl::SetGammaRamp: Proxy");
+    Logger::debug("<<< DDraw7GammaControl::SetGammaRamp: Proxy");
     // TODO: Add a config option to enable or disable
     // application-set gamma ramps. Ignore them for now.
     //return m_proxy->GetGammaRamp(dwFlags, lpRampData);

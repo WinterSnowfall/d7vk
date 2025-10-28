@@ -30,10 +30,6 @@ namespace dxvk {
   DDraw7Surface::~DDraw7Surface() {
     m_parent->RemoveWrappedSurface(this);
 
-    // Make sure to invalidate any DS attachments on DS release
-    if (unlikely(m_parentSurf != nullptr && m_parentSurf->GetAttachedDepthStencil() == this))
-      m_parentSurf->ClearedAttachedDepthStencil();
-
     Logger::debug(str::format("DDraw7Surface: Surface nr. [[", m_surfCount, "]] bites the dust"));
 
     if (likely(m_isChildObject))
@@ -214,7 +210,8 @@ namespace dxvk {
       surface->GetSurfaceDesc(&desc);
       Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(std::move(surface), m_parent, this, desc, false);
       m_attachedSurfaces.push_back(ddraw7Surface.ptr());
-      *lplpDDAttachedSurface = ddraw7Surface.ref();
+      // Do NOT ref here since we're managing the attached object lifecycle
+      *lplpDDAttachedSurface = ddraw7Surface.ptr();
     // Can potentially happen with manually attached surfaces
     } else {
       Logger::info("DDraw7Surface::GetAttachedSurface: Got an existing wrapped surface");
@@ -793,6 +790,14 @@ namespace dxvk {
       return DD_OK;
     }
 
+    // TODO: Copies won't ever work on compressed textures due to GPU-side compression,
+    // so we'll need to come up with a way to intercept the content before it gets on the GPU
+    if (unlikely(m_isDXT)) {
+      Logger::err("DDraw7Surface::UploadTextureData: Unsupported compressed texture format");
+      // Partial copies on compressed formats will still blow up, so return here
+      return DD_OK;
+    }
+
     if (IsDepthStencil()) {
       Logger::debug("DDraw7Surface::UploadTextureData: Skipping upload of depth stencil");
     // TODO: Handle uploading all cubemap faces
@@ -801,14 +806,7 @@ namespace dxvk {
     // Blit all the mips for textures
     } else if (IsTexture()) {
       Logger::debug(str::format("DDraw7Surface::UploadTextureData: Declared mips ", m_desc.dwMipMapCount));
-
       uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
-
-      // TODO: This can't ever work on compressed textures due to GPU-side compression,
-      // so we need to come up with a way to intercept the content before it gets on the GPU
-      if (unlikely(m_isDXT))
-        Logger::err("DDraw7Surface::UploadTextureData: Unsupported compressed texture format");
-
       BlitToD3D9Texture(m_texture.ptr(), m_proxy.ptr(), mipLevels);
     // Blit surfaces directly
     } else if (m_d3d9 != nullptr) {
