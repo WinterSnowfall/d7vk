@@ -8,8 +8,8 @@ namespace dxvk {
           D3D7Device*                       pDevice,
           D3D7StateBlockType                Type,
           Com<d3d9::IDirect3DStateBlock9>&& pStateBlock)
-    : m_device(pDevice)
-    , m_stateBlock(std::move(pStateBlock)) {
+    : m_device     ( pDevice )
+    , m_stateBlock ( std::move(pStateBlock) ) {
     if (Type == D3D7StateBlockType::All) {
       m_captures.flags.set(D3D7CapturedStateFlag::Textures);
       m_captures.textures.setAll();

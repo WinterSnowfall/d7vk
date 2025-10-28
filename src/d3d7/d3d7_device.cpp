@@ -15,8 +15,10 @@ namespace dxvk {
       D3D7Interface* pParent,
       DDraw7Interface* pDD7Parent,
       Com<d3d9::IDirect3DDevice9>&& pDevice,
-      DDraw7Surface* pSurface)
+      DDraw7Surface* pSurface,
+      bool isRGBDevice)
     : DDrawWrappedObject<d3d9::IDirect3DDevice9, IDirect3DDevice7>(std::move(pDevice), std::move(d3d7DeviceProxy))
+    , m_isRGBDevice ( isRGBDevice )
     , m_parent( pParent )
     , m_DD7Parent ( pDD7Parent )
     // Always enforce multi-threaded protection on a D3D7 device
