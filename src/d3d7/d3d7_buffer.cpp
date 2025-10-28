@@ -88,14 +88,24 @@ namespace dxvk {
     D3D7Device* actualDevice = vb->GetDevice();
 
     if(unlikely(actualDevice == nullptr || device != actualDevice)) {
-      Logger::err(">>> D3D7VertexBuffer::ProcessVertices: Incompatible or null device");
+      Logger::err("D3D7VertexBuffer::ProcessVertices: Incompatible or null device");
       return DDERR_GENERIC;
     }
 
     device->LockDevice();
 
-    device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, m_stride);
-    return device->GetD3D9()->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_d3d9.ptr(), nullptr, dwFlags);
+    HRESULT hr = device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D7VertexBuffer::ProcessVertices: Failed to set d3d9 stream source");
+      return hr;
+    }
+
+    hr = device->GetD3D9()->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_d3d9.ptr(), nullptr, dwFlags);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D7VertexBuffer::ProcessVertices: Failed call to d3d9 ProcessVertices");
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::ProcessVerticesStrided(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags) {
