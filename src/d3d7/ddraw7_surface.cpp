@@ -555,8 +555,7 @@ namespace dxvk {
     }
 
     d3d9::D3DFORMAT format = ConvertFormat(m_desc.ddpfPixelFormat);
-    // Textures should be fine in MANAGED as a rule of thumb
-    d3d9::D3DPOOL   pool   = d3d9::D3DPOOL_MANAGED;
+    d3d9::D3DPOOL   pool   = d3d9::D3DPOOL_DEFAULT;
     DWORD           usage  = 0;
 
     // In some cases we get passed offscreen plain surfaces with no data whatsoever in
@@ -582,21 +581,35 @@ namespace dxvk {
       Logger::info(str::format("DDraw7Surface::IntializeD3D9: Offscreen plain surface format set to ", format));
     }
 
+    // General surface/texture pool placement
+    if (m_desc.ddsCaps.dwCaps & DDSCAPS_LOCALVIDMEM)
+      pool = d3d9::D3DPOOL_DEFAULT;
+    else if (m_desc.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
+      pool = d3d9::D3DPOOL_SYSTEMMEM;
+    // There's no explicit non-local video memory placement
+    // per se, but D3DPOOL_MANAGED is close enough
+    else if ((m_desc.ddsCaps.dwCaps & DDSCAPS_NONLOCALVIDMEM) || (m_desc.ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE))
+      pool = d3d9::D3DPOOL_MANAGED;
+
     // Place all possible render targets in DEFAULT,
     // as well as any cube maps and overlays
     if (IsRenderTarget() || IsCubeMap() || IsOverlay()) {
       pool  = d3d9::D3DPOOL_DEFAULT;
       usage = D3DUSAGE_RENDERTARGET;
     }
+
     if (m_isDXT) {
       pool  = d3d9::D3DPOOL_DEFAULT;
-      // This is needed for us to be able to lock the texture
-      usage = D3DUSAGE_DYNAMIC;
     }
-    // Not sure if this is all that good for perf,
-    // but let's respect what the application asks for
-    if (pool == d3d9::D3DPOOL_MANAGED && (m_desc.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY))
-      pool = d3d9::D3DPOOL_SYSTEMMEM;
+
+    // General usage flags
+    if (IsTexture() && pool == d3d9::D3DPOOL_DEFAULT)
+      usage = D3DUSAGE_DYNAMIC;
+
+    const char* poolPlacement = pool == d3d9::D3DPOOL_DEFAULT ? "D3DPOOL_DEFAULT" :
+                                pool == d3d9::D3DPOOL_SYSTEMMEM ? "D3DPOOL_SYSTEMMEM" : "D3DPOOL_MANAGED";
+
+    Logger::info(str::format("DDraw7Surface::IntializeD3D9: Placing in: ", poolPlacement));
 
     Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Declared mips ", m_desc.dwMipMapCount));
 
@@ -790,14 +803,6 @@ namespace dxvk {
       return DD_OK;
     }
 
-    // TODO: Copies won't ever work on compressed textures due to GPU-side compression,
-    // so we'll need to come up with a way to intercept the content before it gets on the GPU
-    if (unlikely(m_isDXT)) {
-      Logger::warn("DDraw7Surface::UploadTextureData: Unsupported compressed texture format");
-      // Partial copies on compressed formats will still blow up, so return here
-      return DD_OK;
-    }
-
     if (IsDepthStencil()) {
       Logger::debug("DDraw7Surface::UploadTextureData: Skipping upload of depth stencil");
     // TODO: Handle uploading all cubemap faces
@@ -807,10 +812,10 @@ namespace dxvk {
     } else if (IsTexture()) {
       Logger::debug(str::format("DDraw7Surface::UploadTextureData: Declared mips ", m_desc.dwMipMapCount));
       uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
-      BlitToD3D9Texture(m_texture.ptr(), m_proxy.ptr(), mipLevels);
+      BlitToD3D9Texture(m_texture.ptr(), m_proxy.ptr(), mipLevels, m_isDXT);
     // Blit surfaces directly
     } else if (m_d3d9 != nullptr) {
-      BlitToD3D9Surface(m_d3d9.ptr(), m_proxy.ptr());
+      BlitToD3D9Surface(m_d3d9.ptr(), m_proxy.ptr(), m_isDXT);
     }
 
     return DD_OK;
