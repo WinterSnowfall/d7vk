@@ -171,9 +171,11 @@ namespace dxvk {
   inline void D3D7VertexBuffer::InitializeIndexBuffer() {
     D3D7Device* d3d7Device = GetDevice();
 
+    DWORD flags = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
+
     if (d3d7Device != nullptr) {
       Logger::info(str::format("D3D7VertexBuffer::InitializeIndexBuffer: Creating index buffer, size: ", m_size));
-      HRESULT hr = d3d7Device->GetD3D9()->CreateIndexBuffer(m_size, D3DUSAGE_DYNAMIC, d3d9::D3DFMT_INDEX16,
+      HRESULT hr = d3d7Device->GetD3D9()->CreateIndexBuffer(m_size, flags, d3d9::D3DFMT_INDEX16,
                                                             d3d9::D3DPOOL_DEFAULT, &m_ib9, nullptr);
       if (FAILED(hr)) {
         Logger::err("D3D7VertexBuffer::InitializeIndexBuffer: Failed to create attached index buffer");
