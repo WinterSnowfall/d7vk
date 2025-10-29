@@ -49,7 +49,7 @@ namespace dxvk {
     }
 
     if (unlikely(!(m_parent->IsWrappedSurface(lpDDSAttachedSurface)))) {
-      Logger::warn("DDraw7Surface::AddAttachedSurface: Attaching non-wrapped surface");
+      Logger::warn("DDraw7Surface::AddAttachedSurface: Attaching unwrapped surface");
       return m_proxy->AddAttachedSurface(lpDDSAttachedSurface);
     }
 
@@ -132,7 +132,7 @@ namespace dxvk {
     // If lpDDSAttachedSurface is NULL, then all surfaces are detached.
     if (unlikely(!(m_parent->IsWrappedSurface(lpDDSAttachedSurface)))) {
       if (unlikely(lpDDSAttachedSurface != nullptr))
-        Logger::warn("DDraw7Surface::DeleteAttachedSurface: Deleting non-wrapped surface");
+        Logger::warn("DDraw7Surface::DeleteAttachedSurface: Deleting unwrapped surface");
       return m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
     }
 

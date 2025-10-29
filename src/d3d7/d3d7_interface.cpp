@@ -121,7 +121,7 @@ namespace dxvk {
     }
 
     if (unlikely(!(m_parent->IsWrappedSurface(surface)))) {
-      Logger::err("D3D7Interface::CreateDevice: Non wrapped surface passed as RT");
+      Logger::err("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
       return DDERR_GENERIC;
     }
 
@@ -231,41 +231,23 @@ namespace dxvk {
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // There are just 3 supported depth stencil formats to worry about,
-    // so let's just enumerate them liniarly, for better clarity
-
-    // Unsupported in dxvk and native drivers
-    /*DDPIXELFORMAT depthFormat = GetZBufferFormat(d3d9::D3DFMT_D15S1);
-    HRESULT hr = cb(&depthFormat, ctx);
-    if (hr == D3DENUMRET_CANCEL)
-      return D3D_OK;*/
+    // There are just 3 supported depth stencil formats to worry about
+    // in d3d9, so let's just enumerate them liniarly, for better clarity
 
     DDPIXELFORMAT depthFormat = GetZBufferFormat(d3d9::D3DFMT_D16);
     HRESULT hr = cb(&depthFormat, ctx);
-    if (hr == D3DENUMRET_CANCEL)
+    if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
-
-    // Unsupported in dxvk and native drivers
-    /*depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X4S4);
-    hr = cb(&depthFormat, ctx);
-    if (hr == D3DENUMRET_CANCEL)
-      return D3D_OK;*/
 
     depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
     hr = cb(&depthFormat, ctx);
-    if (hr == D3DENUMRET_CANCEL)
+    if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
     depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24S8);
     hr = cb(&depthFormat, ctx);
-    if (hr == D3DENUMRET_CANCEL)
+    if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
-
-    // Unsupported in dxvk and native drivers
-    /*DDPIXELFORMAT depthFormat = GetZBufferFormat(d3d9::D3DFMT_D32);
-    hr = cb(&depthFormat, ctx);
-    if (hr == D3DENUMRET_CANCEL)
-      return D3D_OK;*/
 
     return D3D_OK;
   }
