@@ -45,11 +45,6 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::Lock(DWORD flags, void **data, DWORD *data_size) {
     Logger::debug(">>> D3D7VertexBuffer::Lock");
 
-    D3D7Device* d3d7Device = GetDevice();
-
-    if (likely(d3d7Device != nullptr))
-      d3d7Device->LockDevice();
-
     if (data_size != nullptr)
       *data_size = m_size;
 
@@ -63,11 +58,6 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::Unlock() {
     Logger::debug(">>> D3D7VertexBuffer::Unlock");
-
-    D3D7Device* d3d7Device = GetDevice();
-
-    if (likely(d3d7Device != nullptr))
-      d3d7Device->LockDevice();
 
     HRESULT hr = m_d3d9->Unlock();
 
@@ -92,7 +82,8 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
-    device->LockDevice();
+    if (likely(device != nullptr))
+      device->LockDevice();
 
     HRESULT hr = device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
     if (unlikely(FAILED(hr))) {
@@ -122,7 +113,8 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
-    //device->LockDevice();
+    //if (likely(device != nullptr))
+      //device->LockDevice();
 
     return D3D_OK;
   }
@@ -133,6 +125,11 @@ namespace dxvk {
     if(unlikely(lpD3DDevice == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    //D3D7Device* device = static_cast<D3D7Device*>(lpD3DDevice);
+    //if (likely(device != nullptr))
+      //device->LockDevice();
+
+    //TODO: Sets the D3DVBCAPS_OPTIMIZED flag in dwCaps and the buffer can no longer be locked
     return D3D_OK;
   };
 
@@ -169,14 +166,14 @@ namespace dxvk {
   }
 
   inline void D3D7VertexBuffer::InitializeIndexBuffer() {
-    D3D7Device* d3d7Device = GetDevice();
+    D3D7Device* device = GetDevice();
 
-    DWORD flags = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
+    static constexpr DWORD usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 
-    if (d3d7Device != nullptr) {
+    if (device != nullptr) {
       Logger::info(str::format("D3D7VertexBuffer::InitializeIndexBuffer: Creating index buffer, size: ", m_size));
-      HRESULT hr = d3d7Device->GetD3D9()->CreateIndexBuffer(m_size, flags, d3d9::D3DFMT_INDEX16,
-                                                            d3d9::D3DPOOL_DEFAULT, &m_ib9, nullptr);
+      HRESULT hr = device->GetD3D9()->CreateIndexBuffer(m_size, usage, d3d9::D3DFMT_INDEX16,
+                                                        d3d9::D3DPOOL_DEFAULT, &m_ib9, nullptr);
       if (FAILED(hr)) {
         Logger::err("D3D7VertexBuffer::InitializeIndexBuffer: Failed to create attached index buffer");
       }
