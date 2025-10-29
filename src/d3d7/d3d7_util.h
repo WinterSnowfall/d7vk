@@ -277,9 +277,7 @@ namespace dxvk {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_WRITEONLY;
     }
 
-    // Make all buffers dynamic in general
-    // TODO: Think about any performance implications later
-    return usageFlagsD3D9 | (DWORD)D3DUSAGE_DYNAMIC;
+    return usageFlagsD3D9;
   }
 
   static inline size_t GetFVFSize(DWORD fvf) {
@@ -628,7 +626,11 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  inline void BlitToD3D9Texture(d3d9::IDirect3DTexture9* texture9, IDirectDrawSurface7* surface7, uint32_t mipLevels) {
+  inline void BlitToD3D9Texture(
+      d3d9::IDirect3DTexture9* texture9,
+      IDirectDrawSurface7* surface7,
+      uint32_t mipLevels,
+      bool isDXT) {
     IDirectDrawSurface7* mipMap = surface7;
 
     Logger::debug(str::format("BlitToD3D9Texture: Blitting ", mipLevels, " mip map(s)"));
@@ -641,7 +643,7 @@ namespace dxvk {
       }
 
       d3d9::D3DLOCKED_RECT rect9mip;
-      HRESULT hr9mip = texture9->LockRect(i, &rect9mip, 0, D3DLOCK_DISCARD);
+      HRESULT hr9mip = texture9->LockRect(i, &rect9mip, 0, 0);
       if (likely(SUCCEEDED(hr9mip))) {
         DDSURFACEDESC2 descMip;
         descMip.dwSize = sizeof(DDSURFACEDESC2);
@@ -651,7 +653,12 @@ namespace dxvk {
           Logger::debug(str::format("descMip.dwHeight: ", descMip.dwHeight));
           Logger::debug(str::format("descMip.lPitch:   ", descMip.lPitch));
           Logger::debug(str::format("rect9mip.Pitch:   ", rect9mip.Pitch));
-          if (unlikely(descMip.lPitch != rect9mip.Pitch)) {
+          // The lock pitch of a DXT surface represents its entire size, apparently
+          if (isDXT) {
+            size_t size = static_cast<size_t>(descMip.lPitch);
+            memcpy(rect9mip.pBits, descMip.lpSurface, size);
+            Logger::debug(str::format("BlitToD3D9Texture: Done blitting DXT mip ", i));
+          } else if (unlikely(!isDXT && descMip.lPitch != rect9mip.Pitch)) {
             Logger::warn(str::format("BlitToD3D9Texture: Incompatible mip map ", i, " pitch"));
 
             uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9mip.pBits);
@@ -661,7 +668,7 @@ namespace dxvk {
             for (uint32_t h = 0; h < descMip.dwHeight; h++)
               memcpy(&data9[h * rect9mip.Pitch], &data7[h * descMip.lPitch], copyPitch);
 
-            Logger::debug(str::format("BlitToD3D9Texture: Done row by row blitting mip ", i));
+            Logger::debug(str::format("BlitToD3D9Texture: Done blitting mip ", i, " row by row"));
           } else {
             size_t size = static_cast<size_t>(descMip.dwHeight * descMip.lPitch);
             memcpy(rect9mip.pBits, descMip.lpSurface, size);
@@ -675,6 +682,7 @@ namespace dxvk {
 
         IDirectDrawSurface7* parentSurface = mipMap;
         mipMap = nullptr;
+        // TODO: This does not work reliably on UE1, need to explore why
         parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
       } else {
         Logger::warn(str::format("BlitToD3D9Texture: Failed to lock d3d9 mip ", i));
@@ -682,9 +690,12 @@ namespace dxvk {
     }
   }
 
-  inline void BlitToD3D9Surface(d3d9::IDirect3DSurface9* surface9, IDirectDrawSurface7* surface7) {
+  inline void BlitToD3D9Surface(
+      d3d9::IDirect3DSurface9* surface9,
+      IDirectDrawSurface7* surface7,
+      bool isDXT) {
     d3d9::D3DLOCKED_RECT rect9;
-    HRESULT hr9 = surface9->LockRect(&rect9, 0, D3DLOCK_DISCARD);
+    HRESULT hr9 = surface9->LockRect(&rect9, 0, 0);
     if (SUCCEEDED(hr9)) {
       DDSURFACEDESC2 desc;
       desc.dwSize = sizeof(DDSURFACEDESC2);
@@ -694,7 +705,12 @@ namespace dxvk {
         Logger::debug(str::format("desc.dwHeight: ", desc.dwHeight));
         Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));
         Logger::debug(str::format("rect.Pitch:    ", rect9.Pitch));
-        if (unlikely(desc.lPitch != rect9.Pitch)) {
+        // The lock pitch of a DXT surface represents its entire size, apparently
+        if (isDXT) {
+          size_t size = static_cast<size_t>(desc.lPitch);
+          memcpy(rect9.pBits, desc.lpSurface, size);
+          Logger::debug("BlitToD3D9Texture: Done blitting DXT surface");
+        } else if (unlikely(desc.lPitch != rect9.Pitch)) {
           Logger::warn("BlitToD3D9Surface: Incompatible surface pitch");
 
           uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9.pBits);
@@ -704,11 +720,11 @@ namespace dxvk {
           for (uint32_t h = 0; h < desc.dwHeight; h++)
             memcpy(&data9[h * rect9.Pitch], &data7[h * desc.lPitch], copyPitch);
 
-          Logger::debug(str::format("BlitToD3D9Surface: Row by row update complete"));
+          Logger::debug("BlitToD3D9Surface: Done blitting surface row by row");
         } else {
           size_t size = static_cast<size_t>(desc.dwHeight * desc.lPitch);
           memcpy(rect9.pBits, desc.lpSurface, size);
-          Logger::debug("BlitToD3D9Surface: Upload complete");
+          Logger::debug("BlitToD3D9Surface: Done blitting surface");
         }
         surface7->Unlock(0);
       } else {
