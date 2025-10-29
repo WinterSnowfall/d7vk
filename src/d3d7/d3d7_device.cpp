@@ -68,8 +68,97 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx) {
-    Logger::debug("<<< D3D7Device::EnumTextureFormats: Proxy");
-    return m_proxy->EnumTextureFormats(cb, ctx);
+    D3D7DeviceLock lock = LockDevice();
+
+    if (unlikely(cb == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    // Note: The list of formats exposed in d3d7 is restricted to the below
+
+    DDPIXELFORMAT textureFormat = GetTextureFormat(d3d9::D3DFMT_X1R5G5B5);
+    HRESULT hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_A1R5G5B5);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    // D3DFMT_X4R4G4B4 is not supported by d3d7
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_A4R4G4B4);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_R5G6B5);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_X8R8G8B8);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_A8R8G8B8);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    // Not supported in d3d9
+    //textureFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
+    //hr = cb(&textureFormat, ctx);
+    //if (unlikely(hr == D3DENUMRET_CANCEL))
+      //return D3D_OK;
+
+    // Not supported in d3d9, but some games may use it
+    //textureFormat = GetTextureFormat(d3d9::D3DFMT_P8);
+    //hr = cb(&textureFormat, ctx);
+    //if (unlikely(hr == D3DENUMRET_CANCEL))
+      //return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT1);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT2);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT3);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT4);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT5);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_V8U8);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_L6V5U5);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_X8L8V8U8);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::BeginScene() {
@@ -105,54 +194,55 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    if (likely(m_DD7Parent->IsWrappedSurface(surface))) {
-      DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
+    if (unlikely(!(m_DD7Parent->IsWrappedSurface(surface)))) {
+      Logger::err("D3D7Device::SetRenderTarget: Received an unwrapped RT");
+      return DDERR_GENERIC;
+    }
 
-      // Will always be needed at this point
-      HRESULT hr = rt7->InitializeOrUploadD3D9();
+    DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
 
-      if (unlikely(FAILED(hr))) {
-        Logger::err("D3D7Device::SetRenderTarget: Failed to initialize/upload d3d9 RT");
-        return hr;
-      }
+    // Will always be needed at this point
+    HRESULT hr = rt7->InitializeOrUploadD3D9();
 
-      if (rt7 == m_rtOrig) {
-        hr = m_d3d9->SetRenderTarget(0, m_rt9.ptr());
-      } else {
-        hr = m_d3d9->SetRenderTarget(0, m_rt->GetSurface());
-      }
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D7Device::SetRenderTarget: Failed to initialize/upload d3d9 RT");
+      return hr;
+    }
 
-      if (likely(SUCCEEDED(hr))) {
-        Logger::debug("D3D7Device::SetRenderTarget: Set a new RT");
-        m_rt = rt7;
+    if (rt7 == m_rtOrig) {
+      hr = m_d3d9->SetRenderTarget(0, m_rt9.ptr());
+    } else {
+      hr = m_d3d9->SetRenderTarget(0, m_rt->GetSurface());
+    }
 
-        DDraw7Surface* ds7 = m_rt->GetAttachedDepthStencil();
+    if (likely(SUCCEEDED(hr))) {
+      Logger::debug("D3D7Device::SetRenderTarget: Set a new RT");
+      m_rt = rt7;
 
-        if (likely(ds7 != nullptr)) {
-          Logger::debug("D3D7Device::SetRenderTarget: Found an attached DS");
+      DDraw7Surface* ds7 = m_rt->GetAttachedDepthStencil();
 
-          HRESULT hrDS = ds7->InitializeOrUploadD3D9();
-          if (unlikely(FAILED(hr))) {
-            Logger::err("D3D7Device::SetRenderTarget: Failed to initialize/upload d3d9 DS");
-            return hr;
-          }
+      if (likely(ds7 != nullptr)) {
+        Logger::debug("D3D7Device::SetRenderTarget: Found an attached DS");
 
-          m_ds9 = ds7->GetD3D9();
-          hrDS = m_d3d9->SetDepthStencilSurface(m_ds9.ptr());
-          if (unlikely(FAILED(hrDS))) {
-            Logger::err("D3D7Device::SetRenderTarget: Failed to set DS");
-            return hrDS;
-          }
-          Logger::debug("D3D7Device::SetRenderTarget: Set a new DS");
-        } else {
-          Logger::info("D3D7Device::SetRenderTarget: RT has no depth stencil attached");
+        HRESULT hrDS = ds7->InitializeOrUploadD3D9();
+        if (unlikely(FAILED(hr))) {
+          Logger::err("D3D7Device::SetRenderTarget: Failed to initialize/upload d3d9 DS");
+          return hr;
         }
+
+        m_ds9 = ds7->GetD3D9();
+        hrDS = m_d3d9->SetDepthStencilSurface(m_ds9.ptr());
+        if (unlikely(FAILED(hrDS))) {
+          Logger::err("D3D7Device::SetRenderTarget: Failed to set DS");
+          return hrDS;
+        }
+        Logger::debug("D3D7Device::SetRenderTarget: Set a new DS");
       } else {
-        Logger::err("D3D7Device::SetRenderTarget: Failed to set RT");
-        return hr;
+        Logger::info("D3D7Device::SetRenderTarget: RT has no depth stencil attached");
       }
     } else {
-      Logger::warn("D3D7Device::SetRenderTarget: Received an unwrapped RT");
+      Logger::err("D3D7Device::SetRenderTarget: Failed to set RT");
+      return hr;
     }
 
     return D3D_OK;
@@ -569,17 +659,26 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::PreLoad(IDirectDrawSurface7 *surface) {
-    Logger::debug("<<< D3D7Device::PreLoad: Proxy");
+    D3D7DeviceLock lock = LockDevice();
 
-    if (likely(m_DD7Parent->IsWrappedSurface(surface))) {
-      DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
-      // This won't return anything
-      surface7->GetSurface()->PreLoad();
-      return D3D_OK;
-    } else {
-      Logger::warn("D3D7Device::PreLoad: Pre-loading a non-wrapped surface");
-      return m_proxy->PreLoad(surface);
+    Logger::debug(">>> D3D7Device::PreLoad");
+
+    if (unlikely(!(m_DD7Parent->IsWrappedSurface(surface)))) {
+      Logger::err("D3D7Device::PreLoad: Received an unwrapped surface");
+      return DDERR_GENERIC;
     }
+
+    DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
+    // This won't return anything
+    surface7->GetSurface()->PreLoad();
+
+    HRESULT hr = m_proxy->PreLoad(surface7->GetProxied());
+    if (unlikely(FAILED(hr))) {
+      Logger::warn("D3D7Device::PreLoad: Failed to preload proxied surface");
+      return hr;
+    }
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitive(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags) {
@@ -676,12 +775,18 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitiveStrided(D3DPRIMITIVETYPE primitive_type, DWORD fvf, D3DDRAWPRIMITIVESTRIDEDDATA *pStridedData, DWORD stridedDataCount, DWORD flags) {
+    D3D7DeviceLock lock = LockDevice();
+
     Logger::warn("!!! D3D7Device::DrawPrimitiveStrided: Stub");
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD  dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD  dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
+    D3D7DeviceLock lock = LockDevice();
+
     Logger::warn("!!! D3D7Device::DrawIndexedPrimitiveStrided: Stub");
+
     return D3D_OK;
   }
 
@@ -764,7 +869,10 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::ComputeSphereVisibility(D3DVECTOR *centers, D3DVALUE *radii, DWORD sphere_count, DWORD sphereCount, DWORD *visibility) {
+    D3D7DeviceLock lock = LockDevice();
+
     Logger::warn("!!! D3D7Device::ComputeSphereVisibility: Stub");
+
     return D3D_OK;
   }
 
@@ -820,33 +928,34 @@ namespace dxvk {
     }
 
     // Binding texture stages
-    if (likely(m_DD7Parent->IsWrappedSurface(surface))) {
-      Logger::debug("D3D7Device::SetTexture: Binding d3d9 texture");
-
-      DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
-
-      // We always need to upload the textures, even if the slot
-      // has not changed, due to potential mip map updates
-      hr = surface7->InitializeOrUploadD3D9();
-
-      if (unlikely(FAILED(hr))) {
-        Logger::err("D3D7Device::SetTexture: Failed to initialize/upload d3d9 texture");
-        return hr;
-      }
-
-      if (unlikely(m_textures[stage] == surface7))
-        return D3D_OK;
-
-      hr = m_d3d9->SetTexture(stage, surface7->GetTexture());
-      if (unlikely(FAILED(hr))) {
-        Logger::warn("D3D7Device::SetTexture: Failed to bind d3d9 texture");
-        return hr;
-      }
-
-      m_textures[stage] = surface7;
-    } else {
-      Logger::warn("D3D7Device::SetTexture: Received a non-wrapped texture");
+    if (unlikely(!(m_DD7Parent->IsWrappedSurface(surface)))) {
+      Logger::err("D3D7Device::SetTexture: Received an unwrapped texture");
+      return DDERR_GENERIC;
     }
+
+    Logger::debug("D3D7Device::SetTexture: Binding d3d9 texture");
+
+    DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
+
+    // We always need to upload the textures, even if the slot
+    // has not changed, due to potential mip map updates
+    hr = surface7->InitializeOrUploadD3D9();
+
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D7Device::SetTexture: Failed to initialize/upload d3d9 texture");
+      return hr;
+    }
+
+    if (unlikely(m_textures[stage] == surface7))
+      return D3D_OK;
+
+    hr = m_d3d9->SetTexture(stage, surface7->GetTexture());
+    if (unlikely(FAILED(hr))) {
+      Logger::warn("D3D7Device::SetTexture: Failed to bind d3d9 texture");
+      return hr;
+    }
+
+    m_textures[stage] = surface7;
 
     return D3D_OK;
   }
@@ -886,11 +995,16 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::ValidateDevice(LPDWORD lpdwPasses) {
+    D3D7DeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D7Device::ValidateDevice");
+
     return m_d3d9->ValidateDevice(lpdwPasses);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::Load(IDirectDrawSurface7 *dst_surface, POINT *dst_point, IDirectDrawSurface7 *src_surface, RECT *src_rect, DWORD flags) {
+    D3D7DeviceLock lock = LockDevice();
+
     Logger::debug("<<< D3D7Device::Load: Proxy");
 
     if (dst_surface == nullptr || src_surface == nullptr) {
@@ -905,7 +1019,7 @@ namespace dxvk {
       DDraw7Surface* ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
       loadSource = ddraw7SurfaceSrc->GetProxied();
     } else {
-      Logger::debug("D3D7Device::Load: Non-wrapped surface source");
+      Logger::warn("D3D7Device::Load: Unwrapped surface source");
       loadSource = src_surface;
     }
 
@@ -913,7 +1027,7 @@ namespace dxvk {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
       loadDestination = ddraw7SurfaceDst->GetProxied();
     } else {
-      Logger::debug("D3D7Device::Load: Non-wrapped surface destination");
+      Logger::warn("D3D7Device::Load: Unwrapped surface destination");
       loadDestination = dst_surface;
     }
 
@@ -936,28 +1050,43 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::LightEnable(DWORD dwLightIndex, BOOL bEnable) {
+    D3D7DeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D7Device::LightEnable");
+
     return m_d3d9->LightEnable(dwLightIndex, bEnable);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetLightEnable(DWORD dwLightIndex, BOOL *pbEnable) {
+    D3D7DeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D7Device::GetLightEnable");
+
     return m_d3d9->GetLightEnable(dwLightIndex, pbEnable);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetClipPlane(DWORD dwIndex, D3DVALUE *pPlaneEquation) {
+    D3D7DeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D7Device::SetClipPlane");
+
     return m_d3d9->SetClipPlane(dwIndex, pPlaneEquation);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetClipPlane(DWORD dwIndex, D3DVALUE *pPlaneEquation) {
+    D3D7DeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D7Device::GetClipPlane");
+
     return m_d3d9->GetClipPlane(dwIndex, pPlaneEquation);
   }
 
   // Docs state: "This method returns S_FALSE on retail builds of DirectX."
   HRESULT STDMETHODCALLTYPE D3D7Device::GetInfo(DWORD info_id, void *info, DWORD info_size) {
+    D3D7DeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D7Device::GetInfo");
+
     return S_FALSE;
   }
 
