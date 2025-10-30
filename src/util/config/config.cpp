@@ -1354,6 +1354,21 @@ namespace dxvk {
     { R"(\\Smash up Derby\\cars\.exe$)", {{
       { "d3d9.allowDirectBufferMapping",   "False" },
     }} },
+
+    /**********************************************/
+    /* D3D7 GAMES                                 */
+    /**********************************************/
+
+    /* 1NSANE - Invalid buffer (over)writes and   *
+     * artifacting with direct buffer mapping     */
+    { R"(\\Insane\\Game\.exe$)", {{
+      { "d3d9.allowDirectBufferMapping",   "False" },
+    }} },
+    /* Praetorians - Bad case of ProcessVertices  */
+    { R"(\\Praetorians\.exe$)", {{
+      { "d3d9.allowDirectBufferMapping",   "False" },
+    }} },
+
   };
 
 
