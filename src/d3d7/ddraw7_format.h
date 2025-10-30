@@ -14,16 +14,18 @@ namespace dxvk {
     return d3d9::D3DCUBEMAP_FACE_POSITIVE_X;
   }
 
-  // TODO: Make this static and comment the loggers once everything is sorted (probably never)
   inline d3d9::D3DFORMAT ConvertFormat(DDPIXELFORMAT& fmt) {
     if (fmt.dwFlags & DDPF_RGB) {
-      Logger::info(str::format("ConvertFormat: fmt.dwRGBBitCount:     ", fmt.dwRGBBitCount));
-      Logger::info(str::format("ConvertFormat: fmt.dwRGBAlphaBitMask: ", fmt.dwRGBAlphaBitMask));
-      Logger::info(str::format("ConvertFormat: fmt.dwRBitMask:        ", fmt.dwRBitMask));
-      Logger::info(str::format("ConvertFormat: fmt.dwGBitMask:        ", fmt.dwGBitMask));
-      Logger::info(str::format("ConvertFormat: fmt.dwBBitMask:        ", fmt.dwBBitMask));
+      Logger::debug(str::format("ConvertFormat: fmt.dwRGBBitCount:     ", fmt.dwRGBBitCount));
+      Logger::debug(str::format("ConvertFormat: fmt.dwRGBAlphaBitMask: ", fmt.dwRGBAlphaBitMask));
+      Logger::debug(str::format("ConvertFormat: fmt.dwRBitMask:        ", fmt.dwRBitMask));
+      Logger::debug(str::format("ConvertFormat: fmt.dwGBitMask:        ", fmt.dwGBitMask));
+      Logger::debug(str::format("ConvertFormat: fmt.dwBBitMask:        ", fmt.dwBBitMask));
 
       switch (fmt.dwRGBBitCount) {
+        case 8:
+          // R: 1110 0000
+          return (fmt.dwFlags & DDPF_PALETTEINDEXED8) ? d3d9::D3DFMT_P8 :d3d9::D3DFMT_R3G3B2;
         case 16: {
           switch (fmt.dwRBitMask) {
             case (0xF << 8):
@@ -52,9 +54,9 @@ namespace dxvk {
 
     // TODO: Check if these are actually correct and work
     } else if ((fmt.dwFlags & DDPF_ZBUFFER)) {
-      Logger::info(str::format("ConvertFormat: fmt.dwZBufferBitDepth: ", fmt.dwZBufferBitDepth));
-      Logger::info(str::format("ConvertFormat: fmt.dwZBitMask:        ",        fmt.dwZBitMask));
-      Logger::info(str::format("ConvertFormat: fmt.dwStencilBitMask:  ",  fmt.dwStencilBitMask));
+      Logger::debug(str::format("ConvertFormat: fmt.dwZBufferBitDepth: ", fmt.dwZBufferBitDepth));
+      Logger::debug(str::format("ConvertFormat: fmt.dwZBitMask:        ",        fmt.dwZBitMask));
+      Logger::debug(str::format("ConvertFormat: fmt.dwStencilBitMask:  ",  fmt.dwStencilBitMask));
 
       switch (fmt.dwZBufferBitDepth) {
         case 16:
@@ -80,9 +82,9 @@ namespace dxvk {
       return d3d9::D3DFMT_UNKNOWN;
 
     } else if ((fmt.dwFlags & DDPF_LUMINANCE)) {
-      Logger::info(str::format("ConvertFormat: fmt.dwLuminanceBitCount:     ", fmt.dwLuminanceBitCount));
-      Logger::info(str::format("ConvertFormat: fmt.dwLuminanceAlphaBitMask: ", fmt.dwLuminanceAlphaBitMask));
-      Logger::info(str::format("ConvertFormat: fmt.dwLuminanceBitMask:      ", fmt.dwLuminanceBitMask));
+      Logger::debug(str::format("ConvertFormat: fmt.dwLuminanceBitCount:     ", fmt.dwLuminanceBitCount));
+      Logger::debug(str::format("ConvertFormat: fmt.dwLuminanceAlphaBitMask: ", fmt.dwLuminanceAlphaBitMask));
+      Logger::debug(str::format("ConvertFormat: fmt.dwLuminanceBitMask:      ", fmt.dwLuminanceBitMask));
 
       switch (fmt.dwLuminanceBitCount) {
         case 8: {
@@ -107,10 +109,10 @@ namespace dxvk {
       return d3d9::D3DFMT_UNKNOWN;
 
     } else if ((fmt.dwFlags & DDPF_BUMPDUDV)) {
-      Logger::info(str::format("ConvertFormat: fmt.dwBumpBitCount:         ", fmt.dwBumpBitCount));
-      Logger::info(str::format("ConvertFormat: fmt.dwBumpLuminanceBitMask: ", fmt.dwBumpLuminanceBitMask));
-      Logger::info(str::format("ConvertFormat: fmt.dwBumpDvBitMask:        ", fmt.dwBumpDvBitMask));
-      Logger::info(str::format("ConvertFormat: fmt.dwBumpDuBitMask:        ", fmt.dwBumpDuBitMask));
+      Logger::debug(str::format("ConvertFormat: fmt.dwBumpBitCount:         ", fmt.dwBumpBitCount));
+      Logger::debug(str::format("ConvertFormat: fmt.dwBumpLuminanceBitMask: ", fmt.dwBumpLuminanceBitMask));
+      Logger::debug(str::format("ConvertFormat: fmt.dwBumpDvBitMask:        ", fmt.dwBumpDvBitMask));
+      Logger::debug(str::format("ConvertFormat: fmt.dwBumpDuBitMask:        ", fmt.dwBumpDuBitMask));
 
       switch (fmt.dwBumpBitCount) {
         case 16: {
@@ -162,7 +164,7 @@ namespace dxvk {
     return d3d9::D3DFMT_UNKNOWN;
   }
 
-  inline DDPIXELFORMAT GetTextureFormat (d3d9::D3DFORMAT format) {
+  static inline DDPIXELFORMAT GetTextureFormat (d3d9::D3DFORMAT format) {
     DDPIXELFORMAT tformat = { };
     tformat.dwSize = sizeof(DDPIXELFORMAT);
 
@@ -314,7 +316,7 @@ namespace dxvk {
     return tformat;
   }
 
-  inline DDPIXELFORMAT GetZBufferFormat (d3d9::D3DFORMAT format) {
+  static inline DDPIXELFORMAT GetZBufferFormat (d3d9::D3DFORMAT format) {
     DDPIXELFORMAT zformat = { };
     zformat.dwSize = sizeof(DDPIXELFORMAT);
 
