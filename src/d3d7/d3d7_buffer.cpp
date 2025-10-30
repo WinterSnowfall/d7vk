@@ -179,7 +179,7 @@ namespace dxvk {
     static constexpr DWORD Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 
     if (device != nullptr) {
-      Logger::info(str::format("D3D7VertexBuffer::InitializeIndexBuffer: Creating index buffer, size: ", m_size));
+      Logger::debug(str::format("D3D7VertexBuffer::InitializeIndexBuffer: Creating index buffer, size: ", m_size));
 
       HRESULT hr = device->GetD3D9()->CreateIndexBuffer(m_size, Usage, d3d9::D3DFMT_INDEX16,
                                                         d3d9::D3DPOOL_DEFAULT, &m_ib9, nullptr);
