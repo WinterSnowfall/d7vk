@@ -1368,6 +1368,15 @@ namespace dxvk {
     { R"(\\Praetorians\.exe$)", {{
       { "d3d9.allowDirectBufferMapping",   "False" },
     }} },
+    /* Sacrifice - Prevents hitching on asset     *
+     * loading and generally improves performance */
+    { R"(\\Sacrifice\.exe$)", {{
+      { "d3d9.cachedDynamicBuffers",        "True" },
+    }} },
+    /* Emperor: Battle for Dune - Performance     */
+    { R"(\\Emperor.*Dune\\Game.exe$)", {{
+      { "d3d9.cachedDynamicBuffers",        "True" },
+    }} },
 
   };
 
