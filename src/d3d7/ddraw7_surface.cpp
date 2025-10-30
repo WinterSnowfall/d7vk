@@ -321,6 +321,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent) {
+    // TODO: Directly lock d3d9 surfaces and skip surface uploads on unlock,
+    // but it can get very involved, especially when dealing with DXT formats.
     Logger::debug("<<< DDraw7Surface::Lock: Proxy");
     return m_proxy->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
   }
@@ -384,6 +386,8 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Unlock(LPRECT lpSurfaceData) {
     Logger::debug("<<< DDraw7Surface::Unlock: Proxy");
 
+    // Note: Unfortunately, some applications write outside of locks too,
+    // so we will always need to upload texture and mip map data on SetTexture
     HRESULT hr = m_proxy->Unlock(lpSurfaceData);
 
     if (likely(SUCCEEDED(hr))) {
