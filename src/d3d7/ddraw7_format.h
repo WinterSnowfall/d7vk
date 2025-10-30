@@ -426,6 +426,9 @@ namespace dxvk {
           Logger::debug(str::format("rect9mip.Pitch:   ", rect9mip.Pitch));
           // The lock pitch of a DXT surface represents its entire size, apparently
           if (isDXT) {
+            // TODO: Determine the minimum between the destination size and
+            // the source lPitch (which is the size for compressed formats)
+            // to potentially fix some texture edge artifacts with DXT
             size_t size = static_cast<size_t>(descMip.lPitch);
             memcpy(rect9mip.pBits, descMip.lpSurface, size);
             Logger::debug(str::format("BlitToD3D9Texture: Done blitting DXT mip ", i));
