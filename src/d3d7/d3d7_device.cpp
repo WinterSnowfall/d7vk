@@ -859,10 +859,10 @@ namespace dxvk {
 
     hr = m_d3d9->DrawIndexedPrimitive(
                   d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
-                  0,
+                  dwStartVertex,
                   0,
                   dwNumVertices,
-                  dwStartVertex,
+                  0,
                   GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount));
 
     if(unlikely(FAILED(hr)))
