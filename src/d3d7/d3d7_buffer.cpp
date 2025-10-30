@@ -48,7 +48,7 @@ namespace dxvk {
     if (data_size != nullptr)
       *data_size = m_size;
 
-    HRESULT hr = m_d3d9->Lock(0, 0, data, ConvertLockFlags(flags));
+    HRESULT hr = m_d3d9->Lock(0, 0, data, ConvertLockFlags(flags, false));
 
     if (likely(SUCCEEDED(hr)))
       m_locked = true;
@@ -134,10 +134,18 @@ namespace dxvk {
   };
 
   HRESULT D3D7VertexBuffer::UploadIndices(WORD* indices, DWORD indexCount) {
-    if (unlikely(m_ib9 == nullptr))
-      InitializeIndexBuffer();
+    HRESULT hr;
 
-    size_t size = indexCount * sizeof(WORD);
+    if (unlikely(m_ib9 == nullptr)) {
+      hr = InitializeIndexBuffer();
+
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D7VertexBuffer::UploadIndices: Failed to initialize index buffer");
+        return DDERR_GENERIC;
+      }
+    }
+
+    const size_t size = indexCount * sizeof(WORD);
 
     Logger::debug(str::format("D3D7VertexBuffer::UploadIndices: Uploading ", size, " indices"));
 
@@ -146,7 +154,7 @@ namespace dxvk {
     }
 
     void* pData = nullptr;
-    HRESULT hr = m_ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
+    hr = m_ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7VertexBuffer::UploadIndices: Failed to lock destination buffer");
@@ -165,21 +173,26 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  inline void D3D7VertexBuffer::InitializeIndexBuffer() {
+  inline HRESULT D3D7VertexBuffer::InitializeIndexBuffer() {
     D3D7Device* device = GetDevice();
 
-    static constexpr DWORD usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
+    static constexpr DWORD Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 
     if (device != nullptr) {
       Logger::info(str::format("D3D7VertexBuffer::InitializeIndexBuffer: Creating index buffer, size: ", m_size));
-      HRESULT hr = device->GetD3D9()->CreateIndexBuffer(m_size, usage, d3d9::D3DFMT_INDEX16,
+
+      HRESULT hr = device->GetD3D9()->CreateIndexBuffer(m_size, Usage, d3d9::D3DFMT_INDEX16,
                                                         d3d9::D3DPOOL_DEFAULT, &m_ib9, nullptr);
+
       if (FAILED(hr)) {
         Logger::err("D3D7VertexBuffer::InitializeIndexBuffer: Failed to create attached index buffer");
+        return hr;
       }
     } else {
       Logger::warn("D3D7VertexBuffer::InitializeIndexBuffer: Can not initialize index buffer with a NULL device");
     }
+
+    return D3D_OK;
   }
 
 }
