@@ -70,9 +70,6 @@ namespace dxvk {
     if (unlikely(IsFrontBuffer() || IsBackBuffer()))
       return DD_OK;
 
-    if (unlikely(m_isDXT))
-      Logger::info("DDraw7Surface::Blt: Proxy: Destination is a compressed texture format");
-
     HRESULT hr;
 
     if (unlikely(!(m_parent->IsWrappedSurface(lpDDSrcSurface)))) {
@@ -175,22 +172,22 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     if (lpDDSCaps->dwCaps & DDSCAPS_PRIMARYSURFACE)
-      Logger::info("DDraw7Surface::GetAttachedSurface: Querying for the front buffer");
+      Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for the front buffer");
     if (lpDDSCaps->dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP))
-      Logger::info("DDraw7Surface::GetAttachedSurface: Querying for the back buffer");
+      Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for the back buffer");
     if (lpDDSCaps->dwCaps & DDSCAPS_OFFSCREENPLAIN)
-      Logger::info("DDraw7Surface::GetAttachedSurface: Querying for an offscreen plain surface");
+      Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for an offscreen plain surface");
     if (lpDDSCaps->dwCaps & DDSCAPS_ZBUFFER)
-      Logger::info("DDraw7Surface::GetAttachedSurface: Querying for a depth stencil");
+      Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a depth stencil");
     if ((lpDDSCaps->dwCaps  & DDSCAPS_MIPMAP)
      || (lpDDSCaps->dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL))
-      Logger::info("DDraw7Surface::GetAttachedSurface: Querying for a texture mip map");
+      Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a texture mip map");
     else if (lpDDSCaps->dwCaps & DDSCAPS_TEXTURE)
-      Logger::info("DDraw7Surface::GetAttachedSurface: Querying for a texture");
+      Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a texture");
     if (lpDDSCaps->dwCaps2 & DDSCAPS2_CUBEMAP)
-      Logger::info("DDraw7Surface::GetAttachedSurface: Querying for a cube map");
+      Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a cube map");
     if (lpDDSCaps->dwCaps2 & DDSCAPS_OVERLAY)
-      Logger::info("DDraw7Surface::GetAttachedSurface: Querying for an overlay");
+      Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for an overlay");
 
     Com<IDirectDrawSurface7> surface = nullptr;
     HRESULT hr = m_proxy->GetAttachedSurface(lpDDSCaps, &surface);
@@ -204,7 +201,7 @@ namespace dxvk {
     }
 
     if (likely(!m_parent->IsWrappedSurface(surface.ptr()))) {
-      Logger::info("DDraw7Surface::GetAttachedSurface: Got a new unwrapped surface");
+      Logger::debug("DDraw7Surface::GetAttachedSurface: Got a new unwrapped surface");
       DDSURFACEDESC2 desc;
       desc.dwSize = sizeof(DDSURFACEDESC2);
       surface->GetSurfaceDesc(&desc);
@@ -214,7 +211,7 @@ namespace dxvk {
       *lplpDDAttachedSurface = ddraw7Surface.ptr();
     // Can potentially happen with manually attached surfaces
     } else {
-      Logger::info("DDraw7Surface::GetAttachedSurface: Got an existing wrapped surface");
+      Logger::debug("DDraw7Surface::GetAttachedSurface: Got an existing wrapped surface");
       Com<DDraw7Surface> ddraw7Surface = static_cast<DDraw7Surface*>(surface.ptr());
       *lplpDDAttachedSurface = ddraw7Surface.ref();
     }
@@ -543,7 +540,7 @@ namespace dxvk {
   }
 
   inline HRESULT DDraw7Surface::IntializeD3D9() {
-    Logger::info(str::format("DDraw7Surface::IntializeD3D9: Initializing nr. [[", m_surfCount, "]]"));
+    Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Initializing nr. [[", m_surfCount, "]]"));
 
     if (m_d3d7device == nullptr) {
       Logger::warn("DDraw7Surface::IntializeD3D9: Null D3D7 device, can't initalize right now");
@@ -582,7 +579,7 @@ namespace dxvk {
       }
 
       format = bbDesc.Format;
-      Logger::info(str::format("DDraw7Surface::IntializeD3D9: Offscreen plain surface format set to ", format));
+      Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Offscreen plain surface format set to ", format));
     }
 
     // General surface/texture pool placement
@@ -613,7 +610,7 @@ namespace dxvk {
     const char* poolPlacement = pool == d3d9::D3DPOOL_DEFAULT ? "D3DPOOL_DEFAULT" :
                                 pool == d3d9::D3DPOOL_SYSTEMMEM ? "D3DPOOL_SYSTEMMEM" : "D3DPOOL_MANAGED";
 
-    Logger::info(str::format("DDraw7Surface::IntializeD3D9: Placing in: ", poolPlacement));
+    Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Placing in: ", poolPlacement));
 
     Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Declared mips ", m_desc.dwMipMapCount));
 
@@ -645,13 +642,13 @@ namespace dxvk {
       if (IsFrontBuffer()) {
         hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
         if (likely(SUCCEEDED(hr)))
-          Logger::info("DDraw7Surface::IntializeD3D9: Retrieved front buffer surface");
+          Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved front buffer surface");
       }
 
       else if (IsBackBuffer()) {
         hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
         if (likely(SUCCEEDED(hr)))
-          Logger::info("DDraw7Surface::IntializeD3D9: Retrieved back buffer surface");
+          Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved back buffer surface");
       }
 
       else if (IsOffScreenPlainSurface()) {
@@ -659,13 +656,13 @@ namespace dxvk {
           m_desc.dwWidth, m_desc.dwHeight, format,
           pool, &rt, nullptr);
         if (likely(SUCCEEDED(hr)))
-          Logger::info("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
+          Logger::debug("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
       }
 
       else if (IsOverlay()) {
         hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
         if (likely(SUCCEEDED(hr)))
-          Logger::info("DDraw7Surface::IntializeD3D9: Retrieved overlay surface");
+          Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved overlay surface");
       }
 
       else {
@@ -674,7 +671,7 @@ namespace dxvk {
           m_desc.dwWidth, m_desc.dwHeight, format,
           d3d9::D3DMULTISAMPLE_NONE, usage, TRUE, &rt, nullptr);
         if (likely(SUCCEEDED(hr)))
-          Logger::info("DDraw7Surface::IntializeD3D9: Created generic RT");
+          Logger::debug("DDraw7Surface::IntializeD3D9: Created generic RT");
       }
 
       if (unlikely(FAILED(hr))) {
@@ -700,7 +697,7 @@ namespace dxvk {
         return hr;
       }
 
-      Logger::info("DDraw7Surface::IntializeD3D9: Created depth stencil surface");
+      Logger::debug("DDraw7Surface::IntializeD3D9: Created depth stencil surface");
 
       m_d3d9 = std::move(ds);
     // Cube maps
@@ -718,7 +715,7 @@ namespace dxvk {
         return hr;
       }
 
-      Logger::info("DDraw7Surface::IntializeD3D9: Created cube map");
+      Logger::debug("DDraw7Surface::IntializeD3D9: Created cube map");
 
       // Attach face 0 to this surface.
       Com<d3d9::IDirect3DSurface9> face = nullptr;
@@ -765,7 +762,7 @@ namespace dxvk {
           return hr;
         }
 
-        Logger::info("DDraw7Surface::IntializeD3D9: Retrieved back buffer surface");
+        Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved back buffer surface");
       } else {
         hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
             m_desc.dwWidth, m_desc.dwHeight, format,
@@ -777,7 +774,7 @@ namespace dxvk {
           return hr;
         }
 
-        Logger::info("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
+        Logger::debug("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
       }
 
       m_d3d9 = std::move(surf);
@@ -790,7 +787,7 @@ namespace dxvk {
   }
 
   inline HRESULT DDraw7Surface::UploadTextureData() {
-    Logger::info(str::format("DDraw7Surface::UploadTextureData: Uploading nr. [[", m_surfCount, "]]"));
+    Logger::debug(str::format("DDraw7Surface::UploadTextureData: Uploading nr. [[", m_surfCount, "]]"));
 
     // Nothing to upload
     if (unlikely(!IsInitialized())) {
