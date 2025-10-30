@@ -211,9 +211,9 @@ namespace dxvk {
       return D3DERR_INVALIDCALL;
 
     Com<d3d9::IDirect3DVertexBuffer9> buffer = nullptr;
-    DWORD Flags = ConvertUsageFlags(desc->dwCaps, m_device->IsRGBDevice());
+    DWORD Usage = ConvertUsageFlags(desc->dwCaps, m_device->IsRGBDevice());
     DWORD Size  = GetFVFSize(desc->dwFVF) * desc->dwNumVertices;
-    hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Flags, desc->dwFVF, d3d9::D3DPOOL_DEFAULT, &buffer, nullptr);
+    hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Usage, desc->dwFVF, d3d9::D3DPOOL_DEFAULT, &buffer, nullptr);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Interface::CreateVertexBuffer: Failed to create vertex buffer");

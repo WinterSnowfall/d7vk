@@ -841,8 +841,11 @@ namespace dxvk {
       return D3DERR_VERTEXBUFFERLOCKED;
     }
 
-    vb->UploadIndices(lpwIndices, dwIndexCount);
-    HRESULT hr = m_d3d9->SetIndices(vb->GetIndexBuffer());
+    HRESULT hr = vb->UploadIndices(lpwIndices, dwIndexCount);
+    if(unlikely(FAILED(hr)))
+      Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed to upload indices");
+
+    hr = m_d3d9->SetIndices(vb->GetIndexBuffer());
     if(unlikely(FAILED(hr)))
       Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed to set d3d9 indices");
 
