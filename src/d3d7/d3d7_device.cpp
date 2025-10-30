@@ -107,16 +107,32 @@ namespace dxvk {
       return D3D_OK;
 
     // Not supported in d3d9
-    //textureFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
-    //hr = cb(&textureFormat, ctx);
-    //if (unlikely(hr == D3DENUMRET_CANCEL))
-      //return D3D_OK;
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
 
     // Not supported in d3d9, but some games may use it
-    //textureFormat = GetTextureFormat(d3d9::D3DFMT_P8);
-    //hr = cb(&textureFormat, ctx);
-    //if (unlikely(hr == D3DENUMRET_CANCEL))
-      //return D3D_OK;
+    // TODO: Advertizing P8 support breaks Sacrifice
+    /*textureFormat = GetTextureFormat(d3d9::D3DFMT_P8);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;*/
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_V8U8);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_L6V5U5);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat = GetTextureFormat(d3d9::D3DFMT_X8L8V8U8);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT1);
     hr = cb(&textureFormat, ctx);
@@ -139,21 +155,6 @@ namespace dxvk {
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT5);
-    hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
-      return D3D_OK;
-
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_V8U8);
-    hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
-      return D3D_OK;
-
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_L6V5U5);
-    hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
-      return D3D_OK;
-
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_X8L8V8U8);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
@@ -238,7 +239,7 @@ namespace dxvk {
         }
         Logger::debug("D3D7Device::SetRenderTarget: Set a new DS");
       } else {
-        Logger::info("D3D7Device::SetRenderTarget: RT has no depth stencil attached");
+        Logger::debug("D3D7Device::SetRenderTarget: RT has no depth stencil attached");
       }
     } else {
       Logger::err("D3D7Device::SetRenderTarget: Failed to set RT");
@@ -312,7 +313,7 @@ namespace dxvk {
   }
 
   // ZBIAS can be an integer from 0 to 16 and needs to be remapped to float
-  static constexpr float ZBIAS_SCALE     = -1.0f / (1 << 16); // Consider D16 precision
+  static constexpr float ZBIAS_SCALE     = -10.0f / (1 << 16); // Consider 10x D16 precision
   static constexpr float ZBIAS_SCALE_INV = 1 / ZBIAS_SCALE;
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
@@ -1109,7 +1110,7 @@ namespace dxvk {
         DDSURFACEDESC2 descDS;
         descDS.dwSize = sizeof(DDSURFACEDESC2);
         ds7->GetProxied()->GetSurfaceDesc(&descDS);
-        Logger::info(str::format("D3D7Device::InitializeDS: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
+        Logger::debug(str::format("D3D7Device::InitializeDS: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
 
         HRESULT hrDS9 = m_d3d9->SetDepthStencilSurface(m_ds9.ptr());
         if(unlikely(FAILED(hrDS9)))
