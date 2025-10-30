@@ -55,7 +55,7 @@ namespace dxvk {
 
   private:
 
-    inline void InitializeIndexBuffer();
+    inline HRESULT InitializeIndexBuffer();
 
     inline void ListBufferDetails() {
       Logger::debug(str::format("D3D7VertexBuffer: Created a new buffer nr. {{", m_buffCount, "}}:"));

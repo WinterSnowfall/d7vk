@@ -2,7 +2,7 @@
 
 #include "d3d7_include.h"
 #include "d3d7_device.h"
-#include "d3d7_util.h"
+#include "ddraw7_format.h"
 #include "ddraw7_interface.h"
 #include "ddraw7_wrapped_object.h"
 
