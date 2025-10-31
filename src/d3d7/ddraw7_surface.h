@@ -115,7 +115,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetLOD(LPDWORD lod);
 
-    d3d9::IDirect3DBaseTexture9* GetTexture() const {
+    d3d9::IDirect3DTexture9* GetTexture() const {
       return m_texture.ptr();
     }
 
