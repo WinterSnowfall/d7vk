@@ -26,9 +26,6 @@ namespace dxvk {
 
     m_bridge->EnableD3D7CompatibilityMode();
 
-    // Let's assume a HAL device always ends up being selected
-    m_desc.deviceGUID = IID_IDirect3DTnLHalDevice;
-
     m_intfCount = ++s_intfCount;
 
     Logger::debug(str::format("D3D7Interface: Created a new interface nr. ((", m_intfCount, "))"));
@@ -198,13 +195,21 @@ namespace dxvk {
     if (unlikely(desc == nullptr || ppVertexBuffer == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    if (unlikely(desc->dwSize != sizeof(D3DVERTEXBUFFERDESC)))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(desc->dwNumVertices > D3DMAXNUMVERTICES))
+      return DDERR_INVALIDPARAMS;
+
+    //TODO: See if it actually matters to validate desc.dwFVF
+
     IDirect3DVertexBuffer7* vertexBuffer7 = nullptr;
-    // TODO: We don't really need a proxy buffer, and it only serves as validation at this point
-    HRESULT hr = m_proxy->CreateVertexBuffer(desc, &vertexBuffer7, usage);
+    // We don't really need a proxy buffer any longer
+    /*HRESULT hr = m_proxy->CreateVertexBuffer(desc, &vertexBuffer7, usage);
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Interface::CreateVertexBuffer: Failed to create proxy vertex buffer");
       return hr;
-    }
+    }*/
 
     // Can't create anything without a valid device
     if (unlikely(m_device == nullptr))
@@ -213,7 +218,7 @@ namespace dxvk {
     Com<d3d9::IDirect3DVertexBuffer9> buffer = nullptr;
     DWORD Usage = ConvertUsageFlags(desc->dwCaps, m_device->IsRGBDevice());
     DWORD Size  = GetFVFSize(desc->dwFVF) * desc->dwNumVertices;
-    hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Usage, desc->dwFVF, d3d9::D3DPOOL_DEFAULT, &buffer, nullptr);
+    HRESULT hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Usage, desc->dwFVF, d3d9::D3DPOOL_DEFAULT, &buffer, nullptr);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Interface::CreateVertexBuffer: Failed to create vertex buffer");
