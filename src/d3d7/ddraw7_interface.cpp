@@ -76,7 +76,17 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddraw7SurfaceProxied, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDSurface = ref(new DDraw7Surface(std::move(ddraw7SurfaceProxied), this, nullptr, *lpDDSurfaceDesc, true));
+      // Retrieve the actual surface desc, not what the application says it wants
+      DDSURFACEDESC2 desc;
+      desc.dwSize = sizeof(DDSURFACEDESC2);
+      HRESULT hrDesc = ddraw7SurfaceProxied->GetSurfaceDesc(&desc);
+
+      if (unlikely(FAILED(hrDesc))) {
+        Logger::err("DDraw7Interface::CreateSurface: Failed to retieve new surface desc");
+        return hrDesc;
+      }
+
+      *lplpDDSurface = ref(new DDraw7Surface(std::move(ddraw7SurfaceProxied), this, nullptr, std::move(desc), true));
     } else {
       Logger::err("DDraw7Interface::CreateSurface: Failed to create proxy surface");
       return hr;
@@ -121,7 +131,21 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps) {
     Logger::debug("<<< DDraw7Interface::GetCaps: Proxy");
-    return m_proxy->GetCaps(lpDDDriverCaps, lpDDHELCaps);
+
+    HRESULT hr = m_proxy->GetCaps(lpDDDriverCaps, lpDDHELCaps);
+    if (likely(SUCCEEDED(hr))) {
+      // Strip palletted surface support from reported caps
+      if (lpDDDriverCaps != nullptr) {
+        lpDDDriverCaps->dwCaps &= ~(DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC);
+        lpDDDriverCaps->dwPalCaps = 0;
+      }
+      if (lpDDHELCaps != nullptr) {
+        lpDDHELCaps->dwCaps &= ~(DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC);
+        lpDDHELCaps->dwPalCaps = 0;
+      }
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc) {
