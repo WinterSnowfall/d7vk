@@ -1374,7 +1374,15 @@ namespace dxvk {
       { "d3d9.cachedDynamicBuffers",        "True" },
     }} },
     /* Emperor: Battle for Dune - Performance     */
-    { R"(\\Emperor.*Dune\\Game.exe$)", {{
+    { R"(\\Emperor.*Dune\\Game\.exe$)", {{
+      { "d3d9.cachedDynamicBuffers",        "True" },
+    }} },
+    /* Battle Isle: The Andosia War - Performance */
+    { R"(\\bitaw\.exe$)", {{
+      { "d3d9.cachedDynamicBuffers",        "True" },
+    }} },
+    /* Startopia - Indexed draw performance       */
+    { R"(\\startopia\.exe$)", {{
       { "d3d9.cachedDynamicBuffers",        "True" },
     }} },
 
