@@ -20,8 +20,6 @@ namespace dxvk {
     m_buffCount = ++s_buffCount;
 
     ListBufferDetails();
-
-    InitializeIndexBuffer();
   }
 
   D3D7VertexBuffer::~D3D7VertexBuffer() {
@@ -136,6 +134,7 @@ namespace dxvk {
   HRESULT D3D7VertexBuffer::UploadIndices(WORD* indices, DWORD indexCount) {
     HRESULT hr;
 
+    // Initialize here, since not all buffers will be used in indexed draws
     if (unlikely(m_ib9 == nullptr)) {
       hr = InitializeIndexBuffer();
 

@@ -670,10 +670,23 @@ namespace dxvk {
     }
 
     DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
-    // This won't return anything
-    surface7->GetSurface()->PreLoad();
 
-    HRESULT hr = m_proxy->PreLoad(surface7->GetProxied());
+    // Make sure the texture or surface is initialized and updated
+    HRESULT hr = surface7->InitializeOrUploadD3D9();
+
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D7Device::SetTexture: Failed to initialize/upload d3d9 surface");
+      return hr;
+    }
+
+    d3d9::IDirect3DTexture9* texture9 = surface7->GetTexture();
+    if (texture9 != nullptr) {
+      texture9->PreLoad();
+    } else {
+      surface7->GetSurface()->PreLoad();
+    }
+
+    hr = m_proxy->PreLoad(surface7->GetProxied());
     if (unlikely(FAILED(hr))) {
       Logger::warn("D3D7Device::PreLoad: Failed to preload proxied surface");
       return hr;

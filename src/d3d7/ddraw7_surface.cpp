@@ -547,10 +547,7 @@ namespace dxvk {
       return DD_OK;
     }
 
-    HRESULT hr;
-
-    // This is normal for front buffers apparently...
-    if (unlikely(!IsFrontBuffer() && (m_desc.dwHeight == 0 || m_desc.dwWidth == 0))) {
+    if (unlikely(m_desc.dwHeight == 0 || m_desc.dwWidth == 0)) {
       Logger::warn("DDraw7Surface::IntializeD3D9: Surface has 0 height or width");
       return DD_OK;
     }
@@ -558,6 +555,16 @@ namespace dxvk {
     d3d9::D3DFORMAT format = ConvertFormat(m_desc.ddpfPixelFormat);
     d3d9::D3DPOOL   pool   = d3d9::D3DPOOL_DEFAULT;
     DWORD           usage  = 0;
+
+    // Don't initialize P8 textures/surfaces since we don't support them.
+    // Some applications do require them to be created by ddraw, otherwise
+    // they will simply fail to start, so just ignore them for now.
+    if (unlikely(format == d3d9::D3DFMT_P8)) {
+      Logger::warn("DDraw7Surface::IntializeD3D9: Unsupported format D3DFMT_P8");
+      return DD_OK;
+    }
+
+    HRESULT hr;
 
     // In some cases we get passed offscreen plain surfaces with no data whatsoever in
     // ddpfPixelFormat, so we need to fall back to whatever the d3d9 back buffer is using.
@@ -586,7 +593,10 @@ namespace dxvk {
     if (m_desc.ddsCaps.dwCaps & DDSCAPS_LOCALVIDMEM)
       pool = d3d9::D3DPOOL_DEFAULT;
     else if (m_desc.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
-      pool = d3d9::D3DPOOL_SYSTEMMEM;
+      // We can't know beforehand if a texture is or isn't going to be
+      // used in SetTexture() calls, and textures placed in D3DPOOL_SYSTEMMEM
+      // will not work in that context in dxvk, so revert to D3DPOOL_MANAGED.
+      pool = IsTexture() ? d3d9::D3DPOOL_MANAGED : d3d9::D3DPOOL_SYSTEMMEM;
     // There's no explicit non-local video memory placement
     // per se, but D3DPOOL_MANAGED is close enough
     else if ((m_desc.ddsCaps.dwCaps & DDSCAPS_NONLOCALVIDMEM) || (m_desc.ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE))
@@ -652,11 +662,27 @@ namespace dxvk {
       }
 
       else if (IsOffScreenPlainSurface()) {
-        hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
-          m_desc.dwWidth, m_desc.dwHeight, format,
-          pool, &rt, nullptr);
-        if (likely(SUCCEEDED(hr)))
-          Logger::debug("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
+        // Sometimes we get passed offscreen plain surfaces which should be tied to the back buffer
+          if (unlikely(m_d3d7device->GetRenderTarget() == this)) {
+          Logger::debug("DDraw7Surface::IntializeD3D9: Unknown surface is the current RT");
+
+          hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
+
+          if (unlikely(FAILED(hr))) {
+            Logger::err("DDraw7Surface::IntializeD3D9: Failed to retrieve back buffer");
+            m_d3d9 = nullptr;
+            return hr;
+          }
+
+          Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved back buffer surface");
+        } else {
+          hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
+            m_desc.dwWidth, m_desc.dwHeight, format,
+            pool, &rt, nullptr);
+
+          if (likely(SUCCEEDED(hr)))
+            Logger::debug("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
+        }
       }
 
       else if (IsOverlay()) {
@@ -746,36 +772,21 @@ namespace dxvk {
       m_texture = std::move(tex);
 
     } else {
-      Logger::warn("DDraw7Surface::IntializeD3D9: Unknown surface type");
+      Logger::err("DDraw7Surface::IntializeD3D9: Unknown surface type");
 
       Com<d3d9::IDirect3DSurface9> surf = nullptr;
+      // D3DPOOL_SCRATCH allows the creation of surfaces with unsupported formats
+      hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
+          m_desc.dwWidth, m_desc.dwHeight, format,
+          d3d9::D3DPOOL_SCRATCH, &surf, nullptr);
 
-      // Sometimes we get passed unknown surfaces which should be tied to the back buffer
-      if (unlikely(m_d3d7device->GetRenderTarget() == this)) {
-        Logger::debug("DDraw7Surface::IntializeD3D9: Unknown surface is the current RT");
-
-        hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
-
-        if (unlikely(FAILED(hr))) {
-          Logger::err("DDraw7Surface::IntializeD3D9: Failed to retrieve back buffer");
-          m_d3d9 = nullptr;
-          return hr;
-        }
-
-        Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved back buffer surface");
-      } else {
-        hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
-            m_desc.dwWidth, m_desc.dwHeight, format,
-            d3d9::D3DPOOL_MANAGED, &surf, nullptr);
-
-        if (unlikely(FAILED(hr))) {
-          Logger::err("DDraw7Surface::IntializeD3D9: Failed to create offscreen plain surface");
-          m_d3d9 = nullptr;
-          return hr;
-        }
-
-        Logger::debug("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw7Surface::IntializeD3D9: Failed to create offscreen plain surface");
+        m_d3d9 = nullptr;
+        return hr;
       }
+
+      Logger::debug("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
 
       m_d3d9 = std::move(surf);
     }
