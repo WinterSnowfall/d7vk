@@ -708,7 +708,6 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::DrawPrimitive");
 
-    // TODO: Many other validations to be done on primitive type, vertex type etc.
     if (unlikely(lpvVertices == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -727,7 +726,8 @@ namespace dxvk {
       return hr;
     }
 
-    m_hasDrawn = true;
+    if (unlikely(!m_hasDrawn))
+      m_hasDrawn = true;
 
     return hr;
   }
@@ -737,7 +737,6 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::DrawIndexedPrimitive");
 
-    // TODO: Many other validations to be done on primitive type, vertex type etc.
     if (unlikely(lpvVertices == nullptr || lpwIndices == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -760,7 +759,8 @@ namespace dxvk {
       return hr;
     }
 
-    m_hasDrawn = true;
+    if (unlikely(!m_hasDrawn))
+      m_hasDrawn = true;
 
     return hr;
   }
@@ -825,12 +825,8 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::DrawPrimitiveVB");
 
-    // TODO: Many other validations to be done on primitive type, vertex type etc.
     if (unlikely(lpd3dVertexBuffer == nullptr))
       return DDERR_INVALIDPARAMS;
-
-    if (unlikely(!dwNumVertices))
-      return D3D_OK;
 
     Com<D3D7VertexBuffer> vb = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
 
@@ -838,6 +834,9 @@ namespace dxvk {
       Logger::err("D3D7Device::DrawPrimitiveVB: Buffer is locked");
       return D3DERR_VERTEXBUFFERLOCKED;
     }
+
+    if (unlikely(!dwNumVertices))
+      return D3D_OK;
 
     m_d3d9->SetFVF(vb->GetFVF());
     m_d3d9->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
@@ -851,7 +850,8 @@ namespace dxvk {
       return hr;
     }
 
-    m_hasDrawn = true;
+    if (unlikely(!m_hasDrawn))
+      m_hasDrawn = true;
 
     return hr;
   }
@@ -861,12 +861,8 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::DrawIndexedPrimitiveVB");
 
-    // TODO: Many other validations to be done on primitive type, vertex type etc.
     if (unlikely(lpd3dVertexBuffer == nullptr || lpwIndices == nullptr))
       return DDERR_INVALIDPARAMS;
-
-    if (unlikely(!dwNumVertices || !dwIndexCount))
-      return D3D_OK;
 
     Com<D3D7VertexBuffer> vb = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
 
@@ -875,11 +871,14 @@ namespace dxvk {
       return D3DERR_VERTEXBUFFERLOCKED;
     }
 
-    HRESULT hr = vb->UploadIndices(lpwIndices, dwIndexCount);
+    if (unlikely(!dwNumVertices || !dwIndexCount))
+      return D3D_OK;
+
+    HRESULT hr = UploadIndices(lpwIndices, dwIndexCount);
     if(unlikely(FAILED(hr)))
       Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed to upload indices");
 
-    hr = m_d3d9->SetIndices(vb->GetIndexBuffer());
+    hr = m_d3d9->SetIndices(m_ib9.ptr());
     if(unlikely(FAILED(hr)))
       Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed to set d3d9 indices");
 
@@ -904,7 +903,8 @@ namespace dxvk {
       return hr;
     }
 
-    m_hasDrawn = true;
+    if (unlikely(!m_hasDrawn))
+      m_hasDrawn = true;
 
     return hr;
   }
@@ -1166,6 +1166,49 @@ namespace dxvk {
       // Should be superfluous, but play it safe
       m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_FALSE);
     }
+  }
+
+  inline HRESULT D3D7Device::UploadIndices(WORD* indices, DWORD indexCount) {
+    if (unlikely(indexCount > D3DMAXNUMVERTICES))
+      return DDERR_INVALIDPARAMS;
+
+    // Initialize here, since not all application use indexed draws
+    if (unlikely(m_ib9 == nullptr)) {
+      HRESULT hr = InitializeIndexBuffer();
+
+      if (unlikely(FAILED(hr)))
+        return DDERR_GENERIC;
+    }
+
+    Logger::debug(str::format("D3D7Device::UploadIndices: Uploading ", indexCount, " indices"));
+
+    const size_t size = indexCount * sizeof(WORD);
+    void* pData = nullptr;
+
+    // Locking and unlocking are generally expected to work here
+    m_ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
+    memcpy(pData, static_cast<void*>(indices), size);
+    m_ib9->Unlock();
+
+    return D3D_OK;
+  }
+
+  inline HRESULT D3D7Device::InitializeIndexBuffer() {
+    // The maximum number of indices allowed is D3DMAXNUMVERTICES (0xFFFF)
+    static constexpr UINT  MaxIBSize = D3DMAXNUMVERTICES * sizeof(WORD);
+    static constexpr DWORD Usage     = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
+
+    Logger::debug(str::format("D3D7Device::InitializeIndexBuffer: Creating index buffer, size: ", MaxIBSize));
+
+    HRESULT hr = m_d3d9->CreateIndexBuffer(MaxIBSize, Usage, d3d9::D3DFMT_INDEX16,
+                                           d3d9::D3DPOOL_DEFAULT, &m_ib9, nullptr);
+
+    if (FAILED(hr)) {
+      Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize index buffer");
+      return hr;
+    }
+
+    return D3D_OK;
   }
 
 }
