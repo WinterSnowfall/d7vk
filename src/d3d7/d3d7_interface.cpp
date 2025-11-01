@@ -26,6 +26,8 @@ namespace dxvk {
 
     m_bridge->EnableD3D7CompatibilityMode();
 
+    m_d3d7Options = D3D7Options(*m_bridge->GetConfig());
+
     m_intfCount = ++s_intfCount;
 
     Logger::debug(str::format("D3D7Interface: Created a new interface nr. ((", m_intfCount, "))"));
@@ -117,7 +119,7 @@ namespace dxvk {
       return DDERR_NOHWND;
     }
 
-    if (unlikely(!(m_parent->IsWrappedSurface(surface)))) {
+    if (unlikely(!m_parent->IsWrappedSurface(surface))) {
       Logger::err("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
       return DDERR_GENERIC;
     }
@@ -201,7 +203,7 @@ namespace dxvk {
     if (unlikely(desc->dwNumVertices > D3DMAXNUMVERTICES))
       return DDERR_INVALIDPARAMS;
 
-    //TODO: See if it actually matters to validate desc.dwFVF
+    // TODO: See if it actually matters to validate desc.dwFVF
 
     IDirect3DVertexBuffer7* vertexBuffer7 = nullptr;
     // We don't really need a proxy buffer any longer
