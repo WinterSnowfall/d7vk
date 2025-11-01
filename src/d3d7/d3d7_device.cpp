@@ -1043,6 +1043,7 @@ namespace dxvk {
     return m_d3d9->ValidateDevice(lpdwPasses);
   }
 
+  // This is a precursor of our ol' pal CopyRects
   HRESULT STDMETHODCALLTYPE D3D7Device::Load(IDirectDrawSurface7 *dst_surface, POINT *dst_point, IDirectDrawSurface7 *src_surface, RECT *src_rect, DWORD flags) {
     D3D7DeviceLock lock = LockDevice();
 
@@ -1081,9 +1082,12 @@ namespace dxvk {
     if (likely(m_DD7Parent->IsWrappedSurface(dst_surface))) {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
 
-      HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
-      if (unlikely(FAILED(hrInitDst))) {
-        Logger::warn("D3D7Device::Load: Failed to upload d3d9 destination surface data");
+      // Textures and cubemaps get uploaded during SetTexture calls
+      if (!ddraw7SurfaceDst->IsTextureOrCubeMap()) {
+        HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
+        if (unlikely(FAILED(hrInitDst))) {
+          Logger::warn("D3D7Device::Load: Failed to upload d3d9 destination surface data");
+        }
       }
     }
 
