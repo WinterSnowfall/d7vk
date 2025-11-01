@@ -31,12 +31,6 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE Optimize(LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags);
 
-    HRESULT UploadIndices(WORD* indices, DWORD indexCount);
-
-    d3d9::IDirect3DIndexBuffer9* GetIndexBuffer() const {
-      return m_ib9.ptr();
-    }
-
     DWORD GetFVF() const {
       return m_desc.dwFVF;
     }
@@ -55,8 +49,6 @@ namespace dxvk {
 
   private:
 
-    inline HRESULT InitializeIndexBuffer();
-
     inline void ListBufferDetails() {
       Logger::debug(str::format("D3D7VertexBuffer: Created a new buffer nr. {{", m_buffCount, "}}:"));
       Logger::debug(str::format("   Size:     ", m_size));
@@ -71,13 +63,10 @@ namespace dxvk {
 
     D3DVERTEXBUFFERDESC m_desc;
 
-    DWORD               m_stride  = 0;
-    DWORD               m_size    = 0;
+    UINT                m_stride = 0;
+    UINT                m_size   = 0;
 
     bool                m_locked  = false;
-
-    // Attached index buffer, same size as the vertex buffer
-    Com<d3d9::IDirect3DIndexBuffer9> m_ib9;
 
   };
 

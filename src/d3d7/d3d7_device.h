@@ -155,7 +155,9 @@ namespace dxvk {
 
   private:
 
-    void UploadIndices(void* indices, DWORD indexCount);
+    inline HRESULT UploadIndices(WORD* indices, DWORD indexCount);
+
+    inline HRESULT InitializeIndexBuffer();
 
     inline bool ShouldRecord() { return m_recorder != nullptr; }
 
@@ -187,8 +189,11 @@ namespace dxvk {
     // Value of D3DRS_ZVISIBLE (although the RS is not supported, its value is stored)
     DWORD           m_zVisible      = 0;
 
-    Com<d3d9::IDirect3DSurface9> m_rt9;
-    Com<d3d9::IDirect3DSurface9> m_ds9;
+    Com<d3d9::IDirect3DSurface9>     m_rt9;
+    Com<d3d9::IDirect3DSurface9>     m_ds9;
+
+    // Common index buffer used for indexed draws
+    Com<d3d9::IDirect3DIndexBuffer9> m_ib9;
 
   };
 
