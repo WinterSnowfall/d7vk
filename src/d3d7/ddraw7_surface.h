@@ -225,34 +225,25 @@ namespace dxvk {
       if (IsFrontBuffer())                type = "front buffer";
       else if (IsBackBuffer())            type = "back buffer";
       else if (IsOffScreenPlainSurface()) type = "offscreen plain surface";
-      else if (IsDepthStencil())          type = "depth stencil";
       else if (IsTextureMip())            type = "texture mipmap";
       else if (IsTexture())               type = "texture";
+      else if (IsDepthStencil())          type = "depth stencil";
       else if (IsCubeMap())               type = "cube map";
       else if (IsOverlay())               type = "overlay";
       else if (IsNotKnown())              type = "unknown";
-
-      // Front buffer surfaces apparently don't specify any pixel format info
-      // Offscreen plain surfaces can also be created with unsupported formats,
-      // but let's at least try to determine the format in those cases
-      auto format = !IsFrontBuffer() ? ConvertFormat(m_desc.ddpfPixelFormat) : d3d9::D3DFMT_UNKNOWN;
-
-      if (IsDXTFormat(format))
-        m_isDXT = true;
 
       const char* attached = IsAttached() ? "yes" : "no";
 
       Logger::debug(str::format("DDraw7Surface: Created a new surface nr. [[", m_surfCount, "]]:"));
       Logger::debug(str::format("   Type:       ", type));
       Logger::debug(str::format("   Dimensions: ", m_desc.dwWidth, "x", m_desc.dwHeight));
-      Logger::debug(str::format("   Format:     ", format));
+      Logger::debug(str::format("   Format:     ", m_format));
       Logger::debug(str::format("   IsComplex:  ", IsComplex() ? "yes" : "no"));
       Logger::debug(str::format("   HasMips:    ", m_desc.dwMipMapCount ? "yes" : "no"));
       Logger::debug(str::format("   IsAttached: ", attached));
     }
 
     bool             m_isChildObject = false;
-    bool             m_isDXT         = false;
     uint32_t         m_mipCount      = 0;
 
     static uint32_t  s_surfCount;
@@ -265,6 +256,7 @@ namespace dxvk {
     D3D7Device*      m_d3d7device    = nullptr;
 
     DDSURFACEDESC2   m_desc;
+    d3d9::D3DFORMAT  m_format;
 
     // TODO: Might be worth making this a single generic type at some point
     Com<d3d9::IDirect3DTexture9>     m_texture;
