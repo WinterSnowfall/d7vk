@@ -2,6 +2,8 @@
 
 #include "d3d7_include.h"
 #include "d3d7_singlethread.h"
+#include "d3d7_interface.h"
+#include "d3d7_options.h"
 #include "d3d7_caps.h"
 #include "ddraw7_wrapped_object.h"
 #include "../d3d9/d3d9_bridge.h"
@@ -11,7 +13,6 @@
 
 namespace dxvk {
 
-  class D3D7Interface;
   class D3D7StateBlock;
   class DDraw7Surface;
   class DDraw7Interface;
@@ -142,6 +143,16 @@ namespace dxvk {
       return m_isRGBDevice;
     }
 
+    bool HasDrawn() const {
+      // Returning true here means we skip all proxied back buffer blits
+      return m_parent->GetOptions()->strictBackBufferGuard ? true : m_hasDrawn;
+    }
+
+    void ResetDrawTracking() {
+      if (likely(!m_parent->GetOptions()->strictBackBufferGuard))
+        m_hasDrawn = false;
+    }
+
   private:
 
     void UploadIndices(void* indices, DWORD indexCount);
@@ -149,6 +160,7 @@ namespace dxvk {
     inline bool ShouldRecord() { return m_recorder != nullptr; }
 
     bool                          m_isRGBDevice = false;
+    bool                          m_hasDrawn    = false;
 
     D3D7Interface*                m_parent    = nullptr;
     DDraw7Interface*              m_DD7Parent = nullptr;
