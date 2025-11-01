@@ -1377,13 +1377,20 @@ namespace dxvk {
     { R"(\\Emperor.*Dune\\Game\.exe$)", {{
       { "d3d9.cachedDynamicBuffers",        "True" },
     }} },
-    /* Battle Isle: The Andosia War - Performance */
+    /* Battle Isle: The Andosia War - Performance *
+     * and black screen prevention on startup     */
     { R"(\\bitaw\.exe$)", {{
       { "d3d9.cachedDynamicBuffers",        "True" },
+      { "d3d7.strictBackBufferGuard",       "True" },
     }} },
     /* Startopia - Indexed draw performance       */
     { R"(\\startopia\.exe$)", {{
       { "d3d9.cachedDynamicBuffers",        "True" },
+    }} },
+    /* Escape from Monkey Island                  *
+     * Startup crash with direct buffer mapping   */
+    { R"(\\Monkey4\.exe$)", {{
+      { "d3d9.allowDirectBufferMapping",   "False" },
     }} },
 
   };
