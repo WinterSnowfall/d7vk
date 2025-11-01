@@ -32,9 +32,8 @@ namespace dxvk {
      || riid == __uuidof(IDirectDraw7)) {
       *ppvObject = ref(this);
       return S_OK;
-    }
-
-    if (riid == __uuidof(IDirect3D7)) {
+    // Standard way of creating a new D3D7 interface
+    } else if (riid == __uuidof(IDirect3D7)) {
       void* d3d7IntfProxiedVoid = nullptr;
       // This can never reasonably fail
       m_proxy->QueryInterface(__uuidof(IDirect3D7), &d3d7IntfProxiedVoid);
@@ -44,6 +43,10 @@ namespace dxvk {
       m_d3d7Intf = ref(new D3D7Interface(std::move(d3d7IntfProxied), this));
       *ppvObject = m_d3d7Intf;
       return S_OK;
+    // Some games query the legacy ddraw interface from the new one
+    } else if (unlikely(riid == __uuidof(IDirectDraw))) {
+      Logger::warn("QueryInterface: Query for legacy IDirectDraw");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
 
     Logger::warn("DDraw7Interface::QueryInterface: Unknown interface query");
@@ -118,14 +121,9 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::FlipToGDISurface() {
-    Logger::debug("*** DDraw7Interface::FlipToGDISurface: Presenting");
-
-    // TODO: Does it even make any sense to present here?
-    D3D7Device* d3d7Device = GetD3D7Device();
-    if (likely(d3d7Device != nullptr)) {
-      d3d7Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
-    }
-
+    // TODO: Think about how to handle this gracefully,
+    // as quite a number of games rely on it for proper behavior
+    Logger::debug("*** DDraw7Interface::FlipToGDISurface: Ignoring");
     return DD_OK;
   }
 

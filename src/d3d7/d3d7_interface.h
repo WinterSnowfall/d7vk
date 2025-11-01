@@ -1,6 +1,7 @@
 #pragma once
 
 #include "d3d7_include.h"
+#include "d3d7_options.h"
 #include "ddraw7_wrapped_object.h"
 #include "../d3d9/d3d9_bridge.h"
 
@@ -41,12 +42,18 @@ namespace dxvk {
       m_device = nullptr;
     }
 
+    const D3D7Options* GetOptions() const {
+      return &m_d3d7Options;
+    }
+
     const D3DDEVICEDESC7 GetDesc() const {
       return m_desc;
     }
 
   private:
     DDraw7Interface*              m_parent = nullptr;
+
+    D3D7Options                   m_d3d7Options;
 
     Com<IDirect3D7>               m_d3d7IntfProxy;
 
