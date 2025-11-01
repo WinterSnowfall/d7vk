@@ -1,6 +1,5 @@
 #include "d3d7_device.h"
 
-#include "d3d7_interface.h"
 #include "d3d7_buffer.h"
 #include "d3d7_state_block.h"
 #include "d3d7_util.h"
@@ -195,7 +194,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    if (unlikely(!(m_DD7Parent->IsWrappedSurface(surface)))) {
+    if (unlikely(!m_DD7Parent->IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::SetRenderTarget: Received an unwrapped RT");
       return DDERR_GENERIC;
     }
@@ -264,6 +263,15 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::Clear(DWORD count, D3DRECT *rects, DWORD flags, D3DCOLOR color, D3DVALUE z, DWORD stencil) {
     Logger::debug(">>> D3D7Device::Clear");
+
+    // We are now allowing proxy back buffer blits in certain cases, so
+    // we must also ensure the back buffer clear calls are proxied
+    HRESULT hr = m_proxy->Clear(count, rects, flags, color, z, stencil);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D7Device::Clear: Failed proxied clear call");
+      return hr;
+    }
+
     return m_d3d9->Clear(count, rects, flags, color, z, stencil);
   }
 
@@ -664,7 +672,7 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::PreLoad");
 
-    if (unlikely(!(m_DD7Parent->IsWrappedSurface(surface)))) {
+    if (unlikely(!m_DD7Parent->IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::PreLoad: Received an unwrapped surface");
       return DDERR_GENERIC;
     }
@@ -714,8 +722,12 @@ namespace dxvk {
                      lpvVertices,
                      GetFVFSize(dwVertexTypeDesc));
 
-    if (unlikely(FAILED(hr)))
+    if (unlikely(FAILED(hr))) {
       Logger::warn("D3D7Device::DrawPrimitive: Failed d3d9 call to DrawPrimitiveUP");
+      return hr;
+    }
+
+    m_hasDrawn = true;
 
     return hr;
   }
@@ -743,8 +755,12 @@ namespace dxvk {
                       lpvVertices,
                       GetFVFSize(dwVertexTypeDesc));
 
-    if (unlikely(FAILED(hr)))
+    if (unlikely(FAILED(hr))) {
       Logger::warn("D3D7Device::DrawIndexedPrimitive: Failed d3d9 call to DrawIndexedPrimitiveUP");
+      return hr;
+    }
+
+    m_hasDrawn = true;
 
     return hr;
   }
@@ -830,8 +846,12 @@ namespace dxvk {
                            dwStartVertex,
                            GetPrimitiveCount(d3dptPrimitiveType, dwNumVertices));
 
-    if (unlikely(FAILED(hr)))
+    if (unlikely(FAILED(hr))) {
       Logger::warn("D3D7Device::DrawPrimitiveVB: Failed d3d9 call to DrawPrimitive");
+      return hr;
+    }
+
+    m_hasDrawn = true;
 
     return hr;
   }
@@ -879,8 +899,12 @@ namespace dxvk {
                   0,
                   GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount));
 
-    if(unlikely(FAILED(hr)))
+    if(unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed d3d9 call to DrawIndexedPrimitive");
+      return hr;
+    }
+
+    m_hasDrawn = true;
 
     return hr;
   }
@@ -945,7 +969,7 @@ namespace dxvk {
     }
 
     // Binding texture stages
-    if (unlikely(!(m_DD7Parent->IsWrappedSurface(surface)))) {
+    if (unlikely(!m_DD7Parent->IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::SetTexture: Received an unwrapped texture");
       return DDERR_GENERIC;
     }
