@@ -131,6 +131,10 @@ namespace dxvk {
       return m_d3d9 != nullptr || m_texture != nullptr || m_cubeMap != nullptr;
     }
 
+    bool IsTextureOrCubeMap() const {
+      return IsTexture() || IsCubeMap();
+    }
+
     DDraw7Surface* GetAttachedDepthStencil() const {
       return m_depthStencil.ptr();
     }
