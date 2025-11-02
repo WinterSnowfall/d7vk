@@ -207,7 +207,7 @@ namespace dxvk {
 
     inline HRESULT IntializeD3D9();
 
-    inline HRESULT UploadTextureData();
+    inline HRESULT UploadSurfaceData();
 
     // TODO: Need to do this on every device use
     // and refresh derp out if the device is lost
