@@ -96,6 +96,10 @@ namespace dxvk {
       return m_hwnd;
     }
 
+    void SetHWND(HWND hwnd) {
+      m_hwnd = hwnd;
+    }
+
   private:
     Com<IDirectDraw7>           m_proxy;
 
