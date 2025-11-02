@@ -372,7 +372,22 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper) {
     Logger::debug("<<< DDraw7Surface::SetClipper: Proxy");
-    return m_proxy->SetClipper(lpDDClipper);
+
+    HRESULT hr = m_proxy->SetClipper(lpDDClipper);
+
+    if (likely(SUCCEEDED(hr) && lpDDClipper != nullptr)) {
+      // A few games apparently call SetCooperativeLevel AFTER creating the
+      // d3d device, let alone the interface, which is technically illegal,
+      // but hey, like that ever stopped anyone...
+      if (unlikely(IsRenderTarget() && m_parent->GetHWND() == nullptr)) {
+        Logger::debug("DDraw7Surface::SetClipper: Using hwnd from clipper");
+        HWND hwnd;
+        lpDDClipper->GetHWnd(&hwnd);
+        m_parent->SetHWND(hwnd);
+      }
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColorKey) {
@@ -528,7 +543,7 @@ namespace dxvk {
     refreshD3D7Device();
 
     if (likely(IsInitialized()))
-      hr = UploadTextureData();
+      hr = UploadSurfaceData();
     else
       hr = IntializeD3D9();
 
@@ -634,8 +649,6 @@ namespace dxvk {
 
     Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Placing in: ", poolPlacement));
 
-    Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Declared mips ", m_desc.dwMipMapCount));
-
     // We need to count the number of actual mips on initialization by going through
     // the mip chain, since the dwMipMapCount number may or may not be accurate. I am
     // guess it was intended more a hint, not neceesarily how many mips ended up on the GPU.
@@ -651,9 +664,13 @@ namespace dxvk {
       }
     }
 
-    uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
-    if (mipLevels > 1)
+    const uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
+    if (mipLevels > 1) {
       Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Found ", mipLevels, " mip levels"));
+
+      if (unlikely(mipLevels != m_desc.dwMipMapCount))
+        Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Mismatch with declared ", m_desc.dwMipMapCount, "mip levels"));
+    }
 
     // Render targets / various base surface types
     if (IsRenderTarget() || IsOverlay()) {
@@ -805,39 +822,39 @@ namespace dxvk {
       m_d3d9 = std::move(surf);
     }
 
-    // Always upload the texture content post-init
-    UploadTextureData();
+    // Textures and cubemaps get uploaded during SetTexture calls
+    if (!IsTextureOrCubeMap())
+      UploadSurfaceData();
 
     return DD_OK;
   }
 
-  inline HRESULT DDraw7Surface::UploadTextureData() {
-    Logger::debug(str::format("DDraw7Surface::UploadTextureData: Uploading nr. [[", m_surfCount, "]]"));
+  inline HRESULT DDraw7Surface::UploadSurfaceData() {
+    Logger::debug(str::format("DDraw7Surface::UploadSurfaceData: Uploading nr. [[", m_surfCount, "]]"));
 
     if (m_d3d7device->HasDrawn() && (IsFrontBuffer() || IsBackBuffer()))
       return DD_OK;
 
     // Nothing to upload
     if (unlikely(!IsInitialized())) {
-      Logger::warn("DDraw7Surface::UploadTextureData: No wrapped surface or texture");
+      Logger::warn("DDraw7Surface::UploadSurfaceData: No wrapped surface or texture");
       return DD_OK;
     }
 
     if (unlikely(m_desc.dwHeight == 0 || m_desc.dwWidth == 0)) {
-      Logger::warn("DDraw7Surface::UploadTextureData: Surface has 0 height or width");
+      Logger::warn("DDraw7Surface::UploadSurfaceData: Surface has 0 height or width");
       return DD_OK;
     }
 
     // Blit all the mips for textures
     if (IsTexture()) {
-      Logger::debug(str::format("DDraw7Surface::UploadTextureData: Declared mips ", m_desc.dwMipMapCount));
-      uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
+      const uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
       BlitToD3D9Texture(m_texture.ptr(), m_proxy.ptr(), mipLevels, IsDXTFormat(m_format));
     // TODO: Handle uploading all cubemap faces
     } else if (unlikely(IsCubeMap())) {
-      Logger::warn("DDraw7Surface::UploadTextureData: Unhandled upload of cube map");
+      Logger::warn("DDraw7Surface::UploadSurfaceData: Unhandled upload of cube map");
     } else if (unlikely(IsDepthStencil())) {
-      Logger::debug("DDraw7Surface::UploadTextureData: Skipping upload of depth stencil");
+      Logger::debug("DDraw7Surface::UploadSurfaceData: Skipping upload of depth stencil");
     // Blit surfaces directly
     } else if (likely(m_d3d9 != nullptr)) {
       BlitToD3D9Surface(m_d3d9.ptr(), m_proxy.ptr(), IsDXTFormat(m_format));
