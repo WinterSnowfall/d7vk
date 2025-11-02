@@ -266,10 +266,12 @@ namespace dxvk {
 
     // We are now allowing proxy back buffer blits in certain cases, so
     // we must also ensure the back buffer clear calls are proxied
-    HRESULT hr = m_proxy->Clear(count, rects, flags, color, z, stencil);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7Device::Clear: Failed proxied clear call");
-      return hr;
+    if (unlikely(!m_hasDrawn)) {
+      HRESULT hr = m_proxy->Clear(count, rects, flags, color, z, stencil);
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D7Device::Clear: Failed proxied clear call");
+        return hr;
+      }
     }
 
     return m_d3d9->Clear(count, rects, flags, color, z, stencil);
