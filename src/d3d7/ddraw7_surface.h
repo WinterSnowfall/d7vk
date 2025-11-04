@@ -211,7 +211,7 @@ namespace dxvk {
 
     // TODO: Need to do this on every device use
     // and refresh derp out if the device is lost
-    inline void refreshD3D7Device() {
+    inline void RefreshD3D7Device() {
       D3D7Device* d3d7device = m_parent->GetD3D7Device();
       // Check if the device has been lost
       if (unlikely(m_d3d7device != nullptr && m_d3d7device != d3d7device)) {
