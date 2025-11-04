@@ -135,6 +135,10 @@ namespace dxvk {
       return m_singlethread.AcquireLock();
     }
 
+    const D3D7Options* GetOptions() const {
+      return m_parent->GetOptions();
+    }
+
     DDraw7Surface* GetRenderTarget() const {
       return m_rt;
     }
