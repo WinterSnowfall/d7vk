@@ -1392,6 +1392,15 @@ namespace dxvk {
     { R"(\\Monkey4\.exe$)", {{
       { "d3d9.allowDirectBufferMapping",   "False" },
     }} },
+    /* Sacred - Fixes missing text                */
+    { R"(\\Sacred\.exe$)", {{
+      { "d3d7.proxiedGetDC",                "True" },
+    }} },
+    /* Hostile Waters: Antaeus Rising             *
+     * Vastly improves performance                */
+    { R"(\\HostileWaters\.exe$)", {{
+      { "d3d9.cachedDynamicBuffers",        "True" },
+    }} },
 
   };
 
