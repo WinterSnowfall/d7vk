@@ -134,6 +134,8 @@ namespace dxvk {
     params.BackBufferWidth    = desc.dwWidth;
     params.BackBufferHeight   = desc.dwHeight;
     params.BackBufferFormat   = ConvertFormat(desc.ddpfPixelFormat);
+    // TODO: Potentially cater for multiple back buffers, though in
+    // practice their use isn't very common in d3d7
     params.BackBufferCount    = 1;
     params.MultiSampleType    = d3d9::D3DMULTISAMPLE_NONE;
     params.MultiSampleQuality = 0;

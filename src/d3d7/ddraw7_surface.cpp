@@ -68,7 +68,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
     Logger::debug("<<< DDraw7Surface::Blt: Proxy");
 
-    refreshD3D7Device();
+    RefreshD3D7Device();
     if (m_d3d7device != nullptr && m_d3d7device->HasDrawn() && (IsFrontBuffer() || IsBackBuffer()))
       return DD_OK;
 
@@ -104,7 +104,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDraw7Surface::BltFast: Proxy");
 
-    refreshD3D7Device();
+    RefreshD3D7Device();
     if (m_d3d7device != nullptr && m_d3d7device->HasDrawn() && (IsFrontBuffer() || IsBackBuffer()))
       return DD_OK;
 
@@ -166,7 +166,7 @@ namespace dxvk {
     if (unlikely(lpDDSurfaceTargetOverride != nullptr))
       Logger::debug("DDraw7Surface::Flip: Use of non-NULL lpDDSurfaceTargetOverride");
 
-    refreshD3D7Device();
+    RefreshD3D7Device();
     if (likely(m_d3d7device != nullptr)) {
       m_d3d7device->ResetDrawTracking();
       m_d3d7device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
@@ -258,34 +258,21 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetDC(HDC *lphDC) {
     Logger::debug(">>> DDraw7Surface::GetDC");
 
+    RefreshD3D7Device();
+    if (unlikely(m_d3d7device != nullptr && m_d3d7device->GetOptions()->proxiedGetDC))
+      return m_proxy->GetDC(lphDC);
+
     if (unlikely(lphDC == nullptr))
       return DDERR_INVALIDPARAMS;
-
-    HRESULT hrUpload = InitializeOrUploadD3D9();
-    if (unlikely(FAILED(hrUpload)))
-      Logger::warn("DDraw7Surface::GetDC: Failed upload to d3d9 surface");
 
     if (unlikely(!IsInitialized())) {
       Logger::warn("DDraw7Surface::GetDC: Not yet initialized");
       return m_proxy->GetDC(lphDC);
     }
 
-    d3d9::IDirect3DSurface9* surface = nullptr;
-
-    // If this is a texture, retrieve the top level surface
-    if (IsTexture()) {
-      m_texture->GetSurfaceLevel(0, &surface);
-    } else if (IsCubeMap()) {
-      //TODO: Get the +X face?
-      return DDERR_NOTFOUND;
-    } else {
-      surface = m_d3d9.ptr();
-    }
-
-    HRESULT hr = surface->GetDC(lphDC);
+    HRESULT hr = m_d3d9->GetDC(lphDC);
     if (unlikely(FAILED(hr))) {
       Logger::err("DDraw7Surface::GetDC: Failed to get d3d9 DC");
-      return m_proxy->GetDC(lphDC);
     }
 
     return hr;
@@ -337,29 +324,18 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::ReleaseDC(HDC hDC) {
     Logger::debug(">>> DDraw7Surface::ReleaseDC");
 
-    HRESULT hr = DD_OK;
+    RefreshD3D7Device();
+    if (unlikely(m_d3d7device != nullptr && m_d3d7device->GetOptions()->proxiedGetDC))
+      return m_proxy->ReleaseDC(hDC);
 
     if (unlikely(!IsInitialized())) {
       Logger::warn("DDraw7Surface::ReleaseDC: Not yet initialized");
       return m_proxy->ReleaseDC(hDC);
     }
 
-    d3d9::IDirect3DSurface9* surface = nullptr;
-
-    // If this is a texture, retrieve the top level surface
-    if (IsTexture()) {
-      m_texture->GetSurfaceLevel(0, &surface);
-    } else if (IsCubeMap()) {
-      // TODO: Get the +X face?
-      return DDERR_NOTFOUND;
-    } else {
-      surface = m_d3d9.ptr();
-    }
-
-    hr = surface->ReleaseDC(hDC);
+    HRESULT hr = m_d3d9->ReleaseDC(hDC);
     if (unlikely(FAILED(hr))) {
       Logger::err("DDraw7Surface::ReleaseDC: Failed to release d3d9 DC");
-      return m_proxy->ReleaseDC(hDC);
     }
 
     return hr;
@@ -540,7 +516,7 @@ namespace dxvk {
   HRESULT DDraw7Surface::InitializeOrUploadD3D9() {
     HRESULT hr = DDERR_GENERIC;
 
-    refreshD3D7Device();
+    RefreshD3D7Device();
 
     if (likely(IsInitialized()))
       hr = UploadSurfaceData();
@@ -649,6 +625,8 @@ namespace dxvk {
 
     Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Placing in: ", poolPlacement));
 
+    d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
+
     // We need to count the number of actual mips on initialization by going through
     // the mip chain, since the dwMipMapCount number may or may not be accurate. I am
     // guess it was intended more a hint, not neceesarily how many mips ended up on the GPU.
@@ -724,7 +702,7 @@ namespace dxvk {
         // Must be lockable for blitting to work
         hr = m_d3d7device->GetD3D9()->CreateRenderTarget(
           m_desc.dwWidth, m_desc.dwHeight, m_format,
-          d3d9::D3DMULTISAMPLE_NONE, usage, TRUE, &rt, nullptr);
+          multiSampleType, usage, TRUE, &rt, nullptr);
         if (likely(SUCCEEDED(hr)))
           Logger::debug("DDraw7Surface::IntializeD3D9: Created generic RT");
       }
@@ -753,6 +731,11 @@ namespace dxvk {
         return hr;
       }
 
+      // Attach level 0 to this surface
+      Com<d3d9::IDirect3DSurface9> level = nullptr;
+      tex->GetSurfaceLevel(0, &level);
+      m_d3d9 = (std::move(level));
+
       Logger::debug("DDraw7Surface::IntializeD3D9: Created d3d9 texture");
       m_texture = std::move(tex);
 
@@ -764,7 +747,7 @@ namespace dxvk {
 
       hr = m_d3d7device->GetD3D9()->CreateDepthStencilSurface(
         m_desc.dwWidth, m_desc.dwHeight, m_format,
-        d3d9::D3DMULTISAMPLE_NONE, 0, FALSE, &ds, nullptr);
+        multiSampleType, 0, FALSE, &ds, nullptr);
 
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create DS");
@@ -792,12 +775,12 @@ namespace dxvk {
 
       Logger::debug("DDraw7Surface::IntializeD3D9: Created cube map");
 
-      // Attach face 0 to this surface.
+      // Attach face 0 to this surface
       Com<d3d9::IDirect3DSurface9> face = nullptr;
       cubetex->GetCubeMapSurface((d3d9::D3DCUBEMAP_FACES)0, 0, &face);
       m_d3d9 = (std::move(face));
 
-      // Attach sides 1-5 to each attached surface.
+      // Attach sides 1-5 to each attached surface
       m_proxy->EnumAttachedSurfaces(cubetex.ptr(), EnumAndAttachSurfacesCallback);
 
       m_cubeMap = std::move(cubetex);
@@ -822,9 +805,7 @@ namespace dxvk {
       m_d3d9 = std::move(surf);
     }
 
-    // Textures and cubemaps get uploaded during SetTexture calls
-    if (!IsTextureOrCubeMap())
-      UploadSurfaceData();
+    UploadSurfaceData();
 
     return DD_OK;
   }
