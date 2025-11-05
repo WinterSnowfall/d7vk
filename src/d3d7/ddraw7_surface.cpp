@@ -183,20 +183,20 @@ namespace dxvk {
 
     if (lpDDSCaps->dwCaps & DDSCAPS_PRIMARYSURFACE)
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for the front buffer");
-    if (lpDDSCaps->dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP))
+    else if (lpDDSCaps->dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP))
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for the back buffer");
-    if (lpDDSCaps->dwCaps & DDSCAPS_OFFSCREENPLAIN)
+    else if (lpDDSCaps->dwCaps & DDSCAPS_OFFSCREENPLAIN)
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for an offscreen plain surface");
-    if (lpDDSCaps->dwCaps & DDSCAPS_ZBUFFER)
+    else if (lpDDSCaps->dwCaps & DDSCAPS_ZBUFFER)
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a depth stencil");
-    if ((lpDDSCaps->dwCaps  & DDSCAPS_MIPMAP)
-     || (lpDDSCaps->dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL))
+    else if ((lpDDSCaps->dwCaps  & DDSCAPS_MIPMAP)
+          || (lpDDSCaps->dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL))
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a texture mip map");
     else if (lpDDSCaps->dwCaps & DDSCAPS_TEXTURE)
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a texture");
-    if (lpDDSCaps->dwCaps2 & DDSCAPS2_CUBEMAP)
+    else if (lpDDSCaps->dwCaps2 & DDSCAPS2_CUBEMAP)
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a cube map");
-    if (lpDDSCaps->dwCaps2 & DDSCAPS_OVERLAY)
+    else if (lpDDSCaps->dwCaps2 & DDSCAPS_OVERLAY)
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for an overlay");
 
     Com<IDirectDrawSurface7> surface = nullptr;
@@ -453,19 +453,7 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetSurfaceDesc(LPDDSURFACEDESC2 lpDDSD, DWORD dwFlags) {
     Logger::debug("<<< DDraw7Surface::SetSurfaceDesc: Proxy");
-
-    if (unlikely(lpDDSD == nullptr))
-      return DDERR_INVALIDPARAMS;
-
-    HRESULT hr = m_proxy->SetSurfaceDesc(lpDDSD, dwFlags);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("DDraw7Surface::SetSurfaceDesc: Failed to set surface desc");
-      return hr;
-    }
-
-    m_desc = *lpDDSD;
-
-    return hr;
+    return m_proxy->SetSurfaceDesc(lpDDSD, dwFlags);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetPrivateData(const GUID &tag, LPVOID pData, DWORD cbSize, DWORD dwFlags) {
@@ -629,7 +617,7 @@ namespace dxvk {
 
     RefreshD3D7Device();
     if (likely(m_d3d7device != nullptr)) {
-      int32_t forceMSAA = m_d3d7device->GetOptions()->forceMSAA;
+      const int32_t forceMSAA = m_d3d7device->GetOptions()->forceMSAA;
 
       if (unlikely(forceMSAA != -1)) {
         multiSampleType = d3d9::D3DMULTISAMPLE_TYPE(std::min<uint32_t>(8u, forceMSAA));
