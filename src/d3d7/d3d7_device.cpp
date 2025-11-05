@@ -13,6 +13,7 @@ namespace dxvk {
       Com<IDirect3DDevice7>&& d3d7DeviceProxy,
       D3D7Interface* pParent,
       DDraw7Interface* pDD7Parent,
+      D3DDEVICEDESC7 Desc,
       Com<d3d9::IDirect3DDevice9>&& pDevice,
       DDraw7Surface* pSurface,
       bool isRGBDevice)
@@ -22,6 +23,7 @@ namespace dxvk {
     , m_DD7Parent ( pDD7Parent )
     // Always enforce multi-threaded protection on a D3D7 device
     , m_singlethread( true )
+    , m_desc ( Desc )
     , m_rt ( pSurface ) {
     // Get the bridge interface to D3D9
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8Bridge), reinterpret_cast<void**>(&m_bridge))))) {
@@ -61,14 +63,12 @@ namespace dxvk {
     if (unlikely(desc == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *desc = m_parent->GetDesc();
+    *desc = m_desc;
 
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx) {
-    D3D7DeviceLock lock = LockDevice();
-
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -189,7 +189,7 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::SetRenderTarget");
 
-    if (surface == nullptr) {
+    if (unlikely(surface == nullptr)) {
       Logger::err("D3D7Device::SetRenderTarget: NULL render target");
       return DDERR_INVALIDPARAMS;
     }
@@ -262,6 +262,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::Clear(DWORD count, D3DRECT *rects, DWORD flags, D3DCOLOR color, D3DVALUE z, DWORD stencil) {
+    D3D7DeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D7Device::Clear");
 
     // We are now allowing proxy back buffer blits in certain cases, so
@@ -689,12 +691,8 @@ namespace dxvk {
       return hr;
     }
 
-    d3d9::IDirect3DTexture9* texture9 = surface7->GetTexture();
-    if (texture9 != nullptr) {
-      texture9->PreLoad();
-    } else {
-      surface7->GetSurface()->PreLoad();
-    }
+    // Does not return an HRESULT
+    surface7->GetSurface()->PreLoad();
 
     hr = m_proxy->PreLoad(surface7->GetProxied());
     if (unlikely(FAILED(hr))) {
@@ -806,20 +804,70 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitiveStrided(D3DPRIMITIVETYPE primitive_type, DWORD fvf, D3DDRAWPRIMITIVESTRIDEDDATA *pStridedData, DWORD stridedDataCount, DWORD flags) {
+  HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, DWORD dwFlags) {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::warn("!!! D3D7Device::DrawPrimitiveStrided: Stub");
 
+    if (unlikely(lpVertexArray == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(!dwVertexCount))
+      return D3D_OK;
+
+    // TODO: lpVertexArray needs to be transformed into a non-strided vertex buffer stream
+    /*m_d3d9->SetFVF(dwVertexTypeDesc);
+    HRESULT hr = m_d3d9->DrawPrimitiveUP(
+                     d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                     GetPrimitiveCount(d3dptPrimitiveType, dwVertexCount),
+                     lpVertexArray,
+                     GetFVFSize(dwVertexTypeDesc));
+
+    if (unlikely(FAILED(hr))) {
+      Logger::warn("D3D7Device::DrawPrimitiveStrided: Failed d3d9 call to DrawPrimitiveUP");
+      return hr;
+    }*/
+
+    if (unlikely(!m_hasDrawn))
+      m_hasDrawn = true;
+
     return D3D_OK;
+    //return hr;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD  dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD  dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
+  HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::warn("!!! D3D7Device::DrawIndexedPrimitiveStrided: Stub");
 
+    if (unlikely(lpVertexArray == nullptr || lpwIndices == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(!dwVertexCount || !dwIndexCount))
+      return D3D_OK;
+
+    // TODO: lpVertexArray needs to be transformed into a non-strided vertex buffer stream
+    /*m_d3d9->SetFVF(dwVertexTypeDesc);
+    HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
+                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                      0,
+                      dwVertexCount,
+                      GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount),
+                      lpwIndices,
+                      d3d9::D3DFMT_INDEX16,
+                      lpvVertices,
+                      GetFVFSize(dwVertexTypeDesc));
+
+    if (unlikely(FAILED(hr))) {
+      Logger::warn("D3D7Device::DrawIndexedPrimitive: Failed d3d9 call to DrawIndexedPrimitiveUP");
+      return hr;
+    }*/
+
+    if (unlikely(!m_hasDrawn))
+      m_hasDrawn = true;
+
     return D3D_OK;
+    //return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, DWORD dwFlags) {
@@ -876,29 +924,17 @@ namespace dxvk {
     if (unlikely(!dwNumVertices || !dwIndexCount))
       return D3D_OK;
 
-    HRESULT hr = UploadIndices(lpwIndices, dwIndexCount);
-    if(unlikely(FAILED(hr)))
-      Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed to upload indices");
-
-    hr = m_d3d9->SetIndices(m_ib9.ptr());
-    if(unlikely(FAILED(hr)))
-      Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed to set d3d9 indices");
-
-    hr = m_d3d9->SetFVF(vb->GetFVF());
-    if(unlikely(FAILED(hr)))
-      Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed to set d3d9 FVF");
-
-    hr = m_d3d9->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
-    if(unlikely(FAILED(hr)))
-      Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed to set d3d9 stream source");
-
-    hr = m_d3d9->DrawIndexedPrimitive(
-                  d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
-                  dwStartVertex,
-                  0,
-                  dwNumVertices,
-                  0,
-                  GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount));
+    UploadIndices(lpwIndices, dwIndexCount);
+    m_d3d9->SetIndices(m_ib9.ptr());
+    m_d3d9->SetFVF(vb->GetFVF());
+    m_d3d9->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
+    HRESULT hr = m_d3d9->DrawIndexedPrimitive(
+                    d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                    dwStartVertex,
+                    0,
+                    dwNumVertices,
+                    0,
+                    GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount));
 
     if(unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed d3d9 call to DrawIndexedPrimitive");
@@ -911,11 +947,9 @@ namespace dxvk {
     return hr;
   }
 
+  // No actual use of it seen in the wild yet
   HRESULT STDMETHODCALLTYPE D3D7Device::ComputeSphereVisibility(D3DVECTOR *centers, D3DVALUE *radii, DWORD sphere_count, DWORD sphereCount, DWORD *visibility) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::warn("!!! D3D7Device::ComputeSphereVisibility: Stub");
-
     return D3D_OK;
   }
 
@@ -1016,8 +1050,7 @@ namespace dxvk {
     if (stateType != -1u) {
       // If the type has been remapped to a sampler state type
       return m_d3d9->GetSamplerState(dwStage, stateType, lpdwState);
-    }
-    else {
+    } else {
       return m_d3d9->GetTextureStageState(dwStage, d3d9::D3DTEXTURESTAGESTATETYPE(d3dTexStageStateType), lpdwState);
     }
   }
@@ -1038,17 +1071,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::ValidateDevice(LPDWORD lpdwPasses) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::ValidateDevice");
-
     return m_d3d9->ValidateDevice(lpdwPasses);
   }
 
   // This is a precursor of our ol' pal CopyRects
   HRESULT STDMETHODCALLTYPE D3D7Device::Load(IDirectDrawSurface7 *dst_surface, POINT *dst_point, IDirectDrawSurface7 *src_surface, RECT *src_rect, DWORD flags) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug("<<< D3D7Device::Load: Proxy");
 
     if (dst_surface == nullptr || src_surface == nullptr) {
@@ -1097,43 +1125,28 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::LightEnable(DWORD dwLightIndex, BOOL bEnable) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::LightEnable");
-
     return m_d3d9->LightEnable(dwLightIndex, bEnable);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetLightEnable(DWORD dwLightIndex, BOOL *pbEnable) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::GetLightEnable");
-
     return m_d3d9->GetLightEnable(dwLightIndex, pbEnable);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetClipPlane(DWORD dwIndex, D3DVALUE *pPlaneEquation) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::SetClipPlane");
-
     return m_d3d9->SetClipPlane(dwIndex, pPlaneEquation);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetClipPlane(DWORD dwIndex, D3DVALUE *pPlaneEquation) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::GetClipPlane");
-
     return m_d3d9->GetClipPlane(dwIndex, pPlaneEquation);
   }
 
   // Docs state: "This method returns S_FALSE on retail builds of DirectX."
   HRESULT STDMETHODCALLTYPE D3D7Device::GetInfo(DWORD info_id, void *info, DWORD info_size) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::GetInfo");
-
     return S_FALSE;
   }
 
