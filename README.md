@@ -59,9 +59,9 @@ If you're wondering about the current state of a certain game, a good starting p
 
 Yes, because d7vk relies on dxvk's d3d9 backend, so everything ends up there anyway.
 
-### Is there a way to force swapchain MSAA?
+### Since D3D7 AA isn't actually supported, is there a way to force swapchain MSAA?
 
-Yes, I will bring that back in d7vk, because d3d7 is entirely based on fixed function and there can be no programmable shader-related issues to interfere with it.
+Yes, use `d3d7.forceMSAA = <your_desired_MSAA_level>`. 2, 4 and 8 (x MSAA) are supported. Note that D3D7 AA support is advertised, so games will let you enable it, however D3DRENDERSTATE_ANTIALIAS (toggleable AA) isn't compatible with D3D9, so it will have no end effect without forcing a MSAA level.
 
 ### Will it work on Windows?
 
