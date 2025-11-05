@@ -17,8 +17,7 @@ namespace dxvk {
 
   D3D7Interface::D3D7Interface(Com<IDirect3D7>&& d3d7IntfProxy, DDraw7Interface* pParent)
     : DDrawWrappedObject<d3d9::IDirect3D9, IDirect3D7>(std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)), std::move(d3d7IntfProxy))
-    , m_parent ( pParent )
-    , m_desc ( GetBaseD3D7Caps() ) {
+    , m_parent ( pParent ) {
     // Get the bridge interface to D3D9.
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
       throw DxvkError("D3D7Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
@@ -51,8 +50,7 @@ namespace dxvk {
     // D3D7 supports one HAL T&L device, one HAL device, and one
     // RGB (software emulation) device, all indentified via GUIDs
 
-    // Make a copy, because we need to alter stuff
-    D3DDEVICEDESC7 desc7 = m_desc;
+    D3DDEVICEDESC7 desc7 = GetBaseD3D7Caps();
 
     // Hardware acceleration with T&L (HWVP)
     desc7.deviceGUID = IID_IDirect3DTnLHalDevice;
@@ -178,11 +176,12 @@ namespace dxvk {
       return hr;
     }
 
-    // Store the GUID of the created device in m_desc
-    m_desc.deviceGUID = rclsid;
+    D3DDEVICEDESC7 desc7 = GetBaseD3D7Caps();
+    // Store the GUID of the created device
+    desc7.deviceGUID = rclsid;
 
     try{
-      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, m_parent,
+      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, m_parent, desc7,
                                               std::move(device9), rt7, isRGBDevice);
       // Hold the address of the most recently created device, not a reference
       m_device = device.ptr();
@@ -225,8 +224,8 @@ namespace dxvk {
       return D3DERR_INVALIDCALL;
 
     Com<d3d9::IDirect3DVertexBuffer9> buffer = nullptr;
-    DWORD Usage = ConvertUsageFlags(desc->dwCaps, m_device->IsRGBDevice());
-    DWORD Size  = GetFVFSize(desc->dwFVF) * desc->dwNumVertices;
+    const DWORD Usage = ConvertUsageFlags(desc->dwCaps, m_device->IsRGBDevice());
+    const DWORD Size  = GetFVFSize(desc->dwFVF) * desc->dwNumVertices;
     HRESULT hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Usage, desc->dwFVF, d3d9::D3DPOOL_DEFAULT, &buffer, nullptr);
 
     if (unlikely(FAILED(hr))) {
@@ -266,13 +265,19 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // Typically gets called during tear-down, when it won't do much good anyway
   HRESULT STDMETHODCALLTYPE D3D7Interface::EvictManagedTextures() {
     Logger::debug(">>> D3D7Interface::EvictManagedTextures");
+
     if (m_device != nullptr) {
       m_device->LockDevice();
-      m_device->GetD3D9()->EvictManagedResources();
+      HRESULT hr = m_device->GetD3D9()->EvictManagedResources();
+
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D7Interface::EvictManagedTextures: Failed d3d9 managed resource eviction");
+        return hr;
+      }
     }
+
     return m_proxy->EvictManagedTextures();
   }
 
