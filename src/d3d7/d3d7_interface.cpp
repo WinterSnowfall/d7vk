@@ -137,7 +137,6 @@ namespace dxvk {
     // TODO: Potentially cater for multiple back buffers, though in
     // practice their use isn't very common in d3d7
     params.BackBufferCount    = 1;
-    params.MultiSampleType    = d3d9::D3DMULTISAMPLE_NONE;
     params.MultiSampleQuality = 0;
     params.SwapEffect         = d3d9::D3DSWAPEFFECT_DISCARD;
     params.hDeviceWindow      = hwnd;
@@ -147,6 +146,12 @@ namespace dxvk {
     params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
     params.FullScreen_RefreshRateInHz = 0;
     params.PresentationInterval       = D3DPRESENT_INTERVAL_ONE;
+
+    if (unlikely(m_d3d7Options.forceMSAA != -1)) {
+      params.MultiSampleType = d3d9::D3DMULTISAMPLE_TYPE(std::min<uint32_t>(8u, m_d3d7Options.forceMSAA));
+    } else {
+      params.MultiSampleType = d3d9::D3DMULTISAMPLE_NONE;
+    }
 
     Com<d3d9::IDirect3DDevice9> device9 = nullptr;
 
