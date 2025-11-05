@@ -18,7 +18,7 @@ namespace dxvk {
       , m_proxy ( std::move(proxiedIntf) ) {
     }
 
-    D3D9* GetD3D9() {
+    D3D9* GetD3D9() const {
       return m_d3d9.ptr();
     }
 
@@ -26,7 +26,7 @@ namespace dxvk {
       m_d3d9 = std::move(object);
     }
 
-    DDraw* GetProxied() {
+    DDraw* GetProxied() const {
       return m_proxy.ptr();
     }
 

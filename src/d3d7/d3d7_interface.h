@@ -46,10 +46,6 @@ namespace dxvk {
       return &m_d3d7Options;
     }
 
-    const D3DDEVICEDESC7 GetDesc() const {
-      return m_desc;
-    }
-
   private:
     DDraw7Interface*              m_parent = nullptr;
 
@@ -61,9 +57,6 @@ namespace dxvk {
 
     static uint32_t               s_intfCount;
     uint32_t                      m_intfCount = 0;
-
-    // TODO: Move to the devices, don't keep in the parent
-    D3DDEVICEDESC7                m_desc;
 
     D3D7Device*                   m_device = nullptr;
 
