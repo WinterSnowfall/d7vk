@@ -7,6 +7,9 @@ namespace dxvk {
 
   struct D3D7Options {
 
+    /// Forces a desired MSAA level on the d3d9 device/default swapchain
+    int32_t forceMSAA;
+
     /// Ignore all direct proxy back buffer blits done by the application
     bool strictBackBufferGuard;
 
@@ -16,6 +19,7 @@ namespace dxvk {
     D3D7Options() {}
 
     D3D7Options(const Config& config) {
+      this->forceMSAA             = config.getOption<int32_t>("d3d7.forceMSAA",                -1);
       this->strictBackBufferGuard = config.getOption<bool>   ("d3d7.strictBackBufferGuard", false);
       this->proxiedGetDC          = config.getOption<bool>   ("d3d7.proxiedGetDC",          false);
     }
