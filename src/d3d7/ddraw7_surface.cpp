@@ -627,6 +627,15 @@ namespace dxvk {
 
     d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
 
+    RefreshD3D7Device();
+    if (likely(m_d3d7device != nullptr)) {
+      int32_t forceMSAA = m_d3d7device->GetOptions()->forceMSAA;
+
+      if (unlikely(forceMSAA != -1)) {
+        multiSampleType = d3d9::D3DMULTISAMPLE_TYPE(std::min<uint32_t>(8u, forceMSAA));
+      }
+    }
+
     // We need to count the number of actual mips on initialization by going through
     // the mip chain, since the dwMipMapCount number may or may not be accurate. I am
     // guess it was intended more a hint, not neceesarily how many mips ended up on the GPU.
