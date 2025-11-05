@@ -74,7 +74,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE EvaluateMode(DWORD dwFlags, DWORD* pTimeout);
 
-    bool IsWrappedSurface(IDirectDrawSurface7* surface);
+    bool IsWrappedSurface(IDirectDrawSurface7* surface) const;
 
     void AddWrappedSurface(IDirectDrawSurface7* surface);
 

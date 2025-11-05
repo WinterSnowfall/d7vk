@@ -1,11 +1,11 @@
 # D7VK
 
-A Vulkan-based translation layer for Direct3D 7, which allows running 3D applications on Linux using Wine. It uses DXVK's D3D9 backend as well as Wine's DDRAW implementation (or the windows native DDRAW) and acts as a proxy between the two, providing a minimal D3D7-on-D3D9 implementation. The project is currently in its early days. Expect most things to run, but not necessarily correctly or optimally.
+A Vulkan-based translation layer for Direct3D 7, which allows running 3D applications on Linux using Wine. It uses DXVK's d3d9 backend as well as Wine's DDRAW implementation (or the windows native DDRAW) and acts as a proxy between the two, providing a minimal d3d7-on-d3d9 implementation. The project is currently in its early days. Expect most things to run, but not necessarily correctly or optimally.
 
 ## How to use
 Grab the latest release or compile the project manually if you want to be "on the bleeding edge".
 
-To give it a spin in a Wine prefix of choice, copy the `ddraw.dll` file next to the game/application executable, then open `winecfg` and manually add `native, builtin` (explicitly in that order) DLL overrides for `ddraw` under the Libraries tab. There's no need to worry about bitness or anything like that, since D3D7 has always been 32-bit exclusive.
+To give it a spin in a Wine prefix of choice, copy the `ddraw.dll` file next to the game/application executable, then open `winecfg` and manually add `native, builtin` (explicitly in that order) DLL overrides for `ddraw` under the Libraries tab. There's no need to worry about bitness or anything like that, since d3d7 has always been 32-bit exclusive.
 
 On Windows, simply copying `ddraw.dll` next to the game executable should work just fine. Note that Windows use is largely untested and D7VK is primarily aimed at use with Wine/Linux, so your milage may vary.
 
@@ -51,7 +51,7 @@ On Windows, log files will be created in the game's working directory by default
 
 ### Will d7vk work with any d3d7 game out there?
 
-Sadly, no. D3D7 is a land of highly cursed API inter-operabilty, and applications that for one reason or another mix and match d3d7 with older ddraw (not ddraw7) and/or with GDI are not expected to ever work. If those games provide alternative renderers, based on Glide or OpenGL, I strongly recommend you use those, together with [nGlide](https://www.zeus-software.com/downloads/nglide) where applicable.
+Sadly, no. d3d7 is a land of highly cursed API inter-operabilty, and applications that for one reason or another mix and match d3d7 with older ddraw (not ddraw7) and/or with GDI are not expected to ever work. If those games provide alternative renderers, based on Glide or OpenGL, I strongly recommend you use those, together with [nGlide](https://www.zeus-software.com/downloads/nglide) where applicable.
 
 If you're wondering about the current state of a certain game, a good starting point would be checking [the issue tracker](https://github.com/WinterSnowfall/d7vk/issues).
 
@@ -59,9 +59,9 @@ If you're wondering about the current state of a certain game, a good starting p
 
 Yes, because d7vk relies on dxvk's d3d9 backend, so everything ends up there anyway.
 
-### Since D3D7 AA isn't actually supported, is there a way to force swapchain MSAA?
+### Since d3d7 AA isn't actually supported, is there a way to force MSAA?
 
-Yes, use `d3d7.forceMSAA = <your_desired_MSAA_level>`. 2, 4 and 8 (x MSAA) are supported. Note that D3D7 AA support is advertised, so games will let you enable it, however D3DRENDERSTATE_ANTIALIAS (toggleable AA) isn't compatible with D3D9, so it will have no end effect without forcing a MSAA level.
+Yes, use `d3d7.forceMSAA = <your_desired_MSAA_level>`. 2, 4 and 8 (x MSAA) are supported. Note that d3d7 AA support is advertised, so games will let you enable it, however D3DRENDERSTATE_ANTIALIAS (toggleable AA) isn't compatible with d3d9, so you will not get any AA without forcing the MSAA level.
 
 ### Will it work on Windows?
 
@@ -73,7 +73,7 @@ No.
 
 ### Will it be expanded to include support for earlier D3D APIs?
 
-Also no. D3D7 is enough of a challenge and a mess as it is. The further we stray from D3D9, the further we stray from the divine.
+Also no. d3d7 is enough of a challenge and a mess as it is. The further we stray from d3d9, the further we stray from the divine.
 
 ## Acknowledgments
 

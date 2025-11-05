@@ -131,8 +131,9 @@ namespace dxvk {
     Logger::debug("<<< DDraw7Interface::GetCaps: Proxy");
 
     HRESULT hr = m_proxy->GetCaps(lpDDDriverCaps, lpDDHELCaps);
+
+    // Strip palletted surface support from reported caps
     if (likely(SUCCEEDED(hr))) {
-      // Strip palletted surface support from reported caps
       if (lpDDDriverCaps != nullptr) {
         lpDDDriverCaps->dwCaps &= ~(DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC);
         lpDDDriverCaps->dwPalCaps = 0;
@@ -282,7 +283,7 @@ namespace dxvk {
     return m_proxy->EvaluateMode(dwFlags, pTimeout);
   }
 
-  bool DDraw7Interface::IsWrappedSurface(IDirectDrawSurface7* surface) {
+  bool DDraw7Interface::IsWrappedSurface(IDirectDrawSurface7* surface) const {
     if (unlikely(surface == nullptr))
       return false;
 

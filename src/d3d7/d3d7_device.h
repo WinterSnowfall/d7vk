@@ -31,6 +31,7 @@ namespace dxvk {
         Com<IDirect3DDevice7>&& d3d7DeviceProxy,
         D3D7Interface* pParent,
         DDraw7Interface* pDD7Parent,
+        D3DDEVICEDESC7 Desc,
         Com<d3d9::IDirect3DDevice9>&& pDevice,
         DDraw7Surface* pRT,
         bool isRGBDevice);
@@ -89,7 +90,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetClipStatus(D3DCLIPSTATUS *clip_status);
 
-    HRESULT STDMETHODCALLTYPE DrawPrimitiveStrided(D3DPRIMITIVETYPE primitive_type, DWORD fvf, D3DDRAWPRIMITIVESTRIDEDDATA *pStridedData, DWORD stridedDataCount, DWORD flags);
+    HRESULT STDMETHODCALLTYPE DrawPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, DWORD dwFlags);
 
     HRESULT STDMETHODCALLTYPE DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD  dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags);
 
@@ -177,6 +178,8 @@ namespace dxvk {
 
     static uint32_t               s_deviceCount;
     uint32_t                      m_deviceCount = 0;
+
+    D3DDEVICEDESC7                m_desc;
 
     DDraw7Surface*                m_rt     = nullptr;
     DDraw7Surface*                m_rtOrig = nullptr;
