@@ -112,9 +112,9 @@ namespace dxvk {
 
     HWND hwnd = m_parent->GetHWND();
 
+    // Needed to sometimes safely skip intro playback on legacy devices
     if (unlikely(hwnd == nullptr)) {
-      Logger::err("D3D7Interface::CreateDevice: HWND is NULL");
-      return DDERR_NOHWND;
+      Logger::warn("D3D7Interface::CreateDevice: HWND is NULL");
     }
 
     if (unlikely(!m_parent->IsWrappedSurface(surface))) {
