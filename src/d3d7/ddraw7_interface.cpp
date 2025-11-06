@@ -79,17 +79,13 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddraw7SurfaceProxied, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      // Retrieve the actual surface desc, not what the application says it wants
-      DDSURFACEDESC2 desc;
-      desc.dwSize = sizeof(DDSURFACEDESC2);
-      HRESULT hrDesc = ddraw7SurfaceProxied->GetSurfaceDesc(&desc);
-
-      if (unlikely(FAILED(hrDesc))) {
-        Logger::err("DDraw7Interface::CreateSurface: Failed to retieve new surface desc");
-        return hrDesc;
+      try{
+        *lplpDDSurface = ref(new DDraw7Surface(std::move(ddraw7SurfaceProxied), this, nullptr, true));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        *lplpDDSurface = nullptr;
+        return DDERR_GENERIC;
       }
-
-      *lplpDDSurface = ref(new DDraw7Surface(std::move(ddraw7SurfaceProxied), this, nullptr, std::move(desc), true));
     } else {
       Logger::err("DDraw7Interface::CreateSurface: Failed to create proxy surface");
       return hr;
@@ -176,11 +172,14 @@ namespace dxvk {
       *lplpGDIDDSurface = ddraw7Surface->GetProxied();
     } else {
       Logger::debug("DDraw7Interface::GetGDISurface: Received a non-wrapped GDI surface");
-      DDSURFACEDESC2 desc;
-      desc.dwSize = sizeof(DDSURFACEDESC2);
-      gdiSurface->GetSurfaceDesc(&desc);
       // TODO: Maybe we want to keep it around... as a sort of GDI front buffer ref?
-      *lplpGDIDDSurface = ref(new DDraw7Surface(std::move(gdiSurface), this, nullptr, desc, false));
+      try {
+        *lplpGDIDDSurface = ref(new DDraw7Surface(std::move(gdiSurface), this, nullptr, false));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        *lplpGDIDDSurface = nullptr;
+        return DDERR_GENERIC;
+      }
     }
 
     return hr;
@@ -250,10 +249,13 @@ namespace dxvk {
       return hr;
     }
 
-    DDSURFACEDESC2 desc;
-    desc.dwSize = sizeof(DDSURFACEDESC2);
-    surface->GetSurfaceDesc(&desc);
-    *pSurf = ref(new DDraw7Surface(std::move(surface), this, nullptr, desc, false));
+    try {
+      *pSurf = ref(new DDraw7Surface(std::move(surface), this, nullptr, false));
+    } catch (const DxvkError& e) {
+      Logger::err(e.message());
+      *pSurf = nullptr;
+      return DDERR_GENERIC;
+    }
 
     return hr;
   }
