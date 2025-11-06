@@ -18,7 +18,6 @@ namespace dxvk {
           Com<IDirectDrawSurface7>&& surfProxy,
           DDraw7Interface* pParent,
           DDraw7Surface* pParentSurf,
-          DDSURFACEDESC2 desc,
           bool isChildObject);
 
     ~DDraw7Surface();
