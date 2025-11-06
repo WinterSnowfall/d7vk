@@ -1401,6 +1401,11 @@ namespace dxvk {
     { R"(\\HostileWaters\.exe$)", {{
       { "d3d9.cachedDynamicBuffers",        "True" },
     }} },
+    /* Total Club Manager 2003                    *
+     * Fixes broken camera transition effect      */
+    { R"(\\TCM2003\.exe$)", {{
+      { "d3d7.strictBackBufferGuard",       "True" },
+    }} },
 
   };
 
