@@ -1369,9 +1369,11 @@ namespace dxvk {
       { "d3d9.allowDirectBufferMapping",   "False" },
     }} },
     /* Sacrifice - Prevents hitching on asset     *
-     * loading and generally improves performance */
+     * loading and generally improves performance *
+     * and also fixes broken AI above 60 fps      */
     { R"(\\Sacrifice\.exe$)", {{
       { "d3d9.cachedDynamicBuffers",        "True" },
+      { "d3d9.maxFrameRate",                  "60" },
     }} },
     /* Emperor: Battle for Dune - Performance     */
     { R"(\\Emperor.*Dune\\Game\.exe$)", {{
