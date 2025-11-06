@@ -5,7 +5,7 @@
 
 namespace dxvk {
 
-  static inline d3d9::D3DTRANSFORMSTATETYPE ConvertTransformState(D3DTRANSFORMSTATETYPE tst) {
+  inline d3d9::D3DTRANSFORMSTATETYPE ConvertTransformState(D3DTRANSFORMSTATETYPE tst) {
     switch (tst) {
       case D3DTRANSFORMSTATE_WORLD:  return d3d9::D3DTRANSFORMSTATETYPE(D3DTS_WORLD);
       case D3DTRANSFORMSTATE_WORLD1: return d3d9::D3DTRANSFORMSTATETYPE(D3DTS_WORLD1);
@@ -15,7 +15,7 @@ namespace dxvk {
     }
   }
 
-  static inline DWORD ConvertLockFlags(DWORD lockFlags, bool isSurface) {
+  inline DWORD ConvertLockFlags(DWORD lockFlags, bool isSurface) {
     DWORD lockFlagsD3D9 = 0;
 
     // DDLOCK_WAIT is default for ddraw7 surfaces, so ignore it
@@ -42,7 +42,7 @@ namespace dxvk {
     return lockFlagsD3D9;
   }
 
-  static inline DWORD ConvertUsageFlags(DWORD usageFlags, bool isRGBDevice) {
+  inline DWORD ConvertUsageFlags(DWORD usageFlags, bool isRGBDevice) {
     DWORD usageFlagsD3D9 = 0;
 
     if (usageFlags & D3DVBCAPS_DONOTCLIP) {
@@ -62,7 +62,7 @@ namespace dxvk {
     return usageFlagsD3D9 | D3DUSAGE_DYNAMIC;
   }
 
-  static inline size_t GetFVFSize(DWORD fvf) {
+  inline size_t GetFVFSize(DWORD fvf) {
     size_t size = 0;
 
     switch (fvf & D3DFVF_POSITION_MASK) {
@@ -130,7 +130,7 @@ namespace dxvk {
     return size;
   }
 
-  static inline UINT GetPrimitiveCount(D3DPRIMITIVETYPE PrimitiveType, DWORD VertexCount) {
+  inline UINT GetPrimitiveCount(D3DPRIMITIVETYPE PrimitiveType, DWORD VertexCount) {
     switch (PrimitiveType) {
       case D3DPT_POINTLIST:     return static_cast<UINT>(VertexCount);
       case D3DPT_LINELIST:      return static_cast<UINT>(VertexCount / 2);
@@ -144,7 +144,7 @@ namespace dxvk {
 
   // If this D3DTEXTURESTAGESTATETYPE has been remapped to a d3d9::D3DSAMPLERSTATETYPE
   // it will be returned, otherwise returns -1u
-  static inline d3d9::D3DSAMPLERSTATETYPE ConvertSamplerStateType(const D3DTEXTURESTAGESTATETYPE StageType) {
+  inline d3d9::D3DSAMPLERSTATETYPE ConvertSamplerStateType(const D3DTEXTURESTAGESTATETYPE StageType) {
     switch (StageType) {
       // 13-21:
       case D3DTSS_ADDRESSU:       return d3d9::D3DSAMP_ADDRESSU;
@@ -160,7 +160,7 @@ namespace dxvk {
     }
   }
 
-  static inline D3DDEVICEDESC7 GetBaseD3D7Caps() {
+  inline D3DDEVICEDESC7 GetBaseD3D7Caps() {
     D3DDEVICEDESC7 desc7;
 
     desc7.dwDevCaps = D3DDEVCAPS_CANBLTSYSTONONLOCAL

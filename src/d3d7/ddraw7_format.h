@@ -4,7 +4,7 @@
 
 namespace dxvk {
 
-  static inline d3d9::D3DCUBEMAP_FACES GetCubemapFace(DDSURFACEDESC2* desc) {
+  inline d3d9::D3DCUBEMAP_FACES GetCubemapFace(DDSURFACEDESC2* desc) {
     if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEX) return d3d9::D3DCUBEMAP_FACE_POSITIVE_X;
     if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEX) return d3d9::D3DCUBEMAP_FACE_NEGATIVE_X;
     if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEY) return d3d9::D3DCUBEMAP_FACE_POSITIVE_Y;
@@ -164,7 +164,7 @@ namespace dxvk {
     return d3d9::D3DFMT_UNKNOWN;
   }
 
-  static inline DDPIXELFORMAT GetTextureFormat (d3d9::D3DFORMAT format) {
+  inline DDPIXELFORMAT GetTextureFormat (d3d9::D3DFORMAT format) {
     DDPIXELFORMAT tformat = { };
     tformat.dwSize = sizeof(DDPIXELFORMAT);
 
@@ -316,7 +316,7 @@ namespace dxvk {
     return tformat;
   }
 
-  static inline DDPIXELFORMAT GetZBufferFormat (d3d9::D3DFORMAT format) {
+  inline DDPIXELFORMAT GetZBufferFormat (d3d9::D3DFORMAT format) {
     DDPIXELFORMAT zformat = { };
     zformat.dwSize = sizeof(DDPIXELFORMAT);
 
@@ -378,7 +378,7 @@ namespace dxvk {
     return zformat;
   }
 
-  static inline bool IsDXTFormat(d3d9::D3DFORMAT fmt) {
+  inline bool IsDXTFormat(d3d9::D3DFORMAT fmt) {
     return fmt == d3d9::D3DFMT_DXT1
         || fmt == d3d9::D3DFMT_DXT2
         || fmt == d3d9::D3DFMT_DXT3
@@ -511,4 +511,5 @@ namespace dxvk {
       Logger::warn("BlitToD3D9Surface: Failed to lock d3d9 surface");
     }
   }
+
 }
