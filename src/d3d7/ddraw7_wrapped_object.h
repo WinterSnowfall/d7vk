@@ -72,8 +72,9 @@ namespace dxvk {
       } else if (unlikely(riid == __uuidof(IDirectDraw))) {
         Logger::warn("QueryInterface: Query for legacy IDirectDraw");
         return m_proxy->QueryInterface(riid, ppvObject);
-      // Some games query the legacy ddraw surface from the new one
-      } else if (unlikely(riid == __uuidof(IDirectDrawSurface))) {
+      // Some games query legacy ddraw surfaces from the new one
+      } else if (unlikely(riid == __uuidof(IDirectDrawSurface)
+                       || riid == __uuidof(IDirectDrawSurface4))) {
         Logger::warn("QueryInterface: Query for legacy IDirectDrawSurface");
         return m_proxy->QueryInterface(riid, ppvObject);
       }
