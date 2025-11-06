@@ -333,7 +333,7 @@ namespace dxvk {
 
     Logger::debug(str::format(">>> D3D7Device::SetRenderState: ", dwRenderStateType));
 
-    d3d9::D3DRENDERSTATETYPE State9 = (d3d9::D3DRENDERSTATETYPE)dwRenderStateType;
+    d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
 
     switch (dwRenderStateType) {
       // Most render states translate 1:1 to D3D9
@@ -433,7 +433,7 @@ namespace dxvk {
     if (unlikely(lpdwRenderState == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    d3d9::D3DRENDERSTATETYPE State9 = (d3d9::D3DRENDERSTATETYPE)dwRenderStateType;
+    d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
 
     switch (dwRenderStateType) {
       // Most render states translate 1:1 to D3D9

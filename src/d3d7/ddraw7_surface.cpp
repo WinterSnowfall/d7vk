@@ -10,18 +10,26 @@ namespace dxvk {
         Com<IDirectDrawSurface7>&& surfProxy,
         DDraw7Interface* pParent,
         DDraw7Surface* pParentSurf,
-        DDSURFACEDESC2 desc,
         bool isChildObject)
     : DDrawWrappedObject<d3d9::IDirect3DSurface9, IDirectDrawSurface7>(nullptr, std::move(surfProxy))
     , m_isChildObject ( isChildObject )
     , m_parent     ( pParent )
-    , m_parentSurf ( pParentSurf )
-    , m_desc       ( desc )
-    , m_format     ( ConvertFormat(desc.ddpfPixelFormat) ) {
+    , m_parentSurf ( pParentSurf ) {
     if (likely(m_isChildObject))
       m_parent->AddRef();
 
     m_parent->AddWrappedSurface(this);
+
+    // Retrieve and cache the proxy surface desc
+    m_desc.dwSize = sizeof(DDSURFACEDESC2);
+    HRESULT hr = m_proxy->GetSurfaceDesc(&m_desc);
+
+    if (unlikely(FAILED(hr))) {
+      throw DxvkError("DDraw7Surface: ERROR! Failed to retrieve new surface desc!");
+    } else {
+      // Determine the d3d9 surface format
+      m_format = ConvertFormat(m_desc.ddpfPixelFormat);
+    }
 
     m_surfCount = ++s_surfCount;
 
@@ -212,13 +220,16 @@ namespace dxvk {
 
     if (likely(!m_parent->IsWrappedSurface(surface.ptr()))) {
       Logger::debug("DDraw7Surface::GetAttachedSurface: Got a new unwrapped surface");
-      DDSURFACEDESC2 desc;
-      desc.dwSize = sizeof(DDSURFACEDESC2);
-      surface->GetSurfaceDesc(&desc);
-      Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(std::move(surface), m_parent, this, desc, false);
-      m_attachedSurfaces.push_back(ddraw7Surface.ptr());
-      // Do NOT ref here since we're managing the attached object lifecycle
-      *lplpDDAttachedSurface = ddraw7Surface.ptr();
+      try {
+        Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(std::move(surface), m_parent, this, false);
+        m_attachedSurfaces.push_back(ddraw7Surface.ptr());
+        // Do NOT ref here since we're managing the attached object lifecycle
+        *lplpDDAttachedSurface = ddraw7Surface.ptr();
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        *lplpDDAttachedSurface = nullptr;
+        return DDERR_GENERIC;
+      }
     // Can potentially happen with manually attached surfaces
     } else {
       Logger::debug("DDraw7Surface::GetAttachedSurface: Got an existing wrapped surface");
@@ -299,9 +310,17 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc) {
-    Logger::debug("<<< DDraw7Surface::GetSurfaceDesc: Proxy");
-    // This is NOT the desc that was passed during surface creation
-    return m_proxy->GetSurfaceDesc(lpDDSurfaceDesc);
+    Logger::debug(">>> DDraw7Surface::GetSurfaceDesc");
+
+    if (unlikely(lpDDSurfaceDesc == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC2)))
+      return DDERR_INVALIDPARAMS;
+
+    *lpDDSurfaceDesc = m_desc;
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC2 lpDDSurfaceDesc) {
@@ -453,7 +472,19 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetSurfaceDesc(LPDDSURFACEDESC2 lpDDSD, DWORD dwFlags) {
     Logger::debug("<<< DDraw7Surface::SetSurfaceDesc: Proxy");
-    return m_proxy->SetSurfaceDesc(lpDDSD, dwFlags);
+
+    // can be used only to set the surface data and pixel format
+    // used by an explicit system-memory surface (will be validated)
+    HRESULT hr = m_proxy->SetSurfaceDesc(lpDDSD, dwFlags);
+
+    // update the new surface description
+    if (likely(SUCCEEDED(hr))) {
+      m_desc = { };
+      m_desc.dwSize = sizeof(DDSURFACEDESC2);
+      m_proxy->GetSurfaceDesc(&m_desc);
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetPrivateData(const GUID &tag, LPVOID pData, DWORD cbSize, DWORD dwFlags) {
