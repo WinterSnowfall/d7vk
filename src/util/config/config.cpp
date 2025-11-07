@@ -1408,6 +1408,22 @@ namespace dxvk {
     { R"(\\TCM2003\.exe$)", {{
       { "d3d7.strictBackBufferGuard",       "True" },
     }} },
+    /* Gothic 1                                   */
+    { R"(\\GOTHIC\.EXE$)", {{
+      { "d3d7.proxiedQueryInterface",       "True" },
+    }} },
+    /* Gothic 2 / Night of the Raven              */
+    { R"(\\Gothic2\.exe)", {{
+      { "d3d7.proxiedQueryInterface",       "True" },
+    }} },
+    /* Ground Control (to Major Tom)              */
+    { R"(\\Ground Control\\gc\.exe$)", {{
+      { "d3d7.proxiedQueryInterface",       "True" },
+    }} },
+    /* Blade of Darkness                          */
+    { R"(\\Blade\.exe$)", {{
+      { "d3d7.proxiedQueryInterface",       "True" },
+    }} },
 
   };
 

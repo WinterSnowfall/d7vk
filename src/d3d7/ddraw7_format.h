@@ -63,15 +63,25 @@ namespace dxvk {
           // D: 1111 1111 1111 1111
           // S: 0000 0000 0000 0000
           return d3d9::D3DFMT_D16;
+        case 24:
+          // We don't support or expose a 24-bit depth stencil per se,
+          // but some applications request one anyway. Use D3DFMT_D24X8.
+          return d3d9::D3DFMT_D24X8;
         case 32: {
           switch (fmt.dwStencilBitMask) {
             case 0:
-              // D: 1111 1111 1111 1111
-              // S: 0000 0000 0000 0000
+              // D: 1111 1111 1111 1111 1111 1111 0000 0000
+              // S: 0000 0000 0000 0000 0000 0000 0000 0000
               return d3d9::D3DFMT_D24X8;
             case (0xFF):
               // D: 1111 1111 1111 1111 1111 1111 0000 0000
               // S: 0000 0000 0000 0000 0000 0000 1111 1111
+              return d3d9::D3DFMT_D24S8;
+            // Sometimes we get queries with reversed bit mask ordering
+            // TODO: Check if depth has a different bit order than regular RGB
+            case (DWORD(0xFF << 24)):
+              // D: 0000 0000 1111 1111 1111 1111 1111 1111
+              // S: 1111 1111 0000 0000 0000 0000 0000 0000
               return d3d9::D3DFMT_D24S8;
           }
           Logger::warn("ConvertFormat: Unhandled dwStencilBitMask 32 format");
