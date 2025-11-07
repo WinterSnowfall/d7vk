@@ -30,6 +30,10 @@ namespace dxvk {
       return m_proxy.ptr();
     }
 
+    void SetForwardToProxy(bool forwardToProxy) {
+      m_forwardToProxy = forwardToProxy;
+    }
+
     // For cases where the object may be null.
     static D3D9* GetD3D9Nullable(DDrawWrappedObject* self) {
       if (unlikely(self == NULL)) {
@@ -44,10 +48,19 @@ namespace dxvk {
     }
 
     virtual IUnknown* GetInterface(REFIID riid) {
-      if (riid == __uuidof(IUnknown))
+      if (riid == __uuidof(IUnknown)) {
         return this;
-      if (riid == __uuidof(DDraw))
+      } else if (riid == __uuidof(DDraw)) {
+        if (unlikely(m_forwardToProxy)) {
+          // Hack: Return the proxied interface, as some applications need
+          // to use an unwarpped object in relation with external modules
+          void* ppvObject = nullptr;
+          HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
+          if (likely(SUCCEEDED(hr)))
+            return reinterpret_cast<IUnknown*>(ppvObject);
+        }
         return this;
+      }
 
       throw DxvkError("DDrawWrappedObject::QueryInterface: Unknown interface query");
     }
@@ -90,6 +103,8 @@ namespace dxvk {
     }
 
   protected:
+
+    bool       m_forwardToProxy = false;
 
     Com<D3D9>  m_d3d9;
     Com<DDraw> m_proxy;

@@ -11,6 +11,9 @@ namespace dxvk {
 
   DDraw7Interface::DDraw7Interface(Com<IDirectDraw7>&& proxyIntf)
     : m_proxy ( std::move(proxyIntf) ) {
+    // Initialize a dummy D3D9 interface to retrieve the config options
+    m_d3d7ConfigIntf = new D3D7Interface(nullptr, this);
+
     m_intfCount = ++s_intfCount;
 
     Logger::debug(str::format("DDraw7Interface: Created a new interface nr. <<", m_intfCount, ">>"));
@@ -80,7 +83,19 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       try{
-        *lplpDDSurface = ref(new DDraw7Surface(std::move(ddraw7SurfaceProxied), this, nullptr, true));
+        Com<DDraw7Surface> surface7 = new DDraw7Surface(std::move(ddraw7SurfaceProxied), this, nullptr, false);
+
+        if (unlikely(m_d3d7ConfigIntf->GetOptions()->proxiedQueryInterface)) {
+          // Hack: Gothic / Gothic 2 and other games attach the depth stencil to an externally created
+          // back buffer, so we need to re-attach the depth stencil to the back buffer on device creation
+          if (unlikely(surface7->IsDepthStencil() || surface7->IsRenderTarget())) {
+            if (unlikely(surface7->IsDepthStencil()))
+              m_lastDepthStencil = surface7.ptr();
+            surface7->SetForwardToProxy(true);
+          }
+        }
+
+        *lplpDDSurface = surface7.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());
         *lplpDDSurface = nullptr;

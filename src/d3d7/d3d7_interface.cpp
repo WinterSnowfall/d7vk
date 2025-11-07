@@ -27,9 +27,11 @@ namespace dxvk {
 
     m_d3d7Options = D3D7Options(*m_bridge->GetConfig());
 
-    m_intfCount = ++s_intfCount;
+    if (likely(m_proxy != nullptr)) {
+      m_intfCount = ++s_intfCount;
 
-    Logger::debug(str::format("D3D7Interface: Created a new interface nr. ((", m_intfCount, "))"));
+      Logger::debug(str::format("D3D7Interface: Created a new interface nr. ((", m_intfCount, "))"));
+    }
   }
 
   D3D7Interface::~D3D7Interface() {
@@ -37,7 +39,9 @@ namespace dxvk {
     if (m_parent->GetD3D7Interface() == this)
       m_parent->ClearD3D7Interface();
 
-    Logger::debug(str::format("D3D7Interface: Interface nr. ((", m_intfCount, ")) bites the dust"));
+    if (likely(m_proxy != nullptr)) {
+      Logger::debug(str::format("D3D7Interface: Interface nr. ((", m_intfCount, ")) bites the dust"));
+    }
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK7 cb, void *ctx) {
@@ -117,16 +121,31 @@ namespace dxvk {
       Logger::warn("D3D7Interface::CreateDevice: HWND is NULL");
     }
 
-    if (unlikely(!m_parent->IsWrappedSurface(surface))) {
-      Logger::err("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
-      return DDERR_GENERIC;
-    }
-
     DDSURFACEDESC2 desc;
     desc.dwSize = sizeof(DDSURFACEDESC2);
     surface->GetSurfaceDesc(&desc);
 
     Logger::info(str::format("D3D7Interface::CreateDevice: RenderTarget: ", desc.dwWidth, "x", desc.dwHeight));
+
+    Com<DDraw7Surface> rt7;
+    if (unlikely(!m_parent->IsWrappedSurface(surface))) {
+      if (unlikely(m_d3d7Options.proxiedQueryInterface)) {
+        Logger::warn("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
+        rt7 = new DDraw7Surface(std::move(surface), m_parent, nullptr, true);
+        // And now we need to keep this wrapped object alive ourselves,
+        // since it is unknown to both ddraw and the calling application
+        m_unWrappedRT = m_unWrappedRT.ptr();
+        // Hack: attach the last created depth stencil to the unwrapped RT.
+        // Note that the proxied attach call will fail, because the RT is created outside
+        // of ddraw, but we will store the DS anyway and it will be used during device creation.
+        rt7->AddAttachedSurface(m_parent->GetLastDepthStencil());
+      } else {
+        Logger::err("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
+        return DDERR_GENERIC;
+      }
+    } else {
+      rt7 = static_cast<DDraw7Surface*>(surface);
+    }
 
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = desc.dwWidth;
@@ -168,7 +187,6 @@ namespace dxvk {
     }
 
     Com<IDirect3DDevice7> d3d7DeviceProxy;
-    DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
     hr = m_proxy->CreateDevice(rclsid, rt7->GetProxied(), &d3d7DeviceProxy);
 
     if (unlikely(FAILED(hr))) {
@@ -182,7 +200,7 @@ namespace dxvk {
 
     try{
       Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, m_parent, desc7,
-                                              std::move(device9), rt7, isRGBDevice);
+                                              std::move(device9), rt7.ptr(), isRGBDevice);
       // Hold the address of the most recently created device, not a reference
       m_device = device.ptr();
       // Now that we have a valid d3d9 device pointer, we can initialize the depth stencil (if any)
