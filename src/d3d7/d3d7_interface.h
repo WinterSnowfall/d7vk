@@ -10,6 +10,7 @@
 namespace dxvk {
 
   class DDraw7Interface;
+  class DDraw7Surface;
   class D3D7Device;
 
   /**
@@ -59,6 +60,8 @@ namespace dxvk {
     uint32_t                      m_intfCount = 0;
 
     D3D7Device*                   m_device = nullptr;
+
+    Com<DDraw7Surface, false>     m_unWrappedRT;
 
   };
 
