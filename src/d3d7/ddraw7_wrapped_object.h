@@ -5,17 +5,27 @@
 
 namespace dxvk {
 
-  template <typename D3D9Type, typename DDrawType>
+  template <typename ParentType, typename DDrawType, typename D3D9Type>
   class DDrawWrappedObject : public ComObjectClamp<DDrawType> {
 
   public:
 
-    using D3D9 = D3D9Type;
+    using Parent = ParentType;
     using DDraw = DDrawType;
+    using D3D9 = D3D9Type;
 
-    DDrawWrappedObject(Com<D3D9>&& object, Com<DDraw>&& proxiedIntf)
-      : m_d3d9  ( std::move(object) )
+    DDrawWrappedObject(Parent* parent, Com<DDraw>&& proxiedIntf, Com<D3D9>&& object)
+      : m_parent ( parent )
+      , m_d3d9  ( std::move(object) )
       , m_proxy ( std::move(proxiedIntf) ) {
+    }
+
+    Parent* GetParent() const {
+      return m_parent;
+    }
+
+    DDraw* GetProxied() const {
+      return m_proxy.ptr();
     }
 
     D3D9* GetD3D9() const {
@@ -24,14 +34,6 @@ namespace dxvk {
 
     void SetD3D9(Com<D3D9>&& object) {
       m_d3d9 = std::move(object);
-    }
-
-    DDraw* GetProxied() const {
-      return m_proxy.ptr();
-    }
-
-    void SetForwardToProxy(bool forwardToProxy) {
-      m_forwardToProxy = forwardToProxy;
     }
 
     // For cases where the object may be null.
@@ -47,11 +49,16 @@ namespace dxvk {
       return GetD3D9Nullable(self.ptr());
     }
 
+    void SetForwardToProxy(bool forwardToProxy) {
+      m_forwardToProxy = forwardToProxy;
+    }
+
     virtual IUnknown* GetInterface(REFIID riid) {
-      if (riid == __uuidof(IUnknown)) {
+      if (riid == __uuidof(IUnknown))
         return this;
-      } else if (riid == __uuidof(DDraw)) {
+      if (riid == __uuidof(DDraw)) {
         if (unlikely(m_forwardToProxy)) {
+          Logger::debug("DDrawWrappedObject::QueryInterface: Forwarding interface query to proxied object");
           // Hack: Return the proxied interface, as some applications need
           // to use an unwarpped object in relation with external modules
           void* ppvObject = nullptr;
@@ -60,6 +67,11 @@ namespace dxvk {
             return reinterpret_cast<IUnknown*>(ppvObject);
         }
         return this;
+      }
+
+      if (likely(m_parent != nullptr)) {
+        Logger::debug("DDrawWrappedObject::QueryInterface: Forwarding interface query to parent");
+        return m_parent->GetInterface(riid);
       }
 
       throw DxvkError("DDrawWrappedObject::QueryInterface: Unknown interface query");
@@ -79,15 +91,18 @@ namespace dxvk {
         Com<IDirectDrawGammaControl> d3d7GammaProxied = static_cast<IDirectDrawGammaControl*>(d3d7GammaProxiedVoid);
         *ppvObject = ref(new DDraw7GammaControl(std::move(d3d7GammaProxied)));
         return S_OK;
-      } else if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
+      }
+      if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
         return m_proxy->QueryInterface(riid, ppvObject);
+      }
       // Some games query the legacy ddraw interface from the new one
-      } else if (unlikely(riid == __uuidof(IDirectDraw))) {
+      if (unlikely(riid == __uuidof(IDirectDraw))) {
         Logger::warn("QueryInterface: Query for legacy IDirectDraw");
         return m_proxy->QueryInterface(riid, ppvObject);
+      }
       // Some games query legacy ddraw surfaces from the new one
-      } else if (unlikely(riid == __uuidof(IDirectDrawSurface)
-                       || riid == __uuidof(IDirectDrawSurface4))) {
+      if (unlikely(riid == __uuidof(IDirectDrawSurface)
+                || riid == __uuidof(IDirectDrawSurface4))) {
         Logger::warn("QueryInterface: Query for legacy IDirectDrawSurface");
         return m_proxy->QueryInterface(riid, ppvObject);
       }
@@ -104,10 +119,14 @@ namespace dxvk {
 
   protected:
 
-    bool       m_forwardToProxy = false;
+    Parent*    m_parent = nullptr;
 
     Com<D3D9>  m_d3d9;
     Com<DDraw> m_proxy;
+
+  private:
+
+    bool       m_forwardToProxy = false;
 
   };
 

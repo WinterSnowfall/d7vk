@@ -16,8 +16,7 @@ namespace dxvk {
   static constexpr IID IID_IDirect3DTnLHalDevice = { 0xf5049e78, 0x4861, 0x11d2, {0xa4, 0x07, 0x00, 0xa0, 0xc9, 0x06, 0x29, 0xa8} };
 
   D3D7Interface::D3D7Interface(Com<IDirect3D7>&& d3d7IntfProxy, DDraw7Interface* pParent)
-    : DDrawWrappedObject<d3d9::IDirect3D9, IDirect3D7>(std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)), std::move(d3d7IntfProxy))
-    , m_parent ( pParent ) {
+    : DDrawWrappedObject<DDraw7Interface, IDirect3D7, d3d9::IDirect3D9>(pParent, std::move(d3d7IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION))) {
     // Get the bridge interface to D3D9.
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
       throw DxvkError("D3D7Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
@@ -170,7 +169,7 @@ namespace dxvk {
       params.MultiSampleType = d3d9::D3DMULTISAMPLE_NONE;
     }
 
-    Com<d3d9::IDirect3DDevice9> device9 = nullptr;
+    Com<d3d9::IDirect3DDevice9> device9;
 
     HRESULT hr = m_d3d9->CreateDevice(
       D3DADAPTER_DEFAULT,
@@ -199,7 +198,7 @@ namespace dxvk {
     desc7.deviceGUID = rclsid;
 
     try{
-      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, m_parent, desc7,
+      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7,
                                               std::move(device9), rt7.ptr(), isRGBDevice);
       // Hold the address of the most recently created device, not a reference
       m_device = device.ptr();
@@ -229,7 +228,7 @@ namespace dxvk {
 
     // TODO: See if it actually matters to validate desc.dwFVF
 
-    IDirect3DVertexBuffer7* vertexBuffer7 = nullptr;
+    Com<IDirect3DVertexBuffer7> vertexBuffer7;
     // We don't really need a proxy buffer any longer
     /*HRESULT hr = m_proxy->CreateVertexBuffer(desc, &vertexBuffer7, usage);
     if (unlikely(FAILED(hr))) {
@@ -241,17 +240,17 @@ namespace dxvk {
     if (unlikely(m_device == nullptr))
       return D3DERR_INVALIDCALL;
 
-    Com<d3d9::IDirect3DVertexBuffer9> buffer = nullptr;
+    Com<d3d9::IDirect3DVertexBuffer9> vertexBuffer9;
     const DWORD Usage = ConvertUsageFlags(desc->dwCaps, m_device->IsRGBDevice());
     const DWORD Size  = GetFVFSize(desc->dwFVF) * desc->dwNumVertices;
-    HRESULT hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Usage, desc->dwFVF, d3d9::D3DPOOL_DEFAULT, &buffer, nullptr);
+    HRESULT hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Usage, desc->dwFVF, d3d9::D3DPOOL_DEFAULT, &vertexBuffer9, nullptr);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Interface::CreateVertexBuffer: Failed to create vertex buffer");
       return hr;
     }
 
-    *ppVertexBuffer = ref(new D3D7VertexBuffer(vertexBuffer7, std::move(buffer), this, *desc));
+    *ppVertexBuffer = ref(new D3D7VertexBuffer(std::move(vertexBuffer7), std::move(vertexBuffer9), this, *desc));
 
     return D3D_OK;
   }
