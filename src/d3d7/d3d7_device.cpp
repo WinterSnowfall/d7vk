@@ -12,15 +12,13 @@ namespace dxvk {
   D3D7Device::D3D7Device(
       Com<IDirect3DDevice7>&& d3d7DeviceProxy,
       D3D7Interface* pParent,
-      DDraw7Interface* pDD7Parent,
       D3DDEVICEDESC7 Desc,
-      Com<d3d9::IDirect3DDevice9>&& pDevice,
+      Com<d3d9::IDirect3DDevice9>&& pDevice9,
       DDraw7Surface* pSurface,
       bool isRGBDevice)
-    : DDrawWrappedObject<d3d9::IDirect3DDevice9, IDirect3DDevice7>(std::move(pDevice), std::move(d3d7DeviceProxy))
+    : DDrawWrappedObject<D3D7Interface, IDirect3DDevice7, d3d9::IDirect3DDevice9>(pParent, std::move(d3d7DeviceProxy), std::move(pDevice9))
     , m_isRGBDevice ( isRGBDevice )
-    , m_parent( pParent )
-    , m_DD7Parent ( pDD7Parent )
+    , m_DD7IntfParent ( pParent->GetParent() )
     // Always enforce multi-threaded protection on a D3D7 device
     , m_singlethread( true )
     , m_desc ( Desc )
@@ -194,7 +192,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    if (unlikely(!m_DD7Parent->IsWrappedSurface(surface))) {
+    if (unlikely(!m_DD7IntfParent->IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::SetRenderTarget: Received an unwrapped RT");
       return DDERR_GENERIC;
     }
@@ -676,7 +674,7 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::PreLoad");
 
-    if (unlikely(!m_DD7Parent->IsWrappedSurface(surface))) {
+    if (unlikely(!m_DD7IntfParent->IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::PreLoad: Received an unwrapped surface");
       return DDERR_GENERIC;
     }
@@ -1005,7 +1003,7 @@ namespace dxvk {
     }
 
     // Binding texture stages
-    if (unlikely(!m_DD7Parent->IsWrappedSurface(surface))) {
+    if (unlikely(!m_DD7IntfParent->IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::SetTexture: Received an unwrapped texture");
       return DDERR_GENERIC;
     }
@@ -1087,7 +1085,7 @@ namespace dxvk {
     IDirectDrawSurface7* loadSource      = src_surface;
     IDirectDrawSurface7* loadDestination = dst_surface;
 
-    if (likely(m_DD7Parent->IsWrappedSurface(src_surface))) {
+    if (likely(m_DD7IntfParent->IsWrappedSurface(src_surface))) {
       DDraw7Surface* ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
       loadSource = ddraw7SurfaceSrc->GetProxied();
     } else {
@@ -1095,7 +1093,7 @@ namespace dxvk {
       loadSource = src_surface;
     }
 
-    if (likely(m_DD7Parent->IsWrappedSurface(dst_surface))) {
+    if (likely(m_DD7IntfParent->IsWrappedSurface(dst_surface))) {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
       loadDestination = ddraw7SurfaceDst->GetProxied();
     } else {
@@ -1109,7 +1107,7 @@ namespace dxvk {
     }
 
     // Only upload the destination surface
-    if (likely(m_DD7Parent->IsWrappedSurface(dst_surface))) {
+    if (likely(m_DD7IntfParent->IsWrappedSurface(dst_surface))) {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
 
       // Textures and cubemaps get uploaded during SetTexture calls
