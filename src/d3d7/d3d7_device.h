@@ -19,10 +19,8 @@ namespace dxvk {
 
   /**
   * \brief D3D7 device implementation
-  *
-  * Implements the IDirect3DDevice7 interfaces
   */
-  class D3D7Device final : public DDrawWrappedObject<d3d9::IDirect3DDevice9, IDirect3DDevice7> {
+  class D3D7Device final : public DDrawWrappedObject<D3D7Interface, IDirect3DDevice7, d3d9::IDirect3DDevice9> {
 
   friend class D3D7StateBlock;
 
@@ -30,9 +28,8 @@ namespace dxvk {
     D3D7Device(
         Com<IDirect3DDevice7>&& d3d7DeviceProxy,
         D3D7Interface* pParent,
-        DDraw7Interface* pDD7Parent,
         D3DDEVICEDESC7 Desc,
-        Com<d3d9::IDirect3DDevice9>&& pDevice,
+        Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DDraw7Surface* pRT,
         bool isRGBDevice);
 
@@ -169,8 +166,7 @@ namespace dxvk {
     bool                          m_isRGBDevice = false;
     bool                          m_hasDrawn    = false;
 
-    D3D7Interface*                m_parent    = nullptr;
-    DDraw7Interface*              m_DD7Parent = nullptr;
+    DDraw7Interface*              m_DD7IntfParent = nullptr;
 
     D3D7Singlethread              m_singlethread;
 

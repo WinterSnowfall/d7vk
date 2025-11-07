@@ -2,18 +2,18 @@
 
 #include "d3d7_device.h"
 #include "d3d7_util.h"
+#include "ddraw7_interface.h"
 
 namespace dxvk {
 
   uint32_t D3D7VertexBuffer::s_buffCount = 0;
 
   D3D7VertexBuffer::D3D7VertexBuffer(
-            IDirect3DVertexBuffer7* buffProxy,
-            Com<d3d9::IDirect3DVertexBuffer9>&& pBuffer,
-            D3D7Interface* pIntf,
+            Com<IDirect3DVertexBuffer7>&& buffProxy,
+            Com<d3d9::IDirect3DVertexBuffer9>&& pBuffer9,
+            D3D7Interface* pParent,
             D3DVERTEXBUFFERDESC desc)
-    : DDrawWrappedObject<d3d9::IDirect3DVertexBuffer9, IDirect3DVertexBuffer7>(std::move(pBuffer), buffProxy)
-    , m_parent ( pIntf )
+    : DDrawWrappedObject<D3D7Interface, IDirect3DVertexBuffer7, d3d9::IDirect3DVertexBuffer9>(pParent, std::move(buffProxy), std::move(pBuffer9))
     , m_desc ( desc )
     , m_stride ( GetFVFSize(desc.dwFVF) )
     , m_size ( m_stride * desc.dwNumVertices ) {
