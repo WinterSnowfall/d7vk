@@ -127,11 +127,20 @@ namespace dxvk {
     }
 
     bool IsInitialized() const {
-      return m_d3d9 != nullptr || m_texture != nullptr || m_cubeMap != nullptr;
+      return m_d3d9 != nullptr;
     }
 
     bool IsTextureOrCubeMap() const {
       return IsTexture() || IsCubeMap();
+    }
+
+    // TODO: Think of a more accurate way
+    bool IsRenderTarget() const {
+      return IsFrontBuffer() || IsBackBuffer() || IsOffScreenPlainSurface();
+    }
+
+    bool IsDepthStencil() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_ZBUFFER;
     }
 
     DDraw7Surface* GetAttachedDepthStencil() const {
@@ -178,10 +187,6 @@ namespace dxvk {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN;
     }
 
-    inline bool IsDepthStencil() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_ZBUFFER;
-    }
-
     inline bool IsTexture() const {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_TEXTURE;
     }
@@ -197,11 +202,6 @@ namespace dxvk {
 
     inline bool IsOverlay() const {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_OVERLAY;
-    }
-
-    // TODO: Probably wrong, need a more accurate way
-    inline bool IsRenderTarget() const {
-      return IsFrontBuffer() || IsBackBuffer() || IsOffScreenPlainSurface();
     }
 
     inline HRESULT IntializeD3D9();
