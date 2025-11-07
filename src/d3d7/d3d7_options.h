@@ -10,7 +10,7 @@ namespace dxvk {
     /// Forces a desired MSAA level on the d3d9 device/default swapchain
     int32_t forceMSAA;
 
-    /// Forward query interface calls to the proxy objects
+    /// Forward query interface calls to the proxied objects
     bool proxiedQueryInterface;
 
     /// Ignore all direct proxy back buffer blits done by the application
