@@ -11,9 +11,8 @@ namespace dxvk {
         DDraw7Interface* pParent,
         DDraw7Surface* pParentSurf,
         bool isChildObject)
-    : DDrawWrappedObject<d3d9::IDirect3DSurface9, IDirectDrawSurface7>(nullptr, std::move(surfProxy))
+    : DDrawWrappedObject<DDraw7Interface, IDirectDrawSurface7, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
     , m_isChildObject ( isChildObject )
-    , m_parent     ( pParent )
     , m_parentSurf ( pParentSurf ) {
     if (likely(m_isChildObject))
       m_parent->AddRef();
