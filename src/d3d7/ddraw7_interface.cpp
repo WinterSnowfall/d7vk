@@ -23,6 +23,15 @@ namespace dxvk {
     Logger::debug(str::format("DDraw7Interface: Interface nr. <<", m_intfCount, ">> bites the dust"));
   }
 
+  IUnknown* DDraw7Interface::GetInterface(REFIID riid) {
+    if (riid == __uuidof(IUnknown))
+      return this;
+    if (riid == __uuidof(IDirectDraw7))
+      return this;
+
+    throw DxvkError("DDraw7Interface::QueryInterface: Unknown interface query");
+  }
+
   HRESULT STDMETHODCALLTYPE DDraw7Interface::QueryInterface(REFIID riid, void** ppvObject) {
     Logger::debug(">>> DDraw7Interface::QueryInterface");
 
@@ -31,12 +40,8 @@ namespace dxvk {
 
     *ppvObject = nullptr;
 
-    if (riid == __uuidof(IUnknown)
-     || riid == __uuidof(IDirectDraw7)) {
-      *ppvObject = ref(this);
-      return S_OK;
     // Standard way of creating a new D3D7 interface
-    } else if (riid == __uuidof(IDirect3D7)) {
+    if (riid == __uuidof(IDirect3D7)) {
       void* d3d7IntfProxiedVoid = nullptr;
       // This can never reasonably fail
       m_proxy->QueryInterface(__uuidof(IDirect3D7), &d3d7IntfProxiedVoid);
@@ -52,9 +57,14 @@ namespace dxvk {
       return m_proxy->QueryInterface(riid, ppvObject);
     }
 
-    Logger::warn("DDraw7Interface::QueryInterface: Unknown interface query");
-    Logger::warn(str::format(riid));
-    return E_NOINTERFACE;
+    try {
+      *ppvObject = ref(this->GetInterface(riid));
+      return S_OK;
+    } catch (const DxvkError& e) {
+      Logger::warn(e.message());
+      Logger::warn(str::format(riid));
+      return E_NOINTERFACE;
+    }
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::Compact() {
@@ -83,7 +93,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       try{
-        Com<DDraw7Surface> surface7 = new DDraw7Surface(std::move(ddraw7SurfaceProxied), this, nullptr, false);
+        Com<DDraw7Surface> surface7 = new DDraw7Surface(std::move(ddraw7SurfaceProxied), this, nullptr, true);
 
         if (unlikely(m_d3d7ConfigIntf->GetOptions()->proxiedQueryInterface)) {
           // Hack: Gothic / Gothic 2 and other games attach the depth stencil to an externally created

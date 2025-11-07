@@ -18,6 +18,8 @@ namespace dxvk {
 
     ~DDraw7Interface();
 
+    IUnknown* GetInterface(REFIID riid);
+
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
     HRESULT STDMETHODCALLTYPE Compact();

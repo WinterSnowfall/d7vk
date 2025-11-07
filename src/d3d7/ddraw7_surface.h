@@ -10,7 +10,7 @@
 
 namespace dxvk {
 
-  class DDraw7Surface final : public DDrawWrappedObject<d3d9::IDirect3DSurface9, IDirectDrawSurface7> {
+  class DDraw7Surface final : public DDrawWrappedObject<DDraw7Interface, IDirectDrawSurface7, d3d9::IDirect3DSurface9> {
 
   public:
 
@@ -251,8 +251,6 @@ namespace dxvk {
 
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount     = 0;
-
-    DDraw7Interface* m_parent        = nullptr;
 
     DDraw7Surface*   m_parentSurf    = nullptr;
 

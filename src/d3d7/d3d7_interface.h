@@ -15,10 +15,8 @@ namespace dxvk {
 
   /**
   * \brief D3D7 interface implementation
-  *
-  * Implements the IDirect3D7 interfaces
   */
-  class D3D7Interface final : public DDrawWrappedObject<d3d9::IDirect3D9, IDirect3D7> {
+  class D3D7Interface final : public DDrawWrappedObject<DDraw7Interface, IDirect3D7, d3d9::IDirect3D9> {
 
   public:
     D3D7Interface(Com<IDirect3D7>&& d3d7Intf, DDraw7Interface* pParent);
@@ -48,8 +46,6 @@ namespace dxvk {
     }
 
   private:
-    DDraw7Interface*              m_parent = nullptr;
-
     D3D7Options                   m_d3d7Options;
 
     Com<IDirect3D7>               m_d3d7IntfProxy;

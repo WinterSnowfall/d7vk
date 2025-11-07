@@ -8,13 +8,13 @@ namespace dxvk {
 
   class D3D7Interface;
 
-  class D3D7VertexBuffer final : public DDrawWrappedObject<d3d9::IDirect3DVertexBuffer9, IDirect3DVertexBuffer7> {
+  class D3D7VertexBuffer final : public DDrawWrappedObject<D3D7Interface, IDirect3DVertexBuffer7, d3d9::IDirect3DVertexBuffer9> {
 
   public:
 
-    D3D7VertexBuffer(IDirect3DVertexBuffer7* buffProxy,
-                     Com<d3d9::IDirect3DVertexBuffer9>&& pBuffer,
-                     D3D7Interface* pIntf,
+    D3D7VertexBuffer(Com<IDirect3DVertexBuffer7>&& buffProxy,
+                     Com<d3d9::IDirect3DVertexBuffer9>&& pBuffer9,
+                     D3D7Interface* pParent,
                      D3DVERTEXBUFFERDESC desc);
 
     ~D3D7VertexBuffer();
@@ -58,8 +58,6 @@ namespace dxvk {
 
     static uint32_t     s_buffCount;
     uint32_t            m_buffCount  = 0;
-
-    D3D7Interface*      m_parent = nullptr;
 
     D3DVERTEXBUFFERDESC m_desc;
 
