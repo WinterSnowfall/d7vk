@@ -44,6 +44,27 @@ namespace dxvk {
       m_parent->Release();
   }
 
+  template<>
+  IUnknown* DDrawWrappedObject<DDraw7Interface, IDirectDrawSurface7, d3d9::IDirect3DSurface9>::GetInterface(REFIID riid) {
+    if (riid == __uuidof(IUnknown))
+      return this;
+    if (riid == __uuidof(IDirectDrawSurface7)) {
+      if (unlikely(m_forwardToProxy)) {
+        Logger::debug("DDraw7Surface::QueryInterface: Forwarding interface query to proxied object");
+        // Hack: Return the proxied interface, as some applications need
+        // to use an unwarpped object in relation with external modules
+        void* ppvObject = nullptr;
+        HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
+        if (likely(SUCCEEDED(hr)))
+          return reinterpret_cast<IUnknown*>(ppvObject);
+      }
+      return this;
+    }
+
+    Logger::debug("DDraw7Surface::QueryInterface: Forwarding interface query to parent");
+    return m_parent->GetInterface(riid);
+  }
+
   // This call will only attach DDSCAPS_ZBUFFER type surfaces and will reject anything else.
   // More than that, the attached surfaces do not need to be manageed by the object, the docs state:
   // "Unlike complex surfaces that you create with a single call to IDirectDraw7::CreateSurface, surfaces
