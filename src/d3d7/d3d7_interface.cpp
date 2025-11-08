@@ -33,6 +33,27 @@ namespace dxvk {
     }
   }
 
+  template<>
+  IUnknown* DDrawWrappedObject<DDraw7Interface, IDirect3D7, d3d9::IDirect3D9>::GetInterface(REFIID riid) {
+    if (riid == __uuidof(IUnknown))
+      return this;
+    if (riid == __uuidof(IDirect3D7)) {
+      if (unlikely(m_forwardToProxy)) {
+        Logger::debug("D3D7Interface::QueryInterface: Forwarding interface query to proxied object");
+        // Hack: Return the proxied interface, as some applications need
+        // to use an unwarpped object in relation with external modules
+        void* ppvObject = nullptr;
+        HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
+        if (likely(SUCCEEDED(hr)))
+          return reinterpret_cast<IUnknown*>(ppvObject);
+      }
+      return this;
+    }
+
+    Logger::debug("D3D7Interface::QueryInterface: Forwarding interface query to parent");
+    return m_parent->GetInterface(riid);
+  }
+
   D3D7Interface::~D3D7Interface() {
     // Clear up the d3d7 interface device pointer if it points to this interface
     if (m_parent->GetD3D7Interface() == this)
