@@ -1409,7 +1409,7 @@ namespace dxvk {
       { "d3d7.strictBackBufferGuard",       "True" },
     }} },
     /* Gothic 1                                   */
-    { R"(\\GOTHIC\.EXE$)", {{
+    { R"(\\GOTHIC(Mod)?\.EXE$)", {{
       { "d3d7.proxiedQueryInterface",       "True" },
     }} },
     /* Gothic 2 / Night of the Raven              */

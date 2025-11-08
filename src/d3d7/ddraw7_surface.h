@@ -244,6 +244,8 @@ namespace dxvk {
       Logger::debug(str::format("   IsComplex:  ", IsComplex() ? "yes" : "no"));
       Logger::debug(str::format("   HasMips:    ", m_desc.dwMipMapCount ? "yes" : "no"));
       Logger::debug(str::format("   IsAttached: ", attached));
+      if (unlikely(IsFrontBuffer()))
+        Logger::debug(str::format("   BackBuffer: ", m_desc.dwBackBufferCount));
     }
 
     bool             m_isChildObject = false;
