@@ -13,6 +13,7 @@ namespace dxvk {
       Com<IDirect3DDevice7>&& d3d7DeviceProxy,
       D3D7Interface* pParent,
       D3DDEVICEDESC7 Desc,
+      DWORD BackBufferCount,
       Com<d3d9::IDirect3DDevice9>&& pDevice9,
       DDraw7Surface* pSurface,
       bool isRGBDevice)
@@ -21,6 +22,7 @@ namespace dxvk {
     , m_DD7IntfParent ( pParent->GetParent() )
     // Always enforce multi-threaded protection on a D3D7 device
     , m_singlethread( true )
+    , m_backBufferCount ( BackBufferCount )
     , m_desc ( Desc )
     , m_rt ( pSurface ) {
     // Get the bridge interface to D3D9
@@ -275,10 +277,8 @@ namespace dxvk {
     // we must also ensure the back buffer clear calls are proxied
     if (unlikely(!m_hasDrawn)) {
       HRESULT hr = m_proxy->Clear(count, rects, flags, color, z, stencil);
-      if (unlikely(FAILED(hr))) {
-        Logger::err("D3D7Device::Clear: Failed proxied clear call");
-        return hr;
-      }
+      if (unlikely(FAILED(hr)))
+        Logger::warn("D3D7Device::Clear: Failed proxied clear call");
     }
 
     return m_d3d9->Clear(count, rects, flags, color, z, stencil);
