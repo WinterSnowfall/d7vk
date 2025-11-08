@@ -98,7 +98,7 @@ namespace dxvk {
         if (unlikely(m_d3d7ConfigIntf->GetOptions()->proxiedQueryInterface)) {
           // Hack: Gothic / Gothic 2 and other games attach the depth stencil to an externally created
           // back buffer, so we need to re-attach the depth stencil to the back buffer on device creation
-          if (unlikely(surface7->IsDepthStencil() || surface7->IsRenderTarget())) {
+          if (unlikely(surface7->IsRenderTarget() || surface7->IsDepthStencil())) {
             if (unlikely(surface7->IsDepthStencil()))
               m_lastDepthStencil = surface7.ptr();
             surface7->SetForwardToProxy(true);

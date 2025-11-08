@@ -166,6 +166,13 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::EndScene() {
     Logger::debug(">>> D3D7Device::EndScene");
+
+    if (unlikely(m_parent->GetOptions()->presentOnEndScene)) {
+      if (likely(!m_parent->GetOptions()->strictBackBufferGuard))
+        m_hasDrawn = false;
+      m_d3d9->Present(NULL, NULL, NULL, NULL);
+    }
+
     return m_d3d9->EndScene();
   }
 
