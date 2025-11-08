@@ -29,6 +29,7 @@ namespace dxvk {
         Com<IDirect3DDevice7>&& d3d7DeviceProxy,
         D3D7Interface* pParent,
         D3DDEVICEDESC7 Desc,
+        DWORD BackBufferCount,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DDraw7Surface* pRT,
         bool isRGBDevice);
@@ -141,6 +142,15 @@ namespace dxvk {
       return m_rt;
     }
 
+    DWORD GetNextBackBuffer() {
+      m_currentBackBuffer++;
+
+      if (m_currentBackBuffer >= m_backBufferCount)
+        m_currentBackBuffer = 0;
+
+      return m_currentBackBuffer;
+    }
+
     bool IsRGBDevice() const {
       return m_isRGBDevice;
     }
@@ -174,6 +184,9 @@ namespace dxvk {
 
     static uint32_t               s_deviceCount;
     uint32_t                      m_deviceCount = 0;
+
+    DWORD                         m_currentBackBuffer = -1u;
+    DWORD                         m_backBufferCount = 0;
 
     D3DDEVICEDESC7                m_desc;
 
