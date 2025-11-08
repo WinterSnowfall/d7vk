@@ -149,19 +149,19 @@ namespace dxvk {
     } else if ((fmt.dwFlags & DDPF_FOURCC)) {
       switch (fmt.dwFourCC) {
         case MAKEFOURCC('D', 'X', 'T', '1'):
-          Logger::warn("ConvertFormat: Detected a FOURCC payload: DXT1");
+          Logger::debug("ConvertFormat: Detected a FOURCC payload: DXT1");
           return d3d9::D3DFMT_DXT1;
         case MAKEFOURCC('D', 'X', 'T', '2'):
-          Logger::warn("ConvertFormat: Detected a FOURCC payload: DXT2");
+          Logger::debug("ConvertFormat: Detected a FOURCC payload: DXT2");
           return d3d9::D3DFMT_DXT2;
         case MAKEFOURCC('D', 'X', 'T', '3'):
-          Logger::warn("ConvertFormat: Detected a FOURCC payload: DXT3");
+          Logger::debug("ConvertFormat: Detected a FOURCC payload: DXT3");
           return d3d9::D3DFMT_DXT3;
         case MAKEFOURCC('D', 'X', 'T', '4'):
-          Logger::warn("ConvertFormat: Detected a FOURCC payload: DXT4");
+          Logger::debug("ConvertFormat: Detected a FOURCC payload: DXT4");
           return d3d9::D3DFMT_DXT4;
         case MAKEFOURCC('D', 'X', 'T', '5'):
-          Logger::warn("ConvertFormat: Detected a FOURCC payload: DXT5");
+          Logger::debug("ConvertFormat: Detected a FOURCC payload: DXT5");
           return d3d9::D3DFMT_DXT5;
       }
       Logger::warn("ConvertFormat: Unhandled FOURCC payload");
@@ -445,7 +445,10 @@ namespace dxvk {
             memcpy(rect9mip.pBits, descMip.lpSurface, size);
             Logger::debug(str::format("BlitToD3D9Texture: Done blitting DXT mip ", i));
           } else if (unlikely(!isDXT && descMip.lPitch != rect9mip.Pitch)) {
-            Logger::warn(str::format("BlitToD3D9Texture: Incompatible mip map ", i, " pitch"));
+            if (unlikely(i == 0))
+              Logger::warn(str::format("BlitToD3D9Texture: Incompatible mip map ", i, " pitch"));
+            else
+              Logger::debug(str::format("BlitToD3D9Texture: Incompatible mip map ", i, " pitch"));
 
             uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9mip.pBits);
             uint8_t* data7 = reinterpret_cast<uint8_t*>(descMip.lpSurface);
@@ -497,7 +500,7 @@ namespace dxvk {
           memcpy(rect9.pBits, desc.lpSurface, size);
           Logger::debug("BlitToD3D9Texture: Done blitting DXT surface");
         } else if (unlikely(desc.lPitch != rect9.Pitch)) {
-          Logger::warn("BlitToD3D9Surface: Incompatible surface pitch");
+          Logger::debug("BlitToD3D9Surface: Incompatible surface pitch");
 
           uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9.pBits);
           uint8_t* data7 = reinterpret_cast<uint8_t*>(desc.lpSurface);
