@@ -10,7 +10,7 @@ namespace dxvk {
   uint32_t DDraw7Interface::s_intfCount = 0;
 
   DDraw7Interface::DDraw7Interface(Com<IDirectDraw7>&& proxyIntf)
-    : m_proxy ( std::move(proxyIntf) ) {
+    : DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown>(nullptr, std::move(proxyIntf), nullptr) {
     // Initialize a dummy D3D9 interface to retrieve the config options
     m_d3d7ConfigIntf = new D3D7Interface(nullptr, this);
 
@@ -23,11 +23,22 @@ namespace dxvk {
     Logger::debug(str::format("DDraw7Interface: Interface nr. <<", m_intfCount, ">> bites the dust"));
   }
 
-  IUnknown* DDraw7Interface::GetInterface(REFIID riid) {
+  template<>
+  IUnknown* DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
-    if (riid == __uuidof(IDirectDraw7))
+    if (riid == __uuidof(IDirectDraw7)) {
+      if (unlikely(m_forwardToProxy)) {
+        Logger::debug("DDraw7Interface::QueryInterface: Forwarding interface query to proxied object");
+        // Hack: Return the proxied interface, as some applications need
+        // to use an unwarpped object in relation with external modules
+        void* ppvObject = nullptr;
+        HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
+        if (likely(SUCCEEDED(hr)))
+          return reinterpret_cast<IUnknown*>(ppvObject);
+      }
       return this;
+    }
 
     throw DxvkError("DDraw7Interface::QueryInterface: Unknown interface query");
   }
