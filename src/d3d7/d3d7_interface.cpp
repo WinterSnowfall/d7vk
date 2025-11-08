@@ -129,7 +129,7 @@ namespace dxvk {
     Com<DDraw7Surface> rt7;
     if (unlikely(!m_parent->IsWrappedSurface(surface))) {
       if (unlikely(m_d3d7Options.proxiedQueryInterface)) {
-        Logger::warn("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
+        Logger::debug("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
         rt7 = new DDraw7Surface(std::move(surface), m_parent, nullptr, true);
         // And now we need to keep this wrapped object alive ourselves,
         // since it is unknown to both ddraw and the calling application
@@ -146,20 +146,22 @@ namespace dxvk {
       rt7 = static_cast<DDraw7Surface*>(surface);
     }
 
+    // TODO: Potentially cater for multiple back buffers, though in
+    // practice their use isn't very common in d3d7
+    const DWORD backBufferCount = 1;
+
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = desc.dwWidth;
     params.BackBufferHeight   = desc.dwHeight;
     params.BackBufferFormat   = ConvertFormat(desc.ddpfPixelFormat);
-    // TODO: Potentially cater for multiple back buffers, though in
-    // practice their use isn't very common in d3d7
-    params.BackBufferCount    = 1;
+    params.BackBufferCount    = backBufferCount;
     params.MultiSampleQuality = 0;
     params.SwapEffect         = d3d9::D3DSWAPEFFECT_DISCARD;
     params.hDeviceWindow      = hwnd;
     params.Windowed           = TRUE; // TODO: Always windowed?
     params.EnableAutoDepthStencil     = FALSE;
     params.AutoDepthStencilFormat     = d3d9::D3DFMT_UNKNOWN;
-    params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+    params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // Needed for back buffer locks
     params.FullScreen_RefreshRateInHz = 0;
     params.PresentationInterval       = D3DPRESENT_INTERVAL_ONE;
 
@@ -198,7 +200,7 @@ namespace dxvk {
     desc7.deviceGUID = rclsid;
 
     try{
-      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7,
+      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7, backBufferCount,
                                               std::move(device9), rt7.ptr(), isRGBDevice);
       // Hold the address of the most recently created device, not a reference
       m_device = device.ptr();

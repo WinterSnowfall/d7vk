@@ -244,8 +244,12 @@ namespace dxvk {
       Logger::debug(str::format("   IsComplex:  ", IsComplex() ? "yes" : "no"));
       Logger::debug(str::format("   HasMips:    ", m_desc.dwMipMapCount ? "yes" : "no"));
       Logger::debug(str::format("   IsAttached: ", attached));
-      if (unlikely(IsFrontBuffer()))
+      if (IsFrontBuffer()) {
         Logger::debug(str::format("   BackBuffer: ", m_desc.dwBackBufferCount));
+
+        if(unlikely(m_desc.dwBackBufferCount > 1))
+          Logger::warn("DDraw7Surface: Unhandled use of multiple back buffers");
+      }
     }
 
     bool             m_isChildObject = false;

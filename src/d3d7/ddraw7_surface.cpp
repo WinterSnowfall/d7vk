@@ -276,7 +276,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     if (unlikely(!IsInitialized())) {
-      Logger::warn("DDraw7Surface::GetDC: Not yet initialized");
+      Logger::debug("DDraw7Surface::GetDC: Not yet initialized");
       return m_proxy->GetDC(lphDC);
     }
 
@@ -347,7 +347,7 @@ namespace dxvk {
       return m_proxy->ReleaseDC(hDC);
 
     if (unlikely(!IsInitialized())) {
-      Logger::warn("DDraw7Surface::ReleaseDC: Not yet initialized");
+      Logger::debug("DDraw7Surface::ReleaseDC: Not yet initialized");
       return m_proxy->ReleaseDC(hDC);
     }
 
@@ -564,8 +564,8 @@ namespace dxvk {
   inline HRESULT DDraw7Surface::IntializeD3D9() {
     Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Initializing nr. [[", m_surfCount, "]]"));
 
-    if (m_d3d7device == nullptr) {
-      Logger::warn("DDraw7Surface::IntializeD3D9: Null D3D7 device, can't initalize right now");
+    if (unlikely(m_d3d7device == nullptr)) {
+      Logger::debug("DDraw7Surface::IntializeD3D9: Null D3D7 device, can't initalize right now");
       return DD_OK;
     }
 
@@ -683,6 +683,8 @@ namespace dxvk {
 
       Com<d3d9::IDirect3DSurface9> rt = nullptr;
 
+      // Note: We don't technically need to attach the front buffer to anything, since we skip
+      // all operations done on it anyway, but it makes the entire IsInitialized() logic simpler
       if (IsFrontBuffer()) {
         hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
         if (likely(SUCCEEDED(hr)))
@@ -690,7 +692,9 @@ namespace dxvk {
       }
 
       else if (IsBackBuffer()) {
-        hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
+        const DWORD backBuffer = m_d3d7device->GetNextBackBuffer();
+        Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Using back buffer ", backBuffer));
+        hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, backBuffer, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
         if (likely(SUCCEEDED(hr)))
           Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved back buffer surface");
       }
@@ -700,6 +704,7 @@ namespace dxvk {
         if (unlikely(m_d3d7device->GetRenderTarget() == this)) {
           Logger::debug("DDraw7Surface::IntializeD3D9: Unknown surface is the current RT");
 
+          // Always link overlays to the first back buffer, since they are not part of a chain
           hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
 
           if (unlikely(FAILED(hr))) {
@@ -720,6 +725,7 @@ namespace dxvk {
       }
 
       else if (IsOverlay()) {
+        // Always link overlays to the first back buffer, since they are not RTs
         hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
         if (likely(SUCCEEDED(hr)))
           Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved overlay surface");
