@@ -53,31 +53,11 @@ namespace dxvk {
       m_forwardToProxy = forwardToProxy;
     }
 
-    virtual IUnknown* GetInterface(REFIID riid) {
-      if (riid == __uuidof(IUnknown))
-        return this;
-      if (riid == __uuidof(DDraw)) {
-        if (unlikely(m_forwardToProxy)) {
-          Logger::debug("DDrawWrappedObject::QueryInterface: Forwarding interface query to proxied object");
-          // Hack: Return the proxied interface, as some applications need
-          // to use an unwarpped object in relation with external modules
-          void* ppvObject = nullptr;
-          HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
-          if (likely(SUCCEEDED(hr)))
-            return reinterpret_cast<IUnknown*>(ppvObject);
-        }
-        return this;
-      }
+    // Implemented/specialized in all of the invididual wrapped
+    // object types, due to the need of hierarchical forwarding
+    virtual IUnknown* GetInterface(REFIID riid);
 
-      if (likely(m_parent != nullptr)) {
-        Logger::debug("DDrawWrappedObject::QueryInterface: Forwarding interface query to parent");
-        return m_parent->GetInterface(riid);
-      }
-
-      throw DxvkError("DDrawWrappedObject::QueryInterface: Unknown interface query");
-    }
-
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) final {
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
       if (unlikely(ppvObject == nullptr))
         return E_POINTER;
 
@@ -119,14 +99,12 @@ namespace dxvk {
 
   protected:
 
+    bool       m_forwardToProxy = false;
+
     Parent*    m_parent = nullptr;
 
     Com<D3D9>  m_d3d9;
     Com<DDraw> m_proxy;
-
-  private:
-
-    bool       m_forwardToProxy = false;
 
   };
 
