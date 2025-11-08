@@ -119,7 +119,7 @@ namespace dxvk {
 
   // TODO: Sets the D3DVBCAPS_OPTIMIZED flag in dwCaps and the buffer can no longer be locked
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::Optimize(LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags) {
-    Logger::warn("!!! D3D7VertexBuffer::Optimize: Stub");
+    Logger::debug(">>> D3D7VertexBuffer::Optimize");
 
     if(unlikely(lpD3DDevice == nullptr))
       return DDERR_INVALIDPARAMS;
