@@ -3,6 +3,7 @@
 #include "d3d7_include.h"
 #include "d3d7_interface.h"
 #include "../d3d9/d3d9_bridge.h"
+#include "ddraw7_wrapped_object.h"
 
 namespace dxvk {
 
@@ -11,14 +12,12 @@ namespace dxvk {
   /**
   * \brief DirectDraw7 interface implementation
   */
-  class DDraw7Interface final : public ComObjectClamp<IDirectDraw7> {
+  class DDraw7Interface final : public DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown> {
 
   public:
     DDraw7Interface(Com<IDirectDraw7>&& proxyIntf);
 
     ~DDraw7Interface();
-
-    IUnknown* GetInterface(REFIID riid);
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
@@ -107,7 +106,6 @@ namespace dxvk {
     }
 
   private:
-    Com<IDirectDraw7>           m_proxy;
 
     static uint32_t             s_intfCount;
     uint32_t                    m_intfCount  = 0;
