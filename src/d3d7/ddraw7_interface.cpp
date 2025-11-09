@@ -31,7 +31,7 @@ namespace dxvk {
       if (unlikely(m_forwardToProxy)) {
         Logger::debug("DDraw7Interface::QueryInterface: Forwarding interface query to proxied object");
         // Hack: Return the proxied interface, as some applications need
-        // to use an unwarpped object in relation with external modules
+        // to use an unwrapped object in relation with external modules
         void* ppvObject = nullptr;
         HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
         if (likely(SUCCEEDED(hr)))
@@ -62,9 +62,9 @@ namespace dxvk {
       m_d3d7Intf = ref(new D3D7Interface(std::move(d3d7IntfProxied), this));
       *ppvObject = m_d3d7Intf;
       return S_OK;
-    // Some games query the legacy ddraw interface from the new one
+    // Some games query the legacy ddraw interface
     } else if (unlikely(riid == __uuidof(IDirectDraw))) {
-      Logger::warn("QueryInterface: Query for legacy IDirectDraw");
+      Logger::warn("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
 
