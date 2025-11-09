@@ -61,7 +61,7 @@ namespace dxvk {
       if (unlikely(m_forwardToProxy)) {
         Logger::debug("D3D7Device::QueryInterface: Forwarding interface query to proxied object");
         // Hack: Return the proxied interface, as some applications need
-        // to use an unwarpped object in relation with external modules
+        // to use an unwrapped object in relation with external modules
         void* ppvObject = nullptr;
         HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
         if (likely(SUCCEEDED(hr)))

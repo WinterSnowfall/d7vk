@@ -1,6 +1,7 @@
 #include "ddraw7_surface.h"
 
 #include "d3d7_caps.h"
+#include "ddraw7_gamma.h"
 
 namespace dxvk {
 
@@ -52,7 +53,7 @@ namespace dxvk {
       if (unlikely(m_forwardToProxy)) {
         Logger::debug("DDraw7Surface::QueryInterface: Forwarding interface query to proxied object");
         // Hack: Return the proxied interface, as some applications need
-        // to use an unwarpped object in relation with external modules
+        // to use an unwrapped object in relation with external modules
         void* ppvObject = nullptr;
         HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
         if (likely(SUCCEEDED(hr)))
@@ -63,6 +64,50 @@ namespace dxvk {
 
     Logger::debug("DDraw7Surface::QueryInterface: Forwarding interface query to parent");
     return m_parent->GetInterface(riid);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw7Surface::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> DDraw7Surface::QueryInterface");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    *ppvObject = nullptr;
+
+    // Wrap IDirectDrawGammaControl, to potentially ignore application set gamma ramps
+    if (riid == __uuidof(IDirectDrawGammaControl)) {
+      void* d3d7GammaProxiedVoid = nullptr;
+      // This can never reasonably fail
+      m_proxy->QueryInterface(__uuidof(IDirectDrawGammaControl), &d3d7GammaProxiedVoid);
+      Com<IDirectDrawGammaControl> d3d7GammaProxied = static_cast<IDirectDrawGammaControl*>(d3d7GammaProxiedVoid);
+      *ppvObject = ref(new DDraw7GammaControl(std::move(d3d7GammaProxied), this));
+      return S_OK;
+    }
+    if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    // Some games query for legacy ddraw surfaces
+    if (unlikely(riid == __uuidof(IDirectDrawSurface)
+              || riid == __uuidof(IDirectDrawSurface2)
+              || riid == __uuidof(IDirectDrawSurface3)
+              || riid == __uuidof(IDirectDrawSurface4))) {
+      Logger::warn("DDraw7Surface::QueryInterface: Query for legacy IDirectDrawSurface");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    // Some games query for the legacy ddraw interface
+    if (unlikely(riid == __uuidof(IDirectDraw))) {
+      Logger::warn("DDraw7Surface::QueryInterface: Query for legacy IDirectDraw");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
+
+    try {
+      *ppvObject = ref(this->GetInterface(riid));
+      return S_OK;
+    } catch (const DxvkError& e) {
+      Logger::warn(e.message());
+      Logger::warn(str::format(riid));
+      return E_NOINTERFACE;
+    }
   }
 
   // This call will only attach DDSCAPS_ZBUFFER type surfaces and will reject anything else.
