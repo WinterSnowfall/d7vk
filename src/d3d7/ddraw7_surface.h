@@ -22,6 +22,8 @@ namespace dxvk {
 
     ~DDraw7Surface();
 
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+
     HRESULT STDMETHODCALLTYPE AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSAttachedSurface);
 
     HRESULT STDMETHODCALLTYPE AddOverlayDirtyRect(LPRECT lpRect);
@@ -113,6 +115,10 @@ namespace dxvk {
     HRESULT STDMETHODCALLTYPE SetLOD(DWORD lod);
 
     HRESULT STDMETHODCALLTYPE GetLOD(LPDWORD lod);
+
+    const D3D7Options* GetOptions() const {
+      return m_parent->GetOptions();
+    }
 
     d3d9::IDirect3DTexture9* GetTexture() const {
       return m_texture.ptr();

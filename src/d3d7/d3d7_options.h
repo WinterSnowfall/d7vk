@@ -22,6 +22,9 @@ namespace dxvk {
     /// Bypass direct uploads to d3d9 and proxy all GetDC calls on ddraw surfaces
     bool proxiedGetDC;
 
+    /// Ignore any application set gamma ramp
+    bool ignoreGammaRamp;
+
     D3D7Options() {}
 
     D3D7Options(const Config& config) {
@@ -30,6 +33,7 @@ namespace dxvk {
       this->proxiedQueryInterface = config.getOption<bool>   ("d3d7.proxiedQueryInterface", false);
       this->strictBackBufferGuard = config.getOption<bool>   ("d3d7.strictBackBufferGuard", false);
       this->proxiedGetDC          = config.getOption<bool>   ("d3d7.proxiedGetDC",          false);
+      this->ignoreGammaRamp       = config.getOption<bool>   ("d3d7.ignoreGammaRamp",       false);
     }
 
   };
