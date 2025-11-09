@@ -20,8 +20,6 @@ namespace dxvk {
     : DDrawWrappedObject<D3D7Interface, IDirect3DDevice7, d3d9::IDirect3DDevice9>(pParent, std::move(d3d7DeviceProxy), std::move(pDevice9))
     , m_isRGBDevice ( isRGBDevice )
     , m_DD7IntfParent ( pParent->GetParent() )
-    // Always enforce multi-threaded protection on a D3D7 device
-    , m_singlethread( true )
     , m_backBufferCount ( BackBufferCount )
     , m_desc ( Desc )
     , m_rt ( pSurface ) {
@@ -77,8 +75,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetCaps(D3DDEVICEDESC7 *desc) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::GetCaps");
 
     if (unlikely(desc == nullptr))
@@ -200,8 +196,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetDirect3D(IDirect3D7 **d3d) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::GetDirect3D");
 
     if (unlikely(d3d == nullptr))
@@ -213,8 +207,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetRenderTarget(IDirectDrawSurface7 *surface, DWORD flags) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::SetRenderTarget");
 
     if (unlikely(surface == nullptr)) {
@@ -277,8 +269,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetRenderTarget(IDirectDrawSurface7 **surface) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::GetRenderTarget");
 
     if (unlikely(surface == nullptr))
@@ -290,8 +280,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::Clear(DWORD count, D3DRECT *rects, DWORD flags, D3DCOLOR color, D3DVALUE z, DWORD stencil) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::Clear");
 
     // We are now allowing proxy back buffer blits in certain cases, so
@@ -355,8 +343,6 @@ namespace dxvk {
   static constexpr float ZBIAS_SCALE_INV = 1 / ZBIAS_SCALE;
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(str::format(">>> D3D7Device::SetRenderState: ", dwRenderStateType));
 
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
@@ -452,8 +438,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType, LPDWORD lpdwRenderState) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(str::format(">>> D3D7Device::GetRenderState: ", dwRenderStateType));
 
     if (unlikely(lpdwRenderState == nullptr))
@@ -552,8 +536,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::BeginStateBlock() {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::BeginStateBlock");
 
     if (unlikely(m_recorder != nullptr))
@@ -574,8 +556,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::EndStateBlock(LPDWORD lpdwBlockHandle) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::EndStateBlock");
 
     if (unlikely(lpdwBlockHandle == nullptr))
@@ -600,8 +580,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::ApplyStateBlock(DWORD dwBlockHandle) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::ApplyStateBlock");
 
     // Applications cannot apply a state block while another is being recorded
@@ -619,8 +597,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::CaptureStateBlock(DWORD dwBlockHandle) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::CaptureStateBlock");
 
     // Applications cannot capture a state block while another is being recorded
@@ -638,8 +614,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DeleteStateBlock(DWORD dwBlockHandle) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::DeleteStateBlock");
 
     // Applications cannot delete a state block while another is being recorded
@@ -665,8 +639,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::CreateStateBlock(D3DSTATEBLOCKTYPE d3dsbType, LPDWORD lpdwBlockHandle) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::CreateStateBlock");
 
     if (unlikely(lpdwBlockHandle == nullptr))
@@ -698,8 +670,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::PreLoad(IDirectDrawSurface7 *surface) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::PreLoad");
 
     if (unlikely(!m_DD7IntfParent->IsWrappedSurface(surface))) {
@@ -730,8 +700,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitive(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::DrawPrimitive");
 
     if (unlikely(lpvVertices == nullptr))
@@ -759,8 +727,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::DrawIndexedPrimitive");
 
     if (unlikely(lpvVertices == nullptr || lpwIndices == nullptr))
@@ -792,8 +758,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetClipStatus(D3DCLIPSTATUS *clip_status) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::SetClipStatus");
 
     if (unlikely(clip_status == nullptr))
@@ -808,8 +772,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetClipStatus(D3DCLIPSTATUS *clip_status) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::GetClipStatus");
 
     if (unlikely(clip_status == nullptr))
@@ -831,8 +793,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, DWORD dwFlags) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::warn("!!! D3D7Device::DrawPrimitiveStrided: Stub");
 
     if (unlikely(lpVertexArray == nullptr))
@@ -862,8 +822,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::warn("!!! D3D7Device::DrawIndexedPrimitiveStrided: Stub");
 
     if (unlikely(lpVertexArray == nullptr || lpwIndices == nullptr))
@@ -897,8 +855,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, DWORD dwFlags) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::DrawPrimitiveVB");
 
     if (unlikely(lpd3dVertexBuffer == nullptr))
@@ -933,8 +889,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::DrawIndexedPrimitiveVB");
 
     if (unlikely(lpd3dVertexBuffer == nullptr || lpwIndices == nullptr))
@@ -980,8 +934,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetTexture(DWORD stage, IDirectDrawSurface7 **surface) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::GetTexture");
 
     if (unlikely(surface == nullptr))
@@ -998,8 +950,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetTexture(DWORD stage, IDirectDrawSurface7 *surface) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::SetTexture");
 
     if (unlikely(stage >= caps7::TextureStageCount)) {
@@ -1064,8 +1014,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGESTATETYPE d3dTexStageStateType, LPDWORD lpdwState) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::GetTextureStageState");
 
     if (unlikely(lpdwState == nullptr))
@@ -1082,8 +1030,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGESTATETYPE d3dTexStageStateType, DWORD dwState) {
-    D3D7DeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::SetTextureStageState");
 
     d3d9::D3DSAMPLERSTATETYPE stateType = ConvertSamplerStateType(d3dTexStageStateType);
