@@ -101,9 +101,6 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
-    if (likely(device != nullptr))
-      device->LockDevice();
-
     HRESULT hr = device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7VertexBuffer::ProcessVertices: Failed to set d3d9 stream source");
@@ -132,9 +129,6 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
-    //if (likely(device != nullptr))
-      //device->LockDevice();
-
     return D3D_OK;
   }
 
@@ -146,8 +140,6 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     //D3D7Device* device = static_cast<D3D7Device*>(lpD3DDevice);
-    //if (likely(device != nullptr))
-      //device->LockDevice();
 
     return D3D_OK;
   };
