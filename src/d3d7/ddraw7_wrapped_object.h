@@ -1,7 +1,6 @@
 #pragma once
 
 #include "d3d7_include.h"
-#include "ddraw7_gamma.h"
 
 namespace dxvk {
 
@@ -63,29 +62,9 @@ namespace dxvk {
 
       *ppvObject = nullptr;
 
-      // Wrap IDirectDrawGammaControl, to potentially ignore application set gamma ramps
-      if (riid == __uuidof(IDirectDrawGammaControl)) {
-        void* d3d7GammaProxiedVoid = nullptr;
-        // This can never reasonably fail
-        m_proxy->QueryInterface(__uuidof(IDirectDrawGammaControl), &d3d7GammaProxiedVoid);
-        Com<IDirectDrawGammaControl> d3d7GammaProxied = static_cast<IDirectDrawGammaControl*>(d3d7GammaProxiedVoid);
-        *ppvObject = ref(new DDraw7GammaControl(std::move(d3d7GammaProxied)));
-        return S_OK;
-      }
-      if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
-        return m_proxy->QueryInterface(riid, ppvObject);
-      }
-      // Some games query the legacy ddraw interface from the new one
+      // Some games query for the legacy ddraw interface
       if (unlikely(riid == __uuidof(IDirectDraw))) {
         Logger::warn("QueryInterface: Query for legacy IDirectDraw");
-        return m_proxy->QueryInterface(riid, ppvObject);
-      }
-      // Some games query legacy ddraw surfaces from the new one
-      if (unlikely(riid == __uuidof(IDirectDrawSurface)
-                || riid == __uuidof(IDirectDrawSurface2)
-                || riid == __uuidof(IDirectDrawSurface3)
-                || riid == __uuidof(IDirectDrawSurface4))) {
-        Logger::warn("QueryInterface: Query for legacy IDirectDrawSurface");
         return m_proxy->QueryInterface(riid, ppvObject);
       }
 

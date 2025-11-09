@@ -85,6 +85,10 @@ namespace dxvk {
       return m_d3d7Intf != nullptr ? m_d3d7Intf->GetDevice() : nullptr;
     }
 
+    const D3D7Options* GetOptions() const {
+      return m_d3d7ConfigIntf->GetOptions();
+    }
+
     DDraw7Surface* GetLastDepthStencil() const {
       return m_lastDepthStencil;
     }
@@ -112,7 +116,7 @@ namespace dxvk {
 
     D3D7Interface*              m_d3d7Intf   = nullptr;
 
-    Com<D3D7Interface, false>   m_d3d7ConfigIntf;
+    Com<D3D7Interface>          m_d3d7ConfigIntf;
 
     HWND                        m_hwnd       = nullptr;
 
