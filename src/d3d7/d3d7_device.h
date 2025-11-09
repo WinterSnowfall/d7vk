@@ -1,7 +1,6 @@
 #pragma once
 
 #include "d3d7_include.h"
-#include "d3d7_singlethread.h"
 #include "d3d7_interface.h"
 #include "d3d7_options.h"
 #include "d3d7_caps.h"
@@ -130,10 +129,6 @@ namespace dxvk {
 
     void InitializeDS();
 
-    D3D7DeviceLock LockDevice() {
-      return m_singlethread.AcquireLock();
-    }
-
     const D3D7Options* GetOptions() const {
       return m_parent->GetOptions();
     }
@@ -177,8 +172,6 @@ namespace dxvk {
     bool                          m_hasDrawn    = false;
 
     DDraw7Interface*              m_DD7IntfParent = nullptr;
-
-    D3D7Singlethread              m_singlethread;
 
     Com<IDxvkD3D8InterfaceBridge> m_bridge;
 

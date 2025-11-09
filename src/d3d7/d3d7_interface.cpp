@@ -309,7 +309,6 @@ namespace dxvk {
     Logger::debug(">>> D3D7Interface::EvictManagedTextures");
 
     if (m_device != nullptr) {
-      m_device->LockDevice();
       HRESULT hr = m_device->GetD3D9()->EvictManagedResources();
 
       if (unlikely(FAILED(hr))) {
