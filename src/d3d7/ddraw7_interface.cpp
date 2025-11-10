@@ -135,9 +135,15 @@ namespace dxvk {
 
     if (IsWrappedSurface(lpDDSurface)) {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSurface);
-      // TODO: Wrap the duplicate before returning
-      return m_proxy->DuplicateSurface(ddraw7Surface->GetProxied(), lplpDupDDSurface);
+      Com<IDirectDrawSurface7> dupSurface7;
+      HRESULT hr = m_proxy->DuplicateSurface(ddraw7Surface->GetProxied(), &dupSurface7);
+      if (likely(SUCCEEDED(hr))) {
+        *lplpDupDDSurface = ref(new DDraw7Surface(std::move(dupSurface7), this, nullptr, false));
+      }
+      return hr;
     } else {
+      if (unlikely(lpDDSurface != nullptr))
+        Logger::warn("DDraw7Interface::DuplicateSurface: Received an unwrapped source surface");
       return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
     }
   }

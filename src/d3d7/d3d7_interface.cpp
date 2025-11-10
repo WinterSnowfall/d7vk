@@ -117,7 +117,9 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    DWORD vertexProcessing = D3DCREATE_HARDWARE_VERTEXPROCESSING;
+    // Do not use exclusive HWVP, since some games call ProcessVertices
+    // even in situations where they are expliclity using HW T&L
+    DWORD vertexProcessing = D3DCREATE_MIXED_VERTEXPROCESSING;
     bool  isRGBDevice      = false;
 
     if (rclsid == IID_IDirect3DTnLHalDevice) {
@@ -221,8 +223,8 @@ namespace dxvk {
     desc7.deviceGUID = rclsid;
 
     try{
-      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7, backBufferCount,
-                                              std::move(device9), rt7.ptr(), isRGBDevice);
+      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7, params,
+                                              vertexProcessing, std::move(device9), rt7.ptr(), isRGBDevice);
       // Hold the address of the most recently created device, not a reference
       m_device = device.ptr();
       // Now that we have a valid d3d9 device pointer, we can initialize the depth stencil (if any)
@@ -248,8 +250,6 @@ namespace dxvk {
 
     if (unlikely(desc->dwNumVertices > D3DMAXNUMVERTICES))
       return DDERR_INVALIDPARAMS;
-
-    // TODO: See if it actually matters to validate desc.dwFVF
 
     Com<IDirect3DVertexBuffer7> vertexBuffer7;
     // We don't really need a proxy buffer any longer
