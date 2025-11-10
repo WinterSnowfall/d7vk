@@ -94,17 +94,20 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::ProcessVertices(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPDIRECT3DVERTEXBUFFER7 lpSrcBuffer, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags) {
     Logger::debug(">>> D3D7VertexBuffer::ProcessVertices");
 
-    if(unlikely(lpD3DDevice == nullptr || lpSrcBuffer == nullptr))
+    if (unlikely(lpD3DDevice == nullptr || lpSrcBuffer == nullptr))
       return DDERR_INVALIDPARAMS;
 
     D3D7Device* device = static_cast<D3D7Device*>(lpD3DDevice);
     D3D7VertexBuffer* vb = static_cast<D3D7VertexBuffer*>(lpSrcBuffer);
     D3D7Device* actualDevice = vb->GetDevice();
 
-    if(unlikely(actualDevice == nullptr || device != actualDevice)) {
+    if (unlikely(actualDevice == nullptr || device != actualDevice)) {
       Logger::err("D3D7VertexBuffer::ProcessVertices: Incompatible or null device");
       return DDERR_GENERIC;
     }
+
+    if (device->IsMixedVPDevice())
+      device->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
 
     HRESULT hr = device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
     if (unlikely(FAILED(hr))) {
@@ -116,6 +119,9 @@ namespace dxvk {
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7VertexBuffer::ProcessVertices: Failed call to d3d9 ProcessVertices");
     }
+
+    if (device->IsMixedVPDevice())
+      device->GetD3D9()->SetSoftwareVertexProcessing(FALSE);
 
     return hr;
   }
@@ -133,6 +139,14 @@ namespace dxvk {
       Logger::err(">>> D3D7VertexBuffer::ProcessVerticesStrided: Incompatible or null device");
       return DDERR_GENERIC;
     }
+
+    if (device->IsMixedVPDevice())
+      device->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
+
+    // TODO: lpVertexArray needs to be transformed into a non-strided vertex buffer stream
+
+    if (device->IsMixedVPDevice())
+      device->GetD3D9()->SetSoftwareVertexProcessing(FALSE);
 
     return D3D_OK;
   }
