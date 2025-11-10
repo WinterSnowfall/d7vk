@@ -224,6 +224,14 @@ namespace dxvk {
 
     DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
 
+    if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
+      HRESULT hrRT7 = m_proxy->SetRenderTarget(rt7->GetProxied(), flags);
+      if (unlikely(FAILED(hrRT7))) {
+        Logger::warn("D3D7Device::SetRenderTarget: Failed to set d3d7 RT");
+        return hrRT7;
+      }
+    }
+
     // Will always be needed at this point
     HRESULT hr = rt7->InitializeOrUploadD3D9();
 
