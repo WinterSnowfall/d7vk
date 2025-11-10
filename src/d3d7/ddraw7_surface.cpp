@@ -696,9 +696,8 @@ namespace dxvk {
     else if ((m_desc.ddsCaps.dwCaps & DDSCAPS_NONLOCALVIDMEM) || (m_desc.ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE))
       pool = d3d9::D3DPOOL_MANAGED;
 
-    // Place all possible render targets in DEFAULT,
-    // as well as any cube maps and overlays
-    if (IsRenderTarget() || IsCubeMap() || IsOverlay()) {
+    // Place all possible render targets in DEFAULT
+    if (IsRenderTarget()) {
       pool  = d3d9::D3DPOOL_DEFAULT;
       usage = D3DUSAGE_RENDERTARGET;
     }
@@ -762,17 +761,21 @@ namespace dxvk {
         hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
         if (likely(SUCCEEDED(hr)))
           Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved front buffer surface");
-      }
-
-      else if (IsBackBuffer()) {
+      // Back Buffer
+      } else if (IsBackBuffer()) {
         const DWORD backBuffer = m_d3d7device->GetNextBackBuffer();
         Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Using back buffer ", backBuffer));
         hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, backBuffer, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
         if (likely(SUCCEEDED(hr)))
           Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved back buffer surface");
-      }
-
-      else if (IsOffScreenPlainSurface()) {
+      // Overlays (haven't seen any actual use of overlays in the wild)
+      } else if (unlikely(IsOverlay())) {
+        // Always link overlays to the first back buffer, since they are not RTs
+        hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
+        if (likely(SUCCEEDED(hr)))
+          Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved overlay surface");
+      // Offscreen Plain Surfaces (with RT use)
+      } else if (IsOffScreenPlainSurface()) {
         // Sometimes we get passed offscreen plain surfaces which should be tied to the back buffer
         if (unlikely(m_d3d7device->GetRenderTarget() == this)) {
           Logger::debug("DDraw7Surface::IntializeD3D9: Unknown surface is the current RT");
@@ -795,16 +798,8 @@ namespace dxvk {
           if (likely(SUCCEEDED(hr)))
             Logger::debug("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
         }
-      }
-
-      else if (IsOverlay()) {
-        // Always link overlays to the first back buffer, since they are not RTs
-        hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
-        if (likely(SUCCEEDED(hr)))
-          Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved overlay surface");
-      }
-
-      else {
+      // Generic RT
+      } else {
         // Must be lockable for blitting to work
         hr = m_d3d7device->GetD3D9()->CreateRenderTarget(
           m_desc.dwWidth, m_desc.dwHeight, m_format,
@@ -891,6 +886,24 @@ namespace dxvk {
 
       m_cubeMap = std::move(cubetex);
 
+    // Offscreen Plain Surfaces (without RT use)
+    } else if (IsOffScreenPlainSurface()) {
+      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing offscreen plain surface...");
+
+      Com<d3d9::IDirect3DSurface9> surf = nullptr;
+
+      hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
+        m_desc.dwWidth, m_desc.dwHeight, m_format,
+        pool, &surf, nullptr);
+
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw7Surface::IntializeD3D9: Failed to create offscreen plain surface");
+        m_d3d9 = nullptr;
+        return hr;
+      }
+
+      m_d3d9 = std::move(surf);
+    // TODO: Make sure we never end up in this situation
     } else {
       Logger::err("DDraw7Surface::IntializeD3D9: Unknown surface type");
 
