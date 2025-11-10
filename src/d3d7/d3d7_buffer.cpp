@@ -64,6 +64,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::Lock(DWORD flags, void **data, DWORD *data_size) {
     Logger::debug(">>> D3D7VertexBuffer::Lock");
 
+    if (unlikely(IsOptimized()))
+      return D3DERR_VERTEXBUFFEROPTIMIZED;
+
     if (data_size != nullptr)
       *data_size = m_size;
 
@@ -82,6 +85,8 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr)))
       m_locked = false;
+    else
+      return D3DERR_VERTEXBUFFERUNLOCKFAILED;
 
     return hr;
   }
@@ -132,14 +137,19 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // TODO: Sets the D3DVBCAPS_OPTIMIZED flag in dwCaps and the buffer can no longer be locked
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::Optimize(LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags) {
     Logger::debug(">>> D3D7VertexBuffer::Optimize");
 
-    if(unlikely(lpD3DDevice == nullptr))
+    if (unlikely(lpD3DDevice == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    //D3D7Device* device = static_cast<D3D7Device*>(lpD3DDevice);
+    if (unlikely(IsLocked()))
+      return D3DERR_VERTEXBUFFERLOCKED;
+
+    if (unlikely(IsOptimized()))
+      return D3DERR_VERTEXBUFFEROPTIMIZED;
+
+    m_desc.dwCaps &= D3DVBCAPS_OPTIMIZED;
 
     return D3D_OK;
   };
