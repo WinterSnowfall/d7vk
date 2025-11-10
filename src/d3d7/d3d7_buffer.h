@@ -49,6 +49,10 @@ namespace dxvk {
 
   private:
 
+    inline bool IsOptimized() const {
+      return m_desc.dwCaps & D3DVBCAPS_OPTIMIZED;
+    }
+
     inline void ListBufferDetails() {
       Logger::debug(str::format("D3D7VertexBuffer: Created a new buffer nr. {{", m_buffCount, "}}:"));
       Logger::debug(str::format("   Size:     ", m_size));
