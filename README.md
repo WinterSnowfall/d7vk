@@ -6,7 +6,7 @@ A Vulkan-based translation layer for Direct3D 7, which allows running 3D applica
 
 ### Will d7vk work with every d3d7 game out there?
 
-Sadly, no. d3d7 is a land of highly cursed API inter-operability, and applications that for one reason or another mix and match d3d7 with older ddraw (not ddraw7) and/or with GDI are not expected to ever work. If those games provide alternative renderers, based on Glide or OpenGL, I strongly recommend you use those, together with [nGlide](https://www.zeus-software.com/downloads/nglide) where applicable.
+Sadly, no. d3d7 is a land of highly cursed API interoperability, and applications that for one reason or another mix and match d3d7 with older ddraw (not ddraw7) and/or with GDI are not expected to ever work. If those games provide alternative renderers, based on Glide or OpenGL, I strongly recommend you use those, together with [nGlide](https://www.zeus-software.com/downloads/nglide) where applicable.
 
 If you're wondering about the current state of a certain game, a good starting point would be checking [the issue tracker](https://github.com/WinterSnowfall/d7vk/issues).
 
