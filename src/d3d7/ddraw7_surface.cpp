@@ -242,6 +242,14 @@ namespace dxvk {
     RefreshD3D7Device();
     if (likely(m_d3d7device != nullptr)) {
       m_d3d7device->ResetDrawTracking();
+
+      if (unlikely(m_d3d7device->GetOptions()->forceProxiedPresent)) {
+        if (unlikely(!IsInitialized()))
+          IntializeD3D9();
+        BlitToD3D7Surface(m_d3d7device->GetRenderTarget()->GetD3D9(), m_proxy.ptr(), m_desc);
+        return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+      }
+
       m_d3d7device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
     }
 

@@ -162,6 +162,10 @@ namespace dxvk {
     // TODO: Think about how to handle this gracefully,
     // as quite a number of games rely on it for proper behavior
     Logger::debug("*** DDraw7Interface::FlipToGDISurface: Ignoring");
+
+    if (unlikely(m_d3d7ConfigIntf->GetOptions()->forceProxiedPresent))
+      return m_proxy->FlipToGDISurface();
+
     return DD_OK;
   }
 

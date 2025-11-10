@@ -524,4 +524,28 @@ namespace dxvk {
     }
   }
 
+  // reverse blitter, which uses GDI device contexts and BitBlt
+  inline void BlitToD3D7Surface(
+      d3d9::IDirect3DSurface9* surface9,
+      IDirectDrawSurface7* surface7,
+      DDSURFACEDESC2 desc) {
+    HDC dc9;
+    HRESULT hr9 = surface9->GetDC(&dc9);
+    if (SUCCEEDED(hr9)) {
+      HDC dc7;
+      HRESULT hr7 = surface7->GetDC(&dc7);
+      if (SUCCEEDED(hr7)) {
+        BitBlt(dc7, 0, 0, desc.dwWidth, desc.dwHeight, dc9, 0, 0, SRCCOPY);
+        Logger::debug("BlitToD3D7Surface: Done blitting to D3D7 surface");
+
+        surface7->ReleaseDC(dc7);
+      } else {
+        Logger::warn("BlitToD3D7Surface: Failed to acquire d3d7 DC surface");
+      }
+      surface9->ReleaseDC(dc9);
+    } else {
+      Logger::warn("BlitToD3D7Surface: Failed to acquire d3d9 DC surface");
+    }
+  }
+
 }
