@@ -6,7 +6,7 @@
 #include "ddraw7_interface.h"
 #include "ddraw7_wrapped_object.h"
 
-#include <vector>
+#include <unordered_map>
 
 namespace dxvk {
 
@@ -271,18 +271,17 @@ namespace dxvk {
     DDSURFACEDESC2   m_desc;
     d3d9::D3DFORMAT  m_format;
 
-    // TODO: Might be worth making this a single generic type at some point
     Com<d3d9::IDirect3DTexture9>     m_texture;
     Com<d3d9::IDirect3DCubeTexture9> m_cubeMap;
 
     // Back buffers will have depth stencil surfaces as attachments (in practice
     // I have never seen more than one depth stencil being attached at a time)
-    Com<DDraw7Surface, false>              m_depthStencil;
+    Com<DDraw7Surface, false>        m_depthStencil;
     // These are attached surfaces, which are typically mips or other types of generated
     // surfaces, which need to exist for the entire lifecycle of their parent surface.
     // They are implemented with linked list, so for example only one mip level
     // will be held in a parent texture, and the next mip level will be held in the previous mip.
-    std::vector<Com<DDraw7Surface, false>> m_attachedSurfaces;
+    std::unordered_map<IDirectDrawSurface7*, Com<DDraw7Surface, false>> m_attachedSurfaces;
 
   };
 
