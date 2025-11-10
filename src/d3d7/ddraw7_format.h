@@ -52,7 +52,6 @@ namespace dxvk {
       Logger::warn("ConvertFormat: Unhandled dwRGBBitCount format");
       return d3d9::D3DFMT_UNKNOWN;
 
-    // TODO: Check if these are actually correct and work
     } else if ((fmt.dwFlags & DDPF_ZBUFFER)) {
       Logger::debug(str::format("ConvertFormat: fmt.dwZBufferBitDepth: ", fmt.dwZBufferBitDepth));
       Logger::debug(str::format("ConvertFormat: fmt.dwZBitMask:        ",        fmt.dwZBitMask));

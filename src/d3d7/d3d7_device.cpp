@@ -13,14 +13,16 @@ namespace dxvk {
       Com<IDirect3DDevice7>&& d3d7DeviceProxy,
       D3D7Interface* pParent,
       D3DDEVICEDESC7 Desc,
-      DWORD BackBufferCount,
+      d3d9::D3DPRESENT_PARAMETERS Params9,
+      DWORD VertexProcessing9,
       Com<d3d9::IDirect3DDevice9>&& pDevice9,
       DDraw7Surface* pSurface,
       bool isRGBDevice)
     : DDrawWrappedObject<D3D7Interface, IDirect3DDevice7, d3d9::IDirect3DDevice9>(pParent, std::move(d3d7DeviceProxy), std::move(pDevice9))
     , m_isRGBDevice ( isRGBDevice )
     , m_DD7IntfParent ( pParent->GetParent() )
-    , m_backBufferCount ( BackBufferCount )
+    , m_vertexProcessing9 ( VertexProcessing9 )
+    , m_params9 ( Params9 )
     , m_desc ( Desc )
     , m_rt ( pSurface ) {
     // Get the bridge interface to D3D9
@@ -122,14 +124,15 @@ namespace dxvk {
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    // Not supported in d3d9
+    // Not supported in d3d9, but some games need
+    // it to be advertised (for offscreen plain surfaces?)
     textureFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
     // Not supported in d3d9, but some games may use it
-    // TODO: Advertizing P8 support breaks Sacrifice
+    // Note: Advertizing P8 support breaks Sacrifice
     /*textureFormat = GetTextureFormat(d3d9::D3DFMT_P8);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
