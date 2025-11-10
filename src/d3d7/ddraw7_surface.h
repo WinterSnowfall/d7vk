@@ -140,9 +140,8 @@ namespace dxvk {
       return IsTexture() || IsCubeMap();
     }
 
-    // TODO: Think of a more accurate way
     bool IsRenderTarget() const {
-      return IsFrontBuffer() || IsBackBuffer() || IsOffScreenPlainSurface();
+      return IsFrontBuffer() || IsBackBuffer() || (m_desc.ddsCaps.dwCaps & DDSCAPS_3DDEVICE);
     }
 
     bool IsDepthStencil() const {
@@ -233,12 +232,12 @@ namespace dxvk {
 
       if (IsFrontBuffer())                type = "front buffer";
       else if (IsBackBuffer())            type = "back buffer";
-      else if (IsOffScreenPlainSurface()) type = "offscreen plain surface";
       else if (IsTextureMip())            type = "texture mipmap";
       else if (IsTexture())               type = "texture";
       else if (IsDepthStencil())          type = "depth stencil";
       else if (IsCubeMap())               type = "cube map";
       else if (IsOverlay())               type = "overlay";
+      else if (IsOffScreenPlainSurface()) type = "offscreen plain surface";
       else if (IsNotKnown())              type = "unknown";
 
       const char* attached = IsAttached() ? "yes" : "no";
