@@ -28,7 +28,8 @@ namespace dxvk {
         Com<IDirect3DDevice7>&& d3d7DeviceProxy,
         D3D7Interface* pParent,
         D3DDEVICEDESC7 Desc,
-        DWORD BackBufferCount,
+        d3d9::D3DPRESENT_PARAMETERS Params9,
+        DWORD VertexProcessing9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DDraw7Surface* pRT,
         bool isRGBDevice);
@@ -140,7 +141,7 @@ namespace dxvk {
     DWORD GetNextBackBuffer() {
       m_currentBackBuffer++;
 
-      if (m_currentBackBuffer >= m_backBufferCount)
+      if (m_currentBackBuffer >= m_params9.BackBufferCount)
         m_currentBackBuffer = 0;
 
       return m_currentBackBuffer;
@@ -148,6 +149,10 @@ namespace dxvk {
 
     bool IsRGBDevice() const {
       return m_isRGBDevice;
+    }
+
+    bool IsMixedVPDevice() const {
+      return m_vertexProcessing9 == D3DCREATE_MIXED_VERTEXPROCESSING;
     }
 
     bool HasDrawn() const {
@@ -179,7 +184,8 @@ namespace dxvk {
     uint32_t                      m_deviceCount = 0;
 
     DWORD                         m_currentBackBuffer = -1u;
-    DWORD                         m_backBufferCount = 0;
+    DWORD                         m_vertexProcessing9 = 0;
+    d3d9::D3DPRESENT_PARAMETERS   m_params9;
 
     D3DDEVICEDESC7                m_desc;
 
