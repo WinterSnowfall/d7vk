@@ -268,7 +268,7 @@ namespace dxvk {
     else if (lpDDSCaps->dwCaps & DDSCAPS_TEXTURE)
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a texture");
     else if (lpDDSCaps->dwCaps2 & DDSCAPS2_CUBEMAP)
-      Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a cube map");
+      Logger::warn("DDraw7Surface::GetAttachedSurface: Querying for a cube map");
     else if (lpDDSCaps->dwCaps2 & DDSCAPS_OVERLAY)
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for an overlay");
 
@@ -286,10 +286,17 @@ namespace dxvk {
     if (likely(!m_parent->IsWrappedSurface(surface.ptr()))) {
       Logger::debug("DDraw7Surface::GetAttachedSurface: Got a new unwrapped surface");
       try {
-        Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(std::move(surface), m_parent, this, false);
-        m_attachedSurfaces.push_back(ddraw7Surface.ptr());
-        // Do NOT ref here since we're managing the attached object lifecycle
-        *lplpDDAttachedSurface = ddraw7Surface.ptr();
+        auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
+        if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
+          Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(std::move(surface), m_parent, this, false);
+          m_attachedSurfaces.emplace(std::piecewise_construct,
+                                     std::forward_as_tuple(ddraw7Surface->GetProxied()),
+                                     std::forward_as_tuple(ddraw7Surface.ptr()));
+          // Do NOT ref here since we're managing the attached object lifecycle
+          *lplpDDAttachedSurface = ddraw7Surface.ptr();
+        } else {
+          *lplpDDAttachedSurface = attachedSurfaceIter->second.ptr();
+        }
       } catch (const DxvkError& e) {
         Logger::err(e.message());
         *lplpDDAttachedSurface = nullptr;
@@ -859,7 +866,7 @@ namespace dxvk {
       m_d3d9 = std::move(ds);
     // Cube maps
     } else if (IsCubeMap()) {
-      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing cube map...");
+      Logger::warn("DDraw7Surface::IntializeD3D9: Initializing cube map...");
 
       Com<d3d9::IDirect3DCubeTexture9> cubetex = nullptr;
       hr = m_d3d7device->GetD3D9()->CreateCubeTexture(
