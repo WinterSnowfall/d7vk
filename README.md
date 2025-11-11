@@ -10,6 +10,10 @@ Sadly, no. d3d7 is a land of highly cursed API interoperability, and application
 
 If you're wondering about the current state of a certain game, a good starting point would be checking [the issue tracker](https://github.com/WinterSnowfall/d7vk/issues).
 
+### What should I do if a game doesn't work (properly) with d7vk?
+
+I'll try to get as much game coverage as possible in d7vk, of course, but if something just doesn't work, simply use WineD3D - it's awesome and has the benefit of implementing *everything* there ever is to worry about in ddraw and GDI, so it's far, far less prone to cursed interop madness. Reports of issues and bugs are very welcome, as they ensure proper tracking and awareness, so please do report any problems you encounter if you have the time.
+
 ### Is d7vk really needed?
 
 No, not really. I am aware there are plenty of other (good) options out there for d3d7 translation, and while d7vk may perform better in some applications/situations, it will most likely not outperform those other options universally. But having more options on the table is a good thing in my book at least.
