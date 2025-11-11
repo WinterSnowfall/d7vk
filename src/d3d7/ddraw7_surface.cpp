@@ -246,8 +246,17 @@ namespace dxvk {
       if (unlikely(m_d3d7device->GetOptions()->forceProxiedPresent)) {
         if (unlikely(!IsInitialized()))
           IntializeD3D9();
+
         BlitToD3D7Surface(m_d3d7device->GetRenderTarget()->GetD3D9(), m_proxy.ptr(), m_desc);
-        return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+
+        if (unlikely(!m_parent->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
+          if (unlikely(lpDDSurfaceTargetOverride != nullptr))
+            Logger::debug("DDraw7Surface::Flip: Received unwrapped surface");
+          return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+        } else {
+          Com<DDraw7Surface> surf7 = static_cast<DDraw7Surface*>(lpDDSurfaceTargetOverride);
+          return m_proxy->Flip(surf7->GetProxied(), dwFlags);
+        }
       }
 
       m_d3d7device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
