@@ -16,6 +16,8 @@ namespace dxvk {
     if (unlikely(lplpDD == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    InitReturnPtr(lplpDD);
+
     if (unlikely(iid != __uuidof(IDirectDraw7)))
       return DDERR_INVALIDPARAMS;
 
@@ -24,7 +26,6 @@ namespace dxvk {
 
       if (unlikely(!hDDraw)) {
         Logger::err("CreateDirectDrawEx: Failed to load proxied ddraw.dll");
-        *lplpDD = nullptr;
         return DDERR_GENERIC;
       }
 
@@ -33,7 +34,6 @@ namespace dxvk {
 
       if (unlikely(!ProxiedDirectDrawCreateEx)) {
         Logger::err("CreateDirectDrawEx: Failed GetProcAddress");
-        *lplpDD = nullptr;
         return DDERR_GENERIC;
       }
 
@@ -42,7 +42,6 @@ namespace dxvk {
 
       if (unlikely(FAILED(hr))) {
         Logger::err("CreateDirectDrawEx: Failed call to proxied interface");
-        *lplpDD = nullptr;
         return hr;
       }
 
@@ -50,7 +49,6 @@ namespace dxvk {
       *lplpDD = ref(new DDraw7Interface(std::move(DDraw7IntfProxied)));
     } catch (const DxvkError& e) {
       Logger::err(e.message());
-      *lplpDD = nullptr;
       return DDERR_GENERIC;
     }
 
