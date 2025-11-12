@@ -135,7 +135,7 @@ namespace dxvk {
     }
 
     DDraw7Surface* GetRenderTarget() const {
-      return m_rt;
+      return m_rt.ptr();
     }
 
     DWORD GetNextBackBuffer() {
@@ -189,7 +189,7 @@ namespace dxvk {
 
     D3DDEVICEDESC7                m_desc;
 
-    DDraw7Surface*                m_rt     = nullptr;
+    Com<DDraw7Surface>            m_rt;
     DDraw7Surface*                m_rtOrig = nullptr;
 
     std::array<Com<DDraw7Surface, false>, caps7::TextureStageCount> m_textures;
