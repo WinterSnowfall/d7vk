@@ -766,78 +766,45 @@ namespace dxvk {
         Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Mismatch with declared ", m_desc.dwMipMapCount, "mip levels"));
     }
 
-    // Render targets / various base surface types
-    if (IsRenderTarget() || IsOverlay()) {
-      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing render target...");
+    Com<d3d9::IDirect3DSurface9> surf;
 
-      Com<d3d9::IDirect3DSurface9> rt = nullptr;
+    // Note: We don't technically need to attach the front buffer to anything, since we skip
+    // all operations done on it anyway, but it makes the entire IsInitialized() logic simpler
+    if (IsFrontBuffer()) {
+      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing front buffer...");
 
-      // Note: We don't technically need to attach the front buffer to anything, since we skip
-      // all operations done on it anyway, but it makes the entire IsInitialized() logic simpler
-      if (IsFrontBuffer()) {
-        hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
-        if (likely(SUCCEEDED(hr)))
-          Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved front buffer surface");
-      // Back Buffer
-      } else if (IsBackBuffer()) {
-        const DWORD backBuffer = m_d3d7device->GetNextBackBuffer();
-        Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Using back buffer ", backBuffer));
-        hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, backBuffer, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
-        if (likely(SUCCEEDED(hr)))
-          Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved back buffer surface");
-      // Overlays (haven't seen any actual use of overlays in the wild)
-      } else if (unlikely(IsOverlay())) {
-        // Always link overlays to the first back buffer, since they are not RTs
-        hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
-        if (likely(SUCCEEDED(hr)))
-          Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved overlay surface");
-      // Offscreen Plain Surfaces (with RT use)
-      } else if (IsOffScreenPlainSurface()) {
-        // Sometimes we get passed offscreen plain surfaces which should be tied to the back buffer
-        if (unlikely(m_d3d7device->GetRenderTarget() == this)) {
-          Logger::debug("DDraw7Surface::IntializeD3D9: Unknown surface is the current RT");
-
-          // Always link overlays to the first back buffer, since they are not part of a chain
-          hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &rt);
-
-          if (unlikely(FAILED(hr))) {
-            Logger::err("DDraw7Surface::IntializeD3D9: Failed to retrieve back buffer");
-            m_d3d9 = nullptr;
-            return hr;
-          }
-
-          Logger::debug("DDraw7Surface::IntializeD3D9: Retrieved back buffer surface");
-        } else {
-          hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
-            m_desc.dwWidth, m_desc.dwHeight, m_format,
-            pool, &rt, nullptr);
-
-          if (likely(SUCCEEDED(hr)))
-            Logger::debug("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
-        }
-      // Generic RT
-      } else {
-        // Must be lockable for blitting to work
-        hr = m_d3d7device->GetD3D9()->CreateRenderTarget(
-          m_desc.dwWidth, m_desc.dwHeight, m_format,
-          multiSampleType, usage, TRUE, &rt, nullptr);
-        if (likely(SUCCEEDED(hr)))
-          Logger::debug("DDraw7Surface::IntializeD3D9: Created generic RT");
-      }
+      hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
 
       if (unlikely(FAILED(hr))) {
-        Logger::err("DDraw7Surface::IntializeD3D9: Failed to create RT");
+        Logger::err("DDraw7Surface::IntializeD3D9: Failed to retrieve front buffer");
         m_d3d9 = nullptr;
         return hr;
       }
 
-      m_d3d9 = std::move(rt);
+      m_d3d9 = std::move(surf);
+
+    // Back Buffer
+    } else if (IsBackBuffer()) {
+      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing back buffer...");
+
+      const DWORD backBuffer = m_d3d7device->GetNextBackBuffer();
+      Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Using back buffer ", backBuffer));
+
+      hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, backBuffer, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
+
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw7Surface::IntializeD3D9: Failed to retrieve back buffer");
+        m_d3d9 = nullptr;
+        return hr;
+      }
+
+      m_d3d9 = std::move(surf);
 
     // Textures
     } else if (IsTexture()) {
-      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing a texture...");
+      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing texture...");
 
-      Com<d3d9::IDirect3DTexture9> tex = nullptr;
+      Com<d3d9::IDirect3DTexture9> tex;
 
       hr = m_d3d7device->GetD3D9()->CreateTexture(
         m_desc.dwWidth, m_desc.dwHeight, mipLevels, usage,
@@ -850,9 +817,8 @@ namespace dxvk {
       }
 
       // Attach level 0 to this surface
-      Com<d3d9::IDirect3DSurface9> level = nullptr;
-      tex->GetSurfaceLevel(0, &level);
-      m_d3d9 = (std::move(level));
+      tex->GetSurfaceLevel(0, &surf);
+      m_d3d9 = (std::move(surf));
 
       Logger::debug("DDraw7Surface::IntializeD3D9: Created d3d9 texture");
       m_texture = std::move(tex);
@@ -861,11 +827,9 @@ namespace dxvk {
     } else if (IsDepthStencil()) {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing depth stencil...");
 
-      Com<d3d9::IDirect3DSurface9> ds = nullptr;
-
       hr = m_d3d7device->GetD3D9()->CreateDepthStencilSurface(
         m_desc.dwWidth, m_desc.dwHeight, m_format,
-        multiSampleType, 0, FALSE, &ds, nullptr);
+        multiSampleType, 0, FALSE, &surf, nullptr);
 
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create DS");
@@ -875,12 +839,14 @@ namespace dxvk {
 
       Logger::debug("DDraw7Surface::IntializeD3D9: Created depth stencil surface");
 
-      m_d3d9 = std::move(ds);
+      m_d3d9 = std::move(surf);
+
     // Cube maps
     } else if (IsCubeMap()) {
       Logger::warn("DDraw7Surface::IntializeD3D9: Initializing cube map...");
 
-      Com<d3d9::IDirect3DCubeTexture9> cubetex = nullptr;
+      Com<d3d9::IDirect3DCubeTexture9> cubetex;
+
       hr = m_d3d7device->GetD3D9()->CreateCubeTexture(
         m_desc.dwWidth, mipLevels, usage,
         m_format, pool, &cubetex, nullptr);
@@ -894,37 +860,80 @@ namespace dxvk {
       Logger::debug("DDraw7Surface::IntializeD3D9: Created cube map");
 
       // Attach face 0 to this surface
-      Com<d3d9::IDirect3DSurface9> face = nullptr;
-      cubetex->GetCubeMapSurface((d3d9::D3DCUBEMAP_FACES)0, 0, &face);
-      m_d3d9 = (std::move(face));
+      cubetex->GetCubeMapSurface((d3d9::D3DCUBEMAP_FACES)0, 0, &surf);
+      m_d3d9 = (std::move(surf));
 
       // Attach sides 1-5 to each attached surface
       m_proxy->EnumAttachedSurfaces(cubetex.ptr(), EnumAndAttachSurfacesCallback);
 
       m_cubeMap = std::move(cubetex);
 
-    // Offscreen Plain Surfaces (without RT use)
+    // Offscreen Plain Surfaces
     } else if (IsOffScreenPlainSurface()) {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing offscreen plain surface...");
 
-      Com<d3d9::IDirect3DSurface9> surf = nullptr;
+      // Sometimes we get passed offscreen plain surfaces which should be tied to the back buffer
+      if (unlikely(m_d3d7device->GetRenderTarget() == this)) {
+        Logger::debug("DDraw7Surface::IntializeD3D9: Unknown surface is the current RT");
 
-      hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
-        m_desc.dwWidth, m_desc.dwHeight, m_format,
-        pool, &surf, nullptr);
+        // Always link overlays to the first back buffer, since they are not part of a chain
+        hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
+
+        if (unlikely(FAILED(hr))) {
+          Logger::err("DDraw7Surface::IntializeD3D9: Failed to retrieve offscreen plain surface");
+          m_d3d9 = nullptr;
+          return hr;
+        }
+      } else {
+        hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
+          m_desc.dwWidth, m_desc.dwHeight, m_format,
+          pool, &surf, nullptr);
+
+        if (unlikely(FAILED(hr))) {
+          Logger::err("DDraw7Surface::IntializeD3D9: Failed to create offscreen plain surface");
+          m_d3d9 = nullptr;
+          return hr;
+        }
+      }
+
+      m_d3d9 = std::move(surf);
+
+    // Overlays (haven't seen any actual use of overlays in the wild)
+    } else if (IsOverlay()) {
+      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing overlay...");
+
+      // Always link overlays to the first back buffer, since they are not RTs
+      hr = m_d3d7device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
 
       if (unlikely(FAILED(hr))) {
-        Logger::err("DDraw7Surface::IntializeD3D9: Failed to create offscreen plain surface");
+        Logger::err("DDraw7Surface::IntializeD3D9: Failed to retrieve overlay surface");
         m_d3d9 = nullptr;
         return hr;
       }
 
       m_d3d9 = std::move(surf);
-    // TODO: Make sure we never end up in this situation
-    } else {
-      Logger::err("DDraw7Surface::IntializeD3D9: Unknown surface type");
 
-      Com<d3d9::IDirect3DSurface9> surf = nullptr;
+    // Generic render target
+    } else if (IsRenderTarget()) {
+      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing render target...");
+
+      // Must be lockable for blitting to work
+      hr = m_d3d7device->GetD3D9()->CreateRenderTarget(
+        m_desc.dwWidth, m_desc.dwHeight, m_format,
+        multiSampleType, usage, TRUE, &surf, nullptr);
+
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw7Surface::IntializeD3D9: Failed to create render target");
+        m_d3d9 = nullptr;
+        return hr;
+      }
+
+      m_d3d9 = std::move(surf);
+
+    // Something.., else?
+    } else {
+      Logger::warn("DDraw7Surface::IntializeD3D9: Initializing unknown surface...");
+
       // D3DPOOL_SCRATCH allows the creation of surfaces with unsupported formats
       hr = m_d3d7device->GetD3D9()->CreateOffscreenPlainSurface(
           m_desc.dwWidth, m_desc.dwHeight, m_format,
