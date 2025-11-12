@@ -42,14 +42,13 @@ namespace dxvk {
     return lockFlagsD3D9;
   }
 
-  inline DWORD ConvertUsageFlags(DWORD usageFlags, bool isRGBDevice) {
+  inline DWORD ConvertUsageFlags(DWORD usageFlags) {
     DWORD usageFlagsD3D9 = 0;
 
     if (usageFlags & D3DVBCAPS_DONOTCLIP) {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_DONOTCLIP;
     }
-    // SWVP buffers used only on pure software devices
-    if (isRGBDevice && (usageFlags & D3DVBCAPS_SYSTEMMEMORY)) {
+    if (usageFlags & D3DVBCAPS_SYSTEMMEMORY) {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_SOFTWAREPROCESSING;
     }
     if (usageFlags & D3DVBCAPS_WRITEONLY) {
@@ -171,7 +170,9 @@ namespace dxvk {
                     | D3DDEVCAPS_FLOATTLVERTEX
                     | D3DDEVCAPS_HWRASTERIZATION
                     | D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                 // | D3DDEVCAPS_DRAWPRIMITIVES2 // Needed for older D3D devices
                  // | D3DDEVCAPS_SEPARATETEXTUREMEMORIES
+                    | D3DDEVCAPS_DRAWPRIMITIVES2EX // Needed for older D3D devices in D3D7 mode
                  // | D3DDEVCAPS_SORTDECREASINGZ
                  // | D3DDEVCAPS_SORTEXACT
                     | D3DDEVCAPS_SORTINCREASINGZ // TODO: Check native

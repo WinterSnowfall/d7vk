@@ -100,6 +100,8 @@ namespace dxvk {
     if (unlikely(lpDDSurfaceDesc == nullptr || lplpDDSurface == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    InitReturnPtr(lplpDDSurface);
+
     // We need to ensure we can always read from surfaces for upload to
     // d3d9, so always strip the DDSCAPS_WRITEONLY flag on creation
     lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_WRITEONLY;
@@ -133,7 +135,6 @@ namespace dxvk {
         *lplpDDSurface = surface7.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());
-        *lplpDDSurface = nullptr;
         return DDERR_GENERIC;
       }
     } else {

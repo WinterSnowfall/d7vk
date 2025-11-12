@@ -16,10 +16,8 @@ namespace dxvk {
       d3d9::D3DPRESENT_PARAMETERS Params9,
       DWORD VertexProcessing9,
       Com<d3d9::IDirect3DDevice9>&& pDevice9,
-      DDraw7Surface* pSurface,
-      bool isRGBDevice)
+      DDraw7Surface* pSurface)
     : DDrawWrappedObject<D3D7Interface, IDirect3DDevice7, d3d9::IDirect3DDevice9>(pParent, std::move(d3d7DeviceProxy), std::move(pDevice9))
-    , m_isRGBDevice ( isRGBDevice )
     , m_DD7IntfParent ( pParent->GetParent() )
     , m_vertexProcessing9 ( VertexProcessing9 )
     , m_params9 ( Params9 )
