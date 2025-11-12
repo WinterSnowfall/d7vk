@@ -50,7 +50,7 @@ namespace dxvk {
     }
 
   private:
-    
+
     static uint32_t               s_intfCount;
     uint32_t                      m_intfCount = 0;
 
