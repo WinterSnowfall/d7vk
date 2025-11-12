@@ -11,12 +11,16 @@ namespace dxvk {
 
   DDraw7Interface::DDraw7Interface(Com<IDirectDraw7>&& proxyIntf)
     : DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown>(nullptr, std::move(proxyIntf), nullptr) {
-    // Initialize a dummy D3D9 interface to retrieve the config options
-    m_d3d7ConfigIntf = new D3D7Interface(nullptr, this);
-
     m_intfCount = ++s_intfCount;
 
     Logger::debug(str::format("DDraw7Interface: Created a new interface nr. <<", m_intfCount, ">>"));
+
+    // Initialize the IDirect3D7 interlocked object
+    void* d3d7IntfProxiedVoid = nullptr;
+    // This can never reasonably fail
+    m_proxy->QueryInterface(__uuidof(IDirect3D7), &d3d7IntfProxiedVoid);
+    Com<IDirect3D7> d3d7IntfProxied = static_cast<IDirect3D7*>(d3d7IntfProxiedVoid);
+    m_d3d7Intf = new D3D7Interface(std::move(d3d7IntfProxied), this);
   }
 
   DDraw7Interface::~DDraw7Interface() {
@@ -51,19 +55,14 @@ namespace dxvk {
 
     *ppvObject = nullptr;
 
-    // Standard way of creating a new D3D7 interface
+    // Standard way of retrieving a D3D7 interface
     if (riid == __uuidof(IDirect3D7)) {
-      void* d3d7IntfProxiedVoid = nullptr;
-      // This can never reasonably fail
-      m_proxy->QueryInterface(__uuidof(IDirect3D7), &d3d7IntfProxiedVoid);
-      Com<IDirect3D7> d3d7IntfProxied = static_cast<IDirect3D7*>(d3d7IntfProxiedVoid);
-      // Hold the address, not a reference, to newly created interfaces, otherwise
-      // things may explode during an application's resource release cycle
-      m_d3d7Intf = ref(new D3D7Interface(std::move(d3d7IntfProxied), this));
-      *ppvObject = m_d3d7Intf;
+      *ppvObject = m_d3d7Intf.ref();
       return S_OK;
-    // Some games query the legacy ddraw interface
-    } else if (unlikely(riid == __uuidof(IDirectDraw))) {
+    // Some games query for legacy ddraw interfaces
+    } else if (unlikely(riid == __uuidof(IDirectDraw))
+            || unlikely(riid == __uuidof(IDirectDraw2))
+            || unlikely(riid == __uuidof(IDirectDraw4))) {
       Logger::warn("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
@@ -90,6 +89,8 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpColorTable, LPDIRECTDRAWPALETTE *lplpDDPalette, IUnknown *pUnkOuter) {
     Logger::debug("<<< DDraw7Interface::CreatePalette: Proxy");
+    //TODO: Palette objects increment the interface refcount... looks like we'll have to wrap them at some point
+    Logger::warn("DDraw7Interface::CreatePalette: Interface refcount will be lower than expected");
     return m_proxy->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
   }
 
@@ -99,6 +100,19 @@ namespace dxvk {
     if (unlikely(lpDDSurfaceDesc == nullptr || lplpDDSurface == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    // We need to ensure we can always read from surfaces for upload to
+    // d3d9, so always strip the DDSCAPS_WRITEONLY flag on creation
+    lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_WRITEONLY;
+    // Also handle texture specific hint flags
+    if (lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_TEXTURE) {
+      // Similarly strip the DDSCAPS2_OPAQUE flag on creation
+      lpDDSurfaceDesc->ddsCaps.dwCaps2 &= ~DDSCAPS2_OPAQUE;
+      // Similarly strip the DDSCAPS2_HINTSTATIC flag on creation
+      lpDDSurfaceDesc->ddsCaps.dwCaps2 &= ~DDSCAPS2_HINTSTATIC;
+      // Always add the DDSCAPS2_HINTDYNAMIC on creation
+      lpDDSurfaceDesc->ddsCaps.dwCaps2 |= DDSCAPS2_HINTDYNAMIC;
+    }
+
     Com<IDirectDrawSurface7> ddraw7SurfaceProxied;
     HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddraw7SurfaceProxied, pUnkOuter);
 
@@ -106,10 +120,10 @@ namespace dxvk {
       try{
         Com<DDraw7Surface> surface7 = new DDraw7Surface(std::move(ddraw7SurfaceProxied), this, nullptr, true);
 
-        if (unlikely(m_d3d7ConfigIntf->GetOptions()->proxiedQueryInterface)) {
+        if (unlikely(m_d3d7Intf->GetOptions()->proxiedQueryInterface)) {
           // Hack: Gothic / Gothic 2 and other games attach the depth stencil to an externally created
           // back buffer, so we need to re-attach the depth stencil to the back buffer on device creation
-          if (unlikely(surface7->IsRenderTarget() || surface7->IsDepthStencil())) {
+          if (unlikely(surface7->IsForwardableSurface())) {
             if (unlikely(surface7->IsDepthStencil()))
               m_lastDepthStencil = surface7.ptr();
             surface7->SetForwardToProxy(true);
@@ -163,7 +177,7 @@ namespace dxvk {
     // as quite a number of games rely on it for proper behavior
     Logger::debug("*** DDraw7Interface::FlipToGDISurface: Ignoring");
 
-    if (unlikely(m_d3d7ConfigIntf->GetOptions()->forceProxiedPresent))
+    if (unlikely(m_d3d7Intf->GetOptions()->forceProxiedPresent))
       return m_proxy->FlipToGDISurface();
 
     return DD_OK;
