@@ -81,24 +81,20 @@ namespace dxvk {
 
     void RemoveWrappedSurface(IDirectDrawSurface7* surface);
 
+    D3D7Interface* GetD3D7Interface() const {
+      return m_d3d7Intf.ptr();
+    }
+
     D3D7Device* GetD3D7Device() const {
-      return m_d3d7Intf != nullptr ? m_d3d7Intf->GetDevice() : nullptr;
+      return m_d3d7Intf->GetDevice();
     }
 
     const D3D7Options* GetOptions() const {
-      return m_d3d7ConfigIntf->GetOptions();
+      return m_d3d7Intf->GetOptions();
     }
 
     DDraw7Surface* GetLastDepthStencil() const {
       return m_lastDepthStencil;
-    }
-
-    D3D7Interface* GetD3D7Interface() const {
-      return m_d3d7Intf;
-    }
-
-    void ClearD3D7Interface() {
-      m_d3d7Intf = nullptr;
     }
 
     HWND GetHWND() const {
@@ -114,9 +110,7 @@ namespace dxvk {
     static uint32_t             s_intfCount;
     uint32_t                    m_intfCount  = 0;
 
-    D3D7Interface*              m_d3d7Intf   = nullptr;
-
-    Com<D3D7Interface>          m_d3d7ConfigIntf;
+    Com<D3D7Interface, false>   m_d3d7Intf;
 
     HWND                        m_hwnd       = nullptr;
 

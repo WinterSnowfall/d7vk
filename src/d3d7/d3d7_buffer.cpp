@@ -97,6 +97,12 @@ namespace dxvk {
     if (unlikely(lpD3DDevice == nullptr || lpSrcBuffer == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    if (unlikely(!(dwVertexOp & D3DVOP_TRANSFORM)))
+      return DDERR_INVALIDPARAMS;
+
+    if ((dwVertexOp & D3DVOP_CLIP) || (dwVertexOp & D3DVOP_EXTENTS) || (dwVertexOp & D3DVOP_LIGHT))
+      Logger::warn("D3D7VertexBuffer::ProcessVertices: Unsupported vertex operation");
+
     D3D7Device* device = static_cast<D3D7Device*>(lpD3DDevice);
     D3D7VertexBuffer* vb = static_cast<D3D7VertexBuffer*>(lpSrcBuffer);
     D3D7Device* actualDevice = vb->GetDevice();

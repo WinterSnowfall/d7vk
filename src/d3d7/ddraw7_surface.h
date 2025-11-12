@@ -141,7 +141,11 @@ namespace dxvk {
     }
 
     bool IsRenderTarget() const {
-      return IsFrontBuffer() || IsBackBuffer() || (m_desc.ddsCaps.dwCaps & DDSCAPS_3DDEVICE);
+      return IsFrontBuffer() || IsBackBuffer() || Is3DSurface();
+    }
+
+    bool IsForwardableSurface() const {
+      return IsFrontBuffer() || IsBackBuffer() || IsDepthStencil() || IsOffScreenPlainSurface();
     }
 
     bool IsDepthStencil() const {
@@ -186,6 +190,10 @@ namespace dxvk {
 
     inline bool IsBackBuffer() const {
       return m_desc.ddsCaps.dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP);
+    }
+
+    inline bool Is3DSurface() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_3DDEVICE;
     }
 
     inline bool IsOffScreenPlainSurface() const {
@@ -238,6 +246,7 @@ namespace dxvk {
       else if (IsCubeMap())               type = "cube map";
       else if (IsOverlay())               type = "overlay";
       else if (IsOffScreenPlainSurface()) type = "offscreen plain surface";
+      else if (Is3DSurface())             type = "render target";
       else if (IsNotKnown())              type = "unknown";
 
       const char* attached = IsAttached() ? "yes" : "no";
