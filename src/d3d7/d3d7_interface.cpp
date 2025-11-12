@@ -97,7 +97,7 @@ namespace dxvk {
 
     // Software emulation, this is expected to be exposed (SWVP)
     desc7.deviceGUID = IID_IDirect3DRGBDevice;
-    desc7.dwDevCaps &= ~(D3DDEVCAPS_HWTRANSFORMANDLIGHT | D3DDEVCAPS_HWRASTERIZATION);
+    desc7.dwDevCaps &= ~(D3DDEVCAPS_HWTRANSFORMANDLIGHT | D3DDEVCAPS_HWRASTERIZATION | D3DDEVCAPS_DRAWPRIMITIVES2EX);
     char deviceNameRGB[100] = "D7VK RGB";
     char deviceDescRGB[100] = "D7VK RGB";
 
@@ -112,6 +112,8 @@ namespace dxvk {
     if (unlikely(ppd3dDevice == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    InitReturnPtr(ppd3dDevice);
+
     if (unlikely(surface == nullptr)) {
       Logger::err("D3D7Interface::CreateDevice: Null surface provided");
       return DDERR_INVALIDPARAMS;
@@ -120,7 +122,6 @@ namespace dxvk {
     // Do not use exclusive HWVP, since some games call ProcessVertices
     // even in situations where they are expliclity using HW T&L
     DWORD vertexProcessing = D3DCREATE_MIXED_VERTEXPROCESSING;
-    bool  isRGBDevice      = false;
 
     if (rclsid == IID_IDirect3DTnLHalDevice) {
       Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DTnLHalDevice device");
@@ -130,7 +131,6 @@ namespace dxvk {
     } else if (rclsid == IID_IDirect3DRGBDevice) {
       Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
       vertexProcessing = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
-      isRGBDevice = true;
     } else {
       Logger::err("D3D7Interface::CreateDevice: Unknown device type");
       return DDERR_INVALIDPARAMS;
@@ -166,6 +166,14 @@ namespace dxvk {
       rt7 = static_cast<DDraw7Surface*>(surface);
     }
 
+    Com<IDirect3DDevice7> d3d7DeviceProxy;
+    HRESULT hr = m_proxy->CreateDevice(rclsid, rt7->GetProxied(), &d3d7DeviceProxy);
+
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D7Interface::CreateDevice: Failed to created the proxy device");
+      return hr;
+    }
+
     // TODO: Potentially cater for multiple back buffers, though in
     // practice their use isn't very common in d3d7
     const DWORD backBufferCount = 1;
@@ -193,7 +201,7 @@ namespace dxvk {
 
     Com<d3d9::IDirect3DDevice9> device9;
 
-    HRESULT hr = m_d3d9->CreateDevice(
+    hr = m_d3d9->CreateDevice(
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
       hwnd,
@@ -207,21 +215,13 @@ namespace dxvk {
       return hr;
     }
 
-    Com<IDirect3DDevice7> d3d7DeviceProxy;
-    hr = m_proxy->CreateDevice(rclsid, rt7->GetProxied(), &d3d7DeviceProxy);
-
-    if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7Interface::CreateDevice: Failed to created the proxy device");
-      return hr;
-    }
-
     D3DDEVICEDESC7 desc7 = GetBaseD3D7Caps();
     // Store the GUID of the created device
     desc7.deviceGUID = rclsid;
 
     try{
       Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7, params,
-                                              vertexProcessing, std::move(device9), rt7.ptr(), isRGBDevice);
+                                              vertexProcessing, std::move(device9), rt7.ptr());
       // Hold the address of the most recently created device, not a reference
       m_device = device.ptr();
       // Now that we have a valid d3d9 device pointer, we can initialize the depth stencil (if any)
@@ -229,7 +229,6 @@ namespace dxvk {
       *ppd3dDevice = device.ref();
     } catch (const DxvkError& e) {
       Logger::err(e.message());
-      *ppd3dDevice = nullptr;
       return DDERR_GENERIC;
     }
 
@@ -241,6 +240,8 @@ namespace dxvk {
 
     if (unlikely(desc == nullptr || ppVertexBuffer == nullptr))
       return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(ppVertexBuffer);
 
     if (unlikely(desc->dwSize != sizeof(D3DVERTEXBUFFERDESC)))
       return DDERR_INVALIDPARAMS;
@@ -261,7 +262,7 @@ namespace dxvk {
       return D3DERR_INVALIDCALL;
 
     Com<d3d9::IDirect3DVertexBuffer9> vertexBuffer9;
-    const DWORD Usage = ConvertUsageFlags(desc->dwCaps, m_device->IsRGBDevice());
+    const DWORD Usage = ConvertUsageFlags(desc->dwCaps);
     const DWORD Size  = GetFVFSize(desc->dwFVF) * desc->dwNumVertices;
     HRESULT hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Usage, desc->dwFVF, d3d9::D3DPOOL_DEFAULT, &vertexBuffer9, nullptr);
 

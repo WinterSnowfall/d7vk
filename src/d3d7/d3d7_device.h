@@ -31,8 +31,7 @@ namespace dxvk {
         d3d9::D3DPRESENT_PARAMETERS Params9,
         DWORD VertexProcessing9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
-        DDraw7Surface* pRT,
-        bool isRGBDevice);
+        DDraw7Surface* pRT);
 
     ~D3D7Device();
 
@@ -147,10 +146,6 @@ namespace dxvk {
       return m_currentBackBuffer;
     }
 
-    bool IsRGBDevice() const {
-      return m_isRGBDevice;
-    }
-
     bool IsMixedVPDevice() const {
       return m_vertexProcessing9 == D3DCREATE_MIXED_VERTEXPROCESSING;
     }
@@ -173,7 +168,6 @@ namespace dxvk {
 
     inline bool ShouldRecord() { return m_recorder != nullptr; }
 
-    bool                          m_isRGBDevice = false;
     bool                          m_hasDrawn    = false;
 
     DDraw7Interface*              m_DD7IntfParent = nullptr;
