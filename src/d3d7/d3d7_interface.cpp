@@ -26,11 +26,21 @@ namespace dxvk {
 
     m_d3d7Options = D3D7Options(*m_bridge->GetConfig());
 
-    if (likely(m_proxy != nullptr)) {
-      m_intfCount = ++s_intfCount;
+    m_intfCount = ++s_intfCount;
+  }
 
-      Logger::debug(str::format("D3D7Interface: Created a new interface nr. ((", m_intfCount, "))"));
-    }
+  D3D7Interface::~D3D7Interface() {
+    Logger::debug(str::format("D3D7Interface: Interface nr. ((", m_intfCount, ")) bites the dust"));
+  }
+
+  // Interlocked refcount with the parent IDirectDraw7
+  ULONG STDMETHODCALLTYPE D3D7Interface::AddRef() {
+    return m_parent->AddRef();
+  }
+
+  // Interlocked refcount with the parent IDirectDraw7
+  ULONG STDMETHODCALLTYPE D3D7Interface::Release() {
+    return m_parent->Release();
   }
 
   template<>
@@ -52,16 +62,6 @@ namespace dxvk {
 
     Logger::debug("D3D7Interface::QueryInterface: Forwarding interface query to parent");
     return m_parent->GetInterface(riid);
-  }
-
-  D3D7Interface::~D3D7Interface() {
-    // Clear up the d3d7 interface device pointer if it points to this interface
-    if (m_parent->GetD3D7Interface() == this)
-      m_parent->ClearD3D7Interface();
-
-    if (likely(m_proxy != nullptr)) {
-      Logger::debug(str::format("D3D7Interface: Interface nr. ((", m_intfCount, ")) bites the dust"));
-    }
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK7 cb, void *ctx) {
@@ -154,9 +154,6 @@ namespace dxvk {
       if (unlikely(m_d3d7Options.proxiedQueryInterface)) {
         Logger::debug("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
         rt7 = new DDraw7Surface(std::move(surface), m_parent, nullptr, true);
-        // And now we need to keep this wrapped object alive ourselves,
-        // since it is unknown to both ddraw and the calling application
-        m_unWrappedRT = m_unWrappedRT.ptr();
         // Hack: attach the last created depth stencil to the unwrapped RT.
         // Note that the proxied attach call will fail, because the RT is created outside
         // of ddraw, but we will store the DS anyway and it will be used during device creation.
