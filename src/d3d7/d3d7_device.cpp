@@ -32,7 +32,7 @@ namespace dxvk {
 
     m_parent->AddRef();
 
-    m_rtOrig = m_rt;
+    m_rtOrig = m_rt.ptr();
     HRESULT hr = m_d3d9->GetRenderTarget(0, &m_rt9);
     if(unlikely(FAILED(hr)))
       throw DxvkError("D3D7Device: ERROR! Failed to retrieve d3d9 render target!");
@@ -285,7 +285,7 @@ namespace dxvk {
     if (unlikely(surface == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *surface = ref(m_rt);
+    *surface = m_rt.ref();
 
     return D3D_OK;
   }
@@ -743,6 +743,9 @@ namespace dxvk {
     if (unlikely(lpvVertices == nullptr || lpwIndices == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    if (unlikely(d3dptPrimitiveType == D3DPT_POINTLIST))
+      Logger::warn("D3D7Device::DrawIndexedPrimitiveVB: D3DPT_POINTLIST primitive type");
+
     if (unlikely(!dwVertexCount || !dwIndexCount))
       return D3D_OK;
 
@@ -904,6 +907,9 @@ namespace dxvk {
 
     if (unlikely(lpd3dVertexBuffer == nullptr || lpwIndices == nullptr))
       return DDERR_INVALIDPARAMS;
+
+    if (unlikely(d3dptPrimitiveType == D3DPT_POINTLIST))
+      Logger::warn("D3D7Device::DrawIndexedPrimitiveVB: D3DPT_POINTLIST primitive type");
 
     Com<D3D7VertexBuffer> vb = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
 
