@@ -23,6 +23,10 @@ namespace dxvk {
 
     ~D3D7Interface();
 
+    ULONG STDMETHODCALLTYPE AddRef();
+
+    ULONG STDMETHODCALLTYPE Release();
+
     HRESULT STDMETHODCALLTYPE EnumDevices(LPD3DENUMDEVICESCALLBACK7 cb, void *ctx);
 
     HRESULT STDMETHODCALLTYPE CreateDevice(const IID& rclsid, IDirectDrawSurface7 *surface, IDirect3DDevice7 **ppd3dDevice);
@@ -46,18 +50,15 @@ namespace dxvk {
     }
 
   private:
-    D3D7Options                   m_d3d7Options;
-
-    Com<IDirect3D7>               m_d3d7IntfProxy;
-
-    Com<IDxvkD3D8InterfaceBridge> m_bridge;
-
+    
     static uint32_t               s_intfCount;
     uint32_t                      m_intfCount = 0;
 
-    D3D7Device*                   m_device = nullptr;
+    Com<IDxvkD3D8InterfaceBridge> m_bridge;
 
-    Com<DDraw7Surface, false>     m_unWrappedRT;
+    D3D7Options                   m_d3d7Options;
+
+    D3D7Device*                   m_device = nullptr;
 
   };
 
