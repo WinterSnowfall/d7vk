@@ -2,6 +2,7 @@
 
 #include "d3d7_device.h"
 #include "ddraw7_surface.h"
+#include "ddraw7_palette.h"
 
 #include <algorithm>
 
@@ -89,9 +90,26 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpColorTable, LPDIRECTDRAWPALETTE *lplpDDPalette, IUnknown *pUnkOuter) {
     Logger::debug("<<< DDraw7Interface::CreatePalette: Proxy");
-    //TODO: Palette objects increment the interface refcount... looks like we'll have to wrap them at some point
-    Logger::warn("DDraw7Interface::CreatePalette: Interface refcount will be lower than expected");
+    // Note: Unfortunately, if we wrap palettes, WineD3D's ddraw will crash on an assert,
+    // as it expects the vtable to correspond to its internal palette implementation
     return m_proxy->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
+
+    /*if (unlikely(lplpDDPalette == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDPalette);
+
+    Com<IDirectDrawPalette> lplpDDPaletteProxy;
+    HRESULT hr = m_proxy->CreatePalette(dwFlags, lpColorTable, &lplpDDPaletteProxy, pUnkOuter);
+
+    if (likely(SUCCEEDED(hr))) {
+      *lplpDDPalette = ref(new DDraw7Palette(std::move(lplpDDPaletteProxy), this));
+    } else {
+      Logger::err("DDraw7Interface::CreatePalette: Failed to create proxy palette");
+      return hr;
+    }
+
+    return DD_OK;*/
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPDIRECTDRAWSURFACE7 *lplpDDSurface, IUnknown *pUnkOuter) {
@@ -186,22 +204,7 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps) {
     Logger::debug("<<< DDraw7Interface::GetCaps: Proxy");
-
-    HRESULT hr = m_proxy->GetCaps(lpDDDriverCaps, lpDDHELCaps);
-
-    // Strip palletted surface support from reported caps
-    if (likely(SUCCEEDED(hr))) {
-      if (lpDDDriverCaps != nullptr) {
-        lpDDDriverCaps->dwCaps &= ~(DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC);
-        lpDDDriverCaps->dwPalCaps = 0;
-      }
-      if (lpDDHELCaps != nullptr) {
-        lpDDHELCaps->dwCaps &= ~(DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC);
-        lpDDHELCaps->dwPalCaps = 0;
-      }
-    }
-
-    return hr;
+    return m_proxy->GetCaps(lpDDDriverCaps, lpDDHELCaps);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc) {
