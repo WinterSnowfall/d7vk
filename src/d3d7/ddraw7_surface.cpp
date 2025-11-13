@@ -128,9 +128,15 @@ namespace dxvk {
     }
 
     DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSAttachedSurface);
+
+    HRESULT hr = m_proxy->AddAttachedSurface(ddraw7Surface->GetProxied());
+    if (unlikely(FAILED(hr)))
+      return hr;
+
     ddraw7Surface->SetParentSurface(this);
     m_depthStencil = ddraw7Surface;
-    return m_proxy->AddAttachedSurface(ddraw7Surface->GetProxied());
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::AddOverlayDirtyRect(LPRECT lpRect) {
@@ -216,11 +222,17 @@ namespace dxvk {
     }
 
     DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSAttachedSurface);
+
+    HRESULT hr = m_proxy->DeleteAttachedSurface(dwFlags, ddraw7Surface->GetProxied());
+    if (unlikely(FAILED(hr)))
+      return hr;
+
     if (likely(m_depthStencil == ddraw7Surface)) {
       ddraw7Surface->ClearParentSurface();
       m_depthStencil = nullptr;
     }
-    return m_proxy->DeleteAttachedSurface(dwFlags, ddraw7Surface->GetProxied());
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback) {
@@ -364,6 +376,8 @@ namespace dxvk {
 
     if (unlikely(lphDC == nullptr))
       return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lphDC);
 
     if (unlikely(!IsInitialized())) {
       Logger::debug("DDraw7Surface::GetDC: Not yet initialized");

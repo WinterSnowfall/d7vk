@@ -220,6 +220,8 @@ namespace dxvk {
     if(unlikely(lplpGDIDDSurface == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    InitReturnPtr(lplpGDIDDSurface);
+
     Com<IDirectDrawSurface7> gdiSurface = nullptr;
     HRESULT hr = m_proxy->GetGDISurface(&gdiSurface);
 
@@ -238,7 +240,6 @@ namespace dxvk {
         *lplpGDIDDSurface = ref(new DDraw7Surface(std::move(gdiSurface), this, nullptr, false));
       } catch (const DxvkError& e) {
         Logger::err(e.message());
-        *lplpGDIDDSurface = nullptr;
         return DDERR_GENERIC;
       }
     }
@@ -302,7 +303,9 @@ namespace dxvk {
     if (unlikely(pSurf == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    Com<IDirectDrawSurface7> surface = nullptr;
+    InitReturnPtr(pSurf);
+
+    Com<IDirectDrawSurface7> surface;
     HRESULT hr = m_proxy->GetSurfaceFromDC(hdc, &surface);
 
     if (unlikely(FAILED(hr))) {
@@ -314,7 +317,6 @@ namespace dxvk {
       *pSurf = ref(new DDraw7Surface(std::move(surface), this, nullptr, false));
     } catch (const DxvkError& e) {
       Logger::err(e.message());
-      *pSurf = nullptr;
       return DDERR_GENERIC;
     }
 
