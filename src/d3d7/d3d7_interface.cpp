@@ -154,10 +154,9 @@ namespace dxvk {
       if (unlikely(m_d3d7Options.proxiedQueryInterface)) {
         Logger::debug("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
         rt7 = new DDraw7Surface(std::move(surface), m_parent, nullptr, true);
-        // Hack: attach the last created depth stencil to the unwrapped RT.
-        // Note that the proxied attach call will fail, because the RT is created outside
-        // of ddraw, but we will store the DS anyway and it will be used during device creation.
-        rt7->AddAttachedSurface(m_parent->GetLastDepthStencil());
+        // Hack: attach the last created depth stencil to the unwrapped RT
+        // We can not do this the usual way because the RT is not known to ddraw
+        rt7->SetAttachedDepthStencil(m_parent->GetLastDepthStencil());
       } else {
         Logger::err("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
         return DDERR_GENERIC;
@@ -246,8 +245,12 @@ namespace dxvk {
     if (unlikely(desc->dwSize != sizeof(D3DVERTEXBUFFERDESC)))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(desc->dwNumVertices > D3DMAXNUMVERTICES))
+    // TODO: A wine test relies on this not being enforced.
+    // Check native to see if there's any truth to the claim.
+    if (unlikely(desc->dwNumVertices > D3DMAXNUMVERTICES)) {
+      Logger::err("D3D7Interface::CreateVertexBuffer: dwNumVertices exceeds D3DMAXNUMVERTICES");
       return DDERR_INVALIDPARAMS;
+    }
 
     Com<IDirect3DVertexBuffer7> vertexBuffer7;
     // We don't really need a proxy buffer any longer
