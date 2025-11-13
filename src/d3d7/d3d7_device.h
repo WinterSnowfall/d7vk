@@ -168,7 +168,8 @@ namespace dxvk {
 
     inline bool ShouldRecord() { return m_recorder != nullptr; }
 
-    bool                          m_hasDrawn    = false;
+    bool                          m_hasDrawn = false;
+    bool                          m_inScene  = false;
 
     DDraw7Interface*              m_DD7IntfParent = nullptr;
 
@@ -184,6 +185,7 @@ namespace dxvk {
     D3DDEVICEDESC7                m_desc;
 
     Com<DDraw7Surface>            m_rt;
+    DDraw7Surface*                m_ds     = nullptr;
     DDraw7Surface*                m_rtOrig = nullptr;
 
     std::array<Com<DDraw7Surface, false>, caps7::TextureStageCount> m_textures;
