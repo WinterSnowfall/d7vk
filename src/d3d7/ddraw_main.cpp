@@ -233,9 +233,33 @@ extern "C" {
     return DD_OK;
   }
 
+  // Note: will always return unwrapped surfaces, so we need to account for that
   DLLEXPORT HRESULT __stdcall GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS, DWORD arg) {
-    dxvk::Logger::warn("!!! GetSurfaceFromDC: Stub");
-    return S_OK;
+    dxvk::Logger::debug("<<< GetSurfaceFromDC: Proxy");
+
+    HMODULE hDDraw = dxvk::GetProxiedDDrawModule();
+
+    if (unlikely(!hDDraw)) {
+      dxvk::Logger::err("GetSurfaceFromDC: Failed to load proxied ddraw.dll");
+      return DDERR_GENERIC;
+    }
+
+    typedef HRESULT (__stdcall *GetSurfaceFromDC_t)(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS, DWORD arg);
+    GetSurfaceFromDC_t ProxiedGetSurfaceFromDC = nullptr;
+    ProxiedGetSurfaceFromDC = reinterpret_cast<GetSurfaceFromDC_t>(GetProcAddress(hDDraw, "GetSurfaceFromDC"));
+
+    if (unlikely(!ProxiedGetSurfaceFromDC)) {
+      dxvk::Logger::err("GetSurfaceFromDC: Failed GetProcAddress");
+      return DDERR_GENERIC;
+    }
+
+    HRESULT hr = ProxiedGetSurfaceFromDC(hdc, lpDDS, arg);
+
+    if (unlikely(FAILED(hr))) {
+      dxvk::Logger::err("GetSurfaceFromDC: Failed call to proxied interface");
+    }
+
+    return hr;
   }
 
   DLLEXPORT HRESULT __stdcall RegisterSpecialCase(DWORD arg1, DWORD arg2, DWORD arg3, DWORD arg4) {
