@@ -98,6 +98,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::ProcessVertices(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPDIRECT3DVERTEXBUFFER7 lpSrcBuffer, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags) {
     Logger::debug(">>> D3D7VertexBuffer::ProcessVertices");
 
+    if (unlikely(!dwCount))
+      return D3D_OK;
+
     if (unlikely(lpD3DDevice == nullptr || lpSrcBuffer == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -119,13 +122,8 @@ namespace dxvk {
     if (device->IsMixedVPDevice())
       device->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
 
-    HRESULT hr = device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
-    if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7VertexBuffer::ProcessVertices: Failed to set d3d9 stream source");
-      return hr;
-    }
-
-    hr = device->GetD3D9()->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_d3d9.ptr(), nullptr, dwFlags);
+    device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
+    HRESULT hr = device->GetD3D9()->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_d3d9.ptr(), nullptr, dwFlags);
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7VertexBuffer::ProcessVertices: Failed call to d3d9 ProcessVertices");
     }
@@ -138,6 +136,9 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::ProcessVerticesStrided(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags) {
     Logger::warn("!!! D3D7VertexBuffer::ProcessVerticesStrided: Stub");
+
+    if (unlikely(!dwCount))
+      return D3D_OK;
 
     if(unlikely(lpD3DDevice == nullptr))
       return DDERR_INVALIDPARAMS;
