@@ -524,27 +524,36 @@ namespace dxvk {
     }
   }
 
-  // reverse blitter, which uses GDI device contexts and BitBlt
+  // reverse blitter, used in the d3d7.forceProxiedPresent logic
   inline void BlitToD3D7Surface(
-      d3d9::IDirect3DSurface9* surface9,
       IDirectDrawSurface7* surface7,
-      DDSURFACEDESC2 desc) {
-    HDC dc9;
-    HRESULT hr9 = surface9->GetDC(&dc9);
-    if (SUCCEEDED(hr9)) {
-      HDC dc7;
-      HRESULT hr7 = surface7->GetDC(&dc7);
-      if (SUCCEEDED(hr7)) {
-        BitBlt(dc7, 0, 0, desc.dwWidth, desc.dwHeight, dc9, 0, 0, SRCCOPY);
-        Logger::debug("BlitToD3D7Surface: Done blitting to D3D7 surface");
-
-        surface7->ReleaseDC(dc7);
+      d3d9::IDirect3DSurface9* surface9) {
+    DDSURFACEDESC2 desc;
+    desc.dwSize = sizeof(DDSURFACEDESC2);
+    HRESULT hr7 = surface7->Lock(0, &desc, DDLOCK_WRITEONLY, 0);
+    if (SUCCEEDED(hr7)) {
+      d3d9::D3DLOCKED_RECT rect9;
+      HRESULT hr9 = surface9->LockRect(&rect9, 0, D3DLOCK_READONLY);
+      if (SUCCEEDED(hr9)) {
+        Logger::debug(str::format("desc.dwWidth:  ", desc.dwWidth));
+        Logger::debug(str::format("desc.dwHeight: ", desc.dwHeight));
+        Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));
+        Logger::debug(str::format("rect.Pitch:    ", rect9.Pitch));
+        // The lock pitch of a DXT surface represents its entire size, apparently
+        if (unlikely(desc.lPitch != rect9.Pitch)) {
+          Logger::err("BlitToD3D7Surface: Incompatible surface pitch");
+        } else {
+          size_t size = static_cast<size_t>(desc.dwHeight * desc.lPitch);
+          memcpy(desc.lpSurface, rect9.pBits, size);
+          Logger::debug("BlitToD3D7Surface: Done blitting surface");
+        }
+        surface9->UnlockRect();
       } else {
-        Logger::warn("BlitToD3D7Surface: Failed to acquire d3d7 DC surface");
+        Logger::warn("BlitToD3D7Surface: Failed to lock d3d9 surface");
       }
-      surface9->ReleaseDC(dc9);
+      surface7->Unlock(0);
     } else {
-      Logger::warn("BlitToD3D7Surface: Failed to acquire d3d9 DC surface");
+      Logger::warn("BlitToD3D7Surface: Failed to lock d3d7 surface");
     }
   }
 

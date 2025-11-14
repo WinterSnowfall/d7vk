@@ -259,14 +259,18 @@ namespace dxvk {
         if (unlikely(!IsInitialized()))
           IntializeD3D9();
 
-        BlitToD3D7Surface(m_d3d7device->GetRenderTarget()->GetD3D9(), m_proxy.ptr(), m_desc);
+        BlitToD3D7Surface(m_proxy.ptr(), m_d3d7device->GetRenderTarget()->GetD3D9());
 
         if (unlikely(!m_parent->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
           if (unlikely(lpDDSurfaceTargetOverride != nullptr))
             Logger::debug("DDraw7Surface::Flip: Received unwrapped surface");
+          if (likely(m_d3d7device->GetRenderTarget() == this))
+            m_d3d7device->SetFlipRTFlags(lpDDSurfaceTargetOverride, dwFlags);
           return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
         } else {
           Com<DDraw7Surface> surf7 = static_cast<DDraw7Surface*>(lpDDSurfaceTargetOverride);
+          if (likely(m_d3d7device->GetRenderTarget() == this))
+            m_d3d7device->SetFlipRTFlags(lpDDSurfaceTargetOverride, dwFlags);
           return m_proxy->Flip(surf7->GetProxied(), dwFlags);
         }
       }
@@ -371,7 +375,9 @@ namespace dxvk {
     Logger::debug(">>> DDraw7Surface::GetDC");
 
     RefreshD3D7Device();
-    if (unlikely(m_d3d7device != nullptr && m_d3d7device->GetOptions()->proxiedGetDC))
+    if (unlikely(m_d3d7device != nullptr
+             && (m_d3d7device->GetOptions()->proxiedGetDC ||
+                 m_d3d7device->GetOptions()->forceProxiedPresent)))
       return m_proxy->GetDC(lphDC);
 
     if (unlikely(lphDC == nullptr))
@@ -447,7 +453,9 @@ namespace dxvk {
     Logger::debug(">>> DDraw7Surface::ReleaseDC");
 
     RefreshD3D7Device();
-    if (unlikely(m_d3d7device != nullptr && m_d3d7device->GetOptions()->proxiedGetDC))
+    if (unlikely(m_d3d7device != nullptr
+             && (m_d3d7device->GetOptions()->proxiedGetDC ||
+                 m_d3d7device->GetOptions()->forceProxiedPresent)))
       return m_proxy->ReleaseDC(hDC);
 
     if (unlikely(!IsInitialized())) {
