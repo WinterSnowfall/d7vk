@@ -200,11 +200,15 @@ namespace dxvk {
 
     Com<d3d9::IDirect3DDevice9> device9;
 
+    // Ensure the d3d9 device handles multi-threaded access properly during proxied presentation,
+    // as some games may blit to surfaces and potentially geometry from separate threads
+    const DWORD deviceCreationFlags = m_d3d7Options.forceProxiedPresent ? vertexProcessing | D3DCREATE_MULTITHREADED : vertexProcessing;
+
     hr = m_d3d9->CreateDevice(
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
       hwnd,
-      vertexProcessing,
+      deviceCreationFlags,
       &params,
       &device9
     );
