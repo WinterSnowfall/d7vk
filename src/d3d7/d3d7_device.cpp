@@ -202,10 +202,16 @@ namespace dxvk {
     HRESULT hr = m_d3d9->EndScene();
 
     if (likely(SUCCEEDED(hr))) {
-      if (unlikely(m_parent->GetOptions()->presentOnEndScene)) {
+      if (unlikely(m_parent->GetOptions()->presentOnEndScene ||
+                   m_parent->GetOptions()->forceProxiedPresent)) {
         if (likely(!m_parent->GetOptions()->strictBackBufferGuard))
           m_hasDrawn = false;
-        m_d3d9->Present(NULL, NULL, NULL, NULL);
+
+        if (m_parent->GetOptions()->forceProxiedPresent) {
+          m_rt->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
+        } else {
+          m_d3d9->Present(NULL, NULL, NULL, NULL);
+        }
       }
 
       m_inScene = false;
