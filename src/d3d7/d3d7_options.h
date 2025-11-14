@@ -29,6 +29,10 @@ namespace dxvk {
     /// Ignore any application set gamma ramp
     bool ignoreGammaRamp;
 
+    /// Automatically generate texture mip maps and ignore those copied (or not copied)
+    /// by the application - this is currently used as a workaround for all UE1 titles
+    bool autoGenMipMaps;
+
     D3D7Options() {}
 
     D3D7Options(const Config& config) {
@@ -39,6 +43,7 @@ namespace dxvk {
       this->strictBackBufferGuard = config.getOption<bool>   ("d3d7.strictBackBufferGuard", false);
       this->proxiedGetDC          = config.getOption<bool>   ("d3d7.proxiedGetDC",          false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("d3d7.ignoreGammaRamp",       false);
+      this->autoGenMipMaps        = config.getOption<bool>   ("d3d7.autoGenMipMaps",        false);
     }
 
   };
