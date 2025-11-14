@@ -738,7 +738,12 @@ namespace dxvk {
     // Place all possible render targets in DEFAULT
     if (IsRenderTarget()) {
       pool  = d3d9::D3DPOOL_DEFAULT;
-      usage = D3DUSAGE_RENDERTARGET;
+      usage |= D3DUSAGE_RENDERTARGET;
+    }
+    // Only a cosmetic/logging consideration, but all
+    // depth stencils will be created in DEFAULT
+    if (IsDepthStencil()) {
+      pool  = d3d9::D3DPOOL_DEFAULT;
     }
     // Should already be the case, but let's make doubly sure
     if (IsDXTFormat(m_format)) {
@@ -746,8 +751,11 @@ namespace dxvk {
     }
 
     // General usage flags
-    if (IsTexture() && pool == d3d9::D3DPOOL_DEFAULT)
-      usage = D3DUSAGE_DYNAMIC;
+    if (IsTexture() && pool == d3d9::D3DPOOL_DEFAULT) {
+      usage |= D3DUSAGE_DYNAMIC;
+      if (unlikely(m_d3d7device->GetOptions()->autoGenMipMaps))
+        usage |= D3DUSAGE_AUTOGENMIPMAP;
+    }
 
     const char* poolPlacement = pool == d3d9::D3DPOOL_DEFAULT ? "D3DPOOL_DEFAULT" :
                                 pool == d3d9::D3DPOOL_SYSTEMMEM ? "D3DPOOL_SYSTEMMEM" : "D3DPOOL_MANAGED";
@@ -767,7 +775,7 @@ namespace dxvk {
 
     // We need to count the number of actual mips on initialization by going through
     // the mip chain, since the dwMipMapCount number may or may not be accurate. I am
-    // guess it was intended more a hint, not neceesarily how many mips ended up on the GPU.
+    // guessing it was intended more as a hint, not neceesarily a set number.
 
     IDirectDrawSurface7* mipMap = m_proxy.ptr();
 
@@ -952,7 +960,7 @@ namespace dxvk {
 
       m_d3d9 = std::move(surf);
 
-    // Something.., else?
+    // Something... else?
     } else {
       Logger::warn("DDraw7Surface::IntializeD3D9: Initializing unknown surface...");
 
@@ -994,8 +1002,9 @@ namespace dxvk {
       return DD_OK;
     }
 
-    // Blit all the mips for textures
-    if (IsTexture()) {
+    // Blit all the mips for textures, except when autogenerating mip maps,
+    // in which case only the level 0 surface needs to be uploaded
+    if (IsTexture() && likely(!m_d3d7device->GetOptions()->autoGenMipMaps)) {
       const uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
       BlitToD3D9Texture(m_texture.ptr(), m_proxy.ptr(), mipLevels, IsDXTFormat(m_format));
     // TODO: Handle uploading all cubemap faces
