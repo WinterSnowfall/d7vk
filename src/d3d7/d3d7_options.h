@@ -10,7 +10,8 @@ namespace dxvk {
     /// Forces a desired MSAA level on the d3d9 device/default swapchain
     int32_t forceMSAA;
 
-    /// Blits back to the proxied render target and flips the surface
+    /// Blits back to the proxied render target and flips the surface -
+    /// this is currently required by any game that blits cursors directly onto the front buffer
     bool forceProxiedPresent;
 
     /// Presents on every EndScene call as well, which may help with video playback in some cases
