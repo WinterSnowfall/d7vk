@@ -444,10 +444,7 @@ namespace dxvk {
             memcpy(rect9mip.pBits, descMip.lpSurface, size);
             Logger::debug(str::format("BlitToD3D9Texture: Done blitting DXT mip ", i));
           } else if (unlikely(!isDXT && descMip.lPitch != rect9mip.Pitch)) {
-            if (unlikely(i == 0))
-              Logger::warn(str::format("BlitToD3D9Texture: Incompatible mip map ", i, " pitch"));
-            else
-              Logger::debug(str::format("BlitToD3D9Texture: Incompatible mip map ", i, " pitch"));
+            Logger::debug(str::format("BlitToD3D9Texture: Incompatible mip map ", i, " pitch"));
 
             uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9mip.pBits);
             uint8_t* data7 = reinterpret_cast<uint8_t*>(descMip.lpSurface);
@@ -539,7 +536,6 @@ namespace dxvk {
         Logger::debug(str::format("desc.dwHeight: ", desc.dwHeight));
         Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));
         Logger::debug(str::format("rect.Pitch:    ", rect9.Pitch));
-        // The lock pitch of a DXT surface represents its entire size, apparently
         if (unlikely(desc.lPitch != rect9.Pitch)) {
           Logger::err("BlitToD3D7Surface: Incompatible surface pitch");
         } else {
