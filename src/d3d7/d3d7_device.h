@@ -12,6 +12,11 @@
 
 namespace dxvk {
 
+  struct FilpRTFlags {
+    IDirectDrawSurface7* surf  = nullptr;
+    DWORD                flags = 0;
+  };
+
   class D3D7StateBlock;
   class DDraw7Surface;
   class DDraw7Interface;
@@ -160,6 +165,11 @@ namespace dxvk {
         m_hasDrawn = false;
     }
 
+    void SetFlipRTFlags(IDirectDrawSurface7* surf, DWORD flags) {
+      m_flipRTFlags.surf  = surf;
+      m_flipRTFlags.flags = flags;
+    }
+
   private:
 
     inline HRESULT UploadIndices(WORD* indices, DWORD indexCount);
@@ -205,6 +215,8 @@ namespace dxvk {
 
     // Common index buffer used for indexed draws
     Com<d3d9::IDirect3DIndexBuffer9> m_ib9;
+
+    FilpRTFlags                      m_flipRTFlags;
 
   };
 
