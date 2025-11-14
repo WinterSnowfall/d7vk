@@ -1388,6 +1388,7 @@ namespace dxvk {
     /* Startopia - Indexed draw performance       */
     { R"(\\startopia\.exe$)", {{
       { "d3d9.cachedDynamicBuffers",        "True" },
+      { "d3d7.forceProxiedPresent",         "True" },
     }} },
     /* Escape from Monkey Island                  *
      * Startup crash with direct buffer mapping   */
@@ -1423,6 +1424,42 @@ namespace dxvk {
     /* Blade of Darkness                          */
     { R"(\\Blade\.exe$)", {{
       { "d3d7.proxiedQueryInterface",       "True" },
+    }} },
+    /* Hogs of War - Fixes main menu transparency */
+    { R"(\\warhogs_\.exe$)", {{
+      { "d3d7.proxiedGetDC",                "True" },
+    }} },
+    /* Parkan: Iron Strategy - Performance        */
+    { R"(\\iron_3d\.exe$)", {{
+      { "d3d9.cachedDynamicBuffers",        "True" },
+    }} },
+    /* Dungeon Siege                              */
+    { R"(\\DungeonSiege\.exe$)", {{
+      { "d3d7.forceProxiedPresent",         "True" },
+    }} },
+    /* Empire Earth / Art of Conquest             */
+    { R"(\\(Empire Earth|EE-AOC)\.exe$)", {{
+      { "d3d7.forceProxiedPresent",         "True" },
+    }} },
+    /* Etherlords                                 */
+    { R"(\\Etherlords\.exe$)", {{
+      { "d3d7.forceProxiedPresent",         "True" },
+    }} },
+    /* Etherlords 2                               */
+    { R"(\\Etherlords2\.exe$)", {{
+      { "d3d7.forceProxiedPresent",         "True" },
+    }} },
+    /* Evil Islands                               */
+    { R"(\\Evil Islands\\game\.exe$)", {{
+      { "d3d7.forceProxiedPresent",         "True" },
+    }} },
+    /* Star Trek: Armada                          */
+    { R"(\\Armada\.exe$)", {{
+      { "d3d7.forceProxiedPresent",         "True" },
+    }} },
+    /* SCP - Containment Breach                   */
+    { R"(\\SCP - Containment Breach\.exe$)", {{
+      { "d3d7.forceProxiedPresent",         "True" },
     }} },
 
   };
