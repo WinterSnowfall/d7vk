@@ -1461,6 +1461,38 @@ namespace dxvk {
     { R"(\\SCP - Containment Breach\.exe$)", {{
       { "d3d7.forceProxiedPresent",         "True" },
     }} },
+    /* Unreal - Fixes missing mip map uploads     */
+    { R"(\\Unreal\.exe$)", {{
+      { "d3d7.autoGenMipMaps",              "True" },
+    }} },
+    /* Unreal Tournament                          *
+     * Fixes missing mipmap uploads               */
+    { R"(\\UnrealTournament\.exe$)", {{
+      { "d3d7.autoGenMipMaps",              "True" },
+    }} },
+    /* Rune - Fixes missing mip map uploads       */
+    { R"(\\Rune\.exe$)", {{
+      { "d3d7.autoGenMipMaps",              "True" },
+    }} },
+    /* Deus Ex - Fixes missing mip map uploads    */
+    { R"(\\DeusEx\.exe$)", {{
+      { "d3d7.autoGenMipMaps",              "True" },
+    }} },
+    /* Clive Barker's Undying                     *
+     * Fixes missing mip map uploads              */
+    { R"(\\Undying\.exe$)", {{
+      { "d3d7.autoGenMipMaps",              "True" },
+    }} },
+    /* X-COM: Enforcer                            *
+     * Fixes missing mip map uploads              */
+    { R"(\\XCom\.exe$)", {{
+      { "d3d7.autoGenMipMaps",              "True" },
+    }} },
+    /* The Wheel of Time                          *
+     * Fixes missing mip map uploads              */
+    { R"(\\WoT\.exe$)", {{
+      { "d3d7.autoGenMipMaps",              "True" },
+    }} },
 
   };
 
