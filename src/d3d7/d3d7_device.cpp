@@ -1181,7 +1181,7 @@ namespace dxvk {
 
         HRESULT hrDS9 = m_d3d9->SetDepthStencilSurface(m_ds9.ptr());
         if(unlikely(FAILED(hrDS9)))
-          Logger::err("D3D7Device::InitializeDS: Failed to get d3d9 depth stencil");
+          Logger::err("D3D7Device::InitializeDS: Failed to set d3d9 depth stencil");
 
         // This needs to act like an auto depth stencil of sorts, so manually enable z-buffering
         m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_TRUE);
