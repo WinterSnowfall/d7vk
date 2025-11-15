@@ -169,6 +169,18 @@ namespace dxvk {
       m_parentSurf = nullptr;
     }
 
+    bool HasDirtyMipMaps() const {
+      return m_dirtyMipMaps;
+    }
+
+    void DirtyMipMaps() {
+      m_dirtyMipMaps = true;
+    }
+
+    void UnDirtyMipMaps() {
+      m_dirtyMipMaps = false;
+    }
+
     HRESULT InitializeOrUploadD3D9();
 
   private:
@@ -268,6 +280,7 @@ namespace dxvk {
     }
 
     bool             m_isChildObject = false;
+    bool             m_dirtyMipMaps  = false;
     uint32_t         m_mipCount      = 0;
 
     static uint32_t  s_surfCount;
