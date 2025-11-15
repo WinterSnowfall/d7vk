@@ -168,6 +168,8 @@ namespace dxvk {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::Blt: Failed upload to d3d9 surface");
+      } else {
+        m_dirtyMipMaps = true;
       }
     }
 
@@ -204,6 +206,8 @@ namespace dxvk {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::BltFast: Failed upload to d3d9 surface");
+      } else {
+        m_dirtyMipMaps = true;
       }
     }
 
@@ -455,8 +459,11 @@ namespace dxvk {
     RefreshD3D7Device();
     if (unlikely(m_d3d7device != nullptr
              && (m_d3d7device->GetOptions()->proxiedGetDC ||
-                 m_d3d7device->GetOptions()->forceProxiedPresent)))
+                 m_d3d7device->GetOptions()->forceProxiedPresent))) {
+      if (IsTextureOrCubeMap())
+        m_dirtyMipMaps = true;
       return m_proxy->ReleaseDC(hDC);
+    }
 
     if (unlikely(!IsInitialized())) {
       Logger::debug("DDraw7Surface::ReleaseDC: Not yet initialized");
@@ -524,6 +531,8 @@ namespace dxvk {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::Unlock: Failed upload to d3d9 surface");
+      } else {
+        m_dirtyMipMaps = true;
       }
     }
 
