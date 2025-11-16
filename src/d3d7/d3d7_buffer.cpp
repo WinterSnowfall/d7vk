@@ -1,6 +1,7 @@
 #include "d3d7_buffer.h"
 
 #include "d3d7_device.h"
+#include "d3d7_singlethread.h"
 #include "d3d7_util.h"
 #include "ddraw7_interface.h"
 
@@ -119,6 +120,8 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
+    D3D7DeviceLock lock = device->LockDevice();
+
     if (device->IsMixedVPDevice())
       device->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
 
@@ -150,6 +153,8 @@ namespace dxvk {
       Logger::err(">>> D3D7VertexBuffer::ProcessVerticesStrided: Incompatible or null device");
       return DDERR_GENERIC;
     }
+
+    D3D7DeviceLock lock = device->LockDevice();
 
     if (device->IsMixedVPDevice())
       device->GetD3D9()->SetSoftwareVertexProcessing(TRUE);

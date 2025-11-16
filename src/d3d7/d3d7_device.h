@@ -3,6 +3,7 @@
 #include "d3d7_include.h"
 #include "d3d7_interface.h"
 #include "d3d7_options.h"
+#include "d3d7_singlethread.h"
 #include "d3d7_caps.h"
 #include "ddraw7_wrapped_object.h"
 #include "../d3d9/d3d9_bridge.h"
@@ -134,6 +135,10 @@ namespace dxvk {
 
     void InitializeDS();
 
+    D3D7DeviceLock LockDevice() {
+      return m_singlethread.AcquireLock();
+    }
+
     const D3D7Options* GetOptions() const {
       return m_parent->GetOptions();
     }
@@ -184,6 +189,8 @@ namespace dxvk {
     DDraw7Interface*              m_DD7IntfParent = nullptr;
 
     Com<IDxvkD3D8InterfaceBridge> m_bridge;
+
+    D3D7Singlethread              m_singlethread;
 
     static uint32_t               s_deviceCount;
     uint32_t                      m_deviceCount = 0;
