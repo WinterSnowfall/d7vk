@@ -1493,6 +1493,18 @@ namespace dxvk {
     { R"(\\WoT\.exe$)", {{
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
+    /* Harry Potter and the Chamber of Secrets    *
+     * Fixes missing mip map uploads and physics  */
+    { R"(\\Harry Potter.*\\system\\Game\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
+      { "d3d7.autoGenMipMaps",              "True" },
+    }} },
+    /* Harry Potter and the Philosopher's Stone   *
+     * Fixes missing mip map uploads and physics  */
+    { R"(\\HP\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
+      { "d3d7.autoGenMipMaps",              "True" },
+    }} },
 
   };
 
