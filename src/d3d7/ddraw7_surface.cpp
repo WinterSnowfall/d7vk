@@ -1,5 +1,6 @@
 #include "ddraw7_surface.h"
 
+#include "d3d7_singlethread.h"
 #include "d3d7_caps.h"
 #include "ddraw7_gamma.h"
 
@@ -257,6 +258,8 @@ namespace dxvk {
 
     RefreshD3D7Device();
     if (likely(m_d3d7device != nullptr)) {
+      D3D7DeviceLock lock = m_d3d7device->LockDevice();
+
       m_d3d7device->ResetDrawTracking();
 
       if (unlikely(m_d3d7device->GetOptions()->forceProxiedPresent)) {
