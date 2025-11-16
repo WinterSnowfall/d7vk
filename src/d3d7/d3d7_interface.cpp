@@ -2,6 +2,7 @@
 
 #include "d3d7_device.h"
 #include "d3d7_buffer.h"
+#include "d3d7_singlethread.h"
 #include "d3d7_util.h"
 #include "ddraw7_interface.h"
 #include "ddraw7_surface.h"
@@ -200,9 +201,9 @@ namespace dxvk {
 
     Com<d3d9::IDirect3DDevice9> device9;
 
-    // Ensure the d3d9 device handles multi-threaded access properly during proxied presentation,
-    // as some games may blit to surfaces and potentially draw geometry from separate threads
-    const DWORD deviceCreationFlags = m_d3d7Options.forceProxiedPresent ? vertexProcessing | D3DCREATE_MULTITHREADED : vertexProcessing;
+    // Always ensure the d3d9 device handles multi-threaded access properly,
+    // as some games may blit to surfaces and draw geometry on separate threads
+    const DWORD deviceCreationFlags = vertexProcessing | D3DCREATE_MULTITHREADED;
 
     hr = m_d3d9->CreateDevice(
       D3DADAPTER_DEFAULT,
@@ -314,6 +315,8 @@ namespace dxvk {
     Logger::debug(">>> D3D7Interface::EvictManagedTextures");
 
     if (m_device != nullptr) {
+      D3D7DeviceLock lock = m_device->LockDevice();
+
       HRESULT hr = m_device->GetD3D9()->EvictManagedResources();
 
       if (unlikely(FAILED(hr))) {
