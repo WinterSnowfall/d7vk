@@ -7,6 +7,7 @@
 
 namespace dxvk {
 
+  class D3D7Device;
   class DDraw7Surface;
 
   /**
