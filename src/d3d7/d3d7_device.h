@@ -181,7 +181,7 @@ namespace dxvk {
 
     inline HRESULT InitializeIndexBuffers();
 
-    inline bool ShouldRecord() { return m_recorder != nullptr; }
+    inline bool ShouldRecord() const { return m_recorder != nullptr; }
 
     bool                          m_hasDrawn = false;
     bool                          m_inScene  = false;
@@ -227,9 +227,9 @@ namespace dxvk {
     Com<d3d9::IDirect3DIndexBuffer9> m_ib9_medium;
     Com<d3d9::IDirect3DIndexBuffer9> m_ib9_small;
 
-    uint32_t                         m_ib9_large_uploads = 0;
+    uint32_t                         m_ib9_large_uploads  = 0;
     uint32_t                         m_ib9_medium_uploads = 0;
-    uint32_t                         m_ib9_small_uploads = 0;
+    uint32_t                         m_ib9_small_uploads  = 0;
 
     FilpRTFlags                      m_flipRTFlags;
 
