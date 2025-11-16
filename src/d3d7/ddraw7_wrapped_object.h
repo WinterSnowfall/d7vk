@@ -60,7 +60,7 @@ namespace dxvk {
       if (unlikely(ppvObject == nullptr))
         return E_POINTER;
 
-      *ppvObject = nullptr;
+      InitReturnPtr(ppvObject);
 
       // Some games query for the legacy ddraw interface
       if (unlikely(riid == __uuidof(IDirectDraw))) {

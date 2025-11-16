@@ -53,7 +53,7 @@ namespace dxvk {
       return m_desc.dwCaps & D3DVBCAPS_OPTIMIZED;
     }
 
-    inline void ListBufferDetails() {
+    inline void ListBufferDetails() const {
       Logger::debug(str::format("D3D7VertexBuffer: Created a new buffer nr. {{", m_buffCount, "}}:"));
       Logger::debug(str::format("   Size:     ", m_size));
       Logger::debug(str::format("   FVF:      ", m_desc.dwFVF));

@@ -204,14 +204,14 @@ namespace dxvk {
                               | D3DPRASTERCAPS_FOGVERTEX
                               | D3DPRASTERCAPS_MIPMAPLODBIAS
                            // | D3DPRASTERCAPS_PAT // Not implemented in D3D9
-                           // | D3DPRASTERCAPS_ROP2
+                              | D3DPRASTERCAPS_ROP2
                            // | D3DPRASTERCAPS_STIPPLE
-                           // | D3DPRASTERCAPS_SUBPIXEL
+                              | D3DPRASTERCAPS_SUBPIXEL
                            // | D3DPRASTERCAPS_SUBPIXELX
-                           // | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
+                              | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
                            // | D3DPRASTERCAPS_WBUFFER
                               | D3DPRASTERCAPS_WFOG
-                           // | D3DPRASTERCAPS_XOR
+                              | D3DPRASTERCAPS_XOR
                               | D3DPRASTERCAPS_ZBIAS
                            // | D3DPRASTERCAPS_ZBUFFERLESSHSR // Easy footgun to not get a z-buffer
                               | D3DPRASTERCAPS_ZFOG

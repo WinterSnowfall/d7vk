@@ -53,7 +53,7 @@ namespace dxvk {
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
-    *ppvObject = nullptr;
+    InitReturnPtr(ppvObject);
 
     // Standard way of retrieving a D3D7 interface
     if (riid == __uuidof(IDirect3D7)) {
@@ -122,14 +122,9 @@ namespace dxvk {
     // We need to ensure we can always read from surfaces for upload to
     // d3d9, so always strip the DDSCAPS_WRITEONLY flag on creation
     lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_WRITEONLY;
-    // Also handle texture specific hint flags
+    // Similarly strip the DDSCAPS2_OPAQUE flag on texture creation
     if (lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_TEXTURE) {
-      // Similarly strip the DDSCAPS2_OPAQUE flag on creation
       lpDDSurfaceDesc->ddsCaps.dwCaps2 &= ~DDSCAPS2_OPAQUE;
-      // Similarly strip the DDSCAPS2_HINTSTATIC flag on creation
-      lpDDSurfaceDesc->ddsCaps.dwCaps2 &= ~DDSCAPS2_HINTSTATIC;
-      // Always add the DDSCAPS2_HINTDYNAMIC on creation
-      lpDDSurfaceDesc->ddsCaps.dwCaps2 |= DDSCAPS2_HINTDYNAMIC;
     }
 
     Com<IDirectDrawSurface7> ddraw7SurfaceProxied;
@@ -224,7 +219,7 @@ namespace dxvk {
 
     InitReturnPtr(lplpGDIDDSurface);
 
-    Com<IDirectDrawSurface7> gdiSurface = nullptr;
+    Com<IDirectDrawSurface7> gdiSurface;
     HRESULT hr = m_proxy->GetGDISurface(&gdiSurface);
 
     if (unlikely(FAILED(hr))) {

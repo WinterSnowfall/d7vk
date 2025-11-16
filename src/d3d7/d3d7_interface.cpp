@@ -120,18 +120,17 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    // Do not use exclusive HWVP, since some games call ProcessVertices
-    // even in situations where they are expliclity using HW T&L
-    DWORD vertexProcessing = D3DCREATE_MIXED_VERTEXPROCESSING;
+    DWORD vertexProcessing = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 
     if (rclsid == IID_IDirect3DTnLHalDevice) {
       Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DTnLHalDevice device");
+      // Do not use exclusive HWVP, since some games call ProcessVertices
+      // even in situations where they are expliclity using HW T&L
+      vertexProcessing = D3DCREATE_MIXED_VERTEXPROCESSING;
     } else if (rclsid == IID_IDirect3DHALDevice) {
       Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
-      vertexProcessing = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
     } else if (rclsid == IID_IDirect3DRGBDevice) {
       Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
-      vertexProcessing = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
     } else {
       Logger::err("D3D7Interface::CreateDevice: Unknown device type");
       return DDERR_INVALIDPARAMS;
@@ -199,12 +198,11 @@ namespace dxvk {
       params.MultiSampleType = d3d9::D3DMULTISAMPLE_NONE;
     }
 
-    Com<d3d9::IDirect3DDevice9> device9;
-
-    // Always ensure the d3d9 device handles multi-threaded access properly,
-    // as some games may blit to surfaces and draw geometry on separate threads
+    // Always ensure the d3d9 device handles multi-threaded access properly, as some
+    // d3d7 applications may blit to surfaces and draw geometry on separate threads
     const DWORD deviceCreationFlags = vertexProcessing | D3DCREATE_MULTITHREADED;
 
+    Com<d3d9::IDirect3DDevice9> device9;
     hr = m_d3d9->CreateDevice(
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
@@ -229,7 +227,7 @@ namespace dxvk {
       // Hold the address of the most recently created device, not a reference
       m_device = device.ptr();
       // Now that we have a valid d3d9 device pointer, we can initialize the depth stencil (if any)
-      device->InitializeDS();
+      m_device->InitializeDS();
       *ppd3dDevice = device.ref();
     } catch (const DxvkError& e) {
       Logger::err(e.message());
@@ -314,7 +312,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Interface::EvictManagedTextures() {
     Logger::debug(">>> D3D7Interface::EvictManagedTextures");
 
-    if (m_device != nullptr) {
+    if (likely(m_device != nullptr)) {
       D3D7DeviceLock lock = m_device->LockDevice();
 
       HRESULT hr = m_device->GetD3D9()->EvictManagedResources();
