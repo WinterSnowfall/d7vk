@@ -237,18 +237,18 @@ namespace dxvk {
     // TODO: Need to do this on every device use
     // and refresh derp out if the device is lost
     inline void RefreshD3D7Device() {
-      D3D7Device* d3d7device = m_parent->GetD3D7Device();
+      D3D7Device* d3d7Device = m_parent->GetD3D7Device();
       // Check if the device has been lost
-      if (unlikely(m_d3d7device != nullptr && m_d3d7device != d3d7device)) {
+      if (unlikely(m_d3d7Device != nullptr && m_d3d7Device != d3d7Device)) {
         Logger::warn("D3D9 device has been recreated, clearing all d3d9 resources");
         m_d3d9 = nullptr;
         m_texture = nullptr;
         m_cubeMap = nullptr;
       }
-      m_d3d7device = d3d7device;
+      m_d3d7Device = d3d7Device;
     }
 
-    inline void ListSurfaceDetails() {
+    inline void ListSurfaceDetails() const {
       const char* type = "oopsie, unhandled";
 
       if (IsFrontBuffer())                type = "front buffer";
@@ -288,7 +288,7 @@ namespace dxvk {
 
     DDraw7Surface*   m_parentSurf    = nullptr;
 
-    D3D7Device*      m_d3d7device    = nullptr;
+    D3D7Device*      m_d3d7Device    = nullptr;
 
     DDSURFACEDESC2   m_desc;
     d3d9::D3DFORMAT  m_format;
