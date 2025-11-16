@@ -177,9 +177,9 @@ namespace dxvk {
 
   private:
 
-    inline HRESULT UploadIndices(WORD* indices, DWORD indexCount);
+    inline HRESULT UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
 
-    inline HRESULT InitializeIndexBuffer();
+    inline HRESULT InitializeIndexBuffers();
 
     inline bool ShouldRecord() { return m_recorder != nullptr; }
 
@@ -220,8 +220,16 @@ namespace dxvk {
     Com<d3d9::IDirect3DSurface9>     m_rt9;
     Com<d3d9::IDirect3DSurface9>     m_ds9;
 
-    // Common index buffer used for indexed draws
-    Com<d3d9::IDirect3DIndexBuffer9> m_ib9;
+    bool                             m_ib9_initialized = false;
+
+    // Common index buffers used for indexed draws
+    Com<d3d9::IDirect3DIndexBuffer9> m_ib9_large;
+    Com<d3d9::IDirect3DIndexBuffer9> m_ib9_medium;
+    Com<d3d9::IDirect3DIndexBuffer9> m_ib9_small;
+
+    uint32_t                         m_ib9_large_uploads = 0;
+    uint32_t                         m_ib9_medium_uploads = 0;
+    uint32_t                         m_ib9_small_uploads = 0;
 
     FilpRTFlags                      m_flipRTFlags;
 
