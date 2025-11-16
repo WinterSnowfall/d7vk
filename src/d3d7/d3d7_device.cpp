@@ -1193,7 +1193,6 @@ namespace dxvk {
       loadSource = ddraw7SurfaceSrc->GetProxied();
     } else {
       Logger::warn("D3D7Device::Load: Unwrapped surface source");
-      loadSource = src_surface;
     }
 
     if (likely(m_DD7IntfParent->IsWrappedSurface(dst_surface))) {
@@ -1201,7 +1200,6 @@ namespace dxvk {
       loadDestination = ddraw7SurfaceDst->GetProxied();
     } else {
       Logger::warn("D3D7Device::Load: Unwrapped surface destination");
-      loadDestination = dst_surface;
     }
 
     HRESULT hr = m_proxy->Load(loadDestination, dst_point, loadSource, src_rect, flags);

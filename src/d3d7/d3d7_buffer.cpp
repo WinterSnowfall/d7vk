@@ -147,7 +147,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     D3D7Device* device = static_cast<D3D7Device*>(lpD3DDevice);
-    D3D7Device* actualDevice = GetDevice();
+    D3D7Device* actualDevice = m_parent->GetDevice();
 
     if(unlikely(actualDevice == nullptr || device != actualDevice)) {
       Logger::err(">>> D3D7VertexBuffer::ProcessVerticesStrided: Incompatible or null device");
