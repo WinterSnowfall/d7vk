@@ -1,6 +1,5 @@
 #include "ddraw7_interface.h"
 
-#include "d3d7_device.h"
 #include "ddraw7_surface.h"
 #include "ddraw7_palette.h"
 
