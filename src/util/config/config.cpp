@@ -1326,9 +1326,8 @@ namespace dxvk {
     /**********************************************/
     /* D3D7 GAMES                                 */
     /**********************************************/
-
-    /* 1NSANE - Invalid buffer (over)writes and   *
-     * artifacting with direct buffer mapping     */
+    /* 1NSANE - Invalid buffer discards and       *
+     * artifacting when using a T&L HAL device    */
     { R"(\\Insane\\Game\.exe$)", {{
       { "d3d9.allowDirectBufferMapping",   "False" },
     }} },
@@ -1471,6 +1470,10 @@ namespace dxvk {
      * Fixes missing mip map uploads and physics  */
     { R"(\\HP\.exe$)", {{
       { "d3d9.maxFrameRate",                  "60" },
+      { "d3d7.autoGenMipMaps",              "True" },
+    }} },
+    /* Messiah - Fixes missing mip map uploads    */
+    { R"(\\MessiahD3D\.exe$)", {{
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
 
