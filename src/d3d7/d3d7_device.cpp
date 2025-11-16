@@ -46,6 +46,13 @@ namespace dxvk {
   }
 
   D3D7Device::~D3D7Device() {
+    if (m_ib9_small_uploads > 0 || m_ib9_medium_uploads > 0 || m_ib9_large_uploads > 0) {
+      Logger::info("D3D7Device: Common index buffer upload statistics:");
+      Logger::info(str::format("   Small  IB uploads: ", m_ib9_small_uploads));
+      Logger::info(str::format("   Medium IB uploads: ", m_ib9_medium_uploads));
+      Logger::info(str::format("   Large  IB uploads: ", m_ib9_large_uploads));
+    }
+
     // Clear up the interface device pointer if it points to this device
     if (m_parent->GetDevice() == this)
       m_parent->ClearDevice();
@@ -989,8 +996,33 @@ namespace dxvk {
       return D3DERR_VERTEXBUFFERLOCKED;
     }
 
-    UploadIndices(lpwIndices, dwIndexCount);
-    m_d3d9->SetIndices(m_ib9.ptr());
+    // Initialize here, since not all application use indexed draws
+    if (unlikely(!m_ib9_initialized))
+      InitializeIndexBuffers();
+
+    static constexpr DWORD SmallIndexCount  = 512;  // 1 kb
+    static constexpr DWORD MediumIndexCount = 8096; // 16 kb
+
+    d3d9::IDirect3DIndexBuffer9* ib9 = nullptr;
+    // Try to fit uploads into the smallest index buffer size possible
+    if (dwIndexCount <= SmallIndexCount) {
+      Logger::debug("D3D7Device::DrawIndexedPrimitiveVB: Using small index buffer for uploads");
+      ib9 = m_ib9_small.ptr();
+      m_ib9_small_uploads++;
+    // In some cases we'll need slightly larger index buffers
+    } else if (dwIndexCount <= MediumIndexCount) {
+      Logger::debug("D3D7Device::DrawIndexedPrimitiveVB: Using medium index buffer for uploads");
+      ib9 = m_ib9_medium.ptr();
+      m_ib9_medium_uploads++;
+    // Worst case scenario, using the maximum allowed index buffer size
+    } else {
+      Logger::debug("D3D7Device::DrawIndexedPrimitiveVB: Using large index buffer for uploads");
+      ib9 = m_ib9_large.ptr();
+      m_ib9_large_uploads++;
+    }
+
+    UploadIndices(ib9, lpwIndices, dwIndexCount);
+    m_d3d9->SetIndices(ib9);
     m_d3d9->SetFVF(vb->GetFVF());
     m_d3d9->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
     HRESULT hr = m_d3d9->DrawIndexedPrimitive(
@@ -1254,16 +1286,10 @@ namespace dxvk {
     }
   }
 
-  inline HRESULT D3D7Device::UploadIndices(WORD* indices, DWORD indexCount) {
-    if (unlikely(indexCount > D3DMAXNUMVERTICES))
+  inline HRESULT D3D7Device::UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount) {
+    if (unlikely(indexCount > D3DMAXNUMVERTICES)) {
+      Logger::err("D3D7Device::UploadIndices: indexCount exceeds D3DMAXNUMVERTICES");
       return DDERR_INVALIDPARAMS;
-
-    // Initialize here, since not all application use indexed draws
-    if (unlikely(m_ib9 == nullptr)) {
-      HRESULT hr = InitializeIndexBuffer();
-
-      if (unlikely(FAILED(hr)))
-        return DDERR_GENERIC;
     }
 
     Logger::debug(str::format("D3D7Device::UploadIndices: Uploading ", indexCount, " indices"));
@@ -1272,27 +1298,51 @@ namespace dxvk {
     void* pData = nullptr;
 
     // Locking and unlocking are generally expected to work here
-    m_ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
+    ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
     memcpy(pData, static_cast<void*>(indices), size);
-    m_ib9->Unlock();
+    ib9->Unlock();
 
     return D3D_OK;
   }
 
-  inline HRESULT D3D7Device::InitializeIndexBuffer() {
+  inline HRESULT D3D7Device::InitializeIndexBuffers() {
+    static constexpr UINT  SmallIBSize  = 512  * sizeof(WORD); // 1 kb
+    static constexpr UINT  MediumIBSize = 8096 * sizeof(WORD); // 16 kb
     // The maximum number of indices allowed is D3DMAXNUMVERTICES (0xFFFF)
-    static constexpr UINT  MaxIBSize = D3DMAXNUMVERTICES * sizeof(WORD);
-    static constexpr DWORD Usage     = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
+    static constexpr UINT  LargeIBSize  = D3DMAXNUMVERTICES * sizeof(WORD); // 128 kb
+    static constexpr DWORD Usage        = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 
-    Logger::debug(str::format("D3D7Device::InitializeIndexBuffer: Creating index buffer, size: ", MaxIBSize));
+    Logger::debug(str::format("D3D7Device::InitializeIndexBuffer: Creating index buffer, size: ", SmallIBSize));
 
-    HRESULT hr = m_d3d9->CreateIndexBuffer(MaxIBSize, Usage, d3d9::D3DFMT_INDEX16,
-                                           d3d9::D3DPOOL_DEFAULT, &m_ib9, nullptr);
+    HRESULT hr = m_d3d9->CreateIndexBuffer(SmallIBSize, Usage, d3d9::D3DFMT_INDEX16,
+                                           d3d9::D3DPOOL_DEFAULT, &m_ib9_small, nullptr);
 
     if (FAILED(hr)) {
-      Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize index buffer");
+      Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize small index buffer");
       return hr;
     }
+
+    Logger::debug(str::format("D3D7Device::InitializeIndexBuffer: Creating index buffer, size: ", MediumIBSize));
+
+    hr = m_d3d9->CreateIndexBuffer(MediumIBSize, Usage, d3d9::D3DFMT_INDEX16,
+                                   d3d9::D3DPOOL_DEFAULT, &m_ib9_medium, nullptr);
+
+    if (FAILED(hr)) {
+      Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize medium index buffer");
+      return hr;
+    }
+
+    Logger::debug(str::format("D3D7Device::InitializeIndexBuffer: Creating index buffer, size: ", LargeIBSize));
+
+    hr = m_d3d9->CreateIndexBuffer(LargeIBSize, Usage, d3d9::D3DFMT_INDEX16,
+                                   d3d9::D3DPOOL_DEFAULT, &m_ib9_large, nullptr);
+
+    if (FAILED(hr)) {
+      Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize large index buffer");
+      return hr;
+    }
+
+    m_ib9_initialized = true;
 
     return D3D_OK;
   }
