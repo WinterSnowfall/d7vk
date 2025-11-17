@@ -267,10 +267,15 @@ namespace dxvk {
     if (unlikely(m_device == nullptr))
       return D3DERR_INVALIDCALL;
 
+    D3DDEVICEDESC7 deviceDesc;
+    m_device->GetCaps(&deviceDesc);
+    const d3d9::D3DPOOL Pool = m_d3d7Options.managedTNLBuffers && deviceDesc.deviceGUID == IID_IDirect3DTnLHalDevice ?
+                               d3d9::D3DPOOL_MANAGED : d3d9::D3DPOOL_DEFAULT;
+
     Com<d3d9::IDirect3DVertexBuffer9> vertexBuffer9;
-    const DWORD Usage = ConvertUsageFlags(desc->dwCaps);
+    const DWORD Usage = ConvertUsageFlags(desc->dwCaps, Pool);
     const DWORD Size  = GetFVFSize(desc->dwFVF) * desc->dwNumVertices;
-    HRESULT hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Usage, desc->dwFVF, d3d9::D3DPOOL_DEFAULT, &vertexBuffer9, nullptr);
+    HRESULT hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Usage, desc->dwFVF, Pool, &vertexBuffer9, nullptr);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Interface::CreateVertexBuffer: Failed to create vertex buffer");

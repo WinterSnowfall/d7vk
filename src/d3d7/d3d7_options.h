@@ -33,6 +33,9 @@ namespace dxvk {
     /// by the application - this is currently used as a workaround for all UE1 titles
     bool autoGenMipMaps;
 
+    /// Place vertex buffers in the MANAGED pool when using a T&L HAL device
+    bool managedTNLBuffers;
+
     D3D7Options() {}
 
     D3D7Options(const Config& config) {
@@ -44,6 +47,7 @@ namespace dxvk {
       this->proxiedGetDC          = config.getOption<bool>   ("d3d7.proxiedGetDC",          false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("d3d7.ignoreGammaRamp",       false);
       this->autoGenMipMaps        = config.getOption<bool>   ("d3d7.autoGenMipMaps",        false);
+      this->managedTNLBuffers     = config.getOption<bool>   ("d3d7.managedTNLBuffers",     false);
     }
 
   };
