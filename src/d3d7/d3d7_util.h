@@ -42,7 +42,7 @@ namespace dxvk {
     return lockFlagsD3D9;
   }
 
-  inline DWORD ConvertUsageFlags(DWORD usageFlags) {
+  inline DWORD ConvertUsageFlags(DWORD usageFlags, d3d9::D3DPOOL pool) {
     DWORD usageFlagsD3D9 = 0;
 
     if (usageFlags & D3DVBCAPS_DONOTCLIP) {
@@ -55,10 +55,9 @@ namespace dxvk {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_WRITEONLY;
     }
 
-    // Though d3d7 does not specify it explicitly, all buffers NEED
-    // to be dynamic, otherwise some lock flags will not
-    // work and the uploaded content will not reflect properly
-    return usageFlagsD3D9 | D3DUSAGE_DYNAMIC;
+    // Though d3d7 does not specify it, all D3DPOOL_DEFAULT buffers NEED
+    // to be dynamic, otherwise some lock flags will not work properly
+    return pool == d3d9::D3DPOOL_DEFAULT ? usageFlagsD3D9 | D3DUSAGE_DYNAMIC : usageFlagsD3D9;
   }
 
   inline size_t GetFVFSize(DWORD fvf) {

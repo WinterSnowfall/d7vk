@@ -1361,11 +1361,12 @@ namespace dxvk {
     /* 1NSANE - Invalid buffer discards and       *
      * artifacting when using a T&L HAL device    */
     { R"(\\Insane\\Game\.exe$)", {{
-      { "d3d9.allowDirectBufferMapping",   "False" },
+      { "d3d7.managedTNLBuffers",           "True" },
     }} },
-    /* Praetorians - Bad case of ProcessVertices  */
+    /* Praetorians - Bad case of ProcessVertices  *
+     * used in conjunction with a T&L HAL device  */
     { R"(\\Praetorians\.exe$)", {{
-      { "d3d9.allowDirectBufferMapping",   "False" },
+      { "d3d7.managedTNLBuffers",           "True" },
     }} },
     /* Sacrifice - Prevents hitching on asset     *
      * loading and generally improves performance *
