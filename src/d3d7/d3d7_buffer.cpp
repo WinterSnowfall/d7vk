@@ -9,6 +9,8 @@ namespace dxvk {
 
   uint32_t D3D7VertexBuffer::s_buffCount = 0;
 
+  static constexpr IID IID_IDirect3DTnLHalDevice = { 0xf5049e78, 0x4861, 0x11d2, {0xa4, 0x07, 0x00, 0xa0, 0xc9, 0x06, 0x29, 0xa8} };
+
   D3D7VertexBuffer::D3D7VertexBuffer(
             Com<IDirect3DVertexBuffer7>&& buffProxy,
             Com<d3d9::IDirect3DVertexBuffer9>&& pBuffer9,
@@ -21,6 +23,9 @@ namespace dxvk {
     m_parent->AddRef();
 
     m_buffCount = ++s_buffCount;
+
+    // 0 the size to cater for future GetVertexBufferDesc calls
+    m_desc.dwSize = 0;
 
     ListBufferDetails();
   }
@@ -58,8 +63,9 @@ namespace dxvk {
     if (unlikely(lpVBDesc == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(lpVBDesc->dwSize != sizeof(LPD3DVERTEXBUFFERDESC)))
-      return DDERR_INVALIDOBJECT;
+    // Will be passed as 0, and is expected to be returned as 0
+    //if (unlikely(lpVBDesc->dwSize != sizeof(D3DVERTEXBUFFERDESC)))
+      //return DDERR_INVALIDOBJECT;
 
     *lpVBDesc = m_desc;
 
@@ -71,6 +77,12 @@ namespace dxvk {
 
     if (unlikely(IsOptimized()))
       return D3DERR_VERTEXBUFFEROPTIMIZED;
+
+    if (unlikely(!IsInitialized())) {
+      HRESULT hrInit = InitializeD3D9();
+      if (unlikely(FAILED(hrInit)))
+        return hrInit;
+    }
 
     if (data_size != nullptr)
       *data_size = m_size;
@@ -85,6 +97,12 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::Unlock() {
     Logger::debug(">>> D3D7VertexBuffer::Unlock");
+
+    if (unlikely(!IsInitialized())) {
+      HRESULT hrInit = InitializeD3D9();
+      if (unlikely(FAILED(hrInit)))
+        return hrInit;
+    }
 
     HRESULT hr = m_d3d9->Unlock();
 
@@ -118,6 +136,12 @@ namespace dxvk {
     if (unlikely(actualDevice == nullptr || device != actualDevice)) {
       Logger::err("D3D7VertexBuffer::ProcessVertices: Incompatible or null device");
       return DDERR_GENERIC;
+    }
+
+    if (unlikely(!vb->IsInitialized())) {
+      HRESULT hrInit = vb->InitializeD3D9();
+      if (unlikely(FAILED(hrInit)))
+        return hrInit;
     }
 
     D3D7DeviceLock lock = device->LockDevice();
@@ -183,5 +207,35 @@ namespace dxvk {
 
     return D3D_OK;
   };
+
+  HRESULT D3D7VertexBuffer::InitializeD3D9() {
+    D3D7Device* device7 = m_parent->GetDevice();
+
+    // Can't create anything without a valid device
+    if (unlikely(device7 == nullptr)) {
+      Logger::err("D3D7VertexBuffer::IntializeD3D9: Null D3D7 device, can't initalize right now");
+      return DDERR_GENERIC;
+    }
+
+    D3DDEVICEDESC7 deviceDesc;
+    device7->GetCaps(&deviceDesc);
+    const d3d9::D3DPOOL poolPlacement = (m_parent->GetOptions()->managedTNLBuffers
+                                      && deviceDesc.deviceGUID == IID_IDirect3DTnLHalDevice) ?
+                                        d3d9::D3DPOOL_MANAGED : d3d9::D3DPOOL_DEFAULT;
+
+    Logger::debug(str::format("D3D7VertexBuffer::IntializeD3D9: Placing in: ", poolPlacement));
+
+    const DWORD usage = ConvertUsageFlags(m_desc.dwCaps, poolPlacement);
+    HRESULT hr = device7->GetD3D9()->CreateVertexBuffer(m_size, usage, m_desc.dwFVF, poolPlacement, &m_d3d9, nullptr);
+
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D7VertexBuffer::IntializeD3D9: Failed to create d3d9 vertex buffer");
+      return hr;
+    }
+
+    Logger::debug("D3D7VertexBuffer::IntializeD3D9: Created d3d9 vertex buffer");
+
+    return DD_OK;
+  }
 
 }
