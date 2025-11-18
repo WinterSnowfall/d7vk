@@ -47,6 +47,8 @@ namespace dxvk {
       return m_parent->GetDevice();
     }
 
+    HRESULT InitializeD3D9();
+
   private:
 
     inline bool IsOptimized() const {

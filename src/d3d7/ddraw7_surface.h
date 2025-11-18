@@ -132,10 +132,6 @@ namespace dxvk {
       m_d3d9 = std::move(surface);
     }
 
-    bool IsInitialized() const {
-      return m_d3d9 != nullptr;
-    }
-
     bool IsTextureOrCubeMap() const {
       return IsTexture() || IsCubeMap();
     }
@@ -180,6 +176,8 @@ namespace dxvk {
     void UnDirtyMipMaps() {
       m_dirtyMipMaps = false;
     }
+
+    HRESULT InitializeD3D9RenderTarget();
 
     HRESULT InitializeOrUploadD3D9();
 
@@ -230,7 +228,7 @@ namespace dxvk {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_OVERLAY;
     }
 
-    inline HRESULT IntializeD3D9();
+    inline HRESULT IntializeD3D9(const bool initRT);
 
     inline HRESULT UploadSurfaceData();
 
