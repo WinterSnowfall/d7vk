@@ -89,9 +89,6 @@ When used with Wine, d7vk will print log messages to `stderr`. Additionally, sta
 
 On Windows, log files will be created in the game's working directory by default, which is usually next to the game executable.
 
-### Frame rate limit
-The `DXVK_FRAME_RATE` environment variable can be used to limit the frame rate. A value of `0` uncaps the frame rate, while any positive value will limit rendering to the given number of frames per second. Alternatively, the configuration file can be used.
-
 ## Any other doubts?
 
 Please refer to the upstream DXVK wiki and documentation, available [here](https://github.com/doitsujin/dxvk).
