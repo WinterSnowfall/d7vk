@@ -265,7 +265,7 @@ namespace dxvk {
 
       if (unlikely(m_d3d7Device->GetOptions()->forceProxiedPresent)) {
         if (unlikely(!IsInitialized()))
-          IntializeD3D9();
+          IntializeD3D9(m_d3d7Device->GetRenderTarget() == this);
 
         BlitToD3D7Surface(m_proxy.ptr(), m_d3d7Device->GetRenderTarget()->GetD3D9());
 
@@ -657,15 +657,27 @@ namespace dxvk {
     return m_proxy->GetLOD(lod);
   }
 
+  HRESULT DDraw7Surface::InitializeD3D9RenderTarget() {
+    HRESULT hr = DD_OK;
+
+    if (unlikely(!IsInitialized())) {
+      RefreshD3D7Device();
+      hr = IntializeD3D9(true);
+    }
+
+    return hr;
+  }
+
   HRESULT DDraw7Surface::InitializeOrUploadD3D9() {
     HRESULT hr = DDERR_GENERIC;
 
     RefreshD3D7Device();
 
-    if (likely(IsInitialized()))
+    if (likely(IsInitialized())) {
       hr = UploadSurfaceData();
+    }
     else
-      hr = IntializeD3D9();
+      hr = IntializeD3D9(false);
 
     return hr;
   }
@@ -687,7 +699,7 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  inline HRESULT DDraw7Surface::IntializeD3D9() {
+  inline HRESULT DDraw7Surface::IntializeD3D9(const bool initRT) {
     Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Initializing nr. [[", m_surfCount, "]]"));
 
     if (unlikely(m_d3d7Device == nullptr)) {
@@ -911,9 +923,10 @@ namespace dxvk {
     } else if (IsOffScreenPlainSurface()) {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing offscreen plain surface...");
 
-      // Sometimes we get passed offscreen plain surfaces which should be tied to the back buffer
-      if (unlikely(m_d3d7Device->GetRenderTarget() == this)) {
-        Logger::debug("DDraw7Surface::IntializeD3D9: Unknown surface is the current RT");
+      // Sometimes we get passed offscreen plain surfaces which should be tied to the back buffer,
+      // either as existing RTs or during SetRenderTarget() calls, which are tracked with initRT
+      if (unlikely(m_d3d7Device->GetRenderTarget() == this || initRT)) {
+        Logger::debug("DDraw7Surface::IntializeD3D9: Offscreen plain surface is the RT");
 
         // Always link overlays to the first back buffer, since they are not part of a chain
         hr = m_d3d7Device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);

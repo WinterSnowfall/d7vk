@@ -35,6 +35,10 @@ namespace dxvk {
       m_d3d9 = std::move(object);
     }
 
+    bool IsInitialized() const {
+      return m_d3d9 != nullptr;
+    }
+
     // For cases where the object may be null.
     static D3D9* GetD3D9Nullable(DDrawWrappedObject* self) {
       if (unlikely(self == NULL)) {
