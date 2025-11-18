@@ -263,26 +263,9 @@ namespace dxvk {
       return hr;
     }*/
 
-    // Can't create anything without a valid device
-    if (unlikely(m_device == nullptr))
-      return D3DERR_INVALIDCALL;
-
-    D3DDEVICEDESC7 deviceDesc;
-    m_device->GetCaps(&deviceDesc);
-    const d3d9::D3DPOOL Pool = m_d3d7Options.managedTNLBuffers && deviceDesc.deviceGUID == IID_IDirect3DTnLHalDevice ?
-                               d3d9::D3DPOOL_MANAGED : d3d9::D3DPOOL_DEFAULT;
-
-    Com<d3d9::IDirect3DVertexBuffer9> vertexBuffer9;
-    const DWORD Usage = ConvertUsageFlags(desc->dwCaps, Pool);
-    const DWORD Size  = GetFVFSize(desc->dwFVF) * desc->dwNumVertices;
-    HRESULT hr = m_device->GetD3D9()->CreateVertexBuffer(Size, Usage, desc->dwFVF, Pool, &vertexBuffer9, nullptr);
-
-    if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7Interface::CreateVertexBuffer: Failed to create vertex buffer");
-      return hr;
-    }
-
-    *ppVertexBuffer = ref(new D3D7VertexBuffer(std::move(vertexBuffer7), std::move(vertexBuffer9), this, *desc));
+    // We need to delay the d3d9 vertex buffer creation as long as possible, to ensure
+    // that (ideally) we actually have a valid d3d7 device in place when that happens
+    *ppVertexBuffer = ref(new D3D7VertexBuffer(std::move(vertexBuffer7), nullptr, this, *desc));
 
     return D3D_OK;
   }
