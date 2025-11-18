@@ -217,14 +217,18 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       if (unlikely(m_parent->GetOptions()->presentOnEndScene ||
                    m_parent->GetOptions()->forceProxiedPresent)) {
-        if (likely(!m_parent->GetOptions()->strictBackBufferGuard))
-          m_hasDrawn = false;
-
         if (m_parent->GetOptions()->forceProxiedPresent) {
+          // If we have drawn anything, we need to make sure we blit back
+          // the results onto the d3d7 render target before we flip it
+          if (m_hasDrawn)
+            BlitToD3D7Surface(m_rt.ptr(), m_rt9.ptr());
           m_rt->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
         } else {
           m_d3d9->Present(NULL, NULL, NULL, NULL);
         }
+
+        if (likely(!m_parent->GetOptions()->strictBackBufferGuard))
+          m_hasDrawn = false;
       }
 
       m_inScene = false;
@@ -269,11 +273,10 @@ namespace dxvk {
       }
     }
 
-    // Will always be needed at this point
-    HRESULT hr = rt7->InitializeOrUploadD3D9();
+    HRESULT hr = rt7->InitializeD3D9RenderTarget();
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7Device::SetRenderTarget: Failed to initialize/upload d3d9 RT");
+      Logger::err("D3D7Device::SetRenderTarget: Failed to initialize d3d9 RT");
       return hr;
     }
 
@@ -336,11 +339,9 @@ namespace dxvk {
 
     // We are now allowing proxy back buffer blits in certain cases, so
     // we must also ensure the back buffer clear calls are proxied
-    if (unlikely(!m_hasDrawn)) {
-      HRESULT hr = m_proxy->Clear(count, rects, flags, color, z, stencil);
-      if (unlikely(FAILED(hr)))
-        Logger::warn("D3D7Device::Clear: Failed proxied clear call");
-    }
+    HRESULT hr = m_proxy->Clear(count, rects, flags, color, z, stencil);
+    if (unlikely(FAILED(hr)))
+      Logger::debug("D3D7Device::Clear: Failed proxied clear call");
 
     return m_d3d9->Clear(count, rects, flags, color, z, stencil);
   }
@@ -362,6 +363,19 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetViewport(D3DVIEWPORT7 *data) {
     Logger::debug(">>> D3D7Device::SetViewport");
+
+    if (unlikely(data == nullptr))
+      return E_INVALIDARG;
+
+    // Clear() calls are affected by the set viewport, so we
+    // must ensure SetViewport() calls are also proxied
+    HRESULT hr = m_proxy->SetViewport(data);
+    // TODO: Implement RT size viewport validations and return E_INVALIDARG on error
+    if (unlikely(FAILED(hr))) {
+      Logger::debug("D3D7Device::SetViewport: Failed proxied set viewport call");
+      return hr;
+    }
+
     return m_d3d9->SetViewport(reinterpret_cast<d3d9::D3DVIEWPORT9*>(data));
   }
 
@@ -398,6 +412,11 @@ namespace dxvk {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug(str::format(">>> D3D7Device::SetRenderState: ", dwRenderStateType));
+
+    // As opposed to d3d8/9, d3d7 actually validates and
+    // errors out in case of unknown/invalid render states
+    if (unlikely(!IsValidRenderStateType(dwRenderStateType)))
+      return DDERR_INVALIDPARAMS;
 
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
 
@@ -497,6 +516,11 @@ namespace dxvk {
     Logger::debug(str::format(">>> D3D7Device::GetRenderState: ", dwRenderStateType));
 
     if (unlikely(lpdwRenderState == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    // As opposed to d3d8/9, d3d7 actually validates and
+    // errors out in case of unknown/invalid render states
+    if (unlikely(!IsValidRenderStateType(dwRenderStateType)))
       return DDERR_INVALIDPARAMS;
 
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
