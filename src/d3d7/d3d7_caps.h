@@ -14,4 +14,6 @@ namespace dxvk::caps7 {
 
   constexpr uint32_t MaxEnabledLights             = 8;
 
+  constexpr uint32_t IndexBufferCount             = 5;
+
 }
