@@ -780,7 +780,7 @@ namespace dxvk {
     HRESULT hr = surface7->InitializeOrUploadD3D9();
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7Device::SetTexture: Failed to initialize/upload d3d9 surface");
+      Logger::err("D3D7Device::PreLoad: Failed to initialize/upload d3d9 surface");
       return hr;
     }
 
