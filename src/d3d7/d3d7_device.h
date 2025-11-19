@@ -177,11 +177,16 @@ namespace dxvk {
 
   private:
 
-    inline HRESULT UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
+    inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
 
     inline HRESULT InitializeIndexBuffers();
 
     inline bool ShouldRecord() const { return m_recorder != nullptr; }
+
+    // If the last index buffer is initalized, then all are initialized
+    inline bool AreIndexBuffersInitialized() const {
+      return m_ib9[caps7::IndexBufferCount - 1] != nullptr;
+    }
 
     bool                          m_hasDrawn = false;
     bool                          m_inScene  = false;
@@ -217,21 +222,16 @@ namespace dxvk {
     // Value of D3DRS_ZVISIBLE (although the RS is not supported, its value is stored)
     DWORD           m_zVisible      = 0;
 
-    Com<d3d9::IDirect3DSurface9>     m_rt9;
-    Com<d3d9::IDirect3DSurface9>     m_ds9;
+    Com<d3d9::IDirect3DSurface9>  m_rt9;
+    Com<d3d9::IDirect3DSurface9>  m_ds9;
 
-    bool                             m_ib9_initialized = false;
+    FilpRTFlags                   m_flipRTFlags;
 
-    // Common index buffers used for indexed draws
-    Com<d3d9::IDirect3DIndexBuffer9> m_ib9_large;
-    Com<d3d9::IDirect3DIndexBuffer9> m_ib9_medium;
-    Com<d3d9::IDirect3DIndexBuffer9> m_ib9_small;
-
-    uint32_t                         m_ib9_large_uploads  = 0;
-    uint32_t                         m_ib9_medium_uploads = 0;
-    uint32_t                         m_ib9_small_uploads  = 0;
-
-    FilpRTFlags                      m_flipRTFlags;
+    // Common index buffers used for indexed draws, split up into five sizes:
+    // XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb
+    UINT     m_ib9_indexCount[caps7::IndexBufferCount] = {256, 1024, 4096, 16384, D3DMAXNUMVERTICES};
+    uint32_t m_ib9_uploads[caps7::IndexBufferCount] = {};
+    std::array<Com<d3d9::IDirect3DIndexBuffer9>, caps7::IndexBufferCount> m_ib9;
 
   };
 
