@@ -263,7 +263,7 @@ namespace dxvk {
 
       m_d3d7Device->ResetDrawTracking();
 
-      if (unlikely(m_d3d7Device->GetOptions()->forceProxiedPresent)) {
+      if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
         if (unlikely(!IsInitialized()))
           IntializeD3D9(m_d3d7Device->GetRenderTarget() == this);
 
@@ -383,10 +383,8 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetDC(HDC *lphDC) {
     Logger::debug(">>> DDraw7Surface::GetDC");
 
-    RefreshD3D7Device();
-    if (unlikely(m_d3d7Device != nullptr
-             && (m_d3d7Device->GetOptions()->proxiedGetDC ||
-                 m_d3d7Device->GetOptions()->forceProxiedPresent)))
+    if (unlikely(m_parent->GetOptions()->proxiedGetDC ||
+                 m_parent->GetOptions()->forceProxiedPresent))
       return m_proxy->GetDC(lphDC);
 
     if (unlikely(lphDC == nullptr))
@@ -461,10 +459,8 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::ReleaseDC(HDC hDC) {
     Logger::debug(">>> DDraw7Surface::ReleaseDC");
 
-    RefreshD3D7Device();
-    if (unlikely(m_d3d7Device != nullptr
-             && (m_d3d7Device->GetOptions()->proxiedGetDC ||
-                 m_d3d7Device->GetOptions()->forceProxiedPresent))) {
+    if (unlikely(m_parent->GetOptions()->proxiedGetDC ||
+                 m_parent->GetOptions()->forceProxiedPresent)) {
       if (IsTextureOrCubeMap())
         m_dirtyMipMaps = true;
       return m_proxy->ReleaseDC(hDC);
@@ -774,7 +770,7 @@ namespace dxvk {
     if (IsTexture()) {
       if (pool == d3d9::D3DPOOL_DEFAULT)
         usage |= D3DUSAGE_DYNAMIC;
-      if (unlikely(m_d3d7Device->GetOptions()->autoGenMipMaps))
+      if (unlikely(m_parent->GetOptions()->autoGenMipMaps))
         usage |= D3DUSAGE_AUTOGENMIPMAP;
     }
 
@@ -787,7 +783,7 @@ namespace dxvk {
 
     RefreshD3D7Device();
     if (likely(m_d3d7Device != nullptr)) {
-      const int32_t forceMSAA = m_d3d7Device->GetOptions()->forceMSAA;
+      const int32_t forceMSAA = m_parent->GetOptions()->forceMSAA;
 
       if (unlikely(forceMSAA != -1)) {
         multiSampleType = d3d9::D3DMULTISAMPLE_TYPE(std::min<uint32_t>(8u, forceMSAA));
@@ -1026,7 +1022,7 @@ namespace dxvk {
 
     // Blit all the mips for textures, except when autogenerating mip maps,
     // in which case only the level 0 surface needs to be uploaded
-    if (IsTexture() && likely(!m_d3d7Device->GetOptions()->autoGenMipMaps)) {
+    if (IsTexture() && likely(!m_parent->GetOptions()->autoGenMipMaps)) {
       const uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
       BlitToD3D9Texture(m_texture.ptr(), m_format, m_proxy.ptr(), mipLevels);
     // TODO: Handle uploading all cubemap faces

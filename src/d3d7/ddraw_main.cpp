@@ -227,8 +227,8 @@ extern "C" {
   DLLEXPORT HRESULT __stdcall DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID lpContext, DWORD dwFlags) {
     dxvk::Logger::debug("<<< DirectDrawEnumerateExA: Proxy");
 
-    typedef HRESULT (__stdcall *DirectDrawEnumerateA_t)(LPDDENUMCALLBACKEXA lpCallback, LPVOID lpContext, DWORD dwFlags);
-    static DirectDrawEnumerateA_t ProxiedDirectDrawEnumerateExA = nullptr;
+    typedef HRESULT (__stdcall *DirectDrawEnumerateExA_t)(LPDDENUMCALLBACKEXA lpCallback, LPVOID lpContext, DWORD dwFlags);
+    static DirectDrawEnumerateExA_t ProxiedDirectDrawEnumerateExA = nullptr;
 
     if (unlikely(ProxiedDirectDrawEnumerateExA == nullptr)) {
       HMODULE hDDraw = dxvk::GetProxiedDDrawModule();
@@ -239,7 +239,7 @@ extern "C" {
       }
 
 
-      ProxiedDirectDrawEnumerateExA = reinterpret_cast<DirectDrawEnumerateA_t>(GetProcAddress(hDDraw, "DirectDrawEnumerateExA"));
+      ProxiedDirectDrawEnumerateExA = reinterpret_cast<DirectDrawEnumerateExA_t>(GetProcAddress(hDDraw, "DirectDrawEnumerateExA"));
 
       if (unlikely(ProxiedDirectDrawEnumerateExA == nullptr)) {
         dxvk::Logger::err("DirectDrawEnumerateExA: Failed GetProcAddress");
@@ -257,13 +257,66 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID lpContext, DWORD dwFlags) {
-    dxvk::Logger::warn("!!! DirectDrawEnumerateExW: Stub");
-    return DD_OK;
+    dxvk::Logger::debug("<<< DirectDrawEnumerateExW: Proxy");
+
+    typedef HRESULT (__stdcall *DirectDrawEnumerateExW_t)(LPDDENUMCALLBACKEXW lpCallback, LPVOID lpContext, DWORD dwFlags);
+    static DirectDrawEnumerateExW_t ProxiedDirectDrawEnumerateExW = nullptr;
+
+    if (unlikely(ProxiedDirectDrawEnumerateExW == nullptr)) {
+      HMODULE hDDraw = dxvk::GetProxiedDDrawModule();
+
+      if (unlikely(hDDraw == nullptr)) {
+        dxvk::Logger::err("DirectDrawEnumerateExW: Failed to load proxied ddraw.dll");
+        return DDERR_GENERIC;
+      }
+
+
+      ProxiedDirectDrawEnumerateExW = reinterpret_cast<DirectDrawEnumerateExW_t>(GetProcAddress(hDDraw, "DirectDrawEnumerateExW"));
+
+      if (unlikely(ProxiedDirectDrawEnumerateExW == nullptr)) {
+        dxvk::Logger::err("DirectDrawEnumerateExW: Failed GetProcAddress");
+        return DDERR_GENERIC;
+      }
+    }
+
+    HRESULT hr = ProxiedDirectDrawEnumerateExW(lpCallback, lpContext, dwFlags);
+
+    if (unlikely(FAILED(hr))) {
+      dxvk::Logger::err("DirectDrawEnumerateExW: Failed call to proxied interface");
+    }
+
+    return hr;
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext) {
-    dxvk::Logger::warn("!!! DirectDrawEnumerateW: Stub");
-    return DD_OK;
+    dxvk::Logger::debug("<<< DirectDrawEnumerateW: Proxy");
+
+    typedef HRESULT (__stdcall *DirectDrawEnumerateW_t)(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext);
+    static DirectDrawEnumerateW_t ProxiedDirectDrawEnumerateW = nullptr;
+
+    if (unlikely(ProxiedDirectDrawEnumerateW == nullptr)) {
+      HMODULE hDDraw = dxvk::GetProxiedDDrawModule();
+
+      if (unlikely(hDDraw == nullptr)) {
+        dxvk::Logger::err("DirectDrawEnumerateW: Failed to load proxied ddraw.dll");
+        return DDERR_GENERIC;
+      }
+
+      ProxiedDirectDrawEnumerateW = reinterpret_cast<DirectDrawEnumerateW_t>(GetProcAddress(hDDraw, "DirectDrawEnumerateW"));
+
+      if (unlikely(ProxiedDirectDrawEnumerateW == nullptr)) {
+        dxvk::Logger::err("DirectDrawEnumerateW: Failed GetProcAddress");
+        return DDERR_GENERIC;
+      }
+    }
+
+    HRESULT hr = ProxiedDirectDrawEnumerateW(lpCallback, lpContext);
+
+    if (unlikely(FAILED(hr))) {
+      dxvk::Logger::err("DirectDrawEnumerateW: Failed call to proxied interface");
+    }
+
+    return hr;
   }
 
   DLLEXPORT HRESULT __stdcall DllCanUnloadNow() {

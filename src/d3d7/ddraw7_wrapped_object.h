@@ -66,8 +66,10 @@ namespace dxvk {
 
       InitReturnPtr(ppvObject);
 
-      // Some games query for the legacy ddraw interface
-      if (unlikely(riid == __uuidof(IDirectDraw))) {
+      // Some games query for legacy ddraw interfaces
+      if (unlikely(riid == __uuidof(IDirectDraw)
+                || riid == __uuidof(IDirectDraw2)
+                || riid == __uuidof(IDirectDraw4))) {
         Logger::warn("QueryInterface: Query for legacy IDirectDraw");
         return m_proxy->QueryInterface(riid, ppvObject);
       }

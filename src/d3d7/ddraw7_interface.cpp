@@ -60,9 +60,9 @@ namespace dxvk {
       *ppvObject = m_d3d7Intf.ref();
       return S_OK;
     // Some games query for legacy ddraw interfaces
-    } else if (unlikely(riid == __uuidof(IDirectDraw))
-            || unlikely(riid == __uuidof(IDirectDraw2))
-            || unlikely(riid == __uuidof(IDirectDraw4))) {
+    } else if (unlikely(riid == __uuidof(IDirectDraw)
+                     || riid == __uuidof(IDirectDraw2)
+                     || riid == __uuidof(IDirectDraw4))) {
       Logger::warn("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
@@ -114,10 +114,20 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPDIRECTDRAWSURFACE7 *lplpDDSurface, IUnknown *pUnkOuter) {
     Logger::debug(">>> DDraw7Interface::CreateSurface");
 
+    // The cooperative level is always checked first
+    if (unlikely(!m_cooperativeLevel))
+      return DDERR_NOCOOPERATIVELEVELSET;
+
     if (unlikely(lpDDSurfaceDesc == nullptr || lplpDDSurface == nullptr))
       return DDERR_INVALIDPARAMS;
 
     InitReturnPtr(lplpDDSurface);
+
+    // Because we are removing the DDSCAPS_WRITEONLY flag below, we need
+    // to first validate the combinations that would otherwise cause issues
+    HRESULT hr = ValidateSurfaceFlags(lpDDSurfaceDesc);
+    if (unlikely(FAILED(hr)))
+      return hr;
 
     // We need to ensure we can always read from surfaces for upload to
     // d3d9, so always strip the DDSCAPS_WRITEONLY flag on creation
@@ -128,7 +138,7 @@ namespace dxvk {
     }
 
     Com<IDirectDrawSurface7> ddraw7SurfaceProxied;
-    HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddraw7SurfaceProxied, pUnkOuter);
+    hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddraw7SurfaceProxied, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
       try{
@@ -271,9 +281,13 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
     Logger::debug("<<< DDraw7Interface::SetCooperativeLevel: Proxy");
+
+    m_cooperativeLevel = dwFlags;
     // This needs to be called on interface init, so is a reliable
     // way of getting the needed hWnd for d3d7 device creation
-    m_hwnd = hWnd;
+    if (likely((dwFlags & DDSCL_NORMAL) || (dwFlags & DDSCL_EXCLUSIVE)))
+      m_hwnd = hWnd;
+
     return m_proxy->SetCooperativeLevel(hWnd, dwFlags);
   }
 
