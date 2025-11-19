@@ -675,9 +675,9 @@ namespace dxvk {
 
     if (likely(IsInitialized())) {
       hr = UploadSurfaceData();
-    }
-    else
+    } else {
       hr = IntializeD3D9(false);
+    }
 
     return hr;
   }
