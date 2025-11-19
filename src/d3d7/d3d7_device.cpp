@@ -46,11 +46,14 @@ namespace dxvk {
   }
 
   D3D7Device::~D3D7Device() {
-    if (m_ib9_small_uploads > 0 || m_ib9_medium_uploads > 0 || m_ib9_large_uploads > 0) {
+    // if at least the smallest index buffer saw any use, then print the stats
+    if (m_ib9_uploads[0] > 0) {
       Logger::info("D3D7Device: Common index buffer upload statistics:");
-      Logger::info(str::format("   Small  IB uploads: ", m_ib9_small_uploads));
-      Logger::info(str::format("   Medium IB uploads: ", m_ib9_medium_uploads));
-      Logger::info(str::format("   Large  IB uploads: ", m_ib9_large_uploads));
+      Logger::info(str::format("   XS: ", m_ib9_uploads[0]));
+      Logger::info(str::format("   S : ", m_ib9_uploads[1]));
+      Logger::info(str::format("   M : ", m_ib9_uploads[2]));
+      Logger::info(str::format("   L : ", m_ib9_uploads[3]));
+      Logger::info(str::format("   XL: ", m_ib9_uploads[4]));
     }
 
     // Clear up the interface device pointer if it points to this device
@@ -1021,31 +1024,23 @@ namespace dxvk {
     }
 
     // Initialize here, since not all application use indexed draws
-    if (unlikely(!m_ib9_initialized))
+    if (unlikely(!AreIndexBuffersInitialized()))
       InitializeIndexBuffers();
 
-    static constexpr DWORD SmallIndexCount  = 512;  // 1 kb
-    static constexpr DWORD MediumIndexCount = 8096; // 16 kb
-
-    d3d9::IDirect3DIndexBuffer9* ib9 = nullptr;
-    // Try to fit uploads into the smallest index buffer size possible
-    if (dwIndexCount <= SmallIndexCount) {
-      Logger::debug("D3D7Device::DrawIndexedPrimitiveVB: Using small index buffer for uploads");
-      ib9 = m_ib9_small.ptr();
-      m_ib9_small_uploads++;
-    // In some cases we'll need slightly larger index buffers
-    } else if (dwIndexCount <= MediumIndexCount) {
-      Logger::debug("D3D7Device::DrawIndexedPrimitiveVB: Using medium index buffer for uploads");
-      ib9 = m_ib9_medium.ptr();
-      m_ib9_medium_uploads++;
-    // Worst case scenario, using the maximum allowed index buffer size
-    } else {
-      Logger::debug("D3D7Device::DrawIndexedPrimitiveVB: Using large index buffer for uploads");
-      ib9 = m_ib9_large.ptr();
-      m_ib9_large_uploads++;
+    uint32_t ibIndex = 0;
+    // Try to fit index buffer uploads into the smallest buffer size possible,
+    // out of the five available: XS, S, M, L and XL (XL being the theoretical max)
+    while (dwIndexCount > m_ib9_indexCount[ibIndex]) {
+      if (unlikely(ibIndex > caps7::IndexBufferCount - 1)) {
+        Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Exceeded size of largest index buffer");
+        return DDERR_GENERIC;
+      }
+      ibIndex++;
     }
+    d3d9::IDirect3DIndexBuffer9* ib9 = m_ib9[ibIndex].ptr();
 
     UploadIndices(ib9, lpwIndices, dwIndexCount);
+    m_ib9_uploads[ibIndex]++;
     m_d3d9->SetIndices(ib9);
     m_d3d9->SetFVF(vb->GetFVF());
     m_d3d9->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
@@ -1308,12 +1303,7 @@ namespace dxvk {
     }
   }
 
-  inline HRESULT D3D7Device::UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount) {
-    if (unlikely(indexCount > D3DMAXNUMVERTICES)) {
-      Logger::err("D3D7Device::UploadIndices: indexCount exceeds D3DMAXNUMVERTICES");
-      return DDERR_INVALIDPARAMS;
-    }
-
+  inline void D3D7Device::UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount) {
     Logger::debug(str::format("D3D7Device::UploadIndices: Uploading ", indexCount, " indices"));
 
     const size_t size = indexCount * sizeof(WORD);
@@ -1323,48 +1313,24 @@ namespace dxvk {
     ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
     memcpy(pData, static_cast<void*>(indices), size);
     ib9->Unlock();
-
-    return D3D_OK;
   }
 
   inline HRESULT D3D7Device::InitializeIndexBuffers() {
-    static constexpr UINT  SmallIBSize  = 512  * sizeof(WORD); // 1 kb
-    static constexpr UINT  MediumIBSize = 8096 * sizeof(WORD); // 16 kb
-    // The maximum number of indices allowed is D3DMAXNUMVERTICES (0xFFFF)
-    static constexpr UINT  LargeIBSize  = D3DMAXNUMVERTICES * sizeof(WORD); // 128 kb
-    static constexpr DWORD Usage        = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
+    static constexpr DWORD Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 
-    Logger::debug(str::format("D3D7Device::InitializeIndexBuffer: Creating index buffer, size: ", SmallIBSize));
+    for (uint32_t ibIndex = 0; ibIndex < caps7::IndexBufferCount ; ibIndex++) {
+      const UINT ibSize = m_ib9_indexCount[ibIndex] * sizeof(WORD);
 
-    HRESULT hr = m_d3d9->CreateIndexBuffer(SmallIBSize, Usage, d3d9::D3DFMT_INDEX16,
-                                           d3d9::D3DPOOL_DEFAULT, &m_ib9_small, nullptr);
+      Logger::debug(str::format("D3D7Device::InitializeIndexBuffer: Creating index buffer, size: ", ibSize));
 
-    if (FAILED(hr)) {
-      Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize small index buffer");
-      return hr;
+      HRESULT hr = m_d3d9->CreateIndexBuffer(ibSize, Usage, d3d9::D3DFMT_INDEX16,
+                                             d3d9::D3DPOOL_DEFAULT, &m_ib9[ibIndex], nullptr);
+
+      if (FAILED(hr)) {
+        Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize index buffer");
+        return hr;
+      }
     }
-
-    Logger::debug(str::format("D3D7Device::InitializeIndexBuffer: Creating index buffer, size: ", MediumIBSize));
-
-    hr = m_d3d9->CreateIndexBuffer(MediumIBSize, Usage, d3d9::D3DFMT_INDEX16,
-                                   d3d9::D3DPOOL_DEFAULT, &m_ib9_medium, nullptr);
-
-    if (FAILED(hr)) {
-      Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize medium index buffer");
-      return hr;
-    }
-
-    Logger::debug(str::format("D3D7Device::InitializeIndexBuffer: Creating index buffer, size: ", LargeIBSize));
-
-    hr = m_d3d9->CreateIndexBuffer(LargeIBSize, Usage, d3d9::D3DFMT_INDEX16,
-                                   d3d9::D3DPOOL_DEFAULT, &m_ib9_large, nullptr);
-
-    if (FAILED(hr)) {
-      Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize large index buffer");
-      return hr;
-    }
-
-    m_ib9_initialized = true;
 
     return D3D_OK;
   }
