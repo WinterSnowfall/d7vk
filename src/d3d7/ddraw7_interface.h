@@ -115,6 +115,8 @@ namespace dxvk {
 
     HWND                        m_hwnd       = nullptr;
 
+    DWORD                       m_cooperativeLevel = 0;
+
     DDraw7Surface*              m_lastDepthStencil = nullptr;
 
     std::vector<DDraw7Surface*> m_surfaces;

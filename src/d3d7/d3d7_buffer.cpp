@@ -126,8 +126,12 @@ namespace dxvk {
     if (unlikely(!(dwVertexOp & D3DVOP_TRANSFORM)))
       return DDERR_INVALIDPARAMS;
 
-    if ((dwVertexOp & D3DVOP_CLIP) || (dwVertexOp & D3DVOP_EXTENTS) || (dwVertexOp & D3DVOP_LIGHT))
-      Logger::warn("D3D7VertexBuffer::ProcessVertices: Unsupported vertex operation");
+    if (unlikely(dwVertexOp & D3DVOP_CLIP))
+      Logger::warn("D3D7VertexBuffer::ProcessVertices: Unsupported vertex operation: D3DVOP_CLIP");
+    if (unlikely(dwVertexOp & D3DVOP_EXTENTS))
+      Logger::warn("D3D7VertexBuffer::ProcessVertices: Unsupported vertex operation: D3DVOP_EXTENTS");
+    if (unlikely(dwVertexOp & D3DVOP_LIGHT))
+      Logger::warn("D3D7VertexBuffer::ProcessVertices: Unsupported vertex operation: D3DVOP_LIGHT");
 
     D3D7Device* device = static_cast<D3D7Device*>(lpD3DDevice);
     D3D7VertexBuffer* vb = static_cast<D3D7VertexBuffer*>(lpSrcBuffer);
