@@ -396,6 +396,24 @@ namespace dxvk {
         || fmt == d3d9::D3DFMT_DXT5;
   }
 
+  inline HRESULT ValidateSurfaceFlags(DDSURFACEDESC2* desc) {
+    const bool isOffScreenPlainSurface = desc->ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN;
+    const bool isTexture               = desc->ddsCaps.dwCaps & DDSCAPS_TEXTURE;
+    const bool isInVideoMemory         = desc->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY;
+    const bool isInSystemMemory        = desc->ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY;
+    const bool isWriteOnly             = desc->ddsCaps.dwCaps & DDSCAPS_WRITEONLY;
+
+    if (unlikely(isOffScreenPlainSurface && (isInVideoMemory || isInSystemMemory))) {
+      return isWriteOnly ? DDERR_INVALIDCAPS : DD_OK;
+    }
+
+    if (unlikely(isTexture && (isInVideoMemory || isInSystemMemory))) {
+      return isWriteOnly ? DDERR_INVALIDCAPS : DD_OK;
+    }
+
+    return DD_OK;
+  }
+
   // Callback function used to navigate the linked mip map chain
   inline HRESULT STDMETHODCALLTYPE ListMipChainSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     IDirectDrawSurface7** nextMip = static_cast<IDirectDrawSurface7**>(ctx);
