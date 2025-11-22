@@ -137,11 +137,15 @@ namespace dxvk {
     }
 
     bool IsRenderTarget() const {
-      return IsFrontBuffer() || IsBackBuffer() || Is3DSurface();
+      return IsFrontBuffer() || IsBackBufferOrFlippable() || Is3DSurface();
     }
 
     bool IsForwardableSurface() const {
-      return IsFrontBuffer() || IsBackBuffer() || IsDepthStencil() || IsOffScreenPlainSurface();
+      return IsFrontBuffer() || IsBackBufferOrFlippable() || IsDepthStencil() || IsOffScreenPlainSurface();
+    }
+
+    bool IsBackBufferOrFlippable() const {
+      return !IsFrontBuffer() && (m_desc.ddsCaps.dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP));
     }
 
     bool IsDepthStencil() const {
@@ -195,12 +199,16 @@ namespace dxvk {
       return !(m_desc.dwFlags & DDSD_CAPS);
     }
 
-    inline bool IsFrontBuffer() const {
+    inline bool IsPrimarySurface() const {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE;
     }
 
+    inline bool IsFrontBuffer() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER;
+    }
+
     inline bool IsBackBuffer() const {
-      return m_desc.ddsCaps.dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP);
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER;
     }
 
     inline bool Is3DSurface() const {
