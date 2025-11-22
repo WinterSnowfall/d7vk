@@ -1,5 +1,7 @@
 #include "ddraw7_gamma.h"
 
+#include "d3d7_device.h"
+
 namespace dxvk {
 
   DDraw7GammaControl::DDraw7GammaControl(Com<IDirectDrawGammaControl>&& proxyGamma, DDraw7Surface* pParent)
@@ -33,15 +35,45 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7GammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData) {
-    Logger::debug("<<< DDraw7GammaControl::GetGammaRamp: Proxy");
-    return m_proxy->GetGammaRamp(dwFlags, lpRampData);
+    Logger::debug(">>> DDraw7GammaControl::GetGammaRamp");
+
+    if (unlikely(lpRampData == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    RefreshD3D7Device();
+    // For proxied pesentation we need to rely on ddraw to handle gamma
+    if (likely(m_d3d7Device != nullptr && !m_parent->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("DDraw7GammaControl::GetGammaRamp: Getting gamma ramp via d3d9");
+      d3d9::D3DGAMMARAMP rampData = { };
+      m_d3d7Device->GetD3D9()->GetGammaRamp(0, &rampData);
+      // Both gamma structs are identical in content/size
+      memcpy(static_cast<void*>(lpRampData), static_cast<const void*>(&rampData), sizeof(DDGAMMARAMP));
+    } else {
+      Logger::debug("DDraw7GammaControl::GetGammaRamp: Getting gamma ramp via ddraw");
+      return m_proxy->GetGammaRamp(dwFlags, lpRampData);
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7GammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData) {
-    Logger::debug("<<< DDraw7GammaControl::SetGammaRamp: Proxy");
+    Logger::debug(">>> DDraw7GammaControl::SetGammaRamp");
 
-    if (likely(!m_parent->GetOptions()->ignoreGammaRamp))
-      return m_proxy->SetGammaRamp(dwFlags, lpRampData);
+    if (unlikely(lpRampData == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (likely(!m_parent->GetOptions()->ignoreGammaRamp)) {
+      RefreshD3D7Device();
+      // For proxied pesentation we need to rely on ddraw to handle gamma
+      if (likely(m_d3d7Device != nullptr && !m_parent->GetOptions()->forceProxiedPresent)) {
+        Logger::debug("DDraw7GammaControl::SetGammaRamp: Setting gamma ramp via d3d9");
+        m_d3d7Device->GetD3D9()->SetGammaRamp(0, D3DSGR_NO_CALIBRATION,
+                                              reinterpret_cast<const d3d9::D3DGAMMARAMP*>(lpRampData));
+      } else {
+        Logger::debug("DDraw7GammaControl::SetGammaRamp: Setting gamma ramp via ddraw");
+        return m_proxy->SetGammaRamp(dwFlags, lpRampData);
+      }
+    }
 
     return DD_OK;
   }

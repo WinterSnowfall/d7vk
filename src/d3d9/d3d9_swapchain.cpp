@@ -728,7 +728,8 @@ namespace dxvk {
                  && cp[i].b == identity;
     }
 
-    if (!isIdentity && !m_presentParams.Windowed)
+    // TODO: Properly handle windowed mode in D3D7
+    if (!isIdentity && (!m_presentParams.Windowed || m_parent->IsD3D7Compatible()))
       m_blitter->setGammaRamp(NumControlPoints, cp.data());
     else
       m_blitter->setGammaRamp(0, nullptr);

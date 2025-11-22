@@ -120,6 +120,11 @@ namespace dxvk {
       return m_parent->GetOptions();
     }
 
+    D3D7Device* GetD3D7Device() {
+      RefreshD3D7Device();
+      return m_d3d7Device;
+    }
+
     d3d9::IDirect3DTexture9* GetTexture() const {
       return m_texture.ptr();
     }
