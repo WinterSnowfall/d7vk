@@ -444,7 +444,8 @@ namespace dxvk {
       }
 
       d3d9::D3DLOCKED_RECT rect9mip;
-      HRESULT hr9 = texture9->LockRect(i, &rect9mip, 0, 0);
+      // D3DLOCK_DISCARD will get ignored for MANAGED/SYSTEMMEM, but will work on DEFAULT
+      HRESULT hr9 = texture9->LockRect(i, &rect9mip, 0, D3DLOCK_DISCARD);
       if (likely(SUCCEEDED(hr9))) {
         DDSURFACEDESC2 descMip;
         descMip.dwSize = sizeof(DDSURFACEDESC2);
@@ -496,7 +497,8 @@ namespace dxvk {
       d3d9::D3DFORMAT format9,
       IDirectDrawSurface7* surface7) {
     d3d9::D3DLOCKED_RECT rect9;
-    HRESULT hr9 = surface9->LockRect(&rect9, 0, 0);
+    // D3DLOCK_DISCARD will get ignored for MANAGED/SYSTEMMEM, but will work on DEFAULT
+    HRESULT hr9 = surface9->LockRect(&rect9, 0, D3DLOCK_DISCARD);
     if (SUCCEEDED(hr9)) {
       DDSURFACEDESC2 desc;
       desc.dwSize = sizeof(DDSURFACEDESC2);
