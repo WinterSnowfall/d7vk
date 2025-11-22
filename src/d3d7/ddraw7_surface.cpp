@@ -147,8 +147,10 @@ namespace dxvk {
     Logger::debug("<<< DDraw7Surface::Blt: Proxy");
 
     RefreshD3D7Device();
-    if (m_d3d7Device != nullptr && m_d3d7Device->HasDrawn() && (IsFrontBuffer() || IsBackBuffer()))
-      return DD_OK;
+    if (likely(m_d3d7Device != nullptr)) {
+      if (m_d3d7Device->HasDrawn() && (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()))
+        return DD_OK;
+    }
 
     HRESULT hr;
 
@@ -185,8 +187,10 @@ namespace dxvk {
     Logger::debug("<<< DDraw7Surface::BltFast: Proxy");
 
     RefreshD3D7Device();
-    if (m_d3d7Device != nullptr && m_d3d7Device->HasDrawn() && (IsFrontBuffer() || IsBackBuffer()))
-      return DD_OK;
+    if (likely(m_d3d7Device != nullptr)) {
+      if (m_d3d7Device->HasDrawn() && (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()))
+        return DD_OK;
+    }
 
     HRESULT hr;
 
@@ -257,6 +261,35 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride, DWORD dwFlags) {
     Logger::debug("*** DDraw7Surface::Flip: Presenting");
 
+    if (unlikely(!(IsFrontBuffer() || IsBackBufferOrFlippable()))) {
+      Logger::debug("DDraw7Surface::Flip: Unflippable surface");
+      return DDERR_NOTFLIPPABLE;
+    }
+
+    const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+
+    // Non-exclusive mode validations
+    if (unlikely(IsPrimarySurface() && !exclusiveMode)) {
+      Logger::debug("DDraw7Surface::Flip: Primary surface flip in non-exclusive mode");
+      return DDERR_NOEXCLUSIVEMODE;
+    }
+
+    // Exclusive mode validations
+    if (unlikely(IsBackBufferOrFlippable() && exclusiveMode)) {
+      Logger::debug("DDraw7Surface::Flip: Back buffer flip in exclusive mode");
+      return DDERR_NOTFLIPPABLE;
+    }
+
+    Com<DDraw7Surface> surf7;
+    if (m_parent->IsWrappedSurface(lpDDSurfaceTargetOverride)) {
+      surf7 = static_cast<DDraw7Surface*>(lpDDSurfaceTargetOverride);
+
+      if (unlikely(!surf7->IsBackBufferOrFlippable())) {
+        Logger::debug("DDraw7Surface::Flip: Unflippable override surface");
+        return DDERR_NOTFLIPPABLE;
+      }
+    }
+
     RefreshD3D7Device();
     if (likely(m_d3d7Device != nullptr)) {
       D3D7DeviceLock lock = m_d3d7Device->LockDevice();
@@ -276,7 +309,6 @@ namespace dxvk {
             m_d3d7Device->SetFlipRTFlags(lpDDSurfaceTargetOverride, dwFlags);
           return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
         } else {
-          Com<DDraw7Surface> surf7 = static_cast<DDraw7Surface*>(lpDDSurfaceTargetOverride);
           if (likely(m_d3d7Device->GetRenderTarget() == this))
             m_d3d7Device->SetFlipRTFlags(lpDDSurfaceTargetOverride, dwFlags);
           return m_proxy->Flip(surf7->GetProxied(), dwFlags);
@@ -756,7 +788,13 @@ namespace dxvk {
       pool = IsTexture() ? d3d9::D3DPOOL_MANAGED : d3d9::D3DPOOL_SYSTEMMEM;
 
     // Place all possible render targets in DEFAULT
-    if (IsRenderTarget()) {
+    //
+    // Note: This is somewhat problematic for textures and cube maps
+    // which will have D3DUSAGE_RENDERTARGET, but also need to have
+    // D3DUSAGE_DYNAMIC for locking/uploads to work. The flag combination
+    // isn't supported in D3D9, but we have a D3D7 exception in place.
+    //
+    if (IsRenderTarget() || initRT) {
       pool  = d3d9::D3DPOOL_DEFAULT;
       usage |= D3DUSAGE_RENDERTARGET;
     }
@@ -831,7 +869,7 @@ namespace dxvk {
       m_d3d9 = std::move(surf);
 
     // Back Buffer
-    } else if (IsBackBuffer()) {
+    } else if (IsBackBufferOrFlippable()) {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing back buffer...");
 
       const DWORD backBuffer = m_d3d7Device->GetNextBackBuffer();
@@ -1006,7 +1044,7 @@ namespace dxvk {
   inline HRESULT DDraw7Surface::UploadSurfaceData() {
     Logger::debug(str::format("DDraw7Surface::UploadSurfaceData: Uploading nr. [[", m_surfCount, "]]"));
 
-    if (m_d3d7Device->HasDrawn() && (IsFrontBuffer() || IsBackBuffer()))
+    if (m_d3d7Device->HasDrawn() && (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()))
       return DD_OK;
 
     // Nothing to upload
