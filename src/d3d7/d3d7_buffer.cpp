@@ -142,8 +142,18 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
+    HRESULT hrInit;
+
+    // Check and initialize the source buffer
     if (unlikely(!vb->IsInitialized())) {
-      HRESULT hrInit = vb->InitializeD3D9();
+      hrInit = vb->InitializeD3D9();
+      if (unlikely(FAILED(hrInit)))
+        return hrInit;
+    }
+
+    // Check and initialize the destination buffer (this buffer)
+    if (unlikely(!IsInitialized())) {
+      hrInit = InitializeD3D9();
       if (unlikely(FAILED(hrInit)))
         return hrInit;
     }
@@ -223,14 +233,16 @@ namespace dxvk {
 
     D3DDEVICEDESC7 deviceDesc;
     device7->GetCaps(&deviceDesc);
-    const d3d9::D3DPOOL poolPlacement = (m_parent->GetOptions()->managedTNLBuffers
-                                      && deviceDesc.deviceGUID == IID_IDirect3DTnLHalDevice) ?
-                                        d3d9::D3DPOOL_MANAGED : d3d9::D3DPOOL_DEFAULT;
+    const d3d9::D3DPOOL pool = (m_parent->GetOptions()->managedTNLBuffers
+                             && deviceDesc.deviceGUID == IID_IDirect3DTnLHalDevice) ?
+                                d3d9::D3DPOOL_MANAGED : d3d9::D3DPOOL_DEFAULT;
+
+    const char* poolPlacement = pool == d3d9::D3DPOOL_DEFAULT ? "D3DPOOL_DEFAULT" : "D3DPOOL_MANAGED";
 
     Logger::debug(str::format("D3D7VertexBuffer::IntializeD3D9: Placing in: ", poolPlacement));
 
-    const DWORD usage = ConvertUsageFlags(m_desc.dwCaps, poolPlacement);
-    HRESULT hr = device7->GetD3D9()->CreateVertexBuffer(m_size, usage, m_desc.dwFVF, poolPlacement, &m_d3d9, nullptr);
+    const DWORD usage = ConvertUsageFlags(m_desc.dwCaps, pool);
+    HRESULT hr = device7->GetD3D9()->CreateVertexBuffer(m_size, usage, m_desc.dwFVF, pool, &m_d3d9, nullptr);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7VertexBuffer::IntializeD3D9: Failed to create d3d9 vertex buffer");

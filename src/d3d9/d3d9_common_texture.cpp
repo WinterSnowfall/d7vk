@@ -197,7 +197,8 @@ namespace dxvk {
 
     // RENDERTARGET and DEPTHSTENCIL in D3DPOOL_DEFAULT
     // can not also have DYNAMIC usage
-    if (pDesc->Pool == D3DPOOL_DEFAULT &&
+    if (!pDevice->IsD3D7Compatible() &&
+         pDesc->Pool == D3DPOOL_DEFAULT &&
         (pDesc->Usage & usageRTOrDS) &&
         (pDesc->Usage & D3DUSAGE_DYNAMIC))
       return D3DERR_INVALIDCALL;

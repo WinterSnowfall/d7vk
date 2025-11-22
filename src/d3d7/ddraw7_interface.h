@@ -98,6 +98,10 @@ namespace dxvk {
       return m_lastDepthStencil;
     }
 
+    DWORD GetCooperativeLevel() const {
+      return m_cooperativeLevel;
+    }
+
     HWND GetHWND() const {
       return m_hwnd;
     }
