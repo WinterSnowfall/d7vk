@@ -185,12 +185,12 @@ namespace dxvk {
     params.MultiSampleQuality = 0;
     params.SwapEffect         = d3d9::D3DSWAPEFFECT_DISCARD;
     params.hDeviceWindow      = hwnd;
-    params.Windowed           = TRUE; // TODO: Always windowed?
+    params.Windowed           = TRUE; // TODO: Fix up windowed mode based on the set ddraw cooperative mode
     params.EnableAutoDepthStencil     = FALSE;
     params.AutoDepthStencilFormat     = d3d9::D3DFMT_UNKNOWN;
     params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // Needed for back buffer locks
     params.FullScreen_RefreshRateInHz = 0;
-    params.PresentationInterval       = D3DPRESENT_INTERVAL_ONE;
+    params.PresentationInterval       = D3DPRESENT_INTERVAL_DEFAULT; // TODO: Properly determine VSync on/off
 
     if (unlikely(m_d3d7Options.forceMSAA != -1)) {
       params.MultiSampleType = d3d9::D3DMULTISAMPLE_TYPE(std::min<uint32_t>(8u, m_d3d7Options.forceMSAA));
