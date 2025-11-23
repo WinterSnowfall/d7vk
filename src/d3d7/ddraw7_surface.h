@@ -245,31 +245,29 @@ namespace dxvk {
 
     inline HRESULT UploadSurfaceData();
 
-    // TODO: Need to do this on every device use
-    // and refresh derp out if the device is lost
     inline void RefreshD3D7Device() {
       D3D7Device* d3d7Device = m_parent->GetD3D7Device();
-      // Check if the device has been lost
+      // Check if the device has been recreated and reset all d3d9 resources
       if (unlikely(m_d3d7Device != nullptr && m_d3d7Device != d3d7Device)) {
-        Logger::warn("D3D9 device has been recreated, clearing all d3d9 resources");
-        m_d3d9 = nullptr;
+        Logger::info("RefreshD3D7Device: device context has changed, clearing all d3d9 resources");
         m_texture = nullptr;
         m_cubeMap = nullptr;
+        m_d3d9 = nullptr;
       }
       m_d3d7Device = d3d7Device;
     }
 
     inline void ListSurfaceDetails() const {
-      const char* type = "oopsie, unhandled";
+      const char* type = "generic surface";
 
       if (IsFrontBuffer())                type = "front buffer";
       else if (IsBackBuffer())            type = "back buffer";
       else if (IsTextureMip())            type = "texture mipmap";
       else if (IsTexture())               type = "texture";
-      else if (IsDepthStencil())          type = "depth stencil";
       else if (IsCubeMap())               type = "cube map";
-      else if (IsOverlay())               type = "overlay";
+      else if (IsDepthStencil())          type = "depth stencil";
       else if (IsOffScreenPlainSurface()) type = "offscreen plain surface";
+      else if (IsOverlay())               type = "overlay";
       else if (Is3DSurface())             type = "render target";
       else if (IsNotKnown())              type = "unknown";
 
