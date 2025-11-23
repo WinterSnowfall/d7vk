@@ -303,10 +303,61 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetAvailableVidMem(LPDDSCAPS2 lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree) {
-    Logger::debug("<<< DDraw7Interface::GetAvailableVidMem: Proxy");
-    // TODO: Implement memory limit reporting based
-    // on returned data, as some games will need it
-    return m_proxy->GetAvailableVidMem(lpDDCaps, lpdwTotal, lpdwFree);
+    Logger::debug(">>> DDraw7Interface::GetAvailableVidMem");
+
+    if (unlikely(lpdwTotal == nullptr && lpdwFree == nullptr))
+      return DD_OK;
+
+    constexpr DWORD Megabytes = 1024 * 1024;
+
+    D3D7Device* d3d7Device = m_d3d7Intf->GetDevice();
+    if (likely(d3d7Device != nullptr)) {
+      Logger::debug("DDraw7Interface::GetAvailableVidMem: Getting memory stats from d3d9");
+
+      const DWORD total9 = static_cast<DWORD>(m_d3d7Intf->GetOptions()->maxAvailableMemory) * Megabytes;
+      const DWORD free9  = static_cast<DWORD>(d3d7Device->GetD3D9()->GetAvailableTextureMem());
+
+      Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: Total: ", total9));
+      Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: Free : ", free9));
+
+      if (lpdwTotal != nullptr)
+        *lpdwTotal = total9;
+      if (lpdwFree != nullptr)
+        *lpdwFree  = free9;
+
+    } else {
+      Logger::debug("DDraw7Interface::GetAvailableVidMem: Getting memory stats from ddraw");
+
+      DWORD total7 = 0;
+      DWORD free7  = 0;
+
+      HRESULT hr = m_proxy->GetAvailableVidMem(lpDDCaps, &total7, &free7);
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw7Interface::GetAvailableVidMem: Failed proxied call");
+        if (lpdwTotal != nullptr)
+          *lpdwTotal = 0;
+        if (lpdwFree != nullptr)
+          *lpdwFree  = 0;
+        return hr;
+      }
+
+      Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: DDraw Total: ", total7));
+      Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: DDraw Free : ", free7));
+
+      const DWORD total9 = static_cast<DWORD>(m_d3d7Intf->GetOptions()->maxAvailableMemory) * Megabytes;
+      const DWORD delta  = total7 > total9 ? total7 - total9 : 0;
+      const DWORD free9  = free7 > delta ? free7 - delta : 0;
+
+      Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: Total: ", total9));
+      Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: Free : ", free9));
+
+      if (lpdwTotal != nullptr)
+        *lpdwTotal = total9;
+      if (lpdwFree != nullptr)
+        *lpdwFree  = free9;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetSurfaceFromDC(HDC hdc, IDirectDrawSurface7** pSurf) {
