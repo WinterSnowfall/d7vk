@@ -159,8 +159,9 @@ namespace dxvk {
         Logger::err(e.message());
         return DDERR_GENERIC;
       }
+    // Some games simply try creating surfaces with various formats until something works...
     } else {
-      Logger::err("DDraw7Interface::CreateSurface: Failed to create proxy surface");
+      Logger::debug("DDraw7Interface::CreateSurface: Failed to create proxy surface");
       return hr;
     }
 
