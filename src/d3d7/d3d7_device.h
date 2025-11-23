@@ -217,9 +217,11 @@ namespace dxvk {
     DWORD           m_handle         = 0;
     std::unordered_map<DWORD, D3D7StateBlock> m_stateBlocks;
 
-    // Value of D3DRS_LINEPATTERN
+    // Value of D3DRENDERSTATE_ANTIALIAS
+    DWORD           m_antialias     = D3DANTIALIAS_NONE;
+    // Value of D3DRENDERSTATE_LINEPATTERN
     D3DLINEPATTERN  m_linePattern   = {};
-    // Value of D3DRS_ZVISIBLE (although the RS is not supported, its value is stored)
+    // Value of D3DRENDERSTATE_ZVISIBLE (although the RS is not supported, its value is stored)
     DWORD           m_zVisible      = 0;
 
     Com<d3d9::IDirect3DSurface9>  m_rt9;

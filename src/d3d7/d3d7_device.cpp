@@ -428,21 +428,21 @@ namespace dxvk {
       default:
         break;
 
-      // TODO: How the heck will this ever work in d3d9?
+      // D3DRS_MULTISAMPLEANTIALIAS, I guess, but that isn't implemented in D9VK
       case D3DRENDERSTATE_ANTIALIAS:
-        static bool s_antialiasErrorShown;
+        State9        = d3d9::D3DRS_MULTISAMPLEANTIALIAS;
+        m_antialias   = dwRenderState;
+        dwRenderState = m_antialias == D3DANTIALIAS_SORTDEPENDENT
+                     || m_antialias == D3DANTIALIAS_SORTINDEPENDENT ? TRUE : FALSE;
+        break;
 
-        if (!std::exchange(s_antialiasErrorShown, true))
-          Logger::warn("D3D7Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_ANTIALIAS");
-
-        return D3D_OK;
-
-      // TODO: The heck is this all about?
+      // Always enabled on later APIs, so it can't really be turned off
+      // Even the D3D7 docs state: "Note that many 3-D adapters apply texture perspective correction unconditionally."
       case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
         static bool s_texturePerspectiveErrorShown;
 
-        if (!std::exchange(s_texturePerspectiveErrorShown, true))
-          Logger::warn("D3D7Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_TEXTUREPERSPECTIVE");
+        if (!dwRenderState && !std::exchange(s_texturePerspectiveErrorShown, true))
+          Logger::debug("D3D7Device::SetRenderState: Disabling of D3DRENDERSTATE_TEXTUREPERSPECTIVE is not supported");
 
         return D3D_OK;
 
@@ -462,11 +462,11 @@ namespace dxvk {
         m_zVisible = dwRenderState;
         return D3D_OK;
 
-      // TODO: Oh I'll stipple your alpha alright...
+      // TODO:
       case D3DRENDERSTATE_STIPPLEDALPHA:
         static bool s_stippledAlphaErrorShown;
 
-        if (!std::exchange(s_stippledAlphaErrorShown, true))
+        if (dwRenderState && !std::exchange(s_stippledAlphaErrorShown, true))
           Logger::warn("D3D7Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEDALPHA");
 
         return D3D_OK;
@@ -476,11 +476,11 @@ namespace dxvk {
         State9 = d3d9::D3DRS_ANTIALIASEDLINEENABLE;
         break;
 
-      // TODO: Ugh... probably important
+      // TODO:
       case D3DRENDERSTATE_COLORKEYENABLE:
         static bool s_colorKeyEnableErrorShown;
 
-        if (!std::exchange(s_colorKeyEnableErrorShown, true))
+        if (dwRenderState && !std::exchange(s_colorKeyEnableErrorShown, true))
           Logger::warn("D3D7Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_COLORKEYENABLE");
 
         return D3D_OK;
@@ -494,7 +494,7 @@ namespace dxvk {
       case D3DRENDERSTATE_EXTENTS:
         static bool s_extentsErrorShown;
 
-        if (!std::exchange(s_extentsErrorShown, true))
+        if (dwRenderState && !std::exchange(s_extentsErrorShown, true))
           Logger::warn("D3D7Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_EXTENTS");
 
         return D3D_OK;
@@ -503,7 +503,7 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYBLENDENABLE:
         static bool s_colorKeyBlendEnableErrorShown;
 
-        if (!std::exchange(s_colorKeyBlendEnableErrorShown, true))
+        if (dwRenderState && !std::exchange(s_colorKeyBlendEnableErrorShown, true))
           Logger::warn("D3D7Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_COLORKEYBLENDENABLE");
 
         return D3D_OK;
@@ -533,23 +533,14 @@ namespace dxvk {
       default:
         break;
 
-      // TODO: How the heck will this ever work in d3d9?
+      // D3DRS_MULTISAMPLEANTIALIAS, I guess, but that isn't implemented in D9VK
       case D3DRENDERSTATE_ANTIALIAS:
-        static bool s_antialiasErrorShown;
-
-        if (!std::exchange(s_antialiasErrorShown, true))
-          Logger::warn("D3D7Device::GetRenderState: Unimplemented render state D3DRENDERSTATE_ANTIALIAS");
-
-        *lpdwRenderState = D3DANTIALIAS_NONE;
+        *lpdwRenderState = m_antialias;
         return D3D_OK;
 
-      // TODO: The heck is this all about?
+      // Always enabled on later APIs, so it can't really be turned off
+      // Even the D3D7 docs state: "Note that many 3-D adapters apply texture perspective correction unconditionally."
       case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
-        static bool s_texturePerspectiveErrorShown;
-
-        if (!std::exchange(s_texturePerspectiveErrorShown, true))
-          Logger::warn("D3D7Device::GetRenderState: Unimplemented render state D3DRENDERSTATE_TEXTUREPERSPECTIVE");
-
         *lpdwRenderState = TRUE;
         return D3D_OK;
 
@@ -562,13 +553,8 @@ namespace dxvk {
         *lpdwRenderState = m_zVisible;
         return D3D_OK;
 
-      // TODO: Oh I'll stipple your alpha alright...
+      // TODO:
       case D3DRENDERSTATE_STIPPLEDALPHA:
-        static bool s_stippledAlphaErrorShown;
-
-        if (!std::exchange(s_stippledAlphaErrorShown, true))
-          Logger::warn("D3D7Device::GetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEDALPHA");
-
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
@@ -576,13 +562,8 @@ namespace dxvk {
         State9 = d3d9::D3DRS_ANTIALIASEDLINEENABLE;
         break;
 
-      // TODO: Ugh... probably important
+      // TODO:
       case D3DRENDERSTATE_COLORKEYENABLE:
-        static bool s_colorKeyEnableErrorShown;
-
-        if (!std::exchange(s_colorKeyEnableErrorShown, true))
-          Logger::warn("D3D7Device::GetRenderState: Unimplemented render state D3DRENDERSTATE_COLORKEYENABLE");
-
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
@@ -595,21 +576,11 @@ namespace dxvk {
 
       // TODO:
       case D3DRENDERSTATE_EXTENTS:
-        static bool s_extentsErrorShown;
-
-        if (!std::exchange(s_extentsErrorShown, true))
-          Logger::warn("D3D7Device::GetRenderState: Unimplemented render state D3DRENDERSTATE_EXTENTS");
-
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
       // TODO:
       case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-        static bool s_colorKeyBlendEnableErrorShown;
-
-        if (!std::exchange(s_colorKeyBlendEnableErrorShown, true))
-          Logger::warn("D3D7Device::GetRenderState: Unimplemented render state D3DRENDERSTATE_COLORKEYBLENDENABLE");
-
         *lpdwRenderState = FALSE;
         return D3D_OK;
     }
