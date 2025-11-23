@@ -155,8 +155,14 @@ namespace dxvk {
     HRESULT hr;
 
     if (unlikely(!m_parent->IsWrappedSurface(lpDDSrcSurface))) {
-      if (unlikely(lpDDSrcSurface != nullptr))
-        Logger::warn("DDraw7Surface::Blt: Received an unwrapped source surface");
+      if (unlikely(lpDDSrcSurface != nullptr)) {
+        // Gothic 1/2 spams this warning, but with proxiedQueryInterface it is expected behavior
+        if (likely(!m_d3d7Device->GetOptions()->proxiedQueryInterface)) {
+          Logger::warn("DDraw7Surface::Blt: Received an unwrapped source surface");
+        } else {
+          Logger::debug("DDraw7Surface::Blt: Received an unwrapped source surface");
+        }
+      }
       hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     } else {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
@@ -341,7 +347,7 @@ namespace dxvk {
     else if (lpDDSCaps->dwCaps & DDSCAPS_TEXTURE)
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a texture");
     else if (lpDDSCaps->dwCaps2 & DDSCAPS2_CUBEMAP)
-      Logger::warn("DDraw7Surface::GetAttachedSurface: Querying for a cube map");
+      Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a cube map");
     else if (lpDDSCaps->dwCaps2 & DDSCAPS_OVERLAY)
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for an overlay");
 
@@ -688,10 +694,10 @@ namespace dxvk {
   HRESULT DDraw7Surface::InitializeD3D9RenderTarget() {
     HRESULT hr = DD_OK;
 
-    if (unlikely(!IsInitialized())) {
-      RefreshD3D7Device();
+    RefreshD3D7Device();
+
+    if (unlikely(!IsInitialized()))
       hr = IntializeD3D9(true);
-    }
 
     return hr;
   }
@@ -744,7 +750,22 @@ namespace dxvk {
     // Some applications do require them to be created by ddraw, otherwise
     // they will simply fail to start, so just ignore them for now.
     if (unlikely(m_format == d3d9::D3DFMT_P8)) {
-      Logger::warn("DDraw7Surface::IntializeD3D9: Unsupported format D3DFMT_P8");
+      static bool s_formatP8ErrorShown;
+
+      if (!std::exchange(s_formatP8ErrorShown, true))
+        Logger::warn("DDraw7Surface::IntializeD3D9: Unsupported format D3DFMT_P8");
+
+      return DD_OK;
+
+    // Similarly, D3DFMT_R3G3B2 isn't supported by d3d9 dxvk, however some
+    // applications require it to be supported by ddraw, even if they do not
+    // use it. Simply ignore any D3DFMT_R3G3B2 textures/surfaces for now.
+    } else if (unlikely(m_format == d3d9::D3DFMT_R3G3B2)) {
+      static bool s_formatR3G3B2ErrorShown;
+
+      if (!std::exchange(s_formatR3G3B2ErrorShown, true))
+        Logger::warn("DDraw7Surface::IntializeD3D9: Unsupported format D3DFMT_R3G3B2");
+
       return DD_OK;
     }
 
@@ -785,7 +806,7 @@ namespace dxvk {
       // We can't know beforehand if a texture is or isn't going to be
       // used in SetTexture() calls, and textures placed in D3DPOOL_SYSTEMMEM
       // will not work in that context in dxvk, so revert to D3DPOOL_MANAGED.
-      pool = IsTexture() ? d3d9::D3DPOOL_MANAGED : d3d9::D3DPOOL_SYSTEMMEM;
+      pool = IsTextureOrCubeMap() ? d3d9::D3DPOOL_MANAGED : d3d9::D3DPOOL_SYSTEMMEM;
 
     // Place all possible render targets in DEFAULT
     //
@@ -798,14 +819,14 @@ namespace dxvk {
       pool  = d3d9::D3DPOOL_DEFAULT;
       usage |= D3DUSAGE_RENDERTARGET;
     }
-    // Only a cosmetic/logging consideration, but all
-    // depth stencils will be created in DEFAULT
+    // All depth stencils will be created in DEFAULT
     if (IsDepthStencil()) {
       pool  = d3d9::D3DPOOL_DEFAULT;
+      usage |= D3DUSAGE_DEPTHSTENCIL;
     }
 
     // General usage flags
-    if (IsTexture()) {
+    if (IsTextureOrCubeMap()) {
       if (pool == d3d9::D3DPOOL_DEFAULT)
         usage |= D3DUSAGE_DYNAMIC;
       if (unlikely(m_parent->GetOptions()->autoGenMipMaps))
@@ -908,24 +929,6 @@ namespace dxvk {
       Logger::debug("DDraw7Surface::IntializeD3D9: Created d3d9 texture");
       m_texture = std::move(tex);
 
-    // Depth Stencil
-    } else if (IsDepthStencil()) {
-      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing depth stencil...");
-
-      hr = m_d3d7Device->GetD3D9()->CreateDepthStencilSurface(
-        m_desc.dwWidth, m_desc.dwHeight, m_format,
-        multiSampleType, 0, FALSE, &surf, nullptr);
-
-      if (unlikely(FAILED(hr))) {
-        Logger::err("DDraw7Surface::IntializeD3D9: Failed to create DS");
-        m_d3d9 = nullptr;
-        return hr;
-      }
-
-      Logger::debug("DDraw7Surface::IntializeD3D9: Created depth stencil surface");
-
-      m_d3d9 = std::move(surf);
-
     // Cube maps
     } else if (IsCubeMap()) {
       Logger::warn("DDraw7Surface::IntializeD3D9: Initializing cube map...");
@@ -952,6 +955,24 @@ namespace dxvk {
       m_proxy->EnumAttachedSurfaces(cubetex.ptr(), EnumAndAttachSurfacesCallback);
 
       m_cubeMap = std::move(cubetex);
+
+    // Depth Stencil
+    } else if (IsDepthStencil()) {
+      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing depth stencil...");
+
+      hr = m_d3d7Device->GetD3D9()->CreateDepthStencilSurface(
+        m_desc.dwWidth, m_desc.dwHeight, m_format,
+        multiSampleType, 0, FALSE, &surf, nullptr);
+
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw7Surface::IntializeD3D9: Failed to create DS");
+        m_d3d9 = nullptr;
+        return hr;
+      }
+
+      Logger::debug("DDraw7Surface::IntializeD3D9: Created depth stencil surface");
+
+      m_d3d9 = std::move(surf);
 
     // Offscreen Plain Surfaces
     } else if (IsOffScreenPlainSurface()) {
@@ -1016,14 +1037,13 @@ namespace dxvk {
 
       m_d3d9 = std::move(surf);
 
-    // Something... else?
-    } else {
-      Logger::warn("DDraw7Surface::IntializeD3D9: Initializing unknown surface...");
+    // We sometimes get generic surfaces, with only dimensions, format and placement info
+    } else if (!IsNotKnown()) {
+      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing generic surface...");
 
-      // D3DPOOL_SCRATCH allows the creation of surfaces with unsupported formats
       hr = m_d3d7Device->GetD3D9()->CreateOffscreenPlainSurface(
           m_desc.dwWidth, m_desc.dwHeight, m_format,
-          d3d9::D3DPOOL_SCRATCH, &surf, nullptr);
+          pool, &surf, nullptr);
 
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to create offscreen plain surface");
@@ -1034,6 +1054,8 @@ namespace dxvk {
       Logger::debug("DDraw7Surface::IntializeD3D9: Created offscreen plain surface");
 
       m_d3d9 = std::move(surf);
+    } else {
+      Logger::warn("DDraw7Surface::IntializeD3D9: Skipping initialization of unknown surface");
     }
 
     UploadSurfaceData();

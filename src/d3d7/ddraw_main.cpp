@@ -132,7 +132,7 @@ extern "C" {
     static DirectDrawCreate_t ProxiedDirectDrawCreate = nullptr;
 
     if (unlikely(ProxiedDirectDrawCreate == nullptr)) {
-      dxvk::Logger::warn("DirectDrawCreate is a forwarded interface only, expect breakage");
+      dxvk::Logger::warn("DirectDrawCreate is a forwarded legacy interface only");
 
       HMODULE hDDraw = dxvk::GetProxiedDDrawModule();
 
