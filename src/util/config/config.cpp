@@ -1504,6 +1504,10 @@ namespace dxvk {
     { R"(\\MessiahD3D\.exe$)", {{
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
+    /* Might and Magic IX / No One Lives Forever  */
+    { R"(\\lithtech\.exe$)", {{
+      { "d3d7.proxiedQueryInterface",       "True" },
+    }} },
 
   };
 
