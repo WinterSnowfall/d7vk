@@ -1508,6 +1508,10 @@ namespace dxvk {
     { R"(\\lithtech\.exe$)", {{
       { "d3d7.proxiedQueryInterface",       "True" },
     }} },
+    /* 3DMark2000 - Performance                   */
+    { R"(\\3DMark2000\.exe$)", {{
+      { "d3d9.cachedDynamicBuffers",        "True" },
+    }} },
 
   };
 
