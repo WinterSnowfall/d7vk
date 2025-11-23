@@ -36,6 +36,9 @@ namespace dxvk {
     /// Place vertex buffers in the MANAGED pool when using a T&L HAL device
     bool managedTNLBuffers;
 
+    /// Max available memory override, shared with the d3d9 backend
+    uint32_t maxAvailableMemory;
+
     D3D7Options() {}
 
     D3D7Options(const Config& config) {
@@ -48,6 +51,9 @@ namespace dxvk {
       this->ignoreGammaRamp       = config.getOption<bool>   ("d3d7.ignoreGammaRamp",       false);
       this->autoGenMipMaps        = config.getOption<bool>   ("d3d7.autoGenMipMaps",        false);
       this->managedTNLBuffers     = config.getOption<bool>   ("d3d7.managedTNLBuffers",     false);
+
+      // D3D9 options
+      this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",     1024);
     }
 
   };
