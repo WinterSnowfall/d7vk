@@ -24,7 +24,6 @@ namespace dxvk {
 
       switch (fmt.dwRGBBitCount) {
         case 8:
-          Logger::warn("ConvertFormat: Use of dwRGBBitCount 8 format");
           // R: 1110 0000
           return (fmt.dwFlags & DDPF_PALETTEINDEXED8) ? d3d9::D3DFMT_P8 : d3d9::D3DFMT_R3G3B2;
         case 16: {
