@@ -186,6 +186,10 @@ namespace dxvk {
       m_dirtyMipMaps = false;
     }
 
+    void UpdateBoundState(bool isBound) {
+      m_isBound = isBound;
+    }
+
     HRESULT InitializeD3D9RenderTarget();
 
     HRESULT InitializeOrUploadD3D9();
@@ -194,6 +198,10 @@ namespace dxvk {
 
     inline bool IsAttached() const {
       return m_parentSurf != nullptr;
+    }
+
+    inline bool IsBound() const {
+      return m_isBound;
     }
 
     inline bool IsComplex() const {
@@ -289,6 +297,7 @@ namespace dxvk {
     }
 
     bool             m_isChildObject = false;
+    bool             m_isBound       = false;
     bool             m_dirtyMipMaps  = false;
     uint32_t         m_mipCount      = 0;
 
