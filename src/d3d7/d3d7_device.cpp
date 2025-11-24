@@ -224,8 +224,8 @@ namespace dxvk {
           // If we have drawn anything, we need to make sure we blit back
           // the results onto the d3d7 render target before we flip it
           if (m_hasDrawn)
-            BlitToD3D7Surface(m_rt.ptr(), m_rt9.ptr());
-          m_rt->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
+            BlitToD3D7Surface(m_rt->GetProxied(), m_rt9.ptr());
+          m_rt->GetProxied()->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
         } else {
           m_d3d9->Present(NULL, NULL, NULL, NULL);
         }
@@ -1082,6 +1082,7 @@ namespace dxvk {
       if (likely(SUCCEEDED(hr))) {
         if (m_textures[stage] != nullptr) {
           Logger::debug("D3D7Device::SetTexture: Unbinding local texture");
+          m_textures[stage]->UpdateBoundState(false);
           m_textures[stage] = nullptr;
         }
       } else {
@@ -1126,6 +1127,7 @@ namespace dxvk {
     }
 
     m_textures[stage] = surface7;
+    m_textures[stage]->UpdateBoundState(true);
 
     return D3D_OK;
   }
