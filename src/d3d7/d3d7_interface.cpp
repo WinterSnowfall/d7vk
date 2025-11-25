@@ -147,7 +147,7 @@ namespace dxvk {
     desc.dwSize = sizeof(DDSURFACEDESC2);
     surface->GetSurfaceDesc(&desc);
 
-    Logger::info(str::format("D3D7Interface::CreateDevice: RenderTarget: ", desc.dwWidth, "x", desc.dwHeight));
+    Logger::info(str::format("D3D7Interface::CreateDevice: Render target: ", desc.dwWidth, "x", desc.dwHeight));
 
     Com<DDraw7Surface> rt7;
     if (unlikely(!m_parent->IsWrappedSurface(surface))) {
@@ -173,9 +173,25 @@ namespace dxvk {
       return hr;
     }
 
-    // TODO: Potentially cater for multiple back buffers, though in
-    // practice their use isn't very common in d3d7
-    const DWORD backBufferCount = 1;
+    DWORD backBufferCount = 0;
+    IDirectDrawSurface7* backBuffer = rt7->GetProxied();
+    while (backBuffer != nullptr) {
+      IDirectDrawSurface7* parentSurface = backBuffer;
+      backBuffer = nullptr;
+      parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfacesCallback);
+      backBufferCount++;
+      // the swapchain will eventually return to its origin
+      if (backBuffer == rt7->GetProxied())
+        break;
+    }
+    Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer count: ", backBufferCount));
+
+    const DWORD cooperativeLevel = m_parent->GetCooperativeLevel();
+
+    BOOL vBlankStatus = FALSE;
+    m_parent->GetVerticalBlankStatus(&vBlankStatus);
+    // Always appears to be enabled when running in non-exclusive mode
+    vBlankStatus |= !(cooperativeLevel & DDSCL_EXCLUSIVE);
 
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = desc.dwWidth;
@@ -185,14 +201,15 @@ namespace dxvk {
     params.MultiSampleQuality = 0;
     params.SwapEffect         = d3d9::D3DSWAPEFFECT_DISCARD;
     params.hDeviceWindow      = hwnd;
-    params.Windowed           = TRUE; // TODO: Fix up windowed mode based on the set ddraw cooperative mode
+    params.Windowed           = TRUE; // Always use windowed, so that we can delegate mode switching to ddraw
     params.EnableAutoDepthStencil     = FALSE;
     params.AutoDepthStencilFormat     = d3d9::D3DFMT_UNKNOWN;
     params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // Needed for back buffer locks
-    params.FullScreen_RefreshRateInHz = 0;
-    params.PresentationInterval       = D3DPRESENT_INTERVAL_DEFAULT; // TODO: Properly determine VSync on/off
+    params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
+    params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
     if (unlikely(m_d3d7Options.forceMSAA != -1)) {
+      Logger::info("D3D7Interface::CreateDevice: Overriding swapchain MSAA");
       params.MultiSampleType = d3d9::D3DMULTISAMPLE_TYPE(std::min<uint32_t>(8u, m_d3d7Options.forceMSAA));
     } else {
       params.MultiSampleType = d3d9::D3DMULTISAMPLE_NONE;
@@ -200,7 +217,9 @@ namespace dxvk {
 
     // Always ensure the d3d9 device handles multi-threaded access properly, as some
     // d3d7 applications may blit to surfaces and draw geometry on separate threads
-    const DWORD deviceCreationFlags = vertexProcessing | D3DCREATE_MULTITHREADED;
+    DWORD deviceCreationFlags = vertexProcessing | D3DCREATE_MULTITHREADED;
+    if (cooperativeLevel & DDSCL_FPUPRESERVE)
+      deviceCreationFlags |= D3DCREATE_FPU_PRESERVE;
 
     Com<d3d9::IDirect3DDevice9> device9;
     hr = m_d3d9->CreateDevice(

@@ -738,7 +738,7 @@ namespace dxvk {
     cube->GetCubeMapSurface(GetCubemapFace(desc), 0, &face);
 
     DDraw7Surface* ddraw7surface = static_cast<DDraw7Surface*>(subsurf);
-    ddraw7surface->SetSurface(std::move(face));
+    ddraw7surface->SetD3D9(std::move(face));
 
     return DDENUMRET_OK;
   }
@@ -884,14 +884,13 @@ namespace dxvk {
 
     Com<d3d9::IDirect3DSurface9> surf;
 
-    // Note: We don't technically need to attach the front buffer to anything, since we skip
-    // all operations done on it anyway, but it makes the entire IsInitialized() logic simpler
+    // Front Buffer
     if (IsFrontBuffer()) {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing front buffer...");
 
-      hr = m_d3d7Device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
+      surf = m_d3d7Device->GetD3D9BackBuffer(m_proxy.ptr());
 
-      if (unlikely(FAILED(hr))) {
+      if (unlikely(surf == nullptr)) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to retrieve front buffer");
         m_d3d9 = nullptr;
         return hr;
@@ -903,12 +902,9 @@ namespace dxvk {
     } else if (IsBackBufferOrFlippable()) {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing back buffer...");
 
-      const DWORD backBuffer = m_d3d7Device->GetNextBackBuffer();
-      Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Using back buffer ", backBuffer));
+      surf = m_d3d7Device->GetD3D9BackBuffer(m_proxy.ptr());
 
-      hr = m_d3d7Device->GetD3D9()->GetBackBuffer(0, backBuffer, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
-
-      if (unlikely(FAILED(hr))) {
+      if (unlikely(surf == nullptr)) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to retrieve back buffer");
         m_d3d9 = nullptr;
         return hr;
@@ -993,10 +989,9 @@ namespace dxvk {
       if (unlikely(m_d3d7Device->GetRenderTarget() == this || initRT)) {
         Logger::debug("DDraw7Surface::IntializeD3D9: Offscreen plain surface is the RT");
 
-        // Always link overlays to the first back buffer, since they are not part of a chain
-        hr = m_d3d7Device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
+        surf = m_d3d7Device->GetD3D9BackBuffer(m_proxy.ptr());
 
-        if (unlikely(FAILED(hr))) {
+        if (unlikely(surf == nullptr)) {
           Logger::err("DDraw7Surface::IntializeD3D9: Failed to retrieve offscreen plain surface");
           m_d3d9 = nullptr;
           return hr;
@@ -1019,10 +1014,10 @@ namespace dxvk {
     } else if (IsOverlay()) {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing overlay...");
 
-      // Always link overlays to the first back buffer, since they are not RTs
-      hr = m_d3d7Device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
+      // Always link overlays to the current render target
+      surf = m_d3d7Device->GetRenderTarget()->GetD3D9();
 
-      if (unlikely(FAILED(hr))) {
+      if (unlikely(surf == nullptr)) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to retrieve overlay surface");
         m_d3d9 = nullptr;
         return hr;
@@ -1076,8 +1071,10 @@ namespace dxvk {
   inline HRESULT DDraw7Surface::UploadSurfaceData() {
     Logger::debug(str::format("DDraw7Surface::UploadSurfaceData: Uploading nr. [[", m_surfCount, "]]"));
 
-    if (m_d3d7Device->HasDrawn() && (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()))
+    if (m_d3d7Device->HasDrawn() && (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable())) {
+      Logger::debug("DDraw7Surface::UploadSurfaceData: Skipping upload");
       return DD_OK;
+    }
 
     // Nothing to upload
     if (unlikely(!IsInitialized())) {
@@ -1102,6 +1099,12 @@ namespace dxvk {
       Logger::debug("DDraw7Surface::UploadSurfaceData: Skipping upload of depth stencil");
     // Blit surfaces directly
     } else if (likely(m_d3d9 != nullptr)) {
+      // Make sure overlays always point to the current render target
+      if (unlikely(IsOverlay())) {
+        d3d9::IDirect3DSurface9* surf = m_d3d7Device->GetRenderTarget()->GetD3D9();
+        if (unlikely(surf != m_d3d9.ptr()))
+          m_d3d9 = surf;
+      }
       BlitToD3D9Surface(m_d3d9.ptr(), m_format, m_proxy.ptr());
     }
 
