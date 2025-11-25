@@ -135,6 +135,10 @@ namespace dxvk {
 
     void InitializeDS();
 
+    d3d9::IDirect3DSurface9* GetD3D9BackBuffer(IDirectDrawSurface7* surface) const;
+
+    HRESULT Reset(d3d9::D3DPRESENT_PARAMETERS* params);
+
     D3D7DeviceLock LockDevice() {
       return m_singlethread.AcquireLock();
     }
@@ -143,17 +147,12 @@ namespace dxvk {
       return m_parent->GetOptions();
     }
 
-    DDraw7Surface* GetRenderTarget() const {
-      return m_rt.ptr();
+    d3d9::D3DPRESENT_PARAMETERS GetPresentParameters() const {
+      return m_params9;
     }
 
-    DWORD GetNextBackBuffer() {
-      m_currentBackBuffer++;
-
-      if (m_currentBackBuffer >= m_params9.BackBufferCount)
-        m_currentBackBuffer = 0;
-
-      return m_currentBackBuffer;
+    DDraw7Surface* GetRenderTarget() const {
+      return m_rt.ptr();
     }
 
     bool IsMixedVPDevice() const {
@@ -177,9 +176,11 @@ namespace dxvk {
 
   private:
 
-    inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
-
     inline HRESULT InitializeIndexBuffers();
+
+    inline HRESULT EnumerateBackBuffers(IDirectDrawSurface7* surface);
+
+    inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
 
     inline bool ShouldRecord() const { return m_recorder != nullptr; }
 
@@ -193,22 +194,22 @@ namespace dxvk {
 
     DDraw7Interface*              m_DD7IntfParent = nullptr;
 
-    Com<IDxvkD3D8InterfaceBridge> m_bridge;
+    Com<DxvkD3D8Bridge>           m_bridge;
 
     D3D7Singlethread              m_singlethread;
 
     static uint32_t               s_deviceCount;
     uint32_t                      m_deviceCount = 0;
 
-    DWORD                         m_currentBackBuffer = -1u;
     DWORD                         m_vertexProcessing9 = 0;
     d3d9::D3DPRESENT_PARAMETERS   m_params9;
 
     D3DDEVICEDESC7                m_desc;
-
     Com<DDraw7Surface>            m_rt;
-    DDraw7Surface*                m_ds     = nullptr;
-    DDraw7Surface*                m_rtOrig = nullptr;
+    Com<DDraw7Surface, false>     m_rtOrig;
+    DDraw7Surface*                m_ds = nullptr;
+
+    std::unordered_map<IDirectDrawSurface7*, Com<d3d9::IDirect3DSurface9>> m_backBuffers;
 
     std::array<Com<DDraw7Surface, false>, caps7::TextureStageCount> m_textures;
 
@@ -224,10 +225,7 @@ namespace dxvk {
     // Value of D3DRENDERSTATE_ZVISIBLE (although the RS is not supported, its value is stored)
     DWORD           m_zVisible      = 0;
 
-    Com<d3d9::IDirect3DSurface9>  m_rt9;
-    Com<d3d9::IDirect3DSurface9>  m_ds9;
-
-    FilpRTFlags                   m_flipRTFlags;
+    FilpRTFlags     m_flipRTFlags;
 
     // Common index buffers used for indexed draws, split up into five sizes:
     // XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb

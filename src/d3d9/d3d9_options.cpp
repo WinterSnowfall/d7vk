@@ -73,7 +73,7 @@ namespace dxvk {
     this->deviceLossOnFocusLoss         = config.getOption<bool>        ("d3d9.deviceLossOnFocusLoss",         false);
     this->samplerLodBias                = config.getOption<float>       ("d3d9.samplerLodBias",                0.0f);
     this->clampNegativeLodBias          = config.getOption<bool>        ("d3d9.clampNegativeLodBias",          false);
-    this->countLosableResources         = config.getOption<bool>        ("d3d9.countLosableResources",         true);
+    this->countLosableResources         = config.getOption<bool>        ("d3d9.countLosableResources",         false);
     this->reproducibleCommandStream     = config.getOption<bool>        ("d3d9.reproducibleCommandStream",     false);
     this->extraFrontbuffer              = config.getOption<bool>        ("d3d9.extraFrontbuffer",              false);
     this->ffUbershaderVS                = config.getOption<bool>        ("d3d9.ffUbershaderVS",                true);
