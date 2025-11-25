@@ -33,9 +33,10 @@ namespace dxvk {
     m_parent->AddRef();
 
     m_rtOrig = m_rt.ptr();
-    HRESULT hr = m_d3d9->GetRenderTarget(0, &m_rt9);
+
+    HRESULT hr = EnumerateBackBuffers(m_rt->GetProxied());
     if(unlikely(FAILED(hr)))
-      throw DxvkError("D3D7Device: ERROR! Failed to retrieve d3d9 render target!");
+      throw DxvkError("D3D7Device: ERROR! Failed to retrieve d3d9 back buffers!");
 
     // Textures
     m_textures.fill(nullptr);
@@ -224,7 +225,7 @@ namespace dxvk {
           // If we have drawn anything, we need to make sure we blit back
           // the results onto the d3d7 render target before we flip it
           if (m_hasDrawn)
-            BlitToD3D7Surface(m_rt->GetProxied(), m_rt9.ptr());
+            BlitToD3D7Surface(m_rt->GetProxied(), m_rt->GetD3D9());
           m_rt->GetProxied()->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
         } else {
           m_d3d9->Present(NULL, NULL, NULL, NULL);
@@ -283,11 +284,7 @@ namespace dxvk {
       return hr;
     }
 
-    if (rt7 == m_rtOrig) {
-      hr = m_d3d9->SetRenderTarget(0, m_rt9.ptr());
-    } else {
-      hr = m_d3d9->SetRenderTarget(0, rt7->GetSurface());
-    }
+    hr = m_d3d9->SetRenderTarget(0, rt7->GetD3D9());
 
     if (likely(SUCCEEDED(hr))) {
       Logger::debug("D3D7Device::SetRenderTarget: Set a new RT");
@@ -304,8 +301,7 @@ namespace dxvk {
           return hr;
         }
 
-        m_ds9 = m_ds->GetD3D9();
-        hrDS = m_d3d9->SetDepthStencilSurface(m_ds9.ptr());
+        hrDS = m_d3d9->SetDepthStencilSurface(m_ds->GetD3D9());
         if (unlikely(FAILED(hrDS))) {
           Logger::err("D3D7Device::SetRenderTarget: Failed to set DS");
           return hrDS;
@@ -756,7 +752,7 @@ namespace dxvk {
     }
 
     // Does not return an HRESULT
-    surface7->GetSurface()->PreLoad();
+    surface7->GetD3D9()->PreLoad();
 
     hr = m_proxy->PreLoad(surface7->GetProxied());
     if (unlikely(FAILED(hr))) {
@@ -1253,7 +1249,6 @@ namespace dxvk {
       if (unlikely(FAILED(hrDS))) {
         Logger::err("D3D7Device::InitializeDS: Failed to initialize d3d9 DS");
       } else {
-        m_ds9 = m_ds->GetD3D9();
         Logger::info("D3D7Device::InitializeDS: Got depth stencil from RT");
 
         DDSURFACEDESC2 descDS;
@@ -1261,7 +1256,7 @@ namespace dxvk {
         m_ds->GetProxied()->GetSurfaceDesc(&descDS);
         Logger::debug(str::format("D3D7Device::InitializeDS: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
 
-        HRESULT hrDS9 = m_d3d9->SetDepthStencilSurface(m_ds9.ptr());
+        HRESULT hrDS9 = m_d3d9->SetDepthStencilSurface(m_ds->GetD3D9());
         if(unlikely(FAILED(hrDS9)))
           Logger::err("D3D7Device::InitializeDS: Failed to set d3d9 depth stencil");
 
@@ -1276,16 +1271,24 @@ namespace dxvk {
     }
   }
 
-  inline void D3D7Device::UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount) {
-    Logger::debug(str::format("D3D7Device::UploadIndices: Uploading ", indexCount, " indices"));
+  d3d9::IDirect3DSurface9* D3D7Device::GetD3D9BackBuffer(IDirectDrawSurface7* surface) const {
+    if (unlikely(surface == nullptr))
+      return nullptr;
 
-    const size_t size = indexCount * sizeof(WORD);
-    void* pData = nullptr;
+    auto it = m_backBuffers.find(surface);
+    if (likely(it != m_backBuffers.end()))
+      return it->second.ptr();
 
-    // Locking and unlocking are generally expected to work here
-    ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
-    memcpy(pData, static_cast<void*>(indices), size);
-    ib9->Unlock();
+    return nullptr;
+  }
+
+  HRESULT D3D7Device::Reset(d3d9::D3DPRESENT_PARAMETERS* params) {
+    Logger::info("D3D7Device::Reset: Resetting the d3d9 swapchain");
+    HRESULT hr = m_bridge->ResetSwapChain(params);
+    if (unlikely(FAILED(hr)))
+      Logger::err("D3D7Device::Reset: Failed to reset the d3d9 swapchain");
+    EnumerateBackBuffers(m_rtOrig->GetProxied());
+    return hr;
   }
 
   inline HRESULT D3D7Device::InitializeIndexBuffers() {
@@ -1306,6 +1309,63 @@ namespace dxvk {
     }
 
     return D3D_OK;
+  }
+
+  inline HRESULT D3D7Device::EnumerateBackBuffers(IDirectDrawSurface7* origin) {
+    m_backBuffers.clear();
+
+    Logger::debug("EnumerateBackBuffers: Enumerating back buffers");
+
+    uint32_t backBufferCount = 0;
+    IDirectDrawSurface7* parentSurface = origin;
+
+    while (parentSurface != nullptr) {
+      Com<d3d9::IDirect3DSurface9> surf9;
+
+      DDSURFACEDESC2 desc;
+      desc.dwSize = sizeof(DDSURFACEDESC2);
+      parentSurface->GetSurfaceDesc(&desc);
+
+      if (desc.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER) {
+        Logger::debug("EnumerateBackBuffers: Added front buffer");
+        HRESULT hr = m_d3d9->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf9);
+        if (unlikely(FAILED(hr)))
+          return hr;
+      } else {
+        Logger::debug(str::format("EnumerateBackBuffers: Added back buffer nr. ", backBufferCount + 1));
+        HRESULT hr = m_d3d9->GetBackBuffer(0, backBufferCount, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf9);
+        if (unlikely(FAILED(hr)))
+          return hr;
+        backBufferCount++;
+      }
+
+      m_backBuffers.emplace(std::piecewise_construct,
+                            std::forward_as_tuple(parentSurface),
+                            std::forward_as_tuple(std::move(surf9)));
+
+      IDirectDrawSurface7* nextBackBuffer = nullptr;
+      parentSurface->EnumAttachedSurfaces(&nextBackBuffer, ListBackBufferSurfacesCallback);
+
+      // the swapchain will eventually return to its origin
+      if (nextBackBuffer == origin)
+        break;
+
+      parentSurface = nextBackBuffer;
+    }
+
+    return D3D_OK;
+  }
+
+  inline void D3D7Device::UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount) {
+    Logger::debug(str::format("D3D7Device::UploadIndices: Uploading ", indexCount, " indices"));
+
+    const size_t size = indexCount * sizeof(WORD);
+    void* pData = nullptr;
+
+    // Locking and unlocking are generally expected to work here
+    ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
+    memcpy(pData, static_cast<void*>(indices), size);
+    ib9->Unlock();
   }
 
 }
