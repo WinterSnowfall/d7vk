@@ -1359,8 +1359,10 @@ namespace dxvk {
     /* D3D7 GAMES                                 */
     /**********************************************/
     /* 1NSANE - Invalid buffer discards and       *
-     * artifacting when using a T&L HAL device    */
+     * artifacting when using a T&L HAL device,   *
+     * and broken main menu animations            */
     { R"(\\Insane\\Game\.exe$)", {{
+      { "d3d9.maxFrameRate",                 "240" },
       { "d3d7.managedTNLBuffers",           "True" },
     }} },
     /* Praetorians - Bad case of ProcessVertices  *
@@ -1375,14 +1377,18 @@ namespace dxvk {
       { "d3d9.cachedDynamicBuffers",        "True" },
       { "d3d9.maxFrameRate",                  "60" },
     }} },
-    /* Emperor: Battle for Dune - Performance     */
+    /* Emperor: Battle for Dune - Performance     *
+     * and fixes main menu animations             */
     { R"(\\Emperor.*Dune\\Game\.exe$)", {{
       { "d3d9.cachedDynamicBuffers",        "True" },
+      { "d3d9.maxFrameRate",                  "60" },
     }} },
     /* Battle Isle: The Andosia War - Performance *
-     * and black screen prevention on startup     */
+     * and black screen prevention on startup,    *
+     * also capped to prevent scroll speed issues */
     { R"(\\bitaw\.exe$)", {{
       { "d3d9.cachedDynamicBuffers",        "True" },
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.strictBackBufferGuard",       "True" },
     }} },
     /* Startopia - Indexed draw performance       */
@@ -1391,8 +1397,10 @@ namespace dxvk {
       { "d3d7.forceProxiedPresent",         "True" },
     }} },
     /* Escape from Monkey Island                  *
-     * Startup crash with direct buffer mapping   */
+     * Startup crash with direct buffer mapping,  *
+     * and broken animations / physics            */
     { R"(\\Monkey4\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "30" },
       { "d3d9.allowDirectBufferMapping",   "False" },
     }} },
     /* Sacred - Fixes missing text                */
@@ -1404,28 +1412,35 @@ namespace dxvk {
     { R"(\\HostileWaters\.exe$)", {{
       { "d3d9.cachedDynamicBuffers",        "True" },
     }} },
-    /* Gothic 1                                   */
+    /* Gothic 1 - broken physics                  */
     { R"(\\GOTHIC(Mod)?\.EXE$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.proxiedQueryInterface",       "True" },
     }} },
-    /* Gothic 2 / Night of the Raven              */
+    /* Gothic 2 / Night of the Raven              *
+     * Broken physics and sliding speed           */
     { R"(\\Gothic2\.exe)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.proxiedQueryInterface",       "True" },
     }} },
     /* Ground Control (to Major Tom)              */
     { R"(\\Ground Control\\gc\.exe$)", {{
       { "d3d7.proxiedQueryInterface",       "True" },
     }} },
-    /* Blade of Darkness                          */
+    /* Blade of Darkness - broken physics         */
     { R"(\\Blade\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.proxiedQueryInterface",       "True" },
     }} },
-    /* Hogs of War - Fixes main menu transparency */
+    /* Hogs of War - Fixes main menu transparency *
+     * as well as main menu animation speeds      */
     { R"(\\warhogs_\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.proxiedGetDC",                "True" },
     }} },
     /* Parkan: Iron Strategy - Performance        */
     { R"(\\iron_3d\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d9.cachedDynamicBuffers",        "True" },
     }} },
     /* Dungeon Siege                              */
@@ -1456,36 +1471,47 @@ namespace dxvk {
     { R"(\\SCP - Containment Breach\.exe$)", {{
       { "d3d7.forceProxiedPresent",         "True" },
     }} },
-    /* Unreal - Fixes missing mip map uploads     */
+    /* Unreal                                     *
+     * Fixes missing mip map uploads and physics  */
     { R"(\\Unreal\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
     /* Unreal Tournament                          *
-     * Fixes missing mipmap uploads               */
+     * Fixes missing mip map uploads and physics  */
     { R"(\\UnrealTournament\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
-    /* Rune - Fixes missing mip map uploads       */
+    /* Rune                                       *
+     * Fixes missing mip map uploads and physics  */
     { R"(\\Rune\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
-    /* Deus Ex - Fixes missing mip map uploads    */
+    /* Deus Ex                                    *
+     * Fixes missing mip map uploads and physics  */
     { R"(\\DeusEx\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
     /* Clive Barker's Undying                     *
-     * Fixes missing mip map uploads              */
+     * Fixes missing mip map uploads, and broken  *
+     * cutscene playback at high frame rates      */
     { R"(\\Undying\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
     /* X-COM: Enforcer                            *
-     * Fixes missing mip map uploads              */
+     * Fixes missing mip map uploads and physics  */
     { R"(\\XCom\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
     /* The Wheel of Time                          *
-     * Fixes missing mip map uploads              */
+     * Fixes missing mip map uploads and physics  */
     { R"(\\WoT\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
     /* Harry Potter and the Chamber of Secrets    *
@@ -1500,17 +1526,40 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
-    /* Messiah - Fixes missing mip map uploads    */
+    /* Messiah - Fixes missing mip map uploads    *
+     * and cutscene playback / physics            */
     { R"(\\MessiahD3D\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
     /* Might and Magic IX / No One Lives Forever  */
     { R"(\\lithtech\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.proxiedQueryInterface",       "True" },
     }} },
     /* 3DMark2000 - Performance                   */
     { R"(\\3DMark2000\.exe$)", {{
       { "d3d9.cachedDynamicBuffers",        "True" },
+    }} },
+    /* Carmageddon TDR 2000 - Main menu speed     */
+    { R"(\\TDR2000\.exe$)", {{
+      { "d3d9.maxFrameRate",                 "120" },
+    }} },
+    /* Disciples II - Excessive map scroll speed  */
+    { R"(\\Discipl2\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
+    }} },
+    /* Hitman: Codename 47 - Broken physics       */
+    { R"(\\hitman\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
+    }} },
+    /* Screamer 4x4 - Broken menu animation speed */
+    { R"(\\Screamer4x4_d3d\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
+    }} },
+    /* (The) Summoner - Accelerated game speed    */
+    { R"(\\Sum\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
     }} },
 
   };
