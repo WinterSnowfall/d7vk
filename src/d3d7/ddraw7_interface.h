@@ -120,6 +120,7 @@ namespace dxvk {
     HWND                        m_hwnd       = nullptr;
 
     DWORD                       m_cooperativeLevel = 0;
+    DWORD                       m_vBlankFlags      = 0;
 
     DDraw7Surface*              m_lastDepthStencil = nullptr;
 
