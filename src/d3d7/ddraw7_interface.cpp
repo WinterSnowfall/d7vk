@@ -1,5 +1,6 @@
 #include "ddraw7_interface.h"
 
+#include "d3d7_device.h"
 #include "ddraw7_surface.h"
 #include "ddraw7_palette.h"
 
@@ -283,13 +284,41 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
     Logger::debug("<<< DDraw7Interface::SetCooperativeLevel: Proxy");
 
-    m_cooperativeLevel = dwFlags;
+    HRESULT hr = m_proxy->SetCooperativeLevel(hWnd, dwFlags);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    const bool changed = m_cooperativeLevel != dwFlags;
+
     // This needs to be called on interface init, so is a reliable
     // way of getting the needed hWnd for d3d7 device creation
     if (likely((dwFlags & DDSCL_NORMAL) || (dwFlags & DDSCL_EXCLUSIVE)))
       m_hwnd = hWnd;
 
-    return m_proxy->SetCooperativeLevel(hWnd, dwFlags);
+    if (changed)
+      m_cooperativeLevel = dwFlags;
+
+    D3D7Device* d3d7Device = m_d3d7Intf->GetDevice();
+    if (changed && d3d7Device != nullptr) {
+      BOOL vBlankStatus = FALSE;
+      m_proxy->GetVerticalBlankStatus(&vBlankStatus);
+      // Always appears to be enabled when running in non-exclusive mode
+      vBlankStatus |= !(dwFlags & DDSCL_EXCLUSIVE);
+
+      d3d9::D3DPRESENT_PARAMETERS resetParams = d3d7Device->GetPresentParameters();
+
+      if (( vBlankStatus && resetParams.PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE) ||
+          (!vBlankStatus && resetParams.PresentationInterval == D3DPRESENT_INTERVAL_DEFAULT)) {
+        resetParams.PresentationInterval = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
+        HRESULT hrReset = d3d7Device->Reset(&resetParams);
+        if (unlikely(FAILED(hrReset)))
+          return hrReset;
+      }
+    } else {
+      Logger::debug("DDraw7Interface::SetCooperativeLevel: Null device, skipping reset");
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags) {
@@ -299,7 +328,26 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
     Logger::debug("<<< DDraw7Interface::WaitForVerticalBlank: Proxy");
-    return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+
+    HRESULT hr = m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    const bool changed = m_vBlankFlags != dwFlags;
+
+    if (changed)
+      m_vBlankFlags = dwFlags;
+
+    D3D7Device* d3d7Device = m_d3d7Intf->GetDevice();
+    if (changed && d3d7Device != nullptr) {
+      d3d9::D3DPRESENT_PARAMETERS resetParams = d3d7Device->GetPresentParameters();
+      resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+      HRESULT hr = d3d7Device->Reset(&resetParams);
+      if (unlikely(FAILED(hr)))
+        return hr;
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetAvailableVidMem(LPDDSCAPS2 lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree) {

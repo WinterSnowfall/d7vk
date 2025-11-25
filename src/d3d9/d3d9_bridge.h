@@ -20,6 +20,7 @@ IDxvkD3D8Bridge : public IUnknown {
   #ifdef DXVK_D3D9_NAMESPACE
     using IDirect3DSurface9 = d3d9::IDirect3DSurface9;
     using D3DFORMAT = d3d9::D3DFORMAT;
+    using D3DPRESENT_PARAMETERS = d3d9::D3DPRESENT_PARAMETERS;
   #endif
 
   /**
@@ -42,6 +43,13 @@ IDxvkD3D8Bridge : public IUnknown {
    * \param [in] Format D3DFORMAT value to be checked
    */
   virtual bool IsSupportedSurfaceFormat(D3DFORMAT Format) = 0;
+
+  /**
+   * \brief Resets the D3D9 swapchain, skipping a general device reset
+   *
+   * \param [in] Params D3DPRESENT_PARAMETERS* value to be used
+   */
+  virtual HRESULT ResetSwapChain(D3DPRESENT_PARAMETERS* Params) = 0;
 };
 
 /**
@@ -98,6 +106,8 @@ namespace dxvk {
         const POINT*              pDestPoint);
 
     bool IsSupportedSurfaceFormat(D3DFORMAT Format);
+
+    HRESULT ResetSwapChain(D3DPRESENT_PARAMETERS* Params);
 
   private:
 
