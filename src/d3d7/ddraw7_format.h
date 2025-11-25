@@ -413,6 +413,18 @@ namespace dxvk {
     return DD_OK;
   }
 
+  // Callback function used to navigate a flipable surface swapchain
+  inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+    IDirectDrawSurface7** nextBackBuffer = static_cast<IDirectDrawSurface7**>(ctx);
+
+    if (desc->ddsCaps.dwCaps & DDSCAPS_FLIP) {
+      *nextBackBuffer = subsurf;
+      return DDENUMRET_CANCEL;
+    }
+
+    return DDENUMRET_OK;
+  }
+
   // Callback function used to navigate the linked mip map chain
   inline HRESULT STDMETHODCALLTYPE ListMipChainSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     IDirectDrawSurface7** nextMip = static_cast<IDirectDrawSurface7**>(ctx);
