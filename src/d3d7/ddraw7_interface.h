@@ -44,7 +44,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes);
 
-    HRESULT STDMETHODCALLTYPE GetGDISurface(IDirectDrawSurface7** lplpGDIDDSurface);
+    HRESULT STDMETHODCALLTYPE GetGDISurface(LPDIRECTDRAWSURFACE7 *lplpGDIDDSurface);
 
     HRESULT STDMETHODCALLTYPE GetMonitorFrequency(LPDWORD lpdwFrequency);
 
@@ -64,7 +64,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetAvailableVidMem(LPDDSCAPS2 lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree);
 
-    HRESULT STDMETHODCALLTYPE GetSurfaceFromDC(HDC hdc, IDirectDrawSurface7** pSurf);
+    HRESULT STDMETHODCALLTYPE GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *pSurf);
 
     HRESULT STDMETHODCALLTYPE RestoreAllSurfaces();
 
