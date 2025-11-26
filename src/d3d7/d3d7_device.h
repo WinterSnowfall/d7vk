@@ -160,12 +160,14 @@ namespace dxvk {
     }
 
     bool HasDrawn() const {
-      // Returning true here means we skip all proxied back buffer blits
-      return m_parent->GetOptions()->strictBackBufferGuard ? true : m_hasDrawn;
+      // Returning true here means we skip all proxied back buffer blits,
+      // whereas returning false means we allow all proxied back buffer blits
+      return m_parent->GetOptions()->backBufferGuard == D3D7BackBufferGuard::Strict   ? true :
+             m_parent->GetOptions()->backBufferGuard == D3D7BackBufferGuard::Disabled ? false : m_hasDrawn;
     }
 
     void ResetDrawTracking() {
-      if (likely(!m_parent->GetOptions()->strictBackBufferGuard))
+      if (likely(m_parent->GetOptions()->backBufferGuard != D3D7BackBufferGuard::Strict))
         m_hasDrawn = false;
     }
 
