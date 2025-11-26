@@ -747,7 +747,7 @@ namespace dxvk {
     Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Initializing nr. [[", m_surfCount, "]]"));
 
     if (unlikely(m_d3d7Device == nullptr)) {
-      Logger::debug("DDraw7Surface::IntializeD3D9: Null D3D7 device, can't initalize right now");
+      Logger::debug("DDraw7Surface::IntializeD3D9: Null device, can't initalize right now");
       return DD_OK;
     }
 
@@ -767,7 +767,7 @@ namespace dxvk {
 
       return DD_OK;
 
-    // Similarly, D3DFMT_R3G3B2 isn't supported by d3d9 dxvk, however some
+    // Similarly, D3DFMT_R3G3B2 isn't supported by D3D9 dxvk, however some
     // applications require it to be supported by ddraw, even if they do not
     // use it. Simply ignore any D3DFMT_R3G3B2 textures/surfaces for now.
     } else if (unlikely(m_format == d3d9::D3DFMT_R3G3B2)) {
@@ -782,12 +782,12 @@ namespace dxvk {
     HRESULT hr;
 
     // In some cases we get passed offscreen plain surfaces with no data whatsoever in
-    // ddpfPixelFormat, so we need to fall back to whatever the d3d9 back buffer is using.
+    // ddpfPixelFormat, so we need to fall back to whatever the D3D9 back buffer is using.
     if (unlikely(m_format == d3d9::D3DFMT_UNKNOWN)) {
       Com<d3d9::IDirect3DSurface9> backBuffer;
       hr = m_d3d7Device->GetD3D9()->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &backBuffer);
       if (unlikely(FAILED(hr))) {
-        Logger::err("DDraw7Surface::IntializeD3D9: Failed to get d3d9 back buffer");
+        Logger::err("DDraw7Surface::IntializeD3D9: Failed to get D3D9 back buffer");
         return hr;
       }
 
@@ -932,7 +932,7 @@ namespace dxvk {
       tex->GetSurfaceLevel(0, &surf);
       m_d3d9 = (std::move(surf));
 
-      Logger::debug("DDraw7Surface::IntializeD3D9: Created d3d9 texture");
+      Logger::debug("DDraw7Surface::IntializeD3D9: Created texture");
       m_texture = std::move(tex);
 
     // Cube maps
