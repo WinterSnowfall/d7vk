@@ -5,14 +5,24 @@
 
 namespace dxvk {
 
+  enum class D3D7BackBufferGuard {
+    Disabled,
+    Enabled,
+    Strict
+  };
+
   struct D3D7Options {
 
-    /// Forces a desired MSAA level on the d3d9 device/default swapchain
+    /// Forces a desired MSAA level on the D3D9 device/default swapchain
     int32_t forceMSAA;
 
     /// Blits back to the proxied render target and flips the surface -
     /// this is currently required by any game that blits cursors directly onto the front buffer
     bool forceProxiedPresent;
+
+    /// Map all back buffers onto a single D3D9 back buffer. Some applications have broken flip
+    /// implementations or simply do not use all the back buffers they create, which causes issues.
+    bool forceSingleBackBuffer;
 
     /// Presents on every EndScene call as well, which may help with video playback in some cases
     bool presentOnEndScene;
@@ -20,10 +30,10 @@ namespace dxvk {
     /// Forward query interface calls to the proxied objects
     bool proxiedQueryInterface;
 
-    /// Ignore all direct proxy back buffer blits done by the application
-    bool strictBackBufferGuard;
+    /// Determines how to handle proxy back buffer blits done by the application
+    D3D7BackBufferGuard backBufferGuard;
 
-    /// Bypass direct uploads to d3d9 and proxy all GetDC calls on ddraw surfaces
+    /// Bypass direct uploads to D3D9 and proxy all GetDC calls on ddraw surfaces
     bool proxiedGetDC;
 
     /// Ignore any application set gamma ramp
@@ -36,7 +46,7 @@ namespace dxvk {
     /// Place vertex buffers in the MANAGED pool when using a T&L HAL device
     bool managedTNLBuffers;
 
-    /// Max available memory override, shared with the d3d9 backend
+    /// Max available memory override, shared with the D3D9 backend
     uint32_t maxAvailableMemory;
 
     D3D7Options() {}
@@ -44,9 +54,9 @@ namespace dxvk {
     D3D7Options(const Config& config) {
       this->forceMSAA             = config.getOption<int32_t>("d3d7.forceMSAA",                -1);
       this->forceProxiedPresent   = config.getOption<bool>   ("d3d7.forceProxiedPresent",   false);
+      this->forceSingleBackBuffer = config.getOption<bool>   ("d3d7.forceSingleBackBuffer", false);
       this->presentOnEndScene     = config.getOption<bool>   ("d3d7.presentOnEndScene",     false);
       this->proxiedQueryInterface = config.getOption<bool>   ("d3d7.proxiedQueryInterface", false);
-      this->strictBackBufferGuard = config.getOption<bool>   ("d3d7.strictBackBufferGuard", false);
       this->proxiedGetDC          = config.getOption<bool>   ("d3d7.proxiedGetDC",          false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("d3d7.ignoreGammaRamp",       false);
       this->autoGenMipMaps        = config.getOption<bool>   ("d3d7.autoGenMipMaps",        false);
@@ -54,6 +64,15 @@ namespace dxvk {
 
       // D3D9 options
       this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",     1024);
+
+      std::string backBufferGuard = Config::toLower(config.getOption<std::string> ("d3d7.backBufferGuard", "auto"));
+      if (backBufferGuard == "strict") {
+        this->backBufferGuard = D3D7BackBufferGuard::Strict;
+      } else if (backBufferGuard == "disabled") {
+        this->backBufferGuard = D3D7BackBufferGuard::Disabled;
+      } else {
+        this->backBufferGuard = D3D7BackBufferGuard::Enabled;
+      }
     }
 
   };
