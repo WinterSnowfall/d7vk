@@ -493,7 +493,7 @@ namespace dxvk {
   }
 
   // According to the docs: "Because the DirectDrawSurface object is initialized
-  // when it s created, this method always returns DDERR_ALREADYINITIALIZED."
+  // when it's created, this method always returns DDERR_ALREADYINITIALIZED."
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC2 lpDDSurfaceDesc) {
     Logger::debug(">>> DDraw7Surface::Initialize");
     return DDERR_ALREADYINITIALIZED;
