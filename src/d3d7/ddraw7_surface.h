@@ -48,7 +48,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetCaps(LPDDSCAPS2 lpDDSCaps);
 
-    HRESULT STDMETHODCALLTYPE GetClipper(IDirectDrawClipper **lplpDDClipper);
+    HRESULT STDMETHODCALLTYPE GetClipper(LPDIRECTDRAWCLIPPER *lplpDDClipper);
 
     HRESULT STDMETHODCALLTYPE GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColorKey);
 
@@ -58,7 +58,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetOverlayPosition(LPLONG lplX, LPLONG lplY);
 
-    HRESULT STDMETHODCALLTYPE GetPalette(IDirectDrawPalette **lplpDDPalette);
+    HRESULT STDMETHODCALLTYPE GetPalette(LPDIRECTDRAWPALETTE *lplpDDPalette);
 
     HRESULT STDMETHODCALLTYPE GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat);
 
@@ -90,7 +90,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE7 lpDDSReference);
 
-    HRESULT STDMETHODCALLTYPE GetDDInterface(void **lplpDD);
+    HRESULT STDMETHODCALLTYPE GetDDInterface(LPVOID *lplpDD);
 
     HRESULT STDMETHODCALLTYPE PageLock(DWORD dwFlags);
 
@@ -98,11 +98,11 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE SetSurfaceDesc(LPDDSURFACEDESC2 lpDDSD, DWORD dwFlags);
 
-    HRESULT STDMETHODCALLTYPE SetPrivateData(const GUID &tag, LPVOID pData, DWORD cbSize, DWORD dwFlags);
+    HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID tag, LPVOID pData, DWORD cbSize, DWORD dwFlags);
 
-    HRESULT STDMETHODCALLTYPE GetPrivateData(const GUID &tag, LPVOID pBuffer, LPDWORD pcbBufferSize);
+    HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID tag, LPVOID pBuffer, LPDWORD pcbBufferSize);
 
-    HRESULT STDMETHODCALLTYPE FreePrivateData(const GUID &tag);
+    HRESULT STDMETHODCALLTYPE FreePrivateData(REFGUID tag);
 
     HRESULT STDMETHODCALLTYPE GetUniquenessValue(LPDWORD pValue);
 
