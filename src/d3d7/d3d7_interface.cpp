@@ -184,14 +184,12 @@ namespace dxvk {
       if (backBuffer == rt7->GetProxied())
         break;
     }
-    Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer count: ", backBufferCount));
+    // Consider the front buffer as well when reporting the overall count
+    Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer count: ", backBufferCount + 1));
 
     const DWORD cooperativeLevel = m_parent->GetCooperativeLevel();
-
-    BOOL vBlankStatus = FALSE;
-    m_parent->GetVerticalBlankStatus(&vBlankStatus);
     // Always appears to be enabled when running in non-exclusive mode
-    vBlankStatus |= !(cooperativeLevel & DDSCL_EXCLUSIVE);
+    const bool vBlankStatus = m_parent->HasWaitedForVBlank() | !(cooperativeLevel & DDSCL_EXCLUSIVE);
 
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = desc.dwWidth;
@@ -245,7 +243,7 @@ namespace dxvk {
                                               vertexProcessing, std::move(device9), rt7.ptr());
       // Hold the address of the most recently created device, not a reference
       m_device = device.ptr();
-      // Now that we have a valid d3d9 device pointer, we can initialize the depth stencil (if any)
+      // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       m_device->InitializeDS();
       *ppd3dDevice = device.ref();
     } catch (const DxvkError& e) {
@@ -282,7 +280,7 @@ namespace dxvk {
       return hr;
     }*/
 
-    // We need to delay the d3d9 vertex buffer creation as long as possible, to ensure
+    // We need to delay the D3D9 vertex buffer creation as long as possible, to ensure
     // that (ideally) we actually have a valid d3d7 device in place when that happens
     *ppVertexBuffer = ref(new D3D7VertexBuffer(std::move(vertexBuffer7), nullptr, this, *desc));
 
@@ -296,7 +294,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // There are just 3 supported depth stencil formats to worry about
-    // in d3d9, so let's just enumerate them liniarly, for better clarity
+    // in D3D9, so let's just enumerate them liniarly, for better clarity
 
     DDPIXELFORMAT depthFormat = GetZBufferFormat(d3d9::D3DFMT_D16);
     HRESULT hr = cb(&depthFormat, ctx);
@@ -325,7 +323,7 @@ namespace dxvk {
       HRESULT hr = m_device->GetD3D9()->EvictManagedResources();
 
       if (unlikely(FAILED(hr))) {
-        Logger::err("D3D7Interface::EvictManagedTextures: Failed d3d9 managed resource eviction");
+        Logger::err("D3D7Interface::EvictManagedTextures: Failed D3D9 managed resource eviction");
         return hr;
       }
     }
