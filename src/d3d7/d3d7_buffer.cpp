@@ -178,7 +178,7 @@ namespace dxvk {
     device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
     HRESULT hr = device->GetD3D9()->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_d3d9.ptr(), nullptr, dwFlags);
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7VertexBuffer::ProcessVertices: Failed call to d3d9 ProcessVertices");
+      Logger::err("D3D7VertexBuffer::ProcessVertices: Failed call to D3D9 ProcessVertices");
     }
 
     if (device->IsMixedVPDevice())
@@ -257,11 +257,11 @@ namespace dxvk {
     HRESULT hr = device7->GetD3D9()->CreateVertexBuffer(m_size, usage, m_desc.dwFVF, pool, &m_d3d9, nullptr);
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7VertexBuffer::IntializeD3D9: Failed to create d3d9 vertex buffer");
+      Logger::err("D3D7VertexBuffer::IntializeD3D9: Failed to create D3D9 vertex buffer");
       return hr;
     }
 
-    Logger::debug("D3D7VertexBuffer::IntializeD3D9: Created d3d9 vertex buffer");
+    Logger::debug("D3D7VertexBuffer::IntializeD3D9: Created D3D9 vertex buffer");
 
     return DD_OK;
   }
