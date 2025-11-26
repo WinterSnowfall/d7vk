@@ -223,7 +223,7 @@ namespace dxvk {
     return m_proxy->GetFourCCCodes(lpNumCodes, lpCodes);
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7Interface::GetGDISurface(IDirectDrawSurface7** lplpGDIDDSurface) {
+  HRESULT STDMETHODCALLTYPE DDraw7Interface::GetGDISurface(LPDIRECTDRAWSURFACE7 *lplpGDIDDSurface) {
     Logger::debug("<<< DDraw7Interface::GetGDISurface: Proxy");
 
     if(unlikely(lplpGDIDDSurface == nullptr))
@@ -416,7 +416,7 @@ namespace dxvk {
     return DD_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7Interface::GetSurfaceFromDC(HDC hdc, IDirectDrawSurface7** pSurf) {
+  HRESULT STDMETHODCALLTYPE DDraw7Interface::GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *pSurf) {
     Logger::debug(">>> DDraw7Interface::GetSurfaceFromDC");
 
     if (unlikely(pSurf == nullptr))
