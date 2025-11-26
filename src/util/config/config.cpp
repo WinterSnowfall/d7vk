@@ -1581,6 +1581,10 @@ namespace dxvk {
     { R"(\\Sum\.exe$)", {{
       { "d3d9.maxFrameRate",                  "60" },
     }} },
+    /* Wizardry 8 - Broken input handling         */
+    { R"(\\Wiz8\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
+    }} },
 
   };
 
