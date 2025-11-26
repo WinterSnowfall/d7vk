@@ -231,7 +231,7 @@ namespace dxvk {
           m_d3d9->Present(NULL, NULL, NULL, NULL);
         }
 
-        if (likely(!m_parent->GetOptions()->strictBackBufferGuard))
+        if (likely(m_parent->GetOptions()->backBufferGuard != D3D7BackBufferGuard::Strict))
           m_hasDrawn = false;
       }
 
@@ -1348,7 +1348,8 @@ namespace dxvk {
           return hr;
       } else {
         Logger::debug(str::format("EnumerateBackBuffers: Added back buffer nr. ", backBufferCount + 1));
-        HRESULT hr = m_d3d9->GetBackBuffer(0, backBufferCount, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf9);
+        const UINT backBuffer = !m_parent->GetOptions()->forceSingleBackBuffer ? backBufferCount : 0;
+        HRESULT hr = m_d3d9->GetBackBuffer(0, backBuffer, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf9);
         if (unlikely(FAILED(hr)))
           return hr;
         backBufferCount++;
