@@ -417,7 +417,7 @@ namespace dxvk {
     return DD_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7Surface::GetClipper(IDirectDrawClipper **lplpDDClipper) {
+  HRESULT STDMETHODCALLTYPE DDraw7Surface::GetClipper(LPDIRECTDRAWCLIPPER *lplpDDClipper) {
     Logger::debug("<<< DDraw7Surface::GetClipper: Proxy");
     return m_proxy->GetClipper(lplpDDClipper);
   }
@@ -446,7 +446,7 @@ namespace dxvk {
 
     HRESULT hr = m_d3d9->GetDC(lphDC);
     if (unlikely(FAILED(hr))) {
-      Logger::err("DDraw7Surface::GetDC: Failed to get d3d9 DC");
+      Logger::err("DDraw7Surface::GetDC: Failed to get D3D9 DC");
     }
 
     return hr;
@@ -462,14 +462,20 @@ namespace dxvk {
     return m_proxy->GetOverlayPosition(lplX, lplY);
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPalette(IDirectDrawPalette **lplpDDPalette) {
+  HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPalette(LPDIRECTDRAWPALETTE *lplpDDPalette) {
     Logger::debug("<<< DDraw7Surface::GetPalette: Proxy");
     return m_proxy->GetPalette(lplpDDPalette);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat) {
-    Logger::debug("<<< DDraw7Surface::GetPixelFormat: Proxy");
-    return m_proxy->GetPixelFormat(lpDDPixelFormat);
+    Logger::debug(">>> DDraw7Surface::GetPixelFormat");
+
+    if (unlikely(lpDDPixelFormat == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    *lpDDPixelFormat = m_desc.ddpfPixelFormat;
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc) {
@@ -486,9 +492,11 @@ namespace dxvk {
     return DD_OK;
   }
 
+  // According to the docs: "Because the DirectDrawSurface object is initialized
+  // when it s created, this method always returns DDERR_ALREADYINITIALIZED."
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC2 lpDDSurfaceDesc) {
-    Logger::debug("<<< DDraw7Surface::Initialize: Proxy");
-    return m_proxy->Initialize(lpDD, lpDDSurfaceDesc);
+    Logger::debug(">>> DDraw7Surface::Initialize");
+    return DDERR_ALREADYINITIALIZED;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::IsLost() {
@@ -617,7 +625,7 @@ namespace dxvk {
     return m_proxy->UpdateOverlayZOrder(dwFlags, ddraw7Surface->GetProxied());
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7Surface::GetDDInterface(void **lplpDD) {
+  HRESULT STDMETHODCALLTYPE DDraw7Surface::GetDDInterface(LPVOID *lplpDD) {
     Logger::debug(">>> DDraw7Surface::GetDDInterface");
 
     if (unlikely(lplpDD == nullptr))
@@ -656,17 +664,17 @@ namespace dxvk {
     return hr;
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7Surface::SetPrivateData(const GUID &tag, LPVOID pData, DWORD cbSize, DWORD dwFlags) {
+  HRESULT STDMETHODCALLTYPE DDraw7Surface::SetPrivateData(REFGUID tag, LPVOID pData, DWORD cbSize, DWORD dwFlags) {
     Logger::debug("<<< DDraw7Surface::SetPrivateData: Proxy");
     return m_proxy->SetPrivateData(tag, pData, cbSize, dwFlags);
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPrivateData(const GUID &tag, LPVOID pBuffer, LPDWORD pcbBufferSize) {
+  HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPrivateData(REFGUID tag, LPVOID pBuffer, LPDWORD pcbBufferSize) {
     Logger::debug("<<< DDraw7Surface::GetPrivateData: Proxy");
     return m_proxy->GetPrivateData(tag, pBuffer, pcbBufferSize);
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7Surface::FreePrivateData(const GUID &tag) {
+  HRESULT STDMETHODCALLTYPE DDraw7Surface::FreePrivateData(REFGUID tag) {
     Logger::debug("<<< DDraw7Surface::FreePrivateData: Proxy");
     return m_proxy->FreePrivateData(tag);
   }

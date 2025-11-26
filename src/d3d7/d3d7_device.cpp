@@ -1134,6 +1134,12 @@ namespace dxvk {
     if (unlikely(lpdwState == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    // In the case of D3DTSS_ADDRESS, which is D3D7 specific,
+    // simply return based on D3DTSS_ADDRESSU
+    if (d3dTexStageStateType == D3DTSS_ADDRESS) {
+      return m_d3d9->GetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSU, lpdwState);
+    }
+
     d3d9::D3DSAMPLERSTATETYPE stateType = ConvertSamplerStateType(d3dTexStageStateType);
 
     if (stateType != -1u) {
@@ -1146,6 +1152,13 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGESTATETYPE d3dTexStageStateType, DWORD dwState) {
     Logger::debug(">>> D3D7Device::SetTextureStageState");
+
+    // In the case of D3DTSS_ADDRESS, which is D3D7 specific,
+    // we need to set up both D3DTSS_ADDRESSU and D3DTSS_ADDRESSV
+    if (d3dTexStageStateType == D3DTSS_ADDRESS) {
+      m_d3d9->SetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSU, dwState);
+      return m_d3d9->SetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSV, dwState);
+    }
 
     d3d9::D3DSAMPLERSTATETYPE stateType = ConvertSamplerStateType(d3dTexStageStateType);
 
