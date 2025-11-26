@@ -131,7 +131,7 @@ namespace dxvk {
       return hr;
 
     // We need to ensure we can always read from surfaces for upload to
-    // d3d9, so always strip the DDSCAPS_WRITEONLY flag on creation
+    // D3D9, so always strip the DDSCAPS_WRITEONLY flag on creation
     lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_WRITEONLY;
     // Similarly strip the DDSCAPS2_OPAQUE flag on texture creation
     if (lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_TEXTURE) {
@@ -295,28 +295,33 @@ namespace dxvk {
     if (likely((dwFlags & DDSCL_NORMAL) || (dwFlags & DDSCL_EXCLUSIVE)))
       m_hwnd = hWnd;
 
-    if (changed)
-      m_cooperativeLevel = dwFlags;
-
     D3D7Device* d3d7Device = m_d3d7Intf->GetDevice();
     if (changed && d3d7Device != nullptr) {
-      BOOL vBlankStatus = FALSE;
-      m_proxy->GetVerticalBlankStatus(&vBlankStatus);
       // Always appears to be enabled when running in non-exclusive mode
-      vBlankStatus |= !(dwFlags & DDSCL_EXCLUSIVE);
+      const bool vBlankStatus = m_hasWaitedForVBlank | !(dwFlags & DDSCL_EXCLUSIVE);
 
       d3d9::D3DPRESENT_PARAMETERS resetParams = d3d7Device->GetPresentParameters();
 
       if (( vBlankStatus && resetParams.PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE) ||
           (!vBlankStatus && resetParams.PresentationInterval == D3DPRESENT_INTERVAL_DEFAULT)) {
+        if (vBlankStatus) {
+          Logger::info("DDraw7Interface::SetCooperativeLevel: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
+        } else {
+          Logger::info("DDraw7Interface::SetCooperativeLevel: Switching to D3DPRESENT_INTERVAL_IMMEDIATE for presentation");
+        }
+
         resetParams.PresentationInterval = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
         HRESULT hrReset = d3d7Device->Reset(&resetParams);
-        if (unlikely(FAILED(hrReset)))
-          return hrReset;
+        if (unlikely(FAILED(hrReset))) {
+          Logger::warn("DDraw7Interface::SetCooperativeLevel: Failed D3D9 swapchain reset");
+        }
       }
     } else {
       Logger::debug("DDraw7Interface::SetCooperativeLevel: Null device, skipping reset");
     }
+
+    if (changed)
+      m_cooperativeLevel = dwFlags;
 
     return hr;
   }
@@ -333,19 +338,22 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    const bool changed = m_vBlankFlags != dwFlags;
-
-    if (changed)
-      m_vBlankFlags = dwFlags;
-
+    // Switch to a default device pesentation interval
+    // when an application first ties to wait for vertical blank
     D3D7Device* d3d7Device = m_d3d7Intf->GetDevice();
-    if (changed && d3d7Device != nullptr) {
+    if (!m_hasWaitedForVBlank && d3d7Device != nullptr) {
+      Logger::info("DDraw7Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
+
       d3d9::D3DPRESENT_PARAMETERS resetParams = d3d7Device->GetPresentParameters();
       resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
       HRESULT hr = d3d7Device->Reset(&resetParams);
-      if (unlikely(FAILED(hr)))
-        return hr;
+      if (unlikely(FAILED(hr))) {
+        Logger::warn("DDraw7Interface::WaitForVerticalBlank: Failed D3D9 swapchain reset");
+      }
     }
+
+    if (!m_hasWaitedForVBlank)
+      m_hasWaitedForVBlank = true;
 
     return hr;
   }
@@ -360,7 +368,7 @@ namespace dxvk {
 
     D3D7Device* d3d7Device = m_d3d7Intf->GetDevice();
     if (likely(d3d7Device != nullptr)) {
-      Logger::debug("DDraw7Interface::GetAvailableVidMem: Getting memory stats from d3d9");
+      Logger::debug("DDraw7Interface::GetAvailableVidMem: Getting memory stats from D3D9");
 
       const DWORD total9 = static_cast<DWORD>(m_d3d7Intf->GetOptions()->maxAvailableMemory) * Megabytes;
       const DWORD free9  = static_cast<DWORD>(d3d7Device->GetD3D9()->GetAvailableTextureMem());
@@ -374,7 +382,7 @@ namespace dxvk {
         *lpdwFree  = free9;
 
     } else {
-      Logger::debug("DDraw7Interface::GetAvailableVidMem: Getting memory stats from ddraw");
+      Logger::debug("DDraw7Interface::GetAvailableVidMem: Getting memory stats from DDraw");
 
       DWORD total7 = 0;
       DWORD free7  = 0;
