@@ -36,7 +36,7 @@ namespace dxvk {
 
     HRESULT hr = EnumerateBackBuffers(m_rt->GetProxied());
     if(unlikely(FAILED(hr)))
-      throw DxvkError("D3D7Device: ERROR! Failed to retrieve d3d9 back buffers!");
+      throw DxvkError("D3D7Device: ERROR! Failed to retrieve D3D9 back buffers!");
 
     // Textures
     m_textures.fill(nullptr);
@@ -272,7 +272,7 @@ namespace dxvk {
     if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
       HRESULT hrRT7 = m_proxy->SetRenderTarget(rt7->GetProxied(), flags);
       if (unlikely(FAILED(hrRT7))) {
-        Logger::warn("D3D7Device::SetRenderTarget: Failed to set d3d7 RT");
+        Logger::warn("D3D7Device::SetRenderTarget: Failed to set RT");
         return hrRT7;
       }
     }
@@ -280,7 +280,7 @@ namespace dxvk {
     HRESULT hr = rt7->InitializeD3D9RenderTarget();
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7Device::SetRenderTarget: Failed to initialize d3d9 RT");
+      Logger::err("D3D7Device::SetRenderTarget: Failed to initialize D3D9 RT");
       return hr;
     }
 
@@ -297,7 +297,7 @@ namespace dxvk {
 
         HRESULT hrDS = m_ds->InitializeOrUploadD3D9();
         if (unlikely(FAILED(hr))) {
-          Logger::err("D3D7Device::SetRenderTarget: Failed to initialize/upload d3d9 DS");
+          Logger::err("D3D7Device::SetRenderTarget: Failed to initialize/upload D3D9 DS");
           return hr;
         }
 
@@ -747,7 +747,7 @@ namespace dxvk {
     HRESULT hr = surface7->InitializeOrUploadD3D9();
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7Device::PreLoad: Failed to initialize/upload d3d9 surface");
+      Logger::err("D3D7Device::PreLoad: Failed to initialize/upload D3D9 surface");
       return hr;
     }
 
@@ -782,7 +782,7 @@ namespace dxvk {
                      GetFVFSize(dwVertexTypeDesc));
 
     if (unlikely(FAILED(hr))) {
-      Logger::warn("D3D7Device::DrawPrimitive: Failed d3d9 call to DrawPrimitiveUP");
+      Logger::err("D3D7Device::DrawPrimitive: Failed D3D9 call to DrawPrimitiveUP");
       return hr;
     }
 
@@ -818,7 +818,7 @@ namespace dxvk {
                       GetFVFSize(dwVertexTypeDesc));
 
     if (unlikely(FAILED(hr))) {
-      Logger::warn("D3D7Device::DrawIndexedPrimitive: Failed d3d9 call to DrawIndexedPrimitiveUP");
+      Logger::err("D3D7Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
       return hr;
     }
 
@@ -887,7 +887,7 @@ namespace dxvk {
                      GetFVFSize(dwVertexTypeDesc));
 
     if (unlikely(FAILED(hr))) {
-      Logger::warn("D3D7Device::DrawPrimitiveStrided: Failed d3d9 call to DrawPrimitiveUP");
+      Logger::err("D3D7Device::DrawPrimitiveStrided: Failed D3D9 call to DrawPrimitiveUP");
       return hr;
     }*/
 
@@ -922,7 +922,7 @@ namespace dxvk {
                       GetFVFSize(dwVertexTypeDesc));
 
     if (unlikely(FAILED(hr))) {
-      Logger::warn("D3D7Device::DrawIndexedPrimitive: Failed d3d9 call to DrawIndexedPrimitiveUP");
+      Logger::err("D3D7Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
       return hr;
     }*/
 
@@ -959,7 +959,7 @@ namespace dxvk {
                            GetPrimitiveCount(d3dptPrimitiveType, dwNumVertices));
 
     if (unlikely(FAILED(hr))) {
-      Logger::warn("D3D7Device::DrawPrimitiveVB: Failed d3d9 call to DrawPrimitive");
+      Logger::err("D3D7Device::DrawPrimitiveVB: Failed D3D9 call to DrawPrimitive");
       return hr;
     }
 
@@ -1020,7 +1020,7 @@ namespace dxvk {
                     GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount));
 
     if(unlikely(FAILED(hr))) {
-      Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed d3d9 call to DrawIndexedPrimitive");
+      Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed D3D9 call to DrawIndexedPrimitive");
       return hr;
     }
 
@@ -1071,7 +1071,7 @@ namespace dxvk {
 
     // Unbinding texture stages
     if (surface == nullptr) {
-      Logger::debug("D3D7Device::SetTexture: Unbiding d3d9 texture");
+      Logger::debug("D3D7Device::SetTexture: Unbiding D3D9 texture");
 
       hr = m_d3d9->SetTexture(stage, nullptr);
 
@@ -1082,7 +1082,7 @@ namespace dxvk {
           m_textures[stage] = nullptr;
         }
       } else {
-        Logger::err("D3D7Device::SetTexture: Failed to unbind d3d9 texture");
+        Logger::err("D3D7Device::SetTexture: Failed to unbind D3D9 texture");
       }
 
       return hr;
@@ -1094,7 +1094,7 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
-    Logger::debug("D3D7Device::SetTexture: Binding d3d9 texture");
+    Logger::debug("D3D7Device::SetTexture: Binding D3D9 texture");
 
     DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
 
@@ -1104,7 +1104,7 @@ namespace dxvk {
       hr = surface7->InitializeOrUploadD3D9();
 
       if (unlikely(FAILED(hr))) {
-        Logger::err("D3D7Device::SetTexture: Failed to initialize/upload d3d9 texture");
+        Logger::err("D3D7Device::SetTexture: Failed to initialize/upload D3D9 texture");
         return hr;
       }
 
@@ -1118,7 +1118,7 @@ namespace dxvk {
 
     hr = m_d3d9->SetTexture(stage, surface7->GetTexture());
     if (unlikely(FAILED(hr))) {
-      Logger::warn("D3D7Device::SetTexture: Failed to bind d3d9 texture");
+      Logger::warn("D3D7Device::SetTexture: Failed to bind D3D9 texture");
       return hr;
     }
 
@@ -1203,7 +1203,7 @@ namespace dxvk {
       if (!ddraw7SurfaceDst->IsTextureOrCubeMap()) {
         HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrInitDst))) {
-          Logger::warn("D3D7Device::Load: Failed to upload d3d9 destination surface data");
+          Logger::warn("D3D7Device::Load: Failed to upload D3D9 destination surface data");
         }
       } else {
         ddraw7SurfaceDst->DirtyMipMaps();
@@ -1247,7 +1247,7 @@ namespace dxvk {
 
       HRESULT hrDS = m_ds->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hrDS))) {
-        Logger::err("D3D7Device::InitializeDS: Failed to initialize d3d9 DS");
+        Logger::err("D3D7Device::InitializeDS: Failed to initialize D3D9 DS");
       } else {
         Logger::info("D3D7Device::InitializeDS: Got depth stencil from RT");
 
@@ -1258,7 +1258,7 @@ namespace dxvk {
 
         HRESULT hrDS9 = m_d3d9->SetDepthStencilSurface(m_ds->GetD3D9());
         if(unlikely(FAILED(hrDS9)))
-          Logger::err("D3D7Device::InitializeDS: Failed to set d3d9 depth stencil");
+          Logger::err("D3D7Device::InitializeDS: Failed to set D3D9 depth stencil");
 
         // This needs to act like an auto depth stencil of sorts, so manually enable z-buffering
         m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_TRUE);
@@ -1283,10 +1283,10 @@ namespace dxvk {
   }
 
   HRESULT D3D7Device::Reset(d3d9::D3DPRESENT_PARAMETERS* params) {
-    Logger::info("D3D7Device::Reset: Resetting the d3d9 swapchain");
+    Logger::info("D3D7Device::Reset: Resetting the D3D9 swapchain");
     HRESULT hr = m_bridge->ResetSwapChain(params);
     if (unlikely(FAILED(hr)))
-      Logger::err("D3D7Device::Reset: Failed to reset the d3d9 swapchain");
+      Logger::err("D3D7Device::Reset: Failed to reset the D3D9 swapchain");
     EnumerateBackBuffers(m_rtOrig->GetProxied());
     return hr;
   }
@@ -1328,6 +1328,8 @@ namespace dxvk {
 
       if (desc.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER) {
         Logger::debug("EnumerateBackBuffers: Added front buffer");
+        // Always map the front buffer on top of the first back buffer to ensure that
+        // direct front buffer blits some applications do are visible on screen
         HRESULT hr = m_d3d9->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf9);
         if (unlikely(FAILED(hr)))
           return hr;
