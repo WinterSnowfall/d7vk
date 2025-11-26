@@ -489,7 +489,7 @@ namespace dxvk {
           }
           mipMap->Unlock(0);
         } else {
-          Logger::warn(str::format("BlitToD3D9Texture: Failed to lock d3d7 mip ", i));
+          Logger::warn(str::format("BlitToD3D9Texture: Failed to lock mip ", i));
         }
         texture9->UnlockRect(i);
 
@@ -498,7 +498,7 @@ namespace dxvk {
 
         parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
       } else {
-        Logger::warn(str::format("BlitToD3D9Texture: Failed to lock d3d9 mip ", i));
+        Logger::warn(str::format("BlitToD3D9Texture: Failed to lock D3D9 mip ", i));
       }
     }
   }
@@ -542,11 +542,11 @@ namespace dxvk {
         }
         surface7->Unlock(0);
       } else {
-        Logger::warn("BlitToD3D9Surface: Failed to lock d3d7 surface");
+        Logger::warn("BlitToD3D9Surface: Failed to lock surface");
       }
       surface9->UnlockRect();
     } else {
-      Logger::warn("BlitToD3D9Surface: Failed to lock d3d9 surface");
+      Logger::warn("BlitToD3D9Surface: Failed to lock D3D9 surface");
     }
   }
 
@@ -574,11 +574,11 @@ namespace dxvk {
         }
         surface9->UnlockRect();
       } else {
-        Logger::warn("BlitToD3D7Surface: Failed to lock d3d9 surface");
+        Logger::warn("BlitToD3D7Surface: Failed to lock D3D9 surface");
       }
       surface7->Unlock(0);
     } else {
-      Logger::warn("BlitToD3D7Surface: Failed to lock d3d7 surface");
+      Logger::warn("BlitToD3D7Surface: Failed to lock surface");
     }
   }
 

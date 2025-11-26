@@ -247,9 +247,9 @@ namespace dxvk {
 
     inline void RefreshD3D7Device() {
       D3D7Device* d3d7Device = m_parent->GetD3D7Device();
-      // Check if the device has been recreated and reset all d3d9 resources
+      // Check if the device has been recreated and reset all D3D9 resources
       if (unlikely(m_d3d7Device != nullptr && m_d3d7Device != d3d7Device)) {
-        Logger::info("RefreshD3D7Device: device context has changed, clearing all d3d9 resources");
+        Logger::info("RefreshD3D7Device: device context has changed, clearing all D3D9 resources");
         m_texture = nullptr;
         m_cubeMap = nullptr;
         m_d3d9 = nullptr;
