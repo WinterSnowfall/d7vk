@@ -174,15 +174,17 @@ namespace dxvk {
     }
 
     DWORD backBufferCount = 0;
-    IDirectDrawSurface7* backBuffer = rt7->GetProxied();
-    while (backBuffer != nullptr) {
-      IDirectDrawSurface7* parentSurface = backBuffer;
-      backBuffer = nullptr;
-      parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfacesCallback);
-      backBufferCount++;
-      // the swapchain will eventually return to its origin
-      if (backBuffer == rt7->GetProxied())
-        break;
+    if (likely(!m_d3d7Options.forceSingleBackBuffer)) {
+      IDirectDrawSurface7* backBuffer = rt7->GetProxied();
+      while (backBuffer != nullptr) {
+        IDirectDrawSurface7* parentSurface = backBuffer;
+        backBuffer = nullptr;
+        parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfacesCallback);
+        backBufferCount++;
+        // the swapchain will eventually return to its origin
+        if (backBuffer == rt7->GetProxied())
+          break;
+      }
     }
     // Consider the front buffer as well when reporting the overall count
     Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer count: ", backBufferCount + 1));
