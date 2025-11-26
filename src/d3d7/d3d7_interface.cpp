@@ -107,7 +107,7 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D7Interface::CreateDevice(const IID& rclsid, IDirectDrawSurface7 *surface, IDirect3DDevice7 **ppd3dDevice) {
+  HRESULT STDMETHODCALLTYPE D3D7Interface::CreateDevice(REFCLSID rclsid, IDirectDrawSurface7 *surface, IDirect3DDevice7 **ppd3dDevice) {
     Logger::debug(">>> D3D7Interface::CreateDevice");
 
     if (unlikely(ppd3dDevice == nullptr))
