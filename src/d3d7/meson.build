@@ -10,7 +10,7 @@ ddraw_src = [
   'd3d7_interface.cpp',
   'd3d7_device.cpp',
   'd3d7_state_block.cpp',
-  'd3d7_singlethread.cpp'
+  'd3d7_multithread.cpp'
 ]
 
 ddraw_ld_args      = []

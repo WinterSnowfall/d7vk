@@ -2,7 +2,7 @@
 
 namespace dxvk {
 
-  D3D7Singlethread::D3D7Singlethread(
+  D3D7Multithread::D3D7Multithread(
           BOOL                  Protected)
     : m_protected( Protected ) { }
 
