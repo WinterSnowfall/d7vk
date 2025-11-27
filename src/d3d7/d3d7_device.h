@@ -3,7 +3,7 @@
 #include "d3d7_include.h"
 #include "d3d7_interface.h"
 #include "d3d7_options.h"
-#include "d3d7_singlethread.h"
+#include "d3d7_multithread.h"
 #include "d3d7_caps.h"
 #include "ddraw7_wrapped_object.h"
 #include "../d3d9/d3d9_bridge.h"
@@ -37,7 +37,8 @@ namespace dxvk {
         d3d9::D3DPRESENT_PARAMETERS Params9,
         DWORD VertexProcessing9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
-        DDraw7Surface* pRT);
+        DDraw7Surface* pRT,
+        DWORD CreationFlags9);
 
     ~D3D7Device();
 
@@ -140,7 +141,7 @@ namespace dxvk {
     HRESULT Reset(d3d9::D3DPRESENT_PARAMETERS* params);
 
     D3D7DeviceLock LockDevice() {
-      return m_singlethread.AcquireLock();
+      return m_multithread.AcquireLock();
     }
 
     const D3D7Options* GetOptions() const {
@@ -198,7 +199,7 @@ namespace dxvk {
 
     Com<DxvkD3D8Bridge>           m_bridge;
 
-    D3D7Singlethread              m_singlethread;
+    D3D7Multithread               m_multithread;
 
     static uint32_t               s_deviceCount;
     uint32_t                      m_deviceCount = 0;
