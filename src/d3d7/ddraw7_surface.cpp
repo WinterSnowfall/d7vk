@@ -1,6 +1,6 @@
 #include "ddraw7_surface.h"
 
-#include "d3d7_singlethread.h"
+#include "d3d7_multithread.h"
 #include "d3d7_caps.h"
 #include "ddraw7_gamma.h"
 
