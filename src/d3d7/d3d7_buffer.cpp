@@ -1,7 +1,7 @@
 #include "d3d7_buffer.h"
 
 #include "d3d7_device.h"
-#include "d3d7_singlethread.h"
+#include "d3d7_multithread.h"
 #include "d3d7_util.h"
 #include "ddraw7_interface.h"
 
