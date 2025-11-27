@@ -2,7 +2,7 @@
 
 #include "d3d7_device.h"
 #include "d3d7_buffer.h"
-#include "d3d7_singlethread.h"
+#include "d3d7_multithread.h"
 #include "d3d7_util.h"
 #include "ddraw7_interface.h"
 #include "ddraw7_surface.h"
@@ -217,16 +217,18 @@ namespace dxvk {
 
     // Always ensure the d3d9 device handles multi-threaded access properly, as some
     // d3d7 applications may blit to surfaces and draw geometry on separate threads
-    DWORD deviceCreationFlags = vertexProcessing | D3DCREATE_MULTITHREADED;
+    DWORD deviceCreationFlags9 = vertexProcessing;
+    if (cooperativeLevel & DDSCL_MULTITHREADED)
+      deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
     if (cooperativeLevel & DDSCL_FPUPRESERVE)
-      deviceCreationFlags |= D3DCREATE_FPU_PRESERVE;
+      deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
 
     Com<d3d9::IDirect3DDevice9> device9;
     hr = m_d3d9->CreateDevice(
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
       hwnd,
-      deviceCreationFlags,
+      deviceCreationFlags9,
       &params,
       &device9
     );
@@ -242,7 +244,8 @@ namespace dxvk {
 
     try{
       Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7, params,
-                                              vertexProcessing, std::move(device9), rt7.ptr());
+                                              vertexProcessing, std::move(device9), rt7.ptr(),
+                                              deviceCreationFlags9);
       // Hold the address of the most recently created device, not a reference
       m_device = device.ptr();
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
