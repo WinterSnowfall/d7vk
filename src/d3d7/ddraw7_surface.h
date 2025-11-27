@@ -6,9 +6,19 @@
 #include "ddraw7_interface.h"
 #include "ddraw7_wrapped_object.h"
 
+#include <array>
 #include <unordered_map>
 
 namespace dxvk {
+
+  struct CubeMapAttachedSurfaces {
+    IDirectDrawSurface7* positiveX = nullptr;
+    IDirectDrawSurface7* negativeX = nullptr;
+    IDirectDrawSurface7* positiveY = nullptr;
+    IDirectDrawSurface7* negativeY = nullptr;
+    IDirectDrawSurface7* positiveZ = nullptr;
+    IDirectDrawSurface7* negativeZ = nullptr;
+  };
 
   class DDraw7Surface final : public DDrawWrappedObject<DDraw7Interface, IDirectDrawSurface7, d3d9::IDirect3DSurface9> {
 
@@ -241,6 +251,11 @@ namespace dxvk {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_OVERLAY;
     }
 
+    inline void InitializeAndAttachCubeFace(
+        IDirectDrawSurface7* surf,
+        d3d9::IDirect3DCubeTexture9* cubeTex9,
+        d3d9::D3DCUBEMAP_FACES face);
+
     inline HRESULT IntializeD3D9(const bool initRT);
 
     inline HRESULT UploadSurfaceData();
@@ -263,8 +278,8 @@ namespace dxvk {
       if (IsFrontBuffer())                type = "front buffer";
       else if (IsBackBuffer())            type = "back buffer";
       else if (IsTextureMip())            type = "texture mipmap";
-      else if (IsTexture())               type = "texture";
       else if (IsCubeMap())               type = "cube map";
+      else if (IsTexture())               type = "texture";
       else if (IsDepthStencil())          type = "depth stencil";
       else if (IsOffScreenPlainSurface()) type = "offscreen plain surface";
       else if (IsOverlay())               type = "overlay";
@@ -299,12 +314,15 @@ namespace dxvk {
     DDSURFACEDESC2   m_desc;
     d3d9::D3DFORMAT  m_format;
 
-    Com<d3d9::IDirect3DTexture9>     m_texture;
-    Com<d3d9::IDirect3DCubeTexture9> m_cubeMap;
+    Com<d3d9::IDirect3DCubeTexture9>    m_cubeMap;
+    std::array<IDirectDrawSurface7*, 6> m_cubeMapSurfaces;
+
+    Com<d3d9::IDirect3DTexture9>        m_texture;
 
     // Back buffers will have depth stencil surfaces as attachments (in practice
     // I have never seen more than one depth stencil being attached at a time)
-    Com<DDraw7Surface>               m_depthStencil;
+    Com<DDraw7Surface>                  m_depthStencil;
+
     // These are attached surfaces, which are typically mips or other types of generated
     // surfaces, which need to exist for the entire lifecycle of their parent surface.
     // They are implemented with linked list, so for example only one mip level
