@@ -12,7 +12,7 @@ If you're wondering about the current state of a certain game, a good starting p
 
 ### What should I do if a game doesn't work (properly) with D7VK?
 
-I'll try to get as much game coverage as possible in D7VK, of course, but if something just doesn't work, simply use WineD3D - it's awesome and has the benefit of implementing *everything* there ever is to worry about in ddraw and GDI, so it's far, far less prone to cursed interop madness. Reports of issues and bugs are very welcome, as they ensure proper tracking and awareness, so please do report any problems you encounter if you have the time.
+I'll try to get as much game coverage as possible in D7VK, of course, but if something just doesn't work, simply use WineD3D - it's awesome and has the benefit of implementing *everything* there ever is to worry about in DDraw and GDI, so it's far, far less prone to cursed interop madness. Reports of issues and bugs are very welcome, as they ensure proper tracking and awareness, so please do report any problems you encounter if you have the time.
 
 ### Is D7VK really needed?
 
@@ -28,7 +28,7 @@ Yes, because D7VK relies on DXVK's D3D9 backend, so everything ends up there any
 
 How VSync is implemented and handled differs wildly between DDraw/D3D7 and D3D9, therefore there's no easy answer here or any sort of possible direct mapping. We properly enable VSync for applications that make use of `IDirectDraw7::WaitForVerticalBlank`, however if you want to disable VSync in such cases, that will require an application restart. D7VK also enables VSync by default when the application requests a non-exclusive mode (this usually means windowed rendering, but is not limited to that).
 
-D7VK also provides various frame rate limits as built-in config options for games that are known to break or suffer from various bugs at high frame rates. You can however use the traditional DXVK config options for controlling either frame late limits or the presentation interval, namely: `d3d9.maxFrameRate` and `d3d9.presentInterval`, with values of your choosing, either to override any existing settings or to specify your own. This is useful when applying modern patches or mods that may fix these issues entirely.
+In addition to that, D7VK provides various frame rate limits as built-in config options for games that are known to break or suffer from various bugs at high frame rates. You can however use the traditional DXVK config options for controlling either frame late limits or the presentation interval, namely: `d3d9.maxFrameRate` and `d3d9.presentInterval`, with values of your choosing, either to override any existing settings or to specify your own. This is useful when applying modern patches or mods that may fix these issues entirely.
 
 ### Since D3D7 AA isn't actually supported, is there a way to force MSAA?
 
@@ -57,7 +57,7 @@ To give it a spin in a Wine prefix of choice, copy the `ddraw.dll` file next to 
 
 On Windows, simply copying `ddraw.dll` next to the game executable should work just fine. Note that Windows use is largely untested and D7VK is primarily aimed at use with Wine/Linux, so your mileage may vary.
 
-Do NOT, I repeat, do NOT copy `ddraw.dll` in your Wine or Windows system directories, as you will need access to an actual ddraw implementation for any of this to work.
+Do NOT, I repeat, do NOT copy `ddraw.dll` in your Wine or Windows system directories, as you will need access to an actual DDraw implementation for any of this to work.
 
 Verify that your application uses D7VK instead of wined3d by enabling the HUD (see notes below).
 
