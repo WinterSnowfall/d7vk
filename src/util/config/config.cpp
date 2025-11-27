@@ -1587,6 +1587,10 @@ namespace dxvk {
     { R"(\\edd\.exe$)", {{
       { "d3d7.forceProxiedPresent",         "True" },
     }} },
+    /* Silent Hunter II - Broken input handling   */
+    { R"(\\Silent Hunter.*\\(Sim|Shell(1)?)\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "60" },
+    }} },
 
   };
 

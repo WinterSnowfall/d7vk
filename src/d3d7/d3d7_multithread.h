@@ -53,11 +53,11 @@ namespace dxvk {
   /**
    * \brief D3D7 context lock
    */
-  class D3D7Singlethread {
+  class D3D7Multithread {
 
   public:
 
-    D3D7Singlethread(
+    D3D7Multithread(
       BOOL                  Protected);
 
     D3D7DeviceLock AcquireLock() {
