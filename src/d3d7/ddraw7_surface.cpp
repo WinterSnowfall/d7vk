@@ -735,20 +735,53 @@ namespace dxvk {
   }
 
   // Callback function used in cube map face/surface initialization
-  inline HRESULT STDMETHODCALLTYPE EnumAndAttachSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
-    d3d9::IDirect3DCubeTexture9* cube = static_cast<d3d9::IDirect3DCubeTexture9*>(ctx);
+  inline HRESULT STDMETHODCALLTYPE EnumAndAttachCubeMapFacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+    CubeMapAttachedSurfaces* cubeMapAttachedSurfaces = static_cast<CubeMapAttachedSurfaces*>(ctx);
 
-    // Skip zbuffer. (Are we expecting a Z-buffer by default? Just for RT?)
-    if (unlikely(desc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER))
+    // Skip any surface which isn't a cube map face
+    if (unlikely(!IsCubeMapFace(desc)))
       return DDENUMRET_OK;
 
-    Com<d3d9::IDirect3DSurface9> face;
-    cube->GetCubeMapSurface(GetCubemapFace(desc), 0, &face);
-
-    DDraw7Surface* ddraw7surface = static_cast<DDraw7Surface*>(subsurf);
-    ddraw7surface->SetD3D9(std::move(face));
+    if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEX) {
+      cubeMapAttachedSurfaces->positiveX = subsurf;
+      return DDENUMRET_OK;
+    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEX) {
+      cubeMapAttachedSurfaces->negativeX = subsurf;
+      return DDENUMRET_OK;
+    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEY) {
+      cubeMapAttachedSurfaces->positiveY = subsurf;
+      return DDENUMRET_OK;
+    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEY) {
+      cubeMapAttachedSurfaces->negativeY = subsurf;
+      return DDENUMRET_OK;
+    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEZ) {
+      cubeMapAttachedSurfaces->positiveZ = subsurf;
+      return DDENUMRET_OK;
+    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEZ) {
+      cubeMapAttachedSurfaces->negativeZ = subsurf;
+      return DDENUMRET_OK;
+    }
 
     return DDENUMRET_OK;
+  }
+
+  inline void DDraw7Surface::InitializeAndAttachCubeFace(
+        IDirectDrawSurface7* surf,
+        d3d9::IDirect3DCubeTexture9* cubeTex9,
+        d3d9::D3DCUBEMAP_FACES face) {
+    Com<DDraw7Surface> face7;
+    if (likely(!m_parent->IsWrappedSurface(surf))) {
+      Com<IDirectDrawSurface7> face = surf;
+      face7 = new DDraw7Surface(std::move(face), m_parent, this, false);
+    } else {
+      face7 = static_cast<DDraw7Surface*>(surf);
+    }
+    Com<d3d9::IDirect3DSurface9> face9;
+    cubeTex9->GetCubeMapSurface(face, 0, &face9);
+    face7->SetD3D9(std::move(face9));
+    m_attachedSurfaces.emplace(std::piecewise_construct,
+                               std::forward_as_tuple(face7->GetProxied()),
+                               std::forward_as_tuple(face7.ptr()));
   }
 
   inline HRESULT DDraw7Surface::IntializeD3D9(const bool initRT) {
@@ -810,6 +843,34 @@ namespace dxvk {
       Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Offscreen plain surface format set to ", m_format));
     }
 
+    // We need to count the number of actual mips on initialization by going through
+    // the mip chain, since the dwMipMapCount number may or may not be accurate. I am
+    // guessing it was intended more as a hint, not neceesarily a set number.
+
+    IDirectDrawSurface7* mipMap = m_proxy.ptr();
+
+    m_mipCount++;
+    while (mipMap != nullptr) {
+      IDirectDrawSurface7* parentSurface = mipMap;
+      mipMap = nullptr;
+      parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
+      if (mipMap != nullptr) {
+        m_mipCount++;
+      }
+    }
+
+    if (m_mipCount > 1) {
+      Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Found ", m_mipCount, " mip levels"));
+
+      if (unlikely(m_mipCount != m_desc.dwMipMapCount))
+        Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Mismatch with declared ", m_desc.dwMipMapCount, " mip levels"));
+
+      if (unlikely(m_mipCount > caps7::MaxMipLevels)) {
+        Logger::err(str::format("DDraw7Surface::IntializeD3D9: Mip levels exceed supported maximum"));
+        return DDERR_GENERIC;
+      }
+    }
+
     d3d9::D3DPOOL pool  = d3d9::D3DPOOL_DEFAULT;
     DWORD         usage = 0;
 
@@ -834,21 +895,27 @@ namespace dxvk {
     // isn't supported in D3D9, but we have a D3D7 exception in place.
     //
     if (IsRenderTarget() || initRT) {
+      Logger::debug("DDraw7Surface::IntializeD3D9: Usage: D3DUSAGE_RENDERTARGET");
       pool  = d3d9::D3DPOOL_DEFAULT;
       usage |= D3DUSAGE_RENDERTARGET;
     }
     // All depth stencils will be created in DEFAULT
     if (IsDepthStencil()) {
+      Logger::debug("DDraw7Surface::IntializeD3D9: Usage: D3DUSAGE_DEPTHSTENCIL");
       pool  = d3d9::D3DPOOL_DEFAULT;
       usage |= D3DUSAGE_DEPTHSTENCIL;
     }
 
     // General usage flags
     if (IsTextureOrCubeMap()) {
-      if (pool == d3d9::D3DPOOL_DEFAULT)
+      if (pool == d3d9::D3DPOOL_DEFAULT) {
+        Logger::debug("DDraw7Surface::IntializeD3D9: Usage: D3DUSAGE_DYNAMIC");
         usage |= D3DUSAGE_DYNAMIC;
-      if (unlikely(m_parent->GetOptions()->autoGenMipMaps))
+      }
+      if (unlikely(m_parent->GetOptions()->autoGenMipMaps)) {
+        Logger::debug("DDraw7Surface::IntializeD3D9: Usage: D3DUSAGE_AUTOGENMIPMAP");
         usage |= D3DUSAGE_AUTOGENMIPMAP;
+      }
     }
 
     const char* poolPlacement = pool == d3d9::D3DPOOL_DEFAULT ? "D3DPOOL_DEFAULT" :
@@ -865,29 +932,6 @@ namespace dxvk {
       if (unlikely(forceMSAA != -1)) {
         multiSampleType = d3d9::D3DMULTISAMPLE_TYPE(std::min<uint32_t>(8u, forceMSAA));
       }
-    }
-
-    // We need to count the number of actual mips on initialization by going through
-    // the mip chain, since the dwMipMapCount number may or may not be accurate. I am
-    // guessing it was intended more as a hint, not neceesarily a set number.
-
-    IDirectDrawSurface7* mipMap = m_proxy.ptr();
-
-    while (mipMap != nullptr) {
-      IDirectDrawSurface7* parentSurface = mipMap;
-      mipMap = nullptr;
-      parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
-      if (mipMap != nullptr) {
-        m_mipCount++;
-      }
-    }
-
-    const uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
-    if (mipLevels > 1) {
-      Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Found ", mipLevels, " mip levels"));
-
-      if (unlikely(mipLevels != m_desc.dwMipMapCount))
-        Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Mismatch with declared ", m_desc.dwMipMapCount, "mip levels"));
     }
 
     Com<d3d9::IDirect3DSurface9> surf;
@@ -920,6 +964,73 @@ namespace dxvk {
 
       m_d3d9 = std::move(surf);
 
+    // Cube maps
+    } else if (IsCubeMap()) {
+      Logger::debug("DDraw7Surface::IntializeD3D9: Initializing cube map...");
+
+      Com<d3d9::IDirect3DCubeTexture9> cubetex;
+
+      hr = m_d3d7Device->GetD3D9()->CreateCubeTexture(
+        m_desc.dwWidth, m_mipCount, usage,
+        m_format, pool, &cubetex, nullptr);
+
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw7Surface::IntializeD3D9: Failed to create cube map");
+        m_cubeMap = nullptr;
+        return hr;
+      }
+
+      // Always attach the positive X face to this surface
+      cubetex->GetCubeMapSurface(d3d9::D3DCUBEMAP_FACE_POSITIVE_X, 0, &surf);
+      m_d3d9 = (std::move(surf));
+
+      Logger::debug("DDraw7Surface::IntializeD3D9: Retrieving cube map faces");
+
+      CubeMapAttachedSurfaces cubeMapAttachedSurfaces;
+      m_proxy->EnumAttachedSurfaces(&cubeMapAttachedSurfaces, EnumAndAttachCubeMapFacesCallback);
+
+      // The positive X surfaces is this surface, so nothing should be retrieved
+      if (unlikely(cubeMapAttachedSurfaces.positiveX != nullptr))
+        Logger::warn("DDraw7Surface::IntializeD3D9: Non-null positive X cube map face");
+
+      m_cubeMapSurfaces[0] = m_proxy.ptr();
+
+      // We can't know in advance which faces have been generated,
+      // so check them one by one, initialize and bind as needed
+      if (cubeMapAttachedSurfaces.negativeX != nullptr) {
+        Logger::debug("DDraw7Surface::IntializeD3D9: Detected negative X cube map face");
+        m_cubeMapSurfaces[1] = cubeMapAttachedSurfaces.negativeX;
+        InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.negativeX, cubetex.ptr(),
+                                    d3d9::D3DCUBEMAP_FACE_NEGATIVE_X);
+      }
+      if (cubeMapAttachedSurfaces.positiveY != nullptr) {
+        Logger::debug("DDraw7Surface::IntializeD3D9: Detected positive Y cube map face");
+        m_cubeMapSurfaces[2] = cubeMapAttachedSurfaces.positiveY;
+        InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.positiveY, cubetex.ptr(),
+                                    d3d9::D3DCUBEMAP_FACE_POSITIVE_Y);
+      }
+      if (cubeMapAttachedSurfaces.negativeY != nullptr) {
+        Logger::debug("DDraw7Surface::IntializeD3D9: Detected negative Y cube map face");
+        m_cubeMapSurfaces[3] = cubeMapAttachedSurfaces.negativeY;
+        InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.negativeY, cubetex.ptr(),
+                                    d3d9::D3DCUBEMAP_FACE_NEGATIVE_Y);
+      }
+      if (cubeMapAttachedSurfaces.positiveZ != nullptr) {
+        Logger::debug("DDraw7Surface::IntializeD3D9: Detected positive Z cube map face");
+        m_cubeMapSurfaces[4] = cubeMapAttachedSurfaces.positiveZ;
+        InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.positiveZ, cubetex.ptr(),
+                                    d3d9::D3DCUBEMAP_FACE_POSITIVE_Z);
+      }
+      if (cubeMapAttachedSurfaces.negativeZ != nullptr) {
+        Logger::debug("DDraw7Surface::IntializeD3D9: Detected negative Z cube map face");
+        m_cubeMapSurfaces[5] = cubeMapAttachedSurfaces.negativeZ;
+        InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.negativeZ, cubetex.ptr(),
+                                    d3d9::D3DCUBEMAP_FACE_NEGATIVE_Z);
+      }
+
+      Logger::debug("DDraw7Surface::IntializeD3D9: Created cube map");
+      m_cubeMap = std::move(cubetex);
+
     // Textures
     } else if (IsTexture()) {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing texture...");
@@ -927,7 +1038,7 @@ namespace dxvk {
       Com<d3d9::IDirect3DTexture9> tex;
 
       hr = m_d3d7Device->GetD3D9()->CreateTexture(
-        m_desc.dwWidth, m_desc.dwHeight, mipLevels, usage,
+        m_desc.dwWidth, m_desc.dwHeight, m_mipCount, usage,
         m_format, pool, &tex, nullptr);
 
       if (unlikely(FAILED(hr))) {
@@ -942,33 +1053,6 @@ namespace dxvk {
 
       Logger::debug("DDraw7Surface::IntializeD3D9: Created texture");
       m_texture = std::move(tex);
-
-    // Cube maps
-    } else if (IsCubeMap()) {
-      Logger::warn("DDraw7Surface::IntializeD3D9: Initializing cube map...");
-
-      Com<d3d9::IDirect3DCubeTexture9> cubetex;
-
-      hr = m_d3d7Device->GetD3D9()->CreateCubeTexture(
-        m_desc.dwWidth, mipLevels, usage,
-        m_format, pool, &cubetex, nullptr);
-
-      if (unlikely(FAILED(hr))) {
-        Logger::err("DDraw7Surface::IntializeD3D9: Failed to create cube map");
-        m_cubeMap = nullptr;
-        return hr;
-      }
-
-      Logger::debug("DDraw7Surface::IntializeD3D9: Created cube map");
-
-      // Attach face 0 to this surface
-      cubetex->GetCubeMapSurface((d3d9::D3DCUBEMAP_FACES)0, 0, &surf);
-      m_d3d9 = (std::move(surf));
-
-      // Attach sides 1-5 to each attached surface
-      m_proxy->EnumAttachedSurfaces(cubetex.ptr(), EnumAndAttachSurfacesCallback);
-
-      m_cubeMap = std::move(cubetex);
 
     // Depth Stencil
     } else if (IsDepthStencil()) {
@@ -1095,15 +1179,51 @@ namespace dxvk {
       return DD_OK;
     }
 
+    // Cube maps will also get marked as textures, so need to be handled first
+    if (unlikely(IsCubeMap())) {
+      if (likely(!m_parent->GetOptions()->autoGenMipMaps)) {
+        BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[0], m_mipCount);
+        BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[1], m_mipCount);
+        BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[2], m_mipCount);
+        BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[3], m_mipCount);
+        BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[4], m_mipCount);
+        BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[5], m_mipCount);
+      } else {
+        Logger::debug("DDraw7Surface::UploadSurfaceData: Uploading cube map surfaces directly");
+        // The current surface will always be the positive X face of the cubemap
+        BlitToD3D9Surface(m_d3d9.ptr(), m_format, m_proxy.ptr());
+        // negative X
+        auto attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[1]);
+        BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
+                          m_format, m_cubeMapSurfaces[1]);
+        // positive Y
+        attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[2]);
+        BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
+                          m_format, m_cubeMapSurfaces[2]);
+        // negative Y
+        attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[3]);
+        BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
+                          m_format, m_cubeMapSurfaces[3]);
+        // pozitive Z
+        attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[4]);
+        BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
+                          m_format, m_cubeMapSurfaces[4]);
+        // negative Z
+        attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[5]);
+        BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
+                          m_format, m_cubeMapSurfaces[5]);
+      }
     // Blit all the mips for textures, except when autogenerating mip maps,
     // in which case only the level 0 surface needs to be uploaded
-    if (IsTexture() && likely(!m_parent->GetOptions()->autoGenMipMaps)) {
-      const uint32_t mipLevels = std::min(static_cast<uint32_t>(m_mipCount + 1), caps7::MaxMipLevels);
-      BlitToD3D9Texture(m_texture.ptr(), m_format, m_proxy.ptr(), mipLevels);
-    // TODO: Handle uploading all cubemap faces
-    } else if (unlikely(IsCubeMap())) {
-      Logger::warn("DDraw7Surface::UploadSurfaceData: Unhandled upload of cube map");
-    } else if (unlikely(IsDepthStencil())) {
+    } else if (IsTexture()) {
+      if (likely(!m_parent->GetOptions()->autoGenMipMaps)) {
+        BlitToD3D9Texture(m_texture.ptr(), m_format, m_proxy.ptr(), m_mipCount);
+      } else {
+        Logger::debug("DDraw7Surface::UploadSurfaceData: Uploading texture surface directly");
+        BlitToD3D9Surface(m_d3d9.ptr(), m_format, m_proxy.ptr());
+      }
+    // Depth stencil do not need uploads (nor are they possible in D3D9)
+    }  else if (unlikely(IsDepthStencil())) {
       Logger::debug("DDraw7Surface::UploadSurfaceData: Skipping upload of depth stencil");
     // Blit surfaces directly
     } else if (likely(m_d3d9 != nullptr)) {
