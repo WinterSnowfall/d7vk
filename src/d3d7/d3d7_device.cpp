@@ -16,11 +16,11 @@ namespace dxvk {
       d3d9::D3DPRESENT_PARAMETERS Params9,
       DWORD VertexProcessing9,
       Com<d3d9::IDirect3DDevice9>&& pDevice9,
-      DDraw7Surface* pSurface)
+      DDraw7Surface* pSurface,
+      DWORD CreationFlags9)
     : DDrawWrappedObject<D3D7Interface, IDirect3DDevice7, d3d9::IDirect3DDevice9>(pParent, std::move(d3d7DeviceProxy), std::move(pDevice9))
     , m_DD7IntfParent ( pParent->GetParent() )
-    // Always enforce multi-threaded protection on a D3D7 device
-    , m_singlethread ( true )
+    , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_vertexProcessing9 ( VertexProcessing9 )
     , m_params9 ( Params9 )
     , m_desc ( Desc )
