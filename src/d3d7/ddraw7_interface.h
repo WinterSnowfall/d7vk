@@ -102,16 +102,20 @@ namespace dxvk {
       return m_cooperativeLevel;
     }
 
-    DWORD HasWaitedForVBlank() const {
-      return m_hasWaitedForVBlank;
-    }
-
     HWND GetHWND() const {
       return m_hwnd;
     }
 
     void SetHWND(HWND hwnd) {
       m_hwnd = hwnd;
+    }
+
+    void SetWaitForVBlank(bool waitForVBlank) {
+      m_waitForVBlank = waitForVBlank;
+    }
+
+    bool GetWaitForVBlank() const {
+      return m_waitForVBlank;
     }
 
   private:
@@ -123,7 +127,7 @@ namespace dxvk {
 
     HWND                        m_hwnd       = nullptr;
 
-    bool                        m_hasWaitedForVBlank = false;
+    bool                        m_waitForVBlank = true;
 
     DWORD                       m_cooperativeLevel = 0;
 
