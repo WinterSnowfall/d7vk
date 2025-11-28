@@ -192,8 +192,8 @@ namespace dxvk {
       return m_ib9[caps7::IndexBufferCount - 1] != nullptr;
     }
 
-    bool                          m_hasDrawn = false;
-    bool                          m_inScene  = false;
+    bool                          m_hasDrawn      = false;
+    bool                          m_inScene       = false;
 
     DDraw7Interface*              m_DD7IntfParent = nullptr;
 
