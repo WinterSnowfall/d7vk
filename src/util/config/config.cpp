@@ -1445,9 +1445,8 @@ namespace dxvk {
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
     /* Unreal Tournament                          *
-     * Fixes missing mip map uploads and physics  */
+     * Fixes missing mip map uploads              */
     { R"(\\UnrealTournament\.exe$)", {{
-      { "d3d9.maxFrameRate",                  "60" },
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
     /* Rune                                       *
