@@ -24,11 +24,15 @@ You can also expect it to have the same level of per application/targeted config
 
 Yes, because D7VK relies on DXVK's D3D9 backend, so everything ends up there anyway.
 
-### I get no VSync although the application has an option for it. What's going on?
+### VSync isn't turning off although the application lets me disable it. What gives?
 
-How VSync is implemented and handled differs wildly between DDraw/D3D7 and D3D9, therefore there's no easy answer here or any sort of possible direct mapping. We properly enable VSync for applications that make use of `IDirectDraw7::WaitForVerticalBlank`, however if you want to disable VSync in such cases, that will require an application restart. D7VK also enables VSync by default when the application requests a non-exclusive mode (this usually means windowed rendering, but is not limited to that).
+VSync is universally enabled by default in D3D7, and thus also in D7VK. In fact, D3D7 devices have to explicitly expose support for being able to *turn off* VSync, since not all of them were (allegedly) capable of doing it back in the day. This is why the vast majority of D3D7 applications don't even bother with trying to change the defaults, and will implicitly enable VSync. In some cases, turning it off will simply not work reliably, even if an option is provided.
 
-In addition to that, D7VK provides various frame rate limits as built-in config options for games that are known to break or suffer from various bugs at high frame rates. You can however use the traditional DXVK config options for controlling either frame late limits or the presentation interval, namely: `d3d9.maxFrameRate` and `d3d9.presentInterval`, with values of your choosing, either to override any existing settings or to specify your own. This is useful when applying modern patches or mods that may fix these issues entirely.
+Note that D7VK does properly support turning it off in some cases, e.g. Unreal Tournament with the OldUnreal patch applied.
+
+That being said, D7VK will also enforce various frame rate limits, provided as built-in config options, for games that are known to break or suffer from various bugs at high frame rates. These situations are very much an issue on high refresh rate displays, regardless of VSync.
+
+You can, however, use the traditional DXVK config options for controlling either frame rate limits or the presentation interval (VSync), namely: `d3d9.maxFrameRate` and `d3d9.presentInterval`, with values of your choosing, either to override any existing settings or to specify your own. Doing so is most likely going to cause issues, unless some form of mod/modern patch resolves the underlying physics/input handling/rendering limitations that many of these applications were confronted with at high frame rates.
 
 ### Since D3D7 AA isn't actually supported, is there a way to force MSAA?
 
