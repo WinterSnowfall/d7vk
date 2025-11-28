@@ -191,7 +191,7 @@ namespace dxvk {
 
     const DWORD cooperativeLevel = m_parent->GetCooperativeLevel();
     // Always appears to be enabled when running in non-exclusive mode
-    const bool vBlankStatus = m_parent->HasWaitedForVBlank() | !(cooperativeLevel & DDSCL_EXCLUSIVE);
+    const bool vBlankStatus = m_parent->GetWaitForVBlank();
 
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = desc.dwWidth;
@@ -215,13 +215,13 @@ namespace dxvk {
       params.MultiSampleType = d3d9::D3DMULTISAMPLE_NONE;
     }
 
-    // Always ensure the d3d9 device handles multi-threaded access properly, as some
-    // d3d7 applications may blit to surfaces and draw geometry on separate threads
     DWORD deviceCreationFlags9 = vertexProcessing;
     if (cooperativeLevel & DDSCL_MULTITHREADED)
       deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
     if (cooperativeLevel & DDSCL_FPUPRESERVE)
       deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
+    if (cooperativeLevel & DDSCL_NOWINDOWCHANGES)
+      deviceCreationFlags9 |= D3DCREATE_NOWINDOWCHANGES;
 
     Com<d3d9::IDirect3DDevice9> device9;
     hr = m_d3d9->CreateDevice(

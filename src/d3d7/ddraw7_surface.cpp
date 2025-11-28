@@ -330,6 +330,21 @@ namespace dxvk {
         }
       }
 
+      // If the interface is waiting for VBlank and we get a no VSync flip, switch
+      // to doing immediate presents by resetting the swapchain appropriately
+      if (unlikely(m_parent->GetWaitForVBlank() && (dwFlags & DDFLIP_NOVSYNC))) {
+        Logger::info("DDraw7Surface::Flip: Switching to D3DPRESENT_INTERVAL_IMMEDIATE for presentation");
+
+        d3d9::D3DPRESENT_PARAMETERS resetParams = m_d3d7Device->GetPresentParameters();
+        resetParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+        HRESULT hrReset = m_d3d7Device->Reset(&resetParams);
+        if (unlikely(FAILED(hrReset))) {
+          Logger::warn("DDraw7Surface::Flip: Failed D3D9 swapchain reset");
+        } else {
+          m_parent->SetWaitForVBlank(false);
+        }
+      }
+
       m_d3d7Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
     }
 
