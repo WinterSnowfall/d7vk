@@ -9,6 +9,9 @@ namespace dxvk {
 
   uint32_t D3D7Device::s_deviceCount = 0;
 
+  // Index buffer sizes of XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb
+  static constexpr UINT IndexCount[caps7::IndexBufferCount] = {256, 1024, 4096, 16384, D3DMAXNUMVERTICES};
+
   D3D7Device::D3D7Device(
       Com<IDirect3DDevice7>&& d3d7DeviceProxy,
       D3D7Interface* pParent,
@@ -40,6 +43,8 @@ namespace dxvk {
 
     // Textures
     m_textures.fill(nullptr);
+    // Common D3D9 index buffers
+    m_ib9.fill(nullptr);
 
     m_deviceCount = ++s_deviceCount;
 
@@ -262,6 +267,14 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
+    if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
+      HRESULT hrRT7 = m_proxy->SetRenderTarget(surface, flags);
+      if (unlikely(FAILED(hrRT7))) {
+        Logger::warn("D3D7Device::SetRenderTarget: Failed to set RT");
+        return hrRT7;
+      }
+    }
+
     if (unlikely(!m_DD7IntfParent->IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::SetRenderTarget: Received an unwrapped RT");
       return DDERR_GENERIC;
@@ -269,16 +282,7 @@ namespace dxvk {
 
     DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
 
-    if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
-      HRESULT hrRT7 = m_proxy->SetRenderTarget(rt7->GetProxied(), flags);
-      if (unlikely(FAILED(hrRT7))) {
-        Logger::warn("D3D7Device::SetRenderTarget: Failed to set RT");
-        return hrRT7;
-      }
-    }
-
     HRESULT hr = rt7->InitializeD3D9RenderTarget();
-
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::SetRenderTarget: Failed to initialize D3D9 RT");
       return hr;
@@ -292,7 +296,7 @@ namespace dxvk {
 
       m_ds = m_rt->GetAttachedDepthStencil();
 
-      if (likely(m_ds != nullptr)) {
+      if (m_ds != nullptr) {
         Logger::debug("D3D7Device::SetRenderTarget: Found an attached DS");
 
         HRESULT hrDS = m_ds->InitializeOrUploadD3D9();
@@ -303,10 +307,11 @@ namespace dxvk {
 
         hrDS = m_d3d9->SetDepthStencilSurface(m_ds->GetD3D9());
         if (unlikely(FAILED(hrDS))) {
-          Logger::err("D3D7Device::SetRenderTarget: Failed to set DS");
+          Logger::err("D3D7Device::SetRenderTarget: Failed to set D3D9 DS");
           return hrDS;
         }
-        Logger::debug("D3D7Device::SetRenderTarget: Set a new DS");
+
+        Logger::debug("D3D7Device::SetRenderTarget: Set a new D3D9 DS");
       } else {
         Logger::debug("D3D7Device::SetRenderTarget: RT has no depth stencil attached");
       }
@@ -342,7 +347,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       Logger::debug("D3D7Device::Clear: Failed proxied clear call");
 
-    return m_d3d9->Clear(count, rects, flags, color, z, stencil);
+    return m_d3d9->Clear(count, rects, flags, color, static_cast<float>(z), stencil);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
@@ -997,13 +1002,14 @@ namespace dxvk {
     uint32_t ibIndex = 0;
     // Try to fit index buffer uploads into the smallest buffer size possible,
     // out of the five available: XS, S, M, L and XL (XL being the theoretical max)
-    while (dwIndexCount > m_ib9_indexCount[ibIndex]) {
+    while (dwIndexCount > IndexCount[ibIndex]) {
       if (unlikely(ibIndex > caps7::IndexBufferCount - 1)) {
         Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Exceeded size of largest index buffer");
         return DDERR_GENERIC;
       }
       ibIndex++;
     }
+
     d3d9::IDirect3DIndexBuffer9* ib9 = m_ib9[ibIndex].ptr();
 
     UploadIndices(ib9, lpwIndices, dwIndexCount);
@@ -1098,11 +1104,15 @@ namespace dxvk {
 
     DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
 
+    // If the same texture is already bound, then any lock/blit
+    // calls would have done an upload anyway, so return here
+    if (unlikely(m_textures[stage] == surface7))
+      return D3D_OK;
+
     // Only upload textures if any sort of blit/lock operation
     // has been performed on them since the last SetTexture call
     if (surface7->HasDirtyMipMaps()) {
       hr = surface7->InitializeOrUploadD3D9();
-
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Device::SetTexture: Failed to initialize/upload D3D9 texture");
         return hr;
@@ -1113,13 +1123,22 @@ namespace dxvk {
       Logger::debug("D3D7Device::SetTexture: Skipping upload of texture and mip maps");
     }
 
-    if (unlikely(m_textures[stage] == surface7))
-      return D3D_OK;
+    d3d9::IDirect3DTexture9* tex9 = surface7->GetD3D9Texture();
 
-    hr = m_d3d9->SetTexture(stage, surface7->GetTexture());
-    if (unlikely(FAILED(hr))) {
-      Logger::warn("D3D7Device::SetTexture: Failed to bind D3D9 texture");
-      return hr;
+    if (likely(tex9 != nullptr)) {
+      hr = m_d3d9->SetTexture(stage, tex9);
+      if (unlikely(FAILED(hr))) {
+        Logger::warn("D3D7Device::SetTexture: Failed to bind D3D9 texture");
+        return hr;
+      }
+    } else {
+      d3d9::IDirect3DCubeTexture9* cube9 = surface7->GetD3D9CubeTexture();
+
+      hr = m_d3d9->SetTexture(stage, cube9);
+      if (unlikely(FAILED(hr))) {
+        Logger::warn("D3D7Device::SetTexture: Failed to bind D3D9 cube texture");
+        return hr;
+      }
     }
 
     m_textures[stage] = surface7;
@@ -1206,6 +1225,7 @@ namespace dxvk {
     HRESULT hr = m_proxy->Load(loadDestination, dst_point, loadSource, src_rect, flags);
     if (unlikely(FAILED(hr))) {
       Logger::warn("D3D7Device::Load: Failed to load surfaces");
+      return hr;
     }
 
     // Only upload the destination surface
@@ -1255,7 +1275,7 @@ namespace dxvk {
   void D3D7Device::InitializeDS() {
     m_ds = m_rt->GetAttachedDepthStencil();
 
-    if (likely(m_ds != nullptr)) {
+    if (m_ds != nullptr) {
       Logger::debug("D3D7Device::InitializeDS: Found an attached DS");
 
       HRESULT hrDS = m_ds->InitializeOrUploadD3D9();
@@ -1270,11 +1290,12 @@ namespace dxvk {
         Logger::debug(str::format("D3D7Device::InitializeDS: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
 
         HRESULT hrDS9 = m_d3d9->SetDepthStencilSurface(m_ds->GetD3D9());
-        if(unlikely(FAILED(hrDS9)))
+        if(unlikely(FAILED(hrDS9))) {
           Logger::err("D3D7Device::InitializeDS: Failed to set D3D9 depth stencil");
-
-        // This needs to act like an auto depth stencil of sorts, so manually enable z-buffering
-        m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_TRUE);
+        } else {
+          // This needs to act like an auto depth stencil of sorts, so manually enable z-buffering
+          m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_TRUE);
+        }
       }
     } else {
       Logger::info("D3D7Device::InitializeDS: RT has no depth stencil attached");
@@ -1308,13 +1329,12 @@ namespace dxvk {
     static constexpr DWORD Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 
     for (uint32_t ibIndex = 0; ibIndex < caps7::IndexBufferCount ; ibIndex++) {
-      const UINT ibSize = m_ib9_indexCount[ibIndex] * sizeof(WORD);
+      const UINT ibSize = IndexCount[ibIndex] * sizeof(WORD);
 
       Logger::debug(str::format("D3D7Device::InitializeIndexBuffer: Creating index buffer, size: ", ibSize));
 
       HRESULT hr = m_d3d9->CreateIndexBuffer(ibSize, Usage, d3d9::D3DFMT_INDEX16,
                                              d3d9::D3DPOOL_DEFAULT, &m_ib9[ibIndex], nullptr);
-
       if (FAILED(hr)) {
         Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize index buffer");
         return hr;

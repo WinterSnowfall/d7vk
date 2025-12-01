@@ -11,15 +11,6 @@
 
 namespace dxvk {
 
-  struct CubeMapAttachedSurfaces {
-    IDirectDrawSurface7* positiveX = nullptr;
-    IDirectDrawSurface7* negativeX = nullptr;
-    IDirectDrawSurface7* positiveY = nullptr;
-    IDirectDrawSurface7* negativeY = nullptr;
-    IDirectDrawSurface7* positiveZ = nullptr;
-    IDirectDrawSurface7* negativeZ = nullptr;
-  };
-
   class DDraw7Surface final : public DDrawWrappedObject<DDraw7Interface, IDirectDrawSurface7, d3d9::IDirect3DSurface9> {
 
   public:
@@ -135,8 +126,12 @@ namespace dxvk {
       return m_d3d7Device;
     }
 
-    d3d9::IDirect3DTexture9* GetTexture() const {
+    d3d9::IDirect3DTexture9* GetD3D9Texture() const {
       return m_texture.ptr();
+    }
+
+    d3d9::IDirect3DCubeTexture9* GetD3D9CubeTexture() const {
+      return m_cubeMap.ptr();
     }
 
     bool IsTextureOrCubeMap() const {
@@ -249,6 +244,10 @@ namespace dxvk {
 
     inline bool IsOverlay() const {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_OVERLAY;
+    }
+
+    inline bool IsManaged() const {
+      return m_desc.ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE;
     }
 
     inline void InitializeAndAttachCubeFace(
