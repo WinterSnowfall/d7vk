@@ -32,6 +32,9 @@ namespace dxvk {
       m_format = ConvertFormat(m_desc.ddpfPixelFormat);
     }
 
+    // Cube map face surfaces
+    m_cubeMapSurfaces.fill(nullptr);
+
     m_surfCount = ++s_surfCount;
 
     ListSurfaceDetails();
@@ -184,10 +187,10 @@ namespace dxvk {
     return hr;
   }
 
-  // Allegedly unimplemented, according to the official docs
+  // The docs state: "The IDirectDrawSurface7::BltBatch method is not currently implemented."
   HRESULT STDMETHODCALLTYPE DDraw7Surface::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags) {
-    Logger::debug("<<< DDraw7Surface::BltBatch: Proxy");
-    return m_proxy->BltBatch(lpDDBltBatch, dwCount, dwFlags);
+    Logger::debug(">>> DDraw7Surface::BltBatch");
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
@@ -680,18 +683,18 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetPrivateData(REFGUID tag, LPVOID pData, DWORD cbSize, DWORD dwFlags) {
-    Logger::debug("<<< DDraw7Surface::SetPrivateData: Proxy");
-    return m_proxy->SetPrivateData(tag, pData, cbSize, dwFlags);
+    Logger::debug(">>> DDraw7Surface::SetPrivateData");
+    return m_d3d9->SetPrivateData(tag, pData, cbSize, dwFlags);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPrivateData(REFGUID tag, LPVOID pBuffer, LPDWORD pcbBufferSize) {
-    Logger::debug("<<< DDraw7Surface::GetPrivateData: Proxy");
-    return m_proxy->GetPrivateData(tag, pBuffer, pcbBufferSize);
+    Logger::debug(">>> DDraw7Surface::GetPrivateData");
+    return m_d3d9->GetPrivateData(tag, pBuffer, pcbBufferSize);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::FreePrivateData(REFGUID tag) {
-    Logger::debug("<<< DDraw7Surface::FreePrivateData: Proxy");
-    return m_proxy->FreePrivateData(tag);
+    Logger::debug(">>> DDraw7Surface::FreePrivateData");
+    return m_d3d9->FreePrivateData(tag);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetUniquenessValue(LPDWORD pValue) {
@@ -705,13 +708,32 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetPriority(DWORD prio) {
-    Logger::debug("<<< DDraw7Surface::SetPriority: Proxy");
-    return m_proxy->SetPriority(prio);
+    Logger::debug(">>> DDraw7Surface::SetPriority");
+
+    if (unlikely(!IsManaged()))
+      return DDERR_INVALIDOBJECT;
+
+    HRESULT hr = m_proxy->SetPriority(prio);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    m_d3d9->SetPriority(prio);
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPriority(LPDWORD prio) {
-    Logger::debug("<<< DDraw7Surface::GetPriority: Proxy");
-    return m_proxy->GetPriority(prio);
+    Logger::debug(">>> DDraw7Surface::GetPriority");
+
+    if (unlikely(prio == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(!IsManaged()))
+      return DDERR_INVALIDOBJECT;
+
+    *prio = m_d3d9->GetPriority();
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetLOD(DWORD lod) {
@@ -747,37 +769,6 @@ namespace dxvk {
     }
 
     return hr;
-  }
-
-  // Callback function used in cube map face/surface initialization
-  inline HRESULT STDMETHODCALLTYPE EnumAndAttachCubeMapFacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
-    CubeMapAttachedSurfaces* cubeMapAttachedSurfaces = static_cast<CubeMapAttachedSurfaces*>(ctx);
-
-    // Skip any surface which isn't a cube map face
-    if (unlikely(!IsCubeMapFace(desc)))
-      return DDENUMRET_OK;
-
-    if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEX) {
-      cubeMapAttachedSurfaces->positiveX = subsurf;
-      return DDENUMRET_OK;
-    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEX) {
-      cubeMapAttachedSurfaces->negativeX = subsurf;
-      return DDENUMRET_OK;
-    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEY) {
-      cubeMapAttachedSurfaces->positiveY = subsurf;
-      return DDENUMRET_OK;
-    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEY) {
-      cubeMapAttachedSurfaces->negativeY = subsurf;
-      return DDENUMRET_OK;
-    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEZ) {
-      cubeMapAttachedSurfaces->positiveZ = subsurf;
-      return DDENUMRET_OK;
-    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEZ) {
-      cubeMapAttachedSurfaces->negativeZ = subsurf;
-      return DDENUMRET_OK;
-    }
-
-    return DDENUMRET_OK;
   }
 
   inline void DDraw7Surface::InitializeAndAttachCubeFace(
@@ -1197,36 +1188,52 @@ namespace dxvk {
     // Cube maps will also get marked as textures, so need to be handled first
     if (unlikely(IsCubeMap())) {
       if (likely(!m_parent->GetOptions()->autoGenMipMaps)) {
-        BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[0], m_mipCount);
-        BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[1], m_mipCount);
-        BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[2], m_mipCount);
-        BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[3], m_mipCount);
-        BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[4], m_mipCount);
-        BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[5], m_mipCount);
+        // In theory we won't know which faces have been generated,
+        // so check them one by one, and upload as needed
+        if (likely(m_cubeMapSurfaces[0] != nullptr))
+          BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[0], m_mipCount);
+        if (likely(m_cubeMapSurfaces[1] != nullptr))
+          BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[1], m_mipCount);
+        if (likely(m_cubeMapSurfaces[2] != nullptr))
+          BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[2], m_mipCount);
+        if (likely(m_cubeMapSurfaces[3] != nullptr))
+          BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[3], m_mipCount);
+        if (likely(m_cubeMapSurfaces[4] != nullptr))
+          BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[4], m_mipCount);
+        if (likely(m_cubeMapSurfaces[5] != nullptr))
+          BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[5], m_mipCount);
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Uploading cube map surfaces directly");
-        // The current surface will always be the positive X face of the cubemap
-        BlitToD3D9Surface(m_d3d9.ptr(), m_format, m_proxy.ptr());
+        // In theory we won't know which faces have been generated,
+        // so check them one by one, and upload as needed
+        if (likely(m_cubeMapSurfaces[0] != nullptr))
+          // The current surface will always be the positive X face of the cubemap
+          BlitToD3D9Surface(m_d3d9.ptr(), m_format, m_cubeMapSurfaces[0]);
         // negative X
         auto attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[1]);
-        BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
-                          m_format, m_cubeMapSurfaces[1]);
+        if (likely(m_cubeMapSurfaces[1] != nullptr))
+          BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
+                            m_format, m_cubeMapSurfaces[1]);
         // positive Y
         attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[2]);
-        BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
-                          m_format, m_cubeMapSurfaces[2]);
+        if (likely(m_cubeMapSurfaces[2] != nullptr))
+          BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
+                            m_format, m_cubeMapSurfaces[2]);
         // negative Y
         attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[3]);
-        BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
-                          m_format, m_cubeMapSurfaces[3]);
+        if (likely(m_cubeMapSurfaces[3] != nullptr))
+          BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
+                            m_format, m_cubeMapSurfaces[3]);
         // pozitive Z
         attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[4]);
-        BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
-                          m_format, m_cubeMapSurfaces[4]);
+        if (likely(m_cubeMapSurfaces[4] != nullptr))
+          BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
+                            m_format, m_cubeMapSurfaces[4]);
         // negative Z
         attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[5]);
-        BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
-                          m_format, m_cubeMapSurfaces[5]);
+        if (likely(m_cubeMapSurfaces[5] != nullptr))
+          BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
+                            m_format, m_cubeMapSurfaces[5]);
       }
     // Blit all the mips for textures, except when autogenerating mip maps,
     // in which case only the level 0 surface needs to be uploaded
