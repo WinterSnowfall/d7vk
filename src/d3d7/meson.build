@@ -5,7 +5,6 @@ ddraw_src = [
   'ddraw7_interface.cpp',
   'ddraw7_surface.cpp',
   'ddraw7_gamma.cpp',
-  'ddraw7_palette.cpp',
   'd3d7_buffer.cpp',
   'd3d7_interface.cpp',
   'd3d7_device.cpp',
