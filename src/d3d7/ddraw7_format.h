@@ -4,6 +4,15 @@
 
 namespace dxvk {
 
+  struct CubeMapAttachedSurfaces {
+    IDirectDrawSurface7* positiveX = nullptr;
+    IDirectDrawSurface7* negativeX = nullptr;
+    IDirectDrawSurface7* positiveY = nullptr;
+    IDirectDrawSurface7* negativeY = nullptr;
+    IDirectDrawSurface7* positiveZ = nullptr;
+    IDirectDrawSurface7* negativeZ = nullptr;
+  };
+
   inline bool IsCubeMapFace(DDSURFACEDESC2* desc) {
     return desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEX
         || desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEX
@@ -442,6 +451,37 @@ namespace dxvk {
      || (desc->ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL)) {
       *nextMip = subsurf;
       return DDENUMRET_CANCEL;
+    }
+
+    return DDENUMRET_OK;
+  }
+
+  // Callback function used in cube map face/surface initialization
+  inline HRESULT STDMETHODCALLTYPE EnumAndAttachCubeMapFacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+    CubeMapAttachedSurfaces* cubeMapAttachedSurfaces = static_cast<CubeMapAttachedSurfaces*>(ctx);
+
+    // Skip any surface which isn't a cube map face
+    if (unlikely(!IsCubeMapFace(desc)))
+      return DDENUMRET_OK;
+
+    if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEX) {
+      cubeMapAttachedSurfaces->positiveX = subsurf;
+      return DDENUMRET_OK;
+    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEX) {
+      cubeMapAttachedSurfaces->negativeX = subsurf;
+      return DDENUMRET_OK;
+    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEY) {
+      cubeMapAttachedSurfaces->positiveY = subsurf;
+      return DDENUMRET_OK;
+    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEY) {
+      cubeMapAttachedSurfaces->negativeY = subsurf;
+      return DDENUMRET_OK;
+    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEZ) {
+      cubeMapAttachedSurfaces->positiveZ = subsurf;
+      return DDENUMRET_OK;
+    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEZ) {
+      cubeMapAttachedSurfaces->negativeZ = subsurf;
+      return DDENUMRET_OK;
     }
 
     return DDENUMRET_OK;

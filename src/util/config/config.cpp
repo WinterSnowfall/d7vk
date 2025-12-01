@@ -1544,6 +1544,14 @@ namespace dxvk {
     { R"(\\Silent Hunter.*\\(Sim|Shell(1)?)\.exe$)", {{
       { "d3d9.maxFrameRate",                  "60" },
     }} },
+    /* Enemy Engaged: Comanche vs Hokum           */
+    { R"(\\cohokum\.exe$)", {{
+      { "d3d7.forceProxiedPresent",         "True" },
+    }} },
+    /* The Nations (Gold Edition)                 */
+    { R"(\\The Nations.*\\bin\\game\.exe$)", {{
+      { "d3d7.forceProxiedPresent",         "True" },
+    }} },
 
   };
 
