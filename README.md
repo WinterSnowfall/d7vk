@@ -1,6 +1,6 @@
 ﻿# D7VK
 
-A Vulkan-based translation layer for Direct3D 7, which allows running 3D applications on Linux using Wine. It uses DXVK's D3D9 backend as well as Wine's DDraw implementation (or the windows native DDraw) and acts as a proxy between the two, providing a minimal D3D7-on-D3D9 implementation. The project is currently in its early days. Expect most things to run, but not necessarily correctly or optimally.
+A Vulkan-based translation layer for Direct3D 7, which allows running 3D applications on Linux using Wine. It uses DXVK's D3D9 backend as well as Wine's DDraw implementation (or the windows native DDraw) and acts as a proxy between the two, providing a minimal D3D7-on-D3D9 implementation.
 
 ## FAQ
 

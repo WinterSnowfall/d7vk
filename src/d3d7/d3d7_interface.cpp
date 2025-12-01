@@ -167,7 +167,6 @@ namespace dxvk {
 
     Com<IDirect3DDevice7> d3d7DeviceProxy;
     HRESULT hr = m_proxy->CreateDevice(rclsid, rt7->GetProxied(), &d3d7DeviceProxy);
-
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Interface::CreateDevice: Failed to created the proxy device");
       return hr;
@@ -326,7 +325,6 @@ namespace dxvk {
       D3D7DeviceLock lock = m_device->LockDevice();
 
       HRESULT hr = m_device->GetD3D9()->EvictManagedResources();
-
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Interface::EvictManagedTextures: Failed D3D9 managed resource eviction");
         return hr;
