@@ -104,6 +104,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx) {
+    Logger::debug(">>> D3D7Device::EnumTextureFormats");
+
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -267,20 +269,22 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
-      HRESULT hrRT7 = m_proxy->SetRenderTarget(surface, flags);
-      if (unlikely(FAILED(hrRT7))) {
-        Logger::warn("D3D7Device::SetRenderTarget: Failed to set RT");
-        return hrRT7;
-      }
-    }
-
     if (unlikely(!m_DD7IntfParent->IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::SetRenderTarget: Received an unwrapped RT");
       return DDERR_GENERIC;
     }
 
     DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
+
+    // We could technically allow unwrapped RTs when forcing proxied present,
+    // however that doesn't get us anything, so simply don't bother with it
+    if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
+      HRESULT hrRT7 = m_proxy->SetRenderTarget(rt7->GetProxied(), flags);
+      if (unlikely(FAILED(hrRT7))) {
+        Logger::warn("D3D7Device::SetRenderTarget: Failed to set RT");
+        return hrRT7;
+      }
+    }
 
     HRESULT hr = rt7->InitializeD3D9RenderTarget();
     if (unlikely(FAILED(hr))) {
@@ -296,10 +300,12 @@ namespace dxvk {
 
       m_ds = m_rt->GetAttachedDepthStencil();
 
+      HRESULT hrDS;
+
       if (m_ds != nullptr) {
         Logger::debug("D3D7Device::SetRenderTarget: Found an attached DS");
 
-        HRESULT hrDS = m_ds->InitializeOrUploadD3D9();
+        hrDS = m_ds->InitializeOrUploadD3D9();
         if (unlikely(FAILED(hr))) {
           Logger::err("D3D7Device::SetRenderTarget: Failed to initialize/upload D3D9 DS");
           return hr;
@@ -314,6 +320,14 @@ namespace dxvk {
         Logger::debug("D3D7Device::SetRenderTarget: Set a new D3D9 DS");
       } else {
         Logger::debug("D3D7Device::SetRenderTarget: RT has no depth stencil attached");
+
+        hrDS = m_d3d9->SetDepthStencilSurface(nullptr);
+        if (unlikely(FAILED(hrDS))) {
+          Logger::err("D3D7Device::SetRenderTarget: Failed to clear the D3D9 DS");
+          return hrDS;
+        }
+
+        Logger::debug("D3D7Device::SetRenderTarget: Cleared the D3D9 DS");
       }
     } else {
       Logger::err("D3D7Device::SetRenderTarget: Failed to set RT");
