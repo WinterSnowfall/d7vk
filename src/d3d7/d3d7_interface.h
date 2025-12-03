@@ -10,7 +10,6 @@
 namespace dxvk {
 
   class DDraw7Interface;
-  class DDraw7Surface;
   class D3D7Device;
 
   /**
@@ -37,12 +36,12 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE EvictManagedTextures();
 
-    D3D7Device* GetDevice() const {
-      return m_device;
+    D3D7Device* GetLastUsedDevice() const {
+      return m_lastUsedDevice;
     }
 
-    void ClearDevice() {
-      m_device = nullptr;
+    void SetLastUsedDevice(D3D7Device* device) {
+      m_lastUsedDevice = device;
     }
 
     const D3D7Options* GetOptions() const {
@@ -58,7 +57,7 @@ namespace dxvk {
 
     D3D7Options                   m_d3d7Options;
 
-    D3D7Device*                   m_device = nullptr;
+    D3D7Device*                   m_lastUsedDevice = nullptr;
 
   };
 
