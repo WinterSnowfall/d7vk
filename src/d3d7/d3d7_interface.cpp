@@ -142,12 +142,6 @@ namespace dxvk {
       Logger::debug("D3D7Interface::CreateDevice: HWND is NULL");
     }
 
-    DDSURFACEDESC2 desc;
-    desc.dwSize = sizeof(DDSURFACEDESC2);
-    surface->GetSurfaceDesc(&desc);
-
-    Logger::info(str::format("D3D7Interface::CreateDevice: Render target: ", desc.dwWidth, "x", desc.dwHeight));
-
     Com<DDraw7Surface> rt7;
     if (unlikely(!m_parent->IsWrappedSurface(surface))) {
       if (unlikely(m_d3d7Options.proxiedQueryInterface)) {
@@ -170,6 +164,12 @@ namespace dxvk {
       Logger::err("D3D7Interface::CreateDevice: Failed to created the proxy device");
       return hr;
     }
+
+    DDSURFACEDESC2 desc;
+    desc.dwSize = sizeof(DDSURFACEDESC2);
+    surface->GetSurfaceDesc(&desc);
+
+    Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
 
     DWORD backBufferCount = 0;
     if (likely(!m_d3d7Options.forceSingleBackBuffer)) {
