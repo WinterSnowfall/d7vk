@@ -358,7 +358,7 @@ namespace dxvk {
     if (likely(!m_d3d7Intf->GetOptions()->forceProxiedPresent)) {
       // Switch to a default presentation interval when an application
       // tries to wait for vertical blank, if we're not already doing so
-      D3D7Device* d3d7Device = m_d3d7Intf->GetDevice();
+      D3D7Device* d3d7Device = m_d3d7Intf->GetLastUsedDevice();
       if (unlikely(d3d7Device != nullptr && !m_waitForVBlank)) {
         Logger::info("DDraw7Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
 
@@ -384,7 +384,7 @@ namespace dxvk {
 
     constexpr DWORD Megabytes = 1024 * 1024;
 
-    D3D7Device* d3d7Device = m_d3d7Intf->GetDevice();
+    D3D7Device* d3d7Device = m_d3d7Intf->GetLastUsedDevice();
     if (likely(d3d7Device != nullptr)) {
       Logger::debug("DDraw7Interface::GetAvailableVidMem: Getting memory stats from D3D9");
 
