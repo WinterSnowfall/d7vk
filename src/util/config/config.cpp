@@ -1394,9 +1394,11 @@ namespace dxvk {
     { R"(\\Ground Control\\gc\.exe$)", {{
       { "d3d7.proxiedQueryInterface",       "True" },
     }} },
-    /* Blade of Darkness - broken physics         */
+    /* Blade of Darkness - broken physics, main   *
+     * menu transitions, animations and GUI       */
     { R"(\\Blade\.exe$)", {{
       { "d3d9.maxFrameRate",                  "60" },
+      { "d3d7.forceSingleBackBuffer",       "True" },
       { "d3d7.proxiedQueryInterface",       "True" },
     }} },
     /* Hogs of War - Fixes main menu transparency *
