@@ -183,6 +183,11 @@ namespace dxvk {
 
     inline HRESULT EnumerateBackBuffers(IDirectDrawSurface7* surface);
 
+    inline void RefreshLastUsedDevice() {
+      if (unlikely(m_parent->GetLastUsedDevice() != this))
+        m_parent->SetLastUsedDevice(this);
+    }
+
     inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
 
     inline bool ShouldRecord() const { return m_recorder != nullptr; }
