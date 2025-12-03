@@ -1515,9 +1515,11 @@ namespace dxvk {
     { R"(\\Discipl2\.exe$)", {{
       { "d3d9.maxFrameRate",                  "60" },
     }} },
-    /* Hitman: Codename 47 - Broken physics       */
+    /* Hitman: Codename 47 - Broken physics and   *
+     * loading screens / menu transitions         */
     { R"(\\hitman\.exe$)", {{
       { "d3d9.maxFrameRate",                  "60" },
+      { "d3d7.forceSingleBackBuffer",       "True" },
     }} },
     /* Screamer 4x4 - Broken menu animation speed */
     { R"(\\Screamer4x4_d3d\.exe$)", {{

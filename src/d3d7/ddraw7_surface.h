@@ -183,6 +183,11 @@ namespace dxvk {
       m_dirtyMipMaps = false;
     }
 
+    bool IsBound() const {
+      const bool isParentBound = m_parentSurf != nullptr ? m_parentSurf->IsBound() : false;
+      return m_isBound || isParentBound;
+    }
+
     void UpdateBoundState(bool isBound) {
       m_isBound = isBound;
     }
@@ -195,10 +200,6 @@ namespace dxvk {
 
     inline bool IsAttached() const {
       return m_parentSurf != nullptr;
-    }
-
-    inline bool IsBound() const {
-      return m_isBound;
     }
 
     inline bool IsComplex() const {
