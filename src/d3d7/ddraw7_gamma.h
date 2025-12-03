@@ -1,11 +1,10 @@
 #pragma once
 
 #include "d3d7_include.h"
+#include "d3d7_device.h"
 #include "ddraw7_surface.h"
 
 namespace dxvk {
-
-  class D3D7Device;
 
   class DDraw7GammaControl final : public DDrawWrappedObject<DDraw7Surface, IDirectDrawGammaControl, IUnknown> {
 
@@ -22,7 +21,9 @@ namespace dxvk {
   private:
 
     inline void RefreshD3D7Device() {
-      m_d3d7Device = m_parent->GetD3D7Device();
+      D3D7Device* d3d7Device = m_parent->GetD3D7Device();
+      if (unlikely(m_d3d7Device != d3d7Device))
+        m_d3d7Device = d3d7Device;
     }
 
     D3D7Device* m_d3d7Device = nullptr;
