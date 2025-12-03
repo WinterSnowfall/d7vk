@@ -103,6 +103,11 @@ namespace dxvk {
       Logger::warn("DDraw7Surface::QueryInterface: Query for legacy IDirectDraw");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
+    // Black & White queries for IDirect3DTexture2 for whatever reason...
+    if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
+      Logger::warn("DDraw7Surface::QueryInterface: Query for legacy IDirect3DTexture");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
 
     try {
       *ppvObject = ref(this->GetInterface(riid));
@@ -711,6 +716,11 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetPriority(DWORD prio) {
     Logger::debug(">>> DDraw7Surface::SetPriority");
 
+    if (unlikely(!IsInitialized())) {
+      Logger::debug("DDraw7Surface::SetPriority: Not yet initialized");
+      return m_proxy->SetPriority(prio);
+    }
+
     if (unlikely(!IsManaged()))
       return DDERR_INVALIDOBJECT;
 
@@ -725,6 +735,11 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPriority(LPDWORD prio) {
     Logger::debug(">>> DDraw7Surface::GetPriority");
+
+    if (unlikely(!IsInitialized())) {
+      Logger::debug("DDraw7Surface::GetPriority: Not yet initialized");
+      return m_proxy->GetPriority(prio);
+    }
 
     if (unlikely(prio == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -1118,7 +1133,7 @@ namespace dxvk {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing overlay...");
 
       // Always link overlays to the current render target
-      surf = m_d3d7Device->GetRenderTarget()->GetD3D9();
+      surf = m_d3d7Device->GetD3D9BackBuffer(m_proxy.ptr());
 
       if (unlikely(surf == nullptr)) {
         Logger::err("DDraw7Surface::IntializeD3D9: Failed to retrieve overlay surface");
@@ -1285,12 +1300,6 @@ namespace dxvk {
       Logger::debug("DDraw7Surface::UploadSurfaceData: Skipping upload of depth stencil");
     // Blit surfaces directly
     } else if (likely(m_d3d9 != nullptr)) {
-      // Make sure overlays always point to the current render target
-      if (unlikely(IsOverlay())) {
-        d3d9::IDirect3DSurface9* surf = m_d3d7Device->GetRenderTarget()->GetD3D9();
-        if (unlikely(surf != m_d3d9.ptr()))
-          m_d3d9 = surf;
-      }
       BlitToD3D9Surface(m_d3d9.ptr(), m_format, m_proxy.ptr());
     }
 

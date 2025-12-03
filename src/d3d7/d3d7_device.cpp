@@ -1438,7 +1438,8 @@ namespace dxvk {
     if (likely(it != m_backBuffers.end()))
       return it->second.ptr();
 
-    return nullptr;
+    // Return the first back buffer if no other match is found
+    return m_fallBackBuffer.ptr();
   }
 
   HRESULT D3D7Device::Reset(d3d9::D3DPRESENT_PARAMETERS* params) {
@@ -1470,12 +1471,19 @@ namespace dxvk {
   }
 
   inline HRESULT D3D7Device::EnumerateBackBuffers(IDirectDrawSurface7* origin) {
+    m_fallBackBuffer = nullptr;
     m_backBuffers.clear();
 
     Logger::debug("EnumerateBackBuffers: Enumerating back buffers");
 
     uint32_t backBufferCount = 0;
     IDirectDrawSurface7* parentSurface = origin;
+
+    // Always retrieve a fallback back buffer for use with
+    // plain offscreen surfaces and overlays (even when no front buffer exists)
+    HRESULT hrFallback = m_d3d9->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &m_fallBackBuffer);
+    if (unlikely(FAILED(hrFallback)))
+      return hrFallback;
 
     while (parentSurface != nullptr) {
       Com<d3d9::IDirect3DSurface9> surf9;

@@ -217,6 +217,7 @@ namespace dxvk {
     Com<DDraw7Surface, false>     m_rtOrig;
     DDraw7Surface*                m_ds = nullptr;
 
+    Com<d3d9::IDirect3DSurface9>  m_fallBackBuffer;
     std::unordered_map<IDirectDrawSurface7*, Com<d3d9::IDirect3DSurface9>> m_backBuffers;
 
     std::array<Com<DDraw7Surface, false>, caps7::TextureStageCount> m_textures;
