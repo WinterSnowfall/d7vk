@@ -59,10 +59,11 @@ namespace dxvk {
     if (riid == __uuidof(IDirect3D7)) {
       *ppvObject = m_d3d7Intf.ref();
       return S_OK;
+    }
     // Some games query for legacy ddraw interfaces
-    } else if (unlikely(riid == __uuidof(IDirectDraw)
-                     || riid == __uuidof(IDirectDraw2)
-                     || riid == __uuidof(IDirectDraw4))) {
+    if (unlikely(riid == __uuidof(IDirectDraw)
+              || riid == __uuidof(IDirectDraw2)
+              || riid == __uuidof(IDirectDraw4))) {
       Logger::warn("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
