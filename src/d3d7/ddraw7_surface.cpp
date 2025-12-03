@@ -683,18 +683,19 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetPrivateData(REFGUID tag, LPVOID pData, DWORD cbSize, DWORD dwFlags) {
-    Logger::debug(">>> DDraw7Surface::SetPrivateData");
-    return m_d3d9->SetPrivateData(tag, pData, cbSize, dwFlags);
+    Logger::debug("<<< DDraw7Surface::SetPrivateData: Proxy");
+    return m_proxy->SetPrivateData(tag, pData, cbSize, dwFlags);
   }
 
+  // Silent Hunter II uses GetPrivateData and relies on some sort of ddraw validation...
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPrivateData(REFGUID tag, LPVOID pBuffer, LPDWORD pcbBufferSize) {
-    Logger::debug(">>> DDraw7Surface::GetPrivateData");
-    return m_d3d9->GetPrivateData(tag, pBuffer, pcbBufferSize);
+    Logger::debug("<<< DDraw7Surface::GetPrivateData: Proxy");
+    return m_proxy->GetPrivateData(tag, pBuffer, pcbBufferSize);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::FreePrivateData(REFGUID tag) {
-    Logger::debug(">>> DDraw7Surface::FreePrivateData");
-    return m_d3d9->FreePrivateData(tag);
+    Logger::debug("<<< DDraw7Surface::FreePrivateData: Proxy");
+    return m_proxy->FreePrivateData(tag);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetUniquenessValue(LPDWORD pValue) {
@@ -871,9 +872,13 @@ namespace dxvk {
       if (unlikely(m_mipCount != m_desc.dwMipMapCount))
         Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Mismatch with declared ", m_desc.dwMipMapCount, " mip levels"));
 
-      if (unlikely(m_mipCount > caps7::MaxMipLevels)) {
-        Logger::err(str::format("DDraw7Surface::IntializeD3D9: Mip levels exceed supported maximum"));
-        return DDERR_GENERIC;
+      if (likely(!m_parent->GetOptions()->autoGenMipMaps)) {
+        if (unlikely(m_mipCount > caps7::MaxMipLevels)) {
+          Logger::warn(str::format("DDraw7Surface::IntializeD3D9: Mip levels exceed supported maximum"));
+          m_mipCount = caps7::MaxMipLevels;
+        }
+      } else {
+        m_mipCount = std::min(m_mipCount, caps7::MaxMipLevels);
       }
     }
 
@@ -1190,50 +1195,81 @@ namespace dxvk {
       if (likely(!m_parent->GetOptions()->autoGenMipMaps)) {
         // In theory we won't know which faces have been generated,
         // so check them one by one, and upload as needed
-        if (likely(m_cubeMapSurfaces[0] != nullptr))
+        if (likely(m_cubeMapSurfaces[0] != nullptr)) {
           BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[0], m_mipCount);
-        if (likely(m_cubeMapSurfaces[1] != nullptr))
+        } else {
+          Logger::debug("DDraw7Surface::UploadSurfaceData: Positive X face is null, skpping");
+        }
+        if (likely(m_cubeMapSurfaces[1] != nullptr)) {
           BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[1], m_mipCount);
-        if (likely(m_cubeMapSurfaces[2] != nullptr))
+        } else {
+          Logger::debug("DDraw7Surface::UploadSurfaceData: Negative X face is null, skpping");
+        }
+        if (likely(m_cubeMapSurfaces[2] != nullptr)) {
           BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[2], m_mipCount);
-        if (likely(m_cubeMapSurfaces[3] != nullptr))
+        } else {
+          Logger::debug("DDraw7Surface::UploadSurfaceData: Positive Y face is null, skpping");
+        }
+        if (likely(m_cubeMapSurfaces[3] != nullptr)) {
           BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[3], m_mipCount);
-        if (likely(m_cubeMapSurfaces[4] != nullptr))
+        } else {
+          Logger::debug("DDraw7Surface::UploadSurfaceData: Negative Y face is null, skpping");
+        }
+        if (likely(m_cubeMapSurfaces[4] != nullptr)) {
           BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[4], m_mipCount);
-        if (likely(m_cubeMapSurfaces[5] != nullptr))
+        } else {
+          Logger::debug("DDraw7Surface::UploadSurfaceData: Positive Z face is null, skpping");
+        }
+        if (likely(m_cubeMapSurfaces[5] != nullptr)) {
           BlitToD3D9CubeMap(m_cubeMap.ptr(), m_format, m_cubeMapSurfaces[5], m_mipCount);
+        } else {
+          Logger::debug("DDraw7Surface::UploadSurfaceData: Negative Z face is null, skpping");
+        }
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Uploading cube map surfaces directly");
         // In theory we won't know which faces have been generated,
         // so check them one by one, and upload as needed
-        if (likely(m_cubeMapSurfaces[0] != nullptr))
+        if (likely(m_cubeMapSurfaces[0] != nullptr)) {
           // The current surface will always be the positive X face of the cubemap
           BlitToD3D9Surface(m_d3d9.ptr(), m_format, m_cubeMapSurfaces[0]);
-        // negative X
+        } else {
+          Logger::debug("DDraw7Surface::UploadSurfaceData: Positive X face is null, skpping");
+        }
         auto attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[1]);
-        if (likely(m_cubeMapSurfaces[1] != nullptr))
+        if (likely(m_cubeMapSurfaces[1] != nullptr)) {
           BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
                             m_format, m_cubeMapSurfaces[1]);
-        // positive Y
+        } else {
+          Logger::debug("DDraw7Surface::UploadSurfaceData: Negative X face is null, skpping");
+        }
         attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[2]);
-        if (likely(m_cubeMapSurfaces[2] != nullptr))
+        if (likely(m_cubeMapSurfaces[2] != nullptr)) {
           BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
                             m_format, m_cubeMapSurfaces[2]);
-        // negative Y
+        } else {
+          Logger::debug("DDraw7Surface::UploadSurfaceData: Positive Y face is null, skpping");
+        }
         attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[3]);
-        if (likely(m_cubeMapSurfaces[3] != nullptr))
+        if (likely(m_cubeMapSurfaces[3] != nullptr)) {
           BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
                             m_format, m_cubeMapSurfaces[3]);
-        // pozitive Z
+        } else {
+          Logger::debug("DDraw7Surface::UploadSurfaceData: Negative Y face is null, skpping");
+        }
         attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[4]);
-        if (likely(m_cubeMapSurfaces[4] != nullptr))
+        if (likely(m_cubeMapSurfaces[4] != nullptr)) {
           BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
                             m_format, m_cubeMapSurfaces[4]);
-        // negative Z
+        } else {
+          Logger::debug("DDraw7Surface::UploadSurfaceData: Positive Z face is null, skpping");
+        }
         attachedSurfaceIter = m_attachedSurfaces.find(m_cubeMapSurfaces[5]);
-        if (likely(m_cubeMapSurfaces[5] != nullptr))
+        if (likely(m_cubeMapSurfaces[5] != nullptr)) {
           BlitToD3D9Surface(attachedSurfaceIter->second->GetD3D9(),
                             m_format, m_cubeMapSurfaces[5]);
+        } else {
+          Logger::debug("DDraw7Surface::UploadSurfaceData: Negative Z face is null, skpping");
+        }
       }
     // Blit all the mips for textures, except when autogenerating mip maps,
     // in which case only the level 0 surface needs to be uploaded
