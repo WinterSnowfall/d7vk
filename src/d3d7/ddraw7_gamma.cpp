@@ -1,7 +1,5 @@
 #include "ddraw7_gamma.h"
 
-#include "d3d7_device.h"
-
 namespace dxvk {
 
   DDraw7GammaControl::DDraw7GammaControl(Com<IDirectDrawGammaControl>&& proxyGamma, DDraw7Surface* pParent)

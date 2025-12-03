@@ -137,10 +137,9 @@ namespace dxvk {
     }
 
     HWND hwnd = m_parent->GetHWND();
-
     // Needed to sometimes safely skip intro playback on legacy devices
     if (unlikely(hwnd == nullptr)) {
-      Logger::warn("D3D7Interface::CreateDevice: HWND is NULL");
+      Logger::debug("D3D7Interface::CreateDevice: HWND is NULL");
     }
 
     DDSURFACEDESC2 desc;
@@ -246,9 +245,9 @@ namespace dxvk {
                                               vertexProcessing, std::move(device9), rt7.ptr(),
                                               deviceCreationFlags9);
       // Hold the address of the most recently created device, not a reference
-      m_device = device.ptr();
+      m_lastUsedDevice = device.ptr();
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
-      m_device->InitializeDS();
+      m_lastUsedDevice->InitializeDS();
       *ppd3dDevice = device.ref();
     } catch (const DxvkError& e) {
       Logger::err(e.message());
@@ -321,10 +320,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Interface::EvictManagedTextures() {
     Logger::debug(">>> D3D7Interface::EvictManagedTextures");
 
-    if (likely(m_device != nullptr)) {
-      D3D7DeviceLock lock = m_device->LockDevice();
+    if (likely(m_lastUsedDevice != nullptr)) {
+      D3D7DeviceLock lock = m_lastUsedDevice->LockDevice();
 
-      HRESULT hr = m_device->GetD3D9()->EvictManagedResources();
+      HRESULT hr = m_lastUsedDevice->GetD3D9()->EvictManagedResources();
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Interface::EvictManagedTextures: Failed D3D9 managed resource eviction");
         return hr;

@@ -87,7 +87,7 @@ namespace dxvk {
     }
 
     D3D7Device* GetD3D7Device() const {
-      return m_d3d7Intf->GetDevice();
+      return m_d3d7Intf->GetLastUsedDevice();
     }
 
     const D3D7Options* GetOptions() const {
