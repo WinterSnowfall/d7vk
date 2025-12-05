@@ -152,6 +152,10 @@ namespace dxvk {
       return m_params9;
     }
 
+    d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType() const {
+      return m_params9.MultiSampleType;
+    }
+
     DDraw7Surface* GetRenderTarget() const {
       return m_rt.ptr();
     }
