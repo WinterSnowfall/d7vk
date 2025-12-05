@@ -75,7 +75,7 @@ namespace dxvk {
     // D3D7 supports one HAL T&L device, one HAL device, and one
     // RGB (software emulation) device, all indentified via GUIDs
 
-    D3DDEVICEDESC7 desc7 = GetBaseD3D7Caps();
+    D3DDEVICEDESC7 desc7 = GetBaseD3D7Caps(m_d3d7Options.disableAASupport);
 
     // Hardware acceleration with T&L (HWVP)
     desc7.deviceGUID = IID_IDirect3DTnLHalDevice;
@@ -169,6 +169,30 @@ namespace dxvk {
     desc.dwSize = sizeof(DDSURFACEDESC2);
     surface->GetSurfaceDesc(&desc);
 
+    d3d9::D3DFORMAT backBufferFormat = ConvertFormat(desc.ddpfPixelFormat);
+
+    // Determine the supported AA sample count by querying the D3D9 interface
+    d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
+    if (likely(!m_d3d7Options.disableAASupport)) {
+      HRESULT hr4S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
+                                                        TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
+      if (unlikely(FAILED(hr4S))) {
+        HRESULT hr2S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
+                                                          TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
+        if (unlikely(FAILED(hr2S))) {
+          Logger::info("D3D7Interface::CreateDevice: Detected no AA support");
+        } else {
+          Logger::info("D3D7Interface::CreateDevice: Detected support for 2x AA");
+          multiSampleType = d3d9::D3DMULTISAMPLE_2_SAMPLES;
+        }
+      } else {
+        Logger::info("D3D7Interface::CreateDevice: Detected support for 4x AA");
+        multiSampleType = d3d9::D3DMULTISAMPLE_4_SAMPLES;
+      }
+    } else {
+      Logger::warn("D3D7Interface::CreateDevice: AA support fully disabled");
+    }
+
     Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
 
     DWORD backBufferCount = 0;
@@ -194,8 +218,9 @@ namespace dxvk {
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = desc.dwWidth;
     params.BackBufferHeight   = desc.dwHeight;
-    params.BackBufferFormat   = ConvertFormat(desc.ddpfPixelFormat);
+    params.BackBufferFormat   = backBufferFormat;
     params.BackBufferCount    = backBufferCount;
+    params.MultiSampleType    = multiSampleType; // Controled through D3DRENDERSTATE_ANTIALIAS
     params.MultiSampleQuality = 0;
     params.SwapEffect         = d3d9::D3DSWAPEFFECT_DISCARD;
     params.hDeviceWindow      = hwnd;
@@ -205,13 +230,6 @@ namespace dxvk {
     params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // Needed for back buffer locks
     params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
-
-    if (unlikely(m_d3d7Options.forceMSAA != -1)) {
-      Logger::info("D3D7Interface::CreateDevice: Overriding swapchain MSAA");
-      params.MultiSampleType = d3d9::D3DMULTISAMPLE_TYPE(std::min<uint32_t>(8u, m_d3d7Options.forceMSAA));
-    } else {
-      params.MultiSampleType = d3d9::D3DMULTISAMPLE_NONE;
-    }
 
     DWORD deviceCreationFlags9 = vertexProcessing;
     if (cooperativeLevel & DDSCL_MULTITHREADED)
@@ -236,7 +254,7 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC7 desc7 = GetBaseD3D7Caps();
+    D3DDEVICEDESC7 desc7 = GetBaseD3D7Caps(m_d3d7Options.disableAASupport);
     // Store the GUID of the created device
     desc7.deviceGUID = rclsid;
 

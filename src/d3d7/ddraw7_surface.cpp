@@ -949,16 +949,8 @@ namespace dxvk {
 
     Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Placing in: ", poolPlacement));
 
-    d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
-
-    RefreshD3D7Device();
-    if (likely(m_d3d7Device != nullptr)) {
-      const int32_t forceMSAA = m_parent->GetOptions()->forceMSAA;
-
-      if (unlikely(forceMSAA != -1)) {
-        multiSampleType = d3d9::D3DMULTISAMPLE_TYPE(std::min<uint32_t>(8u, forceMSAA));
-      }
-    }
+    // Use the MSAA type that was determined to be supported during device creation
+    const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = m_d3d7Device->GetMultiSampleType();
 
     Com<d3d9::IDirect3DSurface9> surf;
 

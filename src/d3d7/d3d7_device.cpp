@@ -46,6 +46,12 @@ namespace dxvk {
     // Common D3D9 index buffers
     m_ib9.fill(nullptr);
 
+    if (unlikely(!m_parent->GetOptions()->disableAASupport
+                &&m_parent->GetOptions()->forceEnableAA)) {
+      Logger::info("D3D7Device: Force enabling AA");
+      m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+    }
+
     m_deviceCount = ++s_deviceCount;
 
     Logger::debug(str::format("D3D7Device: Created a new device nr. ((", m_deviceCount, "))"));
@@ -491,12 +497,12 @@ namespace dxvk {
       default:
         break;
 
-      // D3DRS_MULTISAMPLEANTIALIAS, I guess, but that isn't implemented in D9VK
       case D3DRENDERSTATE_ANTIALIAS:
         State9        = d3d9::D3DRS_MULTISAMPLEANTIALIAS;
         m_antialias   = dwRenderState;
         dwRenderState = m_antialias == D3DANTIALIAS_SORTDEPENDENT
-                     || m_antialias == D3DANTIALIAS_SORTINDEPENDENT ? TRUE : FALSE;
+                     || m_antialias == D3DANTIALIAS_SORTINDEPENDENT
+                     || m_parent->GetOptions()->forceEnableAA ? TRUE : FALSE;
         break;
 
       // Always enabled on later APIs, so it can't really be turned off
@@ -598,7 +604,6 @@ namespace dxvk {
       default:
         break;
 
-      // D3DRS_MULTISAMPLEANTIALIAS, I guess, but that isn't implemented in D9VK
       case D3DRENDERSTATE_ANTIALIAS:
         *lpdwRenderState = m_antialias;
         return D3D_OK;
