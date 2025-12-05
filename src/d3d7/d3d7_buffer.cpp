@@ -245,11 +245,19 @@ namespace dxvk {
 
     D3DDEVICEDESC7 deviceDesc;
     m_d3d7Device->GetCaps(&deviceDesc);
-    const d3d9::D3DPOOL pool = (m_parent->GetOptions()->managedTNLBuffers
-                             && deviceDesc.deviceGUID == IID_IDirect3DTnLHalDevice) ?
-                                d3d9::D3DPOOL_MANAGED : d3d9::D3DPOOL_DEFAULT;
 
-    const char* poolPlacement = pool == d3d9::D3DPOOL_DEFAULT ? "D3DPOOL_DEFAULT" : "D3DPOOL_MANAGED";
+    d3d9::D3DPOOL pool = d3d9::D3DPOOL_DEFAULT;
+
+    if (m_desc.dwCaps & D3DVBCAPS_SYSTEMMEMORY) {
+      pool = d3d9::D3DPOOL_SYSTEMMEM;
+    // Workaround for misbehaving T&L games, that happen to work fine on base HAL
+    } else if (unlikely(m_parent->GetOptions()->managedTNLBuffers
+                     && deviceDesc.deviceGUID == IID_IDirect3DTnLHalDevice)) {
+      pool = d3d9::D3DPOOL_MANAGED;
+    }
+
+    const char* poolPlacement = pool == d3d9::D3DPOOL_DEFAULT   ? "D3DPOOL_DEFAULT" :
+                                pool == d3d9::D3DPOOL_SYSTEMMEM ? "D3DPOOL_SYSTEMMEM" : "D3DPOOL_MANAGED";
 
     Logger::debug(str::format("D3D7VertexBuffer::IntializeD3D9: Placing in: ", poolPlacement));
 
