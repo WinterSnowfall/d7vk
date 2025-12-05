@@ -13,8 +13,11 @@ namespace dxvk {
 
   struct D3D7Options {
 
-    /// Forces a desired MSAA level on the D3D9 device/default swapchain
-    int32_t forceMSAA;
+    /// Fully disables support for AA, lowering memory bandwidth pressure
+    bool disableAASupport;
+
+    /// Forces enables AA, regardless of application preference
+    bool forceEnableAA;
 
     /// Blits back to the proxied render target and flips the surface -
     /// this is currently required by any game that blits cursors directly onto the front buffer
@@ -52,7 +55,8 @@ namespace dxvk {
     D3D7Options() {}
 
     D3D7Options(const Config& config) {
-      this->forceMSAA             = config.getOption<int32_t>("d3d7.forceMSAA",                -1);
+      this->disableAASupport      = config.getOption<bool>   ("d3d7.disableAASupport",      false);
+      this->forceEnableAA         = config.getOption<bool>   ("d3d7.forceEnableAA",         false);
       this->forceProxiedPresent   = config.getOption<bool>   ("d3d7.forceProxiedPresent",   false);
       this->forceSingleBackBuffer = config.getOption<bool>   ("d3d7.forceSingleBackBuffer", false);
       this->presentOnEndScene     = config.getOption<bool>   ("d3d7.presentOnEndScene",     false);

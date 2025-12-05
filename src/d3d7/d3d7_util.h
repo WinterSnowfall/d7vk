@@ -158,7 +158,7 @@ namespace dxvk {
     }
   }
 
-  inline D3DDEVICEDESC7 GetBaseD3D7Caps() {
+  inline D3DDEVICEDESC7 GetBaseD3D7Caps(bool disableAASupport) {
     D3DDEVICEDESC7 desc7;
 
     desc7.dwDevCaps = D3DDEVCAPS_CANBLTSYSTONONLOCAL
@@ -195,8 +195,8 @@ namespace dxvk {
 
     prim.dwRasterCaps         = D3DPRASTERCAPS_ANISOTROPY
                               | D3DPRASTERCAPS_ANTIALIASEDGES // Technically not implemented in D3D9
-                              | D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT
-                              | D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT
+                           // | D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT
+                           // | D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT
                               | D3DPRASTERCAPS_DITHER
                               | D3DPRASTERCAPS_FOGRANGE
                               | D3DPRASTERCAPS_FOGTABLE
@@ -215,6 +215,11 @@ namespace dxvk {
                            // | D3DPRASTERCAPS_ZBUFFERLESSHSR // Easy footgun to not get a z-buffer
                               | D3DPRASTERCAPS_ZFOG
                               | D3DPRASTERCAPS_ZTEST;
+
+    if (likely(!disableAASupport)) {
+      prim.dwRasterCaps |= D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT
+                        |  D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT;
+    }
 
     prim.dwZCmpCaps           = D3DPCMPCAPS_ALWAYS
                               | D3DPCMPCAPS_EQUAL
