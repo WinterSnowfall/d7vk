@@ -38,9 +38,9 @@ That being said, D7VK will also enforce various frame rate limits, provided as b
 
 You can, however, use the traditional DXVK config options for controlling either frame rate limits or the presentation interval (VSync), namely: `d3d9.maxFrameRate` and `d3d9.presentInterval`, with values of your choosing, either to override any existing settings or to specify your own. Doing so is most likely going to cause issues, unless some form of mod/modern patch resolves the underlying physics/input handling/rendering limitations that many of these applications were confronted with at high frame rates.
 
-### Since D3D7 AA isn't actually supported, is there a way to force MSAA?
+### Is there a way to force enable AA?
 
-Yes, use `d3d7.forceMSAA = <your_desired_MSAA_level>`. 2, 4 and 8 (x MSAA) are supported. Note that D3D7 AA support is advertised, so games will let you enable it, however `D3DRENDERSTATE_ANTIALIAS`/`D3DRS_MULTISAMPLEANTIALIAS` isn't implemented in (D3D9) DXVK, so you will not get any AA without forcing the MSAA level.
+Yes, use `d3d7.forceEnableAA = True`. Note that AA is natively supported, and some applications will let you enable/disable it. Use the above option only if you want to force enable AA globally, regardless of application support.
 
 ### Will it work on Windows?
 
