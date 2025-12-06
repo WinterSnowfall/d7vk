@@ -175,7 +175,7 @@ namespace dxvk {
     d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
     if (likely(!m_d3d7Options.disableAASupport)) {
       HRESULT hr4S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
-                                                        TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
+                                                        TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
       if (unlikely(FAILED(hr4S))) {
         HRESULT hr2S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
                                                           TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
@@ -220,7 +220,7 @@ namespace dxvk {
     params.BackBufferHeight   = desc.dwHeight;
     params.BackBufferFormat   = backBufferFormat;
     params.BackBufferCount    = backBufferCount;
-    params.MultiSampleType    = multiSampleType; // Controled through D3DRENDERSTATE_ANTIALIAS
+    params.MultiSampleType    = multiSampleType; // Controlled through D3DRENDERSTATE_ANTIALIAS
     params.MultiSampleQuality = 0;
     params.SwapEffect         = d3d9::D3DSWAPEFFECT_DISCARD;
     params.hDeviceWindow      = hwnd;
