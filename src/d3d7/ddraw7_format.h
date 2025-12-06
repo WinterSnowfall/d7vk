@@ -492,6 +492,9 @@ namespace dxvk {
       d3d9::D3DFORMAT format9,
       IDirectDrawSurface7* surface7,
       uint32_t mipLevels) {
+    // Properly handle cube textures with auto-generated mip maps
+    const uint32_t actualMipLevels = std::max(1u, mipLevels);
+
     DDSURFACEDESC2 desc = { };
     desc.dwSize = sizeof(DDSURFACEDESC2);
     surface7->GetSurfaceDesc(&desc);
@@ -501,9 +504,9 @@ namespace dxvk {
 
     IDirectDrawSurface7* mipMap = surface7;
 
-    Logger::debug(str::format("BlitToD3D9CubeMap: Blitting ", mipLevels, " mip map(s)"));
+    Logger::debug(str::format("BlitToD3D9CubeMap: Blitting ", actualMipLevels, " mip map(s)"));
 
-    for (uint32_t i = 0; i < mipLevels; i++) {
+    for (uint32_t i = 0; i < actualMipLevels; i++) {
       // Should never occur normally, but acts as a last ditch safety check
       if (unlikely(mipMap == nullptr)) {
         Logger::warn(str::format("BlitToD3D9CubeMap: Last found source mip ", i - 1));
@@ -564,11 +567,14 @@ namespace dxvk {
       d3d9::D3DFORMAT format9,
       IDirectDrawSurface7* surface7,
       uint32_t mipLevels) {
+    // Properly handle textures with auto-generated mip maps
+    const uint32_t actualMipLevels = std::max(1u, mipLevels);
+
     IDirectDrawSurface7* mipMap = surface7;
 
-    Logger::debug(str::format("BlitToD3D9Texture: Blitting ", mipLevels, " mip map(s)"));
+    Logger::debug(str::format("BlitToD3D9Texture: Blitting ", actualMipLevels, " mip map(s)"));
 
-    for (uint32_t i = 0; i < mipLevels; i++) {
+    for (uint32_t i = 0; i < actualMipLevels; i++) {
       // Should never occur normally, but acts as a last ditch safety check
       if (unlikely(mipMap == nullptr)) {
         Logger::warn(str::format("BlitToD3D9Texture: Last found source mip ", i - 1));
