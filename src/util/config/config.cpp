@@ -1374,16 +1374,20 @@ namespace dxvk {
     { R"(\\HostileWaters\.exe$)", {{
       { "d3d9.cachedDynamicBuffers",        "True" },
     }} },
-    /* Gothic 1 - broken physics                  */
+    /* Gothic 1 - broken physics and              *
+     * flickering on the loading screen           */
     { R"(\\GOTHIC(Mod)?\.EXE$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
       { "d3d7.proxiedQueryInterface",       "True" },
+      { "d3d7.forceSingleBackBuffer",       "True" },
     }} },
     /* Gothic 2 / Night of the Raven              *
-     * Broken physics and sliding speed           */
+     * Broken physics and sliding speed, and      *
+     * flickering on the loading screen           */
     { R"(\\Gothic2\.exe)", {{
       { "d3d9.maxFrameRate",                 "-60" },
       { "d3d7.proxiedQueryInterface",       "True" },
+      { "d3d7.forceSingleBackBuffer",       "True" },
     }} },
     /* Ground Control (to Major Tom)              */
     { R"(\\Ground Control\\gc\.exe$)", {{
