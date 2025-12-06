@@ -48,7 +48,7 @@ namespace dxvk {
 
     if (unlikely(!m_parent->GetOptions()->disableAASupport
                 &&m_parent->GetOptions()->forceEnableAA)) {
-      Logger::info("D3D7Device: Force enabling AA");
+      Logger::warn("D3D7Device: Force enabling AA");
       m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
     }
 
