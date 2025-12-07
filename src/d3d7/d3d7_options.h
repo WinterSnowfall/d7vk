@@ -69,10 +69,10 @@ namespace dxvk {
       // D3D9 options
       this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",     1024);
 
-      std::string backBufferGuard = Config::toLower(config.getOption<std::string> ("d3d7.backBufferGuard", "auto"));
-      if (backBufferGuard == "strict") {
+      std::string backBufferGuardStr = Config::toLower(config.getOption<std::string> ("d3d7.backBufferGuard", "auto"));
+      if (backBufferGuardStr == "strict") {
         this->backBufferGuard = D3D7BackBufferGuard::Strict;
-      } else if (backBufferGuard == "disabled") {
+      } else if (backBufferGuardStr == "disabled") {
         this->backBufferGuard = D3D7BackBufferGuard::Disabled;
       } else {
         this->backBufferGuard = D3D7BackBufferGuard::Enabled;
