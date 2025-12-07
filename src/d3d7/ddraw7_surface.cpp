@@ -154,10 +154,20 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
     Logger::debug("<<< DDraw7Surface::Blt: Proxy");
 
+    const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+
     RefreshD3D7Device();
     if (likely(m_d3d7Device != nullptr)) {
-      if (m_d3d7Device->HasDrawn() && (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()))
+      D3D7DeviceLock lock = m_d3d7Device->LockDevice();
+      // Eclusive mode back buffer guard
+      if (exclusiveMode && m_d3d7Device->HasDrawn() && (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable())) {
         return DD_OK;
+      // Windowed mode presentation path
+      } else if (!exclusiveMode && m_d3d7Device->HasDrawn() && IsPrimarySurface()) {
+        m_d3d7Device->ResetDrawTracking();
+        m_d3d7Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
+        return DD_OK;
+      }
     }
 
     HRESULT hr;
@@ -201,10 +211,20 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDraw7Surface::BltFast: Proxy");
 
+    const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+
     RefreshD3D7Device();
     if (likely(m_d3d7Device != nullptr)) {
-      if (m_d3d7Device->HasDrawn() && (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()))
+      D3D7DeviceLock lock = m_d3d7Device->LockDevice();
+      // Eclusive mode back buffer guard
+      if (exclusiveMode && m_d3d7Device->HasDrawn() && (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable())) {
         return DD_OK;
+      // Windowed mode presentation path
+      } else if (!exclusiveMode && m_d3d7Device->HasDrawn() && IsPrimarySurface()) {
+        m_d3d7Device->ResetDrawTracking();
+        m_d3d7Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
+        return DD_OK;
+      }
     }
 
     HRESULT hr;
@@ -793,8 +813,8 @@ namespace dxvk {
         d3d9::D3DCUBEMAP_FACES face) {
     Com<DDraw7Surface> face7;
     if (likely(!m_parent->IsWrappedSurface(surf))) {
-      Com<IDirectDrawSurface7> face = surf;
-      face7 = new DDraw7Surface(std::move(face), m_parent, this, false);
+      Com<IDirectDrawSurface7> wrappedFace = surf;
+      face7 = new DDraw7Surface(std::move(wrappedFace), m_parent, this, false);
     } else {
       face7 = static_cast<DDraw7Surface*>(surf);
     }
