@@ -365,8 +365,8 @@ namespace dxvk {
 
         d3d9::D3DPRESENT_PARAMETERS resetParams = d3d7Device->GetPresentParameters();
         resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
-        HRESULT hr = d3d7Device->Reset(&resetParams);
-        if (unlikely(FAILED(hr))) {
+        HRESULT hrReset = d3d7Device->Reset(&resetParams);
+        if (unlikely(FAILED(hrReset))) {
           Logger::warn("DDraw7Interface::WaitForVerticalBlank: Failed D3D9 swapchain reset");
         } else {
           m_waitForVBlank = true;

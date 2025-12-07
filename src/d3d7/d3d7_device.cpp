@@ -324,9 +324,9 @@ namespace dxvk {
         Logger::debug("D3D7Device::SetRenderTarget: Found an attached DS");
 
         hrDS = m_ds->InitializeOrUploadD3D9();
-        if (unlikely(FAILED(hr))) {
+        if (unlikely(FAILED(hrDS))) {
           Logger::err("D3D7Device::SetRenderTarget: Failed to initialize/upload D3D9 DS");
-          return hr;
+          return hrDS;
         }
 
         hrDS = m_d3d9->SetDepthStencilSurface(m_ds->GetD3D9());
