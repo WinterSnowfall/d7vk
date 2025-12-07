@@ -6,7 +6,7 @@ A Vulkan-based translation layer for Direct3D 7, which allows running 3D applica
 
 ### Will D7VK work with every D3D7 game out there?
 
-Sadly, no. D3D7 is a land of highly cursed API interoperability, and applications that for one reason or another mix and match D3D7 with older DDraw (not DDraw7) and/or with GDI are not expected to ever work. If those games provide alternative renderers, based on Glide or OpenGL, I strongly recommend you use those, together with [nGlide](https://www.zeus-software.com/downloads/nglide) where applicable.
+Sadly, no. D3D7 is a land of highly cursed API interoperability, and applications that for one reason or another mix and match D3D7 with older DDraw (not DDraw7) and/or with GDI are not expected to work properly in most cases. If games provide alternative renderers, based on Glide or OpenGL, I strongly recommend you use those, together with [nGlide](https://www.zeus-software.com/downloads/nglide) where applicable.
 
 If you're wondering about the current state of a certain game, a good starting point would be checking [the issue tracker](https://github.com/WinterSnowfall/d7vk/issues).
 
@@ -24,10 +24,6 @@ You can also expect it to have the same level of per application/targeted config
 
 Yes, because D7VK relies on DXVK's D3D9 backend, so everything ends up there anyway.
 
-### Windowed mode isn't working. Is that normal?
-
-D3D7 is such a "nice" API that it has two entirely different presentation paths, one for exclusive fullscreen applications, and one for windowed applications. D7VK doesn't currently support the windowed presentation path per se, although in some cases windowed applications may still render correctly. However, the general expectation is that windowed mode will not behave properly in most situations.
-
 ### VSync isn't turning off although the application lets me disable it. What gives?
 
 VSync is universally enabled by default in D3D7, and thus also in D7VK. In fact, D3D7 devices have to explicitly expose support for being able to *turn off* VSync, since not all of them were (allegedly) capable of doing it back in the day. This is why the vast majority of D3D7 applications don't even bother with trying to change the defaults, and will implicitly enable VSync. In some cases, turning it off will simply not work reliably, even if an option is provided.
@@ -36,7 +32,7 @@ Note that D7VK does properly support turning it off in some cases, e.g. Unreal T
 
 That being said, D7VK will also enforce various frame rate limits, provided as built-in config options, for games that are known to break or suffer from various bugs at high frame rates. These situations are very much an issue on high refresh rate displays, regardless of VSync.
 
-You can, however, use the traditional DXVK config options for controlling either frame rate limits or the presentation interval (VSync), namely: `d3d9.maxFrameRate` and `d3d9.presentInterval`, with values of your choosing, either to override any existing settings or to specify your own. Doing so is most likely going to cause issues, unless some form of mod/modern patch resolves the underlying physics/input handling/rendering limitations that many of these applications were confronted with at high frame rates.
+You can, however, use the traditional DXVK config options for controlling either frame rate limits or the presentation interval (VSync), namely: `d3d9.maxFrameRate` and `d3d9.presentInterval`, with values of your choosing, either to override any existing settings or to specify your own. Be warned that doing so is most likely going to cause issues, unless some form of mod/modern patch resolves the underlying physics/input handling/rendering limitations that many of these applications were confronted with at high frame rates.
 
 ### Is there a way to force enable AA?
 
