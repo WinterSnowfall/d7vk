@@ -345,8 +345,26 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags) {
     Logger::debug("<<< DDraw7Interface::SetDisplayMode: Proxy");
-    // TODO: Consider resetting the D3D9 swapchain in such cases, if we are in a full screen mode
-    return m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
+
+    HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (likely(!m_d3d7Intf->GetOptions()->forceProxiedPresent &&
+                m_d3d7Intf->GetOptions()->backBufferResize)) {
+      const bool exclusiveMode = m_cooperativeLevel & DDSCL_EXCLUSIVE;
+
+      // Ignore any mode size dimensions when in windowed present mode
+      if (exclusiveMode) {
+        Logger::debug("DDraw7Interface::SetDisplayMode: Exclusive full-screen present mode in use");
+        if (m_modeSize.width != dwWidth)
+          m_modeSize.width = dwWidth;
+        if (m_modeSize.height != dwHeight)
+          m_modeSize.height = dwHeight;
+      }
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
