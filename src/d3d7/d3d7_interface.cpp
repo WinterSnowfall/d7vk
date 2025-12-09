@@ -169,6 +169,27 @@ namespace dxvk {
     desc.dwSize = sizeof(DDSURFACEDESC2);
     surface->GetSurfaceDesc(&desc);
 
+    DWORD backBufferWidth  = desc.dwWidth;
+    DWORD BackBufferHeight = desc.dwHeight;
+
+    if (likely(!m_d3d7Options.forceProxiedPresent &&
+                m_d3d7Options.backBufferResize)) {
+      const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+
+      // Ignore any mode size dimensions when in windowed present mode
+      if (exclusiveMode) {
+        ModeSize modeSize = m_parent->GetModeSize();
+        // Wayland apparently needs this for somewhat proper back buffer sizing
+        if ((modeSize.width  && modeSize.width  < desc.dwWidth)
+        || (modeSize.height && modeSize.height < desc.dwHeight)) {
+          Logger::info("D3D7Interface::CreateDevice: Enforcing mode dimensions");
+
+          backBufferWidth  = modeSize.width;
+          BackBufferHeight = modeSize.height;
+        }
+      }
+    }
+
     d3d9::D3DFORMAT backBufferFormat = ConvertFormat(desc.ddpfPixelFormat);
 
     // Determine the supported AA sample count by querying the D3D9 interface
@@ -216,8 +237,8 @@ namespace dxvk {
     const bool vBlankStatus = m_parent->GetWaitForVBlank();
 
     d3d9::D3DPRESENT_PARAMETERS params;
-    params.BackBufferWidth    = desc.dwWidth;
-    params.BackBufferHeight   = desc.dwHeight;
+    params.BackBufferWidth    = backBufferWidth;
+    params.BackBufferHeight   = BackBufferHeight;
     params.BackBufferFormat   = backBufferFormat;
     params.BackBufferCount    = backBufferCount;
     params.MultiSampleType    = multiSampleType; // Controlled through D3DRENDERSTATE_ANTIALIAS

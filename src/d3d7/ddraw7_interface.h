@@ -7,6 +7,11 @@
 
 namespace dxvk {
 
+  struct ModeSize {
+    DWORD width  = 0;
+    DWORD height = 0;
+  };
+
   class D3D7Device;
   class DDraw7Surface;
 
@@ -102,6 +107,10 @@ namespace dxvk {
       return m_cooperativeLevel;
     }
 
+    ModeSize GetModeSize() const {
+      return m_modeSize;
+    }
+
     HWND GetHWND() const {
       return m_hwnd;
     }
@@ -130,6 +139,7 @@ namespace dxvk {
     bool                        m_waitForVBlank = true;
 
     DWORD                       m_cooperativeLevel = 0;
+    ModeSize                    m_modeSize;
 
     DDraw7Surface*              m_lastDepthStencil = nullptr;
 
