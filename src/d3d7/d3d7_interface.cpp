@@ -181,7 +181,7 @@ namespace dxvk {
         ModeSize modeSize = m_parent->GetModeSize();
         // Wayland apparently needs this for somewhat proper back buffer sizing
         if ((modeSize.width  && modeSize.width  < desc.dwWidth)
-        || (modeSize.height && modeSize.height < desc.dwHeight)) {
+         || (modeSize.height && modeSize.height < desc.dwHeight)) {
           Logger::info("D3D7Interface::CreateDevice: Enforcing mode dimensions");
 
           backBufferWidth  = modeSize.width;
