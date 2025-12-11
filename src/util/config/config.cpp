@@ -1383,24 +1383,19 @@ namespace dxvk {
      * loading and generally improves performance *
      * and also fixes broken AI above 60 fps      */
     { R"(\\Sacrifice\.exe$)", {{
-      { "d3d9.cachedDynamicBuffers",        "True" },
+      { "d3d9.cachedWriteOnlyBuffers",      "True" },
       { "d3d9.maxFrameRate",                 "-60" },
-    }} },
-    /* Emperor: Battle for Dune - Performance     */
-    { R"(\\Emperor.*Dune\\Game\.exe$)", {{
-      { "d3d9.cachedDynamicBuffers",        "True" },
     }} },
     /* Battle Isle: The Andosia War - Performance *
      * and black screen prevention on startup,    *
      * also capped to prevent scroll speed issues */
     { R"(\\bitaw\.exe$)", {{
-      { "d3d9.cachedDynamicBuffers",        "True" },
+      { "d3d9.cachedWriteOnlyBuffers",      "True" },
       { "d3d9.maxFrameRate",                 "-60" },
       { "d3d7.backBufferGuard",           "Strict" },
     }} },
-    /* Startopia - Indexed draw performance       */
+    /* Startopia                                  */
     { R"(\\startopia\.exe$)", {{
-      { "d3d9.cachedDynamicBuffers",        "True" },
       { "d3d7.forceProxiedPresent",         "True" },
     }} },
     /* Escape from Monkey Island                  *
@@ -1414,11 +1409,6 @@ namespace dxvk {
     /* Sacred - Fixes missing text                */
     { R"(\\Sacred\.exe$)", {{
       { "d3d7.proxiedGetDC",                "True" },
-    }} },
-    /* Hostile Waters: Antaeus Rising             *
-     * Vastly improves performance                */
-    { R"(\\HostileWaters\.exe$)", {{
-      { "d3d9.cachedDynamicBuffers",        "True" },
     }} },
     /* Gothic 1 - broken physics and              *
      * flickering on the loading screen           */
@@ -1455,7 +1445,7 @@ namespace dxvk {
     /* Parkan: Iron Strategy - Performance        */
     { R"(\\iron_3d\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d9.cachedDynamicBuffers",        "True" },
+      { "d3d9.cachedWriteOnlyBuffers",      "True" },
     }} },
     /* Dungeon Siege                              */
     { R"(\\DungeonSiege\.exe$)", {{
@@ -1552,7 +1542,7 @@ namespace dxvk {
     }} },
     /* 3DMark2000 - Performance                   */
     { R"(\\3DMark2000\.exe$)", {{
-      { "d3d9.cachedDynamicBuffers",        "True" },
+      { "d3d9.cachedWriteOnlyBuffers",      "True" },
     }} },
     /* Carmageddon TDR 2000 - Main menu speed     */
     { R"(\\TDR2000\.exe$)", {{
@@ -1605,6 +1595,10 @@ namespace dxvk {
      * Fixes missing mip maps on car models       */
     { R"(\\(Porsche|nfs5)\.exe$)", {{
       { "d3d7.autoGenMipMaps",              "True" },
+    }} },
+    /* Soulbringer - Uses legacy ddraw interfaces */
+    { R"(\\SoulbringeVC(noeax)?\.exe$)", {{
+      { "d3d7.forceProxiedPresent",         "True" },
     }} },
 
   };

@@ -693,7 +693,16 @@ namespace dxvk {
         Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));
         Logger::debug(str::format("rect.Pitch:    ", rect9.Pitch));
         if (unlikely(desc.lPitch != rect9.Pitch)) {
-          Logger::err("BlitToD3D7Surface: Incompatible surface pitch");
+          Logger::debug("BlitToD3D7Surface: Incompatible surface pitch");
+
+          uint8_t* data7 = reinterpret_cast<uint8_t*>(desc.lpSurface);
+          uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9.pBits);
+
+          const size_t copyPitch = std::min<size_t>(desc.lPitch, rect9.Pitch);
+          for (uint32_t h = 0; h < desc.dwHeight; h++)
+            memcpy(&data7[h * desc.lPitch], &data9[h * rect9.Pitch], copyPitch);
+
+          Logger::debug("BlitToD3D7Surface: Done blitting surface row by row");
         } else {
           const size_t size = static_cast<size_t>(desc.dwHeight * desc.lPitch);
           memcpy(desc.lpSurface, rect9.pBits, size);
