@@ -161,7 +161,7 @@ namespace dxvk {
     Com<IDirect3DDevice7> d3d7DeviceProxy;
     HRESULT hr = m_proxy->CreateDevice(rclsid, rt7->GetProxied(), &d3d7DeviceProxy);
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7Interface::CreateDevice: Failed to created the proxy device");
+      Logger::warn("D3D7Interface::CreateDevice: Failed to create the proxy device");
       return hr;
     }
 
@@ -271,7 +271,7 @@ namespace dxvk {
     );
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7Interface::CreateDevice: Failed to created the nested D3D9 device");
+      Logger::err("D3D7Interface::CreateDevice: Failed to create the D3D9 device");
       return hr;
     }
 
@@ -318,7 +318,7 @@ namespace dxvk {
     // We don't really need a proxy buffer any longer
     /*HRESULT hr = m_proxy->CreateVertexBuffer(desc, &vertexBuffer7, usage);
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7Interface::CreateVertexBuffer: Failed to create proxy vertex buffer");
+      Logger::warn("D3D7Interface::CreateVertexBuffer: Failed to create proxy vertex buffer");
       return hr;
     }*/
 
