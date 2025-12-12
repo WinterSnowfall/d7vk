@@ -313,9 +313,9 @@ namespace dxvk {
     hr = m_d3d9->SetRenderTarget(0, rt7->GetD3D9());
 
     if (likely(SUCCEEDED(hr))) {
-      Logger::debug("D3D7Device::SetRenderTarget: Set a new RT");
-      m_rt = rt7;
+      Logger::debug("D3D7Device::SetRenderTarget: Set a new D3D9 RT");
 
+      m_rt = rt7;
       m_ds = m_rt->GetAttachedDepthStencil();
 
       HRESULT hrDS;
@@ -348,7 +348,7 @@ namespace dxvk {
         Logger::debug("D3D7Device::SetRenderTarget: Cleared the D3D9 DS");
       }
     } else {
-      Logger::err("D3D7Device::SetRenderTarget: Failed to set RT");
+      Logger::err("D3D7Device::SetRenderTarget: Failed to set D3D9 RT");
       return hr;
     }
 
@@ -1351,7 +1351,7 @@ namespace dxvk {
       if (!ddraw7SurfaceDst->IsTextureOrCubeMap()) {
         HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrInitDst))) {
-          Logger::warn("D3D7Device::Load: Failed to upload D3D9 destination surface data");
+          Logger::err("D3D7Device::Load: Failed to upload D3D9 destination surface data");
         }
       } else {
         ddraw7SurfaceDst->DirtyMipMaps();
@@ -1467,7 +1467,7 @@ namespace dxvk {
       HRESULT hr = m_d3d9->CreateIndexBuffer(ibSize, Usage, d3d9::D3DFMT_INDEX16,
                                              d3d9::D3DPOOL_DEFAULT, &m_ib9[ibIndex], nullptr);
       if (FAILED(hr)) {
-        Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize index buffer");
+        Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize D3D9 index buffer");
         return hr;
       }
     }
