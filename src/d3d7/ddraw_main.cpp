@@ -6,12 +6,18 @@ namespace dxvk {
 
   //Logger Logger::s_instance("d3d7.log");
 
-  // TODO: This is somewhat janky, but works for now
   HMODULE GetProxiedDDrawModule() {
     static HMODULE hDDraw = nullptr;
 
-    if (unlikely(hDDraw == nullptr))
-      hDDraw = LoadLibraryA("C:\\windows\\system32\\ddraw.dll");
+    if (unlikely(hDDraw == nullptr)) {
+      char loadPath[MAX_PATH] = { };
+      UINT returnLength = ::GetSystemDirectoryA(loadPath, MAX_PATH);
+      if (unlikely(!returnLength))
+        return nullptr;
+
+      strcat(loadPath, "\\ddraw.dll");
+      hDDraw = ::LoadLibraryA(loadPath);
+    }
 
     return hDDraw;
   }
@@ -39,7 +45,7 @@ namespace dxvk {
           return DDERR_GENERIC;
         }
 
-        ProxiedDirectDrawCreateEx = reinterpret_cast<DirectDrawCreateEx_t>(GetProcAddress(hDDraw, "DirectDrawCreateEx"));
+        ProxiedDirectDrawCreateEx = reinterpret_cast<DirectDrawCreateEx_t>(::GetProcAddress(hDDraw, "DirectDrawCreateEx"));
 
         if (unlikely(ProxiedDirectDrawCreateEx == nullptr)) {
           Logger::err("CreateDirectDrawEx: Failed GetProcAddress");
@@ -51,7 +57,7 @@ namespace dxvk {
       HRESULT hr = ProxiedDirectDrawCreateEx(lpGUID, &lplpDDProxied, iid, pUnkOuter);
 
       if (unlikely(FAILED(hr))) {
-        Logger::err("CreateDirectDrawEx: Failed call to proxied interface");
+        Logger::warn("CreateDirectDrawEx: Failed call to proxied interface");
         return hr;
       }
 
@@ -152,7 +158,7 @@ extern "C" {
     HRESULT hr = ProxiedDirectDrawCreate(lpGUID, lplpDD, pUnkOuter);
 
     if (unlikely(FAILED(hr))) {
-      dxvk::Logger::err("DirectDrawCreate: Failed call to proxied interface");
+      dxvk::Logger::warn("DirectDrawCreate: Failed call to proxied interface");
     }
 
     return hr;
@@ -183,7 +189,7 @@ extern "C" {
     HRESULT hr = ProxiedDirectDrawCreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
 
     if (unlikely(FAILED(hr))) {
-      dxvk::Logger::err("DirectDrawCreateClipper: Failed call to proxied interface");
+      dxvk::Logger::warn("DirectDrawCreateClipper: Failed call to proxied interface");
     }
 
     return hr;
@@ -218,7 +224,7 @@ extern "C" {
     HRESULT hr = ProxiedDirectDrawEnumerateA(lpCallback, lpContext);
 
     if (unlikely(FAILED(hr))) {
-      dxvk::Logger::err("DirectDrawEnumerateA: Failed call to proxied interface");
+      dxvk::Logger::warn("DirectDrawEnumerateA: Failed call to proxied interface");
     }
 
     return hr;
@@ -250,7 +256,7 @@ extern "C" {
     HRESULT hr = ProxiedDirectDrawEnumerateExA(lpCallback, lpContext, dwFlags);
 
     if (unlikely(FAILED(hr))) {
-      dxvk::Logger::err("DirectDrawEnumerateExA: Failed call to proxied interface");
+      dxvk::Logger::warn("DirectDrawEnumerateExA: Failed call to proxied interface");
     }
 
     return hr;
@@ -282,7 +288,7 @@ extern "C" {
     HRESULT hr = ProxiedDirectDrawEnumerateExW(lpCallback, lpContext, dwFlags);
 
     if (unlikely(FAILED(hr))) {
-      dxvk::Logger::err("DirectDrawEnumerateExW: Failed call to proxied interface");
+      dxvk::Logger::warn("DirectDrawEnumerateExW: Failed call to proxied interface");
     }
 
     return hr;
@@ -313,7 +319,7 @@ extern "C" {
     HRESULT hr = ProxiedDirectDrawEnumerateW(lpCallback, lpContext);
 
     if (unlikely(FAILED(hr))) {
-      dxvk::Logger::err("DirectDrawEnumerateW: Failed call to proxied interface");
+      dxvk::Logger::warn("DirectDrawEnumerateW: Failed call to proxied interface");
     }
 
     return hr;
