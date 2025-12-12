@@ -101,7 +101,7 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       *lplpDDClipper = ref(new DDraw7Clipper(std::move(lplpDDClipperProxy), this));
     } else {
-      Logger::err("DDraw7Interface::CreateClipper: Failed to create proxy clipper");
+      Logger::warn("DDraw7Interface::CreateClipper: Failed to create proxy clipper");
       return hr;
     }
 
@@ -125,7 +125,7 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       *lplpDDPalette = ref(new DDraw7Palette(std::move(lplpDDPaletteProxy), this));
     } else {
-      Logger::err("DDraw7Interface::CreatePalette: Failed to create proxy palette");
+      Logger::warn("DDraw7Interface::CreatePalette: Failed to create proxy palette");
       return hr;
     }
 
@@ -465,7 +465,7 @@ namespace dxvk {
     HRESULT hr = m_proxy->GetSurfaceFromDC(hdc, &surface);
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("DDraw7Interface::GetSurfaceFromDC: Failed to get surface from DC");
+      Logger::warn("DDraw7Interface::GetSurfaceFromDC: Failed to get surface from DC");
       return hr;
     }
 
