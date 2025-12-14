@@ -193,9 +193,8 @@ namespace dxvk {
     }
 
     if (likely(SUCCEEDED(hr))) {
-      // Textures and cubemaps get uploaded during SetTexture calls,
-      // unless they are already bound, and updates should be immediate
-      if (!IsTextureOrCubeMap() || IsBound()) {
+      // Textures and cubemaps get uploaded during SetTexture calls
+      if (!IsTextureOrCubeMap()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::Blt: Failed upload to d3d9 surface");
@@ -244,9 +243,8 @@ namespace dxvk {
     }
 
     if (likely(SUCCEEDED(hr))) {
-      // Textures and cubemaps get uploaded during SetTexture calls,
-      // unless they are already bound, and updates should be immediate
-      if (!IsTextureOrCubeMap() || IsBound()) {
+      // Textures and cubemaps get uploaded during SetTexture calls
+      if (!IsTextureOrCubeMap()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::BltFast: Failed upload to d3d9 surface");
@@ -653,9 +651,8 @@ namespace dxvk {
     HRESULT hr = m_proxy->Unlock(lpSurfaceData);
 
     if (likely(SUCCEEDED(hr))) {
-      // Textures and cubemaps get uploaded during SetTexture calls,
-      // unless they are already bound, and updates should be immediate
-      if (!IsTextureOrCubeMap() || IsBound()) {
+      // Textures and cubemaps get uploaded during SetTexture calls
+      if (!IsTextureOrCubeMap()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::Unlock: Failed upload to d3d9 surface");
