@@ -70,45 +70,71 @@ namespace dxvk {
       Logger::warn("ConvertFormat: Unhandled dwRGBBitCount format");
       return d3d9::D3DFMT_UNKNOWN;
 
-    } else if ((fmt.dwFlags & DDPF_ZBUFFER)) {
+    // Depth will traditionally store stencil info in the MSB, however
+    // some games will apparently try to use the LSB, so handle both cases
+    } else if (fmt.dwFlags & DDPF_ZBUFFER) {
       Logger::debug(str::format("ConvertFormat: fmt.dwZBufferBitDepth: ", fmt.dwZBufferBitDepth));
       Logger::debug(str::format("ConvertFormat: fmt.dwZBitMask:        ",        fmt.dwZBitMask));
       Logger::debug(str::format("ConvertFormat: fmt.dwStencilBitMask:  ",  fmt.dwStencilBitMask));
 
       switch (fmt.dwZBufferBitDepth) {
-        case 16:
-          // D: 1111 1111 1111 1111
-          // S: 0000 0000 0000 0000
-          return d3d9::D3DFMT_D16;
-        case 24:
-          // We don't support or expose a 24-bit depth stencil per se,
-          // but some applications request one anyway. Use D3DFMT_D24X8.
-          return d3d9::D3DFMT_D24X8;
-        case 32: {
+        case 16: {
           switch (fmt.dwStencilBitMask) {
             case 0:
-              // D: 1111 1111 1111 1111 1111 1111 0000 0000
-              // S: 0000 0000 0000 0000 0000 0000 0000 0000
-              return d3d9::D3DFMT_D24X8;
-            case (0xFF):
-              // D: 1111 1111 1111 1111 1111 1111 0000 0000
-              // S: 0000 0000 0000 0000 0000 0000 1111 1111
-              return d3d9::D3DFMT_D24S8;
-            // Sometimes we get queries with reversed bit mask ordering
-            // TODO: Check if depth has a different bit order than regular RGB
+              // D: 1111 1111 1111 1111
+              // S: 0000 0000 0000 0000
+              return d3d9::D3DFMT_D16;
+            case 0x1:
+            case (0x1 << 15):
+              // D: 0111 1111 1111 1111
+              // S: 1000 0000 0000 0000
+              Logger::warn("ConvertFormat: Unsupported format D3DFMT_D15S1");
+              return d3d9::D3DFMT_D16;
+          }
+          Logger::warn("ConvertFormat: Unhandled dwStencilBitMask 16 format");
+          return d3d9::D3DFMT_UNKNOWN;
+        }
+        // We don't support or expose a 24-bit depth stencil per se,
+        // but some applications request one anyway. Use 32-bit depth.
+        case 24:
+        case 32: {
+          switch (fmt.dwStencilBitMask) {
+            case 0: {
+              switch (fmt.dwZBitMask) {
+                case 0xFFFFFFFF:
+                  // D: 1111 1111 1111 1111 1111 1111 1111 1111
+                  // S: 0000 0000 0000 0000 0000 0000 0000 0000
+                  Logger::warn("ConvertFormat: Unsupported format D3DFMT_D32");
+                  return d3d9::D3DFMT_D24X8;
+                case 0xFFFFFF:
+                case (DWORD(0xFFFFFF << 8)):
+                  // D: 0000 0000 1111 1111 1111 1111 1111 1111
+                  // S: 0000 0000 0000 0000 0000 0000 0000 0000
+                  return d3d9::D3DFMT_D24X8;
+              }
+              Logger::warn("ConvertFormat: Unhandled dwZBitMask 24/32 format");
+              return d3d9::D3DFMT_UNKNOWN;
+            }
+            case 0xFF:
             case (DWORD(0xFF << 24)):
               // D: 0000 0000 1111 1111 1111 1111 1111 1111
               // S: 1111 1111 0000 0000 0000 0000 0000 0000
               return d3d9::D3DFMT_D24S8;
+            case 0xF:
+            case (DWORD(0xF << 24)):
+              // D: 0000 0000 1111 1111 1111 1111 1111 1111
+              // S: 1111 0000 0000 0000 0000 0000 0000 0000
+              Logger::warn("ConvertFormat: Unsupported format D3DFMT_D24X4S4");
+              return d3d9::D3DFMT_D24S8;
           }
-          Logger::warn("ConvertFormat: Unhandled dwStencilBitMask 32 format");
+          Logger::warn("ConvertFormat: Unhandled dwStencilBitMask 24/32 format");
           return d3d9::D3DFMT_UNKNOWN;
         }
       }
       Logger::warn("ConvertFormat: Unhandled dwZBufferBitDepth format");
       return d3d9::D3DFMT_UNKNOWN;
 
-    } else if ((fmt.dwFlags & DDPF_LUMINANCE)) {
+    } else if (fmt.dwFlags & DDPF_LUMINANCE) {
       Logger::debug(str::format("ConvertFormat: fmt.dwLuminanceBitCount:     ", fmt.dwLuminanceBitCount));
       Logger::debug(str::format("ConvertFormat: fmt.dwLuminanceAlphaBitMask: ", fmt.dwLuminanceAlphaBitMask));
       Logger::debug(str::format("ConvertFormat: fmt.dwLuminanceBitMask:      ", fmt.dwLuminanceBitMask));
@@ -135,7 +161,7 @@ namespace dxvk {
       Logger::warn("ConvertFormat: Unhandled dwLuminanceBitCount format");
       return d3d9::D3DFMT_UNKNOWN;
 
-    } else if ((fmt.dwFlags & DDPF_BUMPDUDV)) {
+    } else if (fmt.dwFlags & DDPF_BUMPDUDV) {
       Logger::debug(str::format("ConvertFormat: fmt.dwBumpBitCount:         ", fmt.dwBumpBitCount));
       Logger::debug(str::format("ConvertFormat: fmt.dwBumpLuminanceBitMask: ", fmt.dwBumpLuminanceBitMask));
       Logger::debug(str::format("ConvertFormat: fmt.dwBumpDvBitMask:        ", fmt.dwBumpDvBitMask));
@@ -163,22 +189,17 @@ namespace dxvk {
       Logger::warn("ConvertFormat: Unhandled dwBumpBitCount format");
       return d3d9::D3DFMT_UNKNOWN;
 
-    } else if ((fmt.dwFlags & DDPF_FOURCC)) {
+    } else if (fmt.dwFlags & DDPF_FOURCC) {
       switch (fmt.dwFourCC) {
         case MAKEFOURCC('D', 'X', 'T', '1'):
-          Logger::debug("ConvertFormat: Detected a FOURCC payload: DXT1");
           return d3d9::D3DFMT_DXT1;
         case MAKEFOURCC('D', 'X', 'T', '2'):
-          Logger::debug("ConvertFormat: Detected a FOURCC payload: DXT2");
           return d3d9::D3DFMT_DXT2;
         case MAKEFOURCC('D', 'X', 'T', '3'):
-          Logger::debug("ConvertFormat: Detected a FOURCC payload: DXT3");
           return d3d9::D3DFMT_DXT3;
         case MAKEFOURCC('D', 'X', 'T', '4'):
-          Logger::debug("ConvertFormat: Detected a FOURCC payload: DXT4");
           return d3d9::D3DFMT_DXT4;
         case MAKEFOURCC('D', 'X', 'T', '5'):
-          Logger::debug("ConvertFormat: Detected a FOURCC payload: DXT5");
           return d3d9::D3DFMT_DXT5;
       }
       Logger::warn("ConvertFormat: Unhandled FOURCC payload");
@@ -253,13 +274,12 @@ namespace dxvk {
       case d3d9::D3DFMT_R3G3B2:
         tformat.dwFlags = DDPF_RGB;
         tformat.dwRGBBitCount = 8;
-        tformat.dwLuminanceAlphaBitMask = 0x00;
+        tformat.dwRGBAlphaBitMask = 0x00;
         tformat.dwRBitMask = 0xe0;
         tformat.dwGBitMask = 0x1c;
         tformat.dwBBitMask = 0x03;
         break;
 
-      // TODO: Not entirely sure if this is correct...
       case d3d9::D3DFMT_P8:
         tformat.dwFlags = DDPF_RGB | DDPF_PALETTEINDEXED8;
         tformat.dwRGBBitCount = 8;
@@ -351,9 +371,9 @@ namespace dxvk {
       case d3d9::D3DFMT_D15S1:
         zformat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
         zformat.dwZBufferBitDepth = 16;
-        zformat.dwZBitMask = 0xfff7;
+        zformat.dwZBitMask = 0x7fff;
         zformat.dwStencilBitDepth = 1;
-        zformat.dwStencilBitMask = 0x0008;
+        zformat.dwStencilBitMask = 0x8000;
         break;
 
       case d3d9::D3DFMT_D16:
@@ -367,15 +387,15 @@ namespace dxvk {
       case d3d9::D3DFMT_D24X4S4:
         zformat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
         zformat.dwZBufferBitDepth = 32;
-        zformat.dwZBitMask = 0xffffff00;
+        zformat.dwZBitMask = 0x00ffffff;
         zformat.dwStencilBitDepth = 4;
-        zformat.dwStencilBitMask = 0x0000000f;
+        zformat.dwStencilBitMask = 0xf0000000;
         break;
 
       case d3d9::D3DFMT_D24X8:
         zformat.dwFlags = DDPF_ZBUFFER;
         zformat.dwZBufferBitDepth = 32;
-        zformat.dwZBitMask = 0xffffff00;
+        zformat.dwZBitMask = 0x00ffffff;
         zformat.dwStencilBitDepth = 0;
         zformat.dwStencilBitMask = 0x00000000;
         break;
@@ -383,9 +403,9 @@ namespace dxvk {
       case d3d9::D3DFMT_D24S8:
         zformat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
         zformat.dwZBufferBitDepth = 32;
-        zformat.dwZBitMask = 0xffffff00;
+        zformat.dwZBitMask = 0x00ffffff;
         zformat.dwStencilBitDepth = 8;
-        zformat.dwStencilBitMask = 0x000000ff;
+        zformat.dwStencilBitMask = 0xff000000;
         break;
 
       case d3d9::D3DFMT_D32:
