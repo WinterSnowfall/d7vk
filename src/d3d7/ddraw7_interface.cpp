@@ -60,12 +60,14 @@ namespace dxvk {
       *ppvObject = m_d3d7Intf.ref();
       return S_OK;
     }
-    // Some games query for legacy ddraw interfaces
-    if (unlikely(riid == __uuidof(IDirectDraw)
-              || riid == __uuidof(IDirectDraw2)
-              || riid == __uuidof(IDirectDraw4))) {
-      Logger::warn("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw");
-      return m_proxy->QueryInterface(riid, ppvObject);
+    if (likely(m_d3d7Intf->GetOptions()->legacyQueryInterface)) {
+      // Some games query for legacy ddraw interfaces
+      if (unlikely(riid == __uuidof(IDirectDraw)
+                || riid == __uuidof(IDirectDraw2)
+                || riid == __uuidof(IDirectDraw4))) {
+        Logger::warn("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
 
     try {
@@ -193,11 +195,18 @@ namespace dxvk {
     Logger::debug("<<< DDraw7Interface::DuplicateSurface: Proxy");
 
     if (IsWrappedSurface(lpDDSurface)) {
+      InitReturnPtr(lplpDupDDSurface);
+
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSurface);
       Com<IDirectDrawSurface7> dupSurface7;
       HRESULT hr = m_proxy->DuplicateSurface(ddraw7Surface->GetProxied(), &dupSurface7);
       if (likely(SUCCEEDED(hr))) {
-        *lplpDupDDSurface = ref(new DDraw7Surface(std::move(dupSurface7), this, nullptr, false));
+        try {
+          *lplpDupDDSurface = ref(new DDraw7Surface(std::move(dupSurface7), this, nullptr, false));
+        } catch (const DxvkError& e) {
+          Logger::err(e.message());
+          return DDERR_GENERIC;
+        }
       }
       return hr;
     } else {
@@ -218,8 +227,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::FlipToGDISurface() {
-    // TODO: Think about how to handle this gracefully,
-    // as quite a number of games rely on it for proper behavior
     Logger::debug("*** DDraw7Interface::FlipToGDISurface: Ignoring");
 
     if (unlikely(m_d3d7Intf->GetOptions()->forceProxiedPresent))
@@ -282,11 +289,9 @@ namespace dxvk {
     }
 
     if (unlikely(IsWrappedSurface(gdiSurface.ptr()))) {
-      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(gdiSurface.ptr());
-      *lplpGDIDDSurface = ddraw7Surface->GetProxied();
+      *lplpGDIDDSurface = gdiSurface.ref();
     } else {
       Logger::debug("DDraw7Interface::GetGDISurface: Received a non-wrapped GDI surface");
-      // TODO: Maybe we want to keep it around... as a sort of GDI front buffer ref?
       try {
         *lplpGDIDDSurface = ref(new DDraw7Surface(std::move(gdiSurface), this, nullptr, false));
       } catch (const DxvkError& e) {
