@@ -42,6 +42,8 @@ namespace dxvk {
 
     ~D3D7Device();
 
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+
     HRESULT STDMETHODCALLTYPE GetCaps(D3DDEVICEDESC7 *desc);
 
     HRESULT STDMETHODCALLTYPE EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx);
