@@ -481,7 +481,17 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::RestoreAllSurfaces() {
     Logger::debug("<<< DDraw7Interface::RestoreAllSurfaces: Proxy");
-    return m_proxy->RestoreAllSurfaces();
+
+    HRESULT hr = m_proxy->RestoreAllSurfaces();
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    for (auto* surface : m_surfaces) {
+      if (surface->IsTextureOrCubeMap())
+        surface->DirtyMipMaps();
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::TestCooperativeLevel() {
