@@ -26,6 +26,8 @@ namespace dxvk {
 
     ULONG STDMETHODCALLTYPE Release();
 
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+
     HRESULT STDMETHODCALLTYPE EnumDevices(LPD3DENUMDEVICESCALLBACK7 cb, void *ctx);
 
     HRESULT STDMETHODCALLTYPE CreateDevice(REFCLSID rclsid, IDirectDrawSurface7 *surface, IDirect3DDevice7 **ppd3dDevice);
