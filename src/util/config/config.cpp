@@ -1360,10 +1360,6 @@ namespace dxvk {
       { "d3d9.allowDirectBufferMapping",   "False" },
       { "d3d7.forceSingleBackBuffer",       "True" },
     }} },
-    /* Sacred - Fixes missing text                */
-    { R"(\\Sacred\.exe$)", {{
-      { "d3d7.proxiedGetDC",                "True" },
-    }} },
     /* Gothic 1 - broken physics and              *
      * flickering on the loading screen           */
     { R"(\\GOTHIC(Mod)?\.EXE$)", {{
@@ -1390,11 +1386,9 @@ namespace dxvk {
       { "d3d7.forceSingleBackBuffer",       "True" },
       { "d3d7.proxiedQueryInterface",       "True" },
     }} },
-    /* Hogs of War - Fixes main menu transparency *
-     * as well as main menu animation speeds      */
+    /* Hogs of War - Fixes animation speed        */
     { R"(\\warhogs_\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.proxiedGetDC",                "True" },
     }} },
     /* Parkan: Iron Strategy - Performance        */
     { R"(\\iron_3d\.exe$)", {{

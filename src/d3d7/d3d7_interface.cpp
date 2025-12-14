@@ -11,7 +11,6 @@ namespace dxvk {
 
   uint32_t D3D7Interface::s_intfCount = 0;
 
-  // TODO: Figure out why these can't be used directly
   static constexpr IID IID_IDirect3DRGBDevice    = { 0xa4665c60, 0x2673, 0x11cf, {0xa3, 0x1a, 0x00, 0xaa, 0x00, 0xb9, 0x33, 0x56} };
   static constexpr IID IID_IDirect3DHALDevice    = { 0x84e63de0, 0x46aa, 0x11cf, {0x81, 0x6f, 0x00, 0x00, 0xc0, 0x20, 0x15, 0x6e} };
   static constexpr IID IID_IDirect3DTnLHalDevice = { 0xf5049e78, 0x4861, 0x11d2, {0xa4, 0x07, 0x00, 0xa0, 0xc9, 0x06, 0x29, 0xa8} };
@@ -63,6 +62,32 @@ namespace dxvk {
 
     Logger::debug("D3D7Interface::QueryInterface: Forwarding interface query to parent");
     return m_parent->GetInterface(riid);
+  }
+
+  HRESULT STDMETHODCALLTYPE D3D7Interface::QueryInterface(REFIID riid, void** ppvObject) {
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    if (likely(m_d3d7Options.legacyQueryInterface)) {
+      // Some games query for legacy ddraw interfaces
+      if (unlikely(riid == __uuidof(IDirectDraw)
+                || riid == __uuidof(IDirectDraw2)
+                || riid == __uuidof(IDirectDraw4))) {
+        Logger::warn("D3D7Interface::QueryInterface: Query for legacy IDirectDraw");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+    }
+
+    try {
+      *ppvObject = ref(this->GetInterface(riid));
+      return S_OK;
+    } catch (const DxvkError& e) {
+      Logger::warn(e.message());
+      Logger::warn(str::format(riid));
+      return E_NOINTERFACE;
+    }
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK7 cb, void *ctx) {

@@ -70,7 +70,7 @@ namespace dxvk {
       Logger::warn("ConvertFormat: Unhandled dwRGBBitCount format");
       return d3d9::D3DFMT_UNKNOWN;
 
-    // Depth will traditionally store stencil info in the MSB, however
+    // Depth formats will traditionally store stencil info in the MSB, however
     // some games will apparently try to use the LSB, so handle both cases
     } else if (fmt.dwFlags & DDPF_ZBUFFER) {
       Logger::debug(str::format("ConvertFormat: fmt.dwZBufferBitDepth: ", fmt.dwZBufferBitDepth));
