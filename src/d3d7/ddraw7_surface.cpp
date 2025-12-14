@@ -579,7 +579,15 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Restore() {
     Logger::debug("<<< DDraw7Surface::Restore: Proxy");
-    return m_proxy->Restore();
+
+    HRESULT hr = m_proxy->Restore();
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (IsTextureOrCubeMap())
+      DirtyMipMaps();
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper) {
@@ -693,16 +701,16 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetSurfaceDesc(LPDDSURFACEDESC2 lpDDSD, DWORD dwFlags) {
     Logger::debug("<<< DDraw7Surface::SetSurfaceDesc: Proxy");
 
-    // can be used only to set the surface data and pixel format
+    // Can be used only to set the surface data and pixel format
     // used by an explicit system-memory surface (will be validated)
     HRESULT hr = m_proxy->SetSurfaceDesc(lpDDSD, dwFlags);
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    // update the new surface description
-    if (likely(SUCCEEDED(hr))) {
-      m_desc = { };
-      m_desc.dwSize = sizeof(DDSURFACEDESC2);
-      m_proxy->GetSurfaceDesc(&m_desc);
-    }
+    // Update the new surface description
+    m_desc = { };
+    m_desc.dwSize = sizeof(DDSURFACEDESC2);
+    m_proxy->GetSurfaceDesc(&m_desc);
 
     return hr;
   }
@@ -891,7 +899,7 @@ namespace dxvk {
 
     IDirectDrawSurface7* mipMap = m_proxy.ptr();
 
-    m_mipCount++;
+    m_mipCount = 1;
     while (mipMap != nullptr) {
       IDirectDrawSurface7* parentSurface = mipMap;
       mipMap = nullptr;
