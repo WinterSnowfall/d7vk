@@ -169,9 +169,9 @@ namespace dxvk {
                     | D3DDEVCAPS_FLOATTLVERTEX
                     | D3DDEVCAPS_HWRASTERIZATION
                     | D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                 // | D3DDEVCAPS_DRAWPRIMITIVES2 // Needed for older D3D devices
+                    | D3DDEVCAPS_DRAWPRIMITIVES2
                  // | D3DDEVCAPS_SEPARATETEXTUREMEMORIES
-                    | D3DDEVCAPS_DRAWPRIMITIVES2EX // Needed for older D3D devices in D3D7 mode
+                    | D3DDEVCAPS_DRAWPRIMITIVES2EX
                  // | D3DDEVCAPS_SORTDECREASINGZ
                  // | D3DDEVCAPS_SORTEXACT
                     | D3DDEVCAPS_SORTINCREASINGZ // TODO: Check native
@@ -207,7 +207,7 @@ namespace dxvk {
                            // | D3DPRASTERCAPS_STIPPLE
                               | D3DPRASTERCAPS_SUBPIXEL
                            // | D3DPRASTERCAPS_SUBPIXELX
-                              | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
+                           // | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
                            // | D3DPRASTERCAPS_WBUFFER
                               | D3DPRASTERCAPS_WFOG
                               | D3DPRASTERCAPS_XOR
@@ -273,7 +273,7 @@ namespace dxvk {
     prim.dwTextureCaps        = D3DPTEXTURECAPS_ALPHA
                               | D3DPTEXTURECAPS_ALPHAPALETTE
                               | D3DPTEXTURECAPS_BORDER
-                              | D3DPTEXTURECAPS_COLORKEYBLEND // Hard required, but not implemented in/D3D9
+                              | D3DPTEXTURECAPS_COLORKEYBLEND // Hard required, but not implemented in D3D9
                               | D3DPTEXTURECAPS_CUBEMAP
                            // | D3DPTEXTURECAPS_NONPOW2CONDITIONAL
                               | D3DPTEXTURECAPS_PERSPECTIVE
