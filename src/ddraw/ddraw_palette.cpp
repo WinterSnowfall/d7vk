@@ -1,18 +1,18 @@
-#include "ddraw7_palette.h"
+#include "ddraw_palette.h"
 
 namespace dxvk {
 
-  DDraw7Palette::DDraw7Palette(
+  DDrawPalette::DDrawPalette(
         Com<IDirectDrawPalette>&& paletteProxy,
         DDraw7Interface* pParent)
     : DDrawWrappedObject<DDraw7Interface, IDirectDrawPalette, IUnknown>(pParent, std::move(paletteProxy), nullptr) {
     m_parent->AddRef();
 
-    Logger::debug("DDraw7Palette: Created a new palette");
+    Logger::debug("DDrawPalette: Created a new palette");
   }
 
-  DDraw7Palette::~DDraw7Palette() {
-    Logger::debug("DDraw7Palette: A palette bites the dust");
+  DDrawPalette::~DDrawPalette() {
+    Logger::debug("DDrawPalette: A palette bites the dust");
 
     m_parent->Release();
   }
@@ -23,7 +23,7 @@ namespace dxvk {
       return this;
     if (riid == __uuidof(IDirectDrawPalette)) {
       if (unlikely(m_forwardToProxy)) {
-        Logger::debug("DDraw7Palette::QueryInterface: Forwarding interface query to proxied object");
+        Logger::debug("DDrawPalette::QueryInterface: Forwarding interface query to proxied object");
         // Hack: Return the proxied interface, as some applications need
         // to use an unwrapped object in relation with external modules
         void* ppvObject = nullptr;
@@ -34,27 +34,27 @@ namespace dxvk {
       return this;
     }
 
-    Logger::debug("DDraw7Palette::QueryInterface: Forwarding interface query to parent");
+    Logger::debug("DDrawPalette::QueryInterface: Forwarding interface query to parent");
     return m_parent->GetInterface(riid);
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7Palette::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable) {
-    Logger::debug("<<< DDraw7Palette::Initialize: Proxy");
+  HRESULT STDMETHODCALLTYPE DDrawPalette::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable) {
+    Logger::debug("<<< DDrawPalette::Initialize: Proxy");
     return m_proxy->Initialize(lpDD, dwFlags, lpDDColorTable);
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7Palette::GetCaps(LPDWORD lpdwCaps) {
-    Logger::debug("<<< DDraw7Palette::GetCaps: Proxy");
+  HRESULT STDMETHODCALLTYPE DDrawPalette::GetCaps(LPDWORD lpdwCaps) {
+    Logger::debug("<<< DDrawPalette::GetCaps: Proxy");
     return m_proxy->GetCaps(lpdwCaps);
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7Palette::GetEntries(DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries) {
-    Logger::debug("<<< DDraw7Palette::GetEntries: Proxy");
+  HRESULT STDMETHODCALLTYPE DDrawPalette::GetEntries(DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries) {
+    Logger::debug("<<< DDrawPalette::GetEntries: Proxy");
     return m_proxy->GetEntries(dwFlags, dwBase, dwNumEntries, lpEntries);
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7Palette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries) {
-    Logger::debug("<<< DDraw7Palette::SetEntries: Proxy");
+  HRESULT STDMETHODCALLTYPE DDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries) {
+    Logger::debug("<<< DDrawPalette::SetEntries: Proxy");
     return m_proxy->SetEntries(dwFlags, dwStartingEntry, dwCount, lpEntries);
   }
 
