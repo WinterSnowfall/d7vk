@@ -1,6 +1,6 @@
 #pragma once
 
-#include "d3d7_include.h"
+#include "../ddraw_include.h"
 #include "../util/config/config.h"
 
 namespace dxvk {

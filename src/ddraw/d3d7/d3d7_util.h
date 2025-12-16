@@ -1,6 +1,7 @@
 #pragma once
 
-#include "d3d7_include.h"
+#include "../ddraw_include.h"
+
 #include "d3d7_caps.h"
 
 namespace dxvk {
