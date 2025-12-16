@@ -46,19 +46,16 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // Standard way of retrieving a D3D6 interface
+    // Standard way of retrieving a D3D interface
     if (riid == __uuidof(IDirect3D3)) {
       Logger::warn("DDraw4Interface::QueryInterface: Query for IDirect3D3");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
     // Some games query for legacy ddraw interfaces
-    if (unlikely(riid == __uuidof(IDirectDraw))) {
+    if (unlikely(riid == __uuidof(IDirectDraw)
+              || riid == __uuidof(IDirectDraw2))) {
       Logger::debug("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw");
       return m_origin->QueryInterface(riid, ppvObject);
-    }
-    if (unlikely(riid == __uuidof(IDirectDraw2))) {
-      Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw2");
-      return m_proxy->QueryInterface(riid, ppvObject);
     }
 
     try {

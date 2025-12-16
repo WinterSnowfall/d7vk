@@ -163,9 +163,4 @@ namespace dxvk {
     return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
   }
 
-  HRESULT STDMETHODCALLTYPE DDrawInterface::GetAvailableVidMem(LPDDSCAPS2 lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree) {
-    Logger::debug(">>> DDrawInterface::GetAvailableVidMem: Forwarded");
-    return m_origin->GetAvailableVidMem(lpDDCaps, lpdwTotal, lpdwFree);
-  }
-
 }
