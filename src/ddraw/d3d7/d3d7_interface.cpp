@@ -72,6 +72,13 @@ namespace dxvk {
     InitReturnPtr(ppvObject);
 
     if (likely(m_d3d7Options.legacyQueryInterface)) {
+      // Some games query for legacy d3d interfaces
+      if (unlikely(riid == __uuidof(IDirect3D)
+                || riid == __uuidof(IDirect3D2)
+                || riid == __uuidof(IDirect3D3))) {
+        Logger::warn("D3D7Interface::QueryInterface: Query for legacy IDirect3D");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
       // Some games query for legacy ddraw interfaces
       if (unlikely(riid == __uuidof(IDirectDraw)
                 || riid == __uuidof(IDirectDraw2)
@@ -98,23 +105,29 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // Ideally we should take all the adapters into account, however
-    // D3D7 supports one HAL T&L device, one HAL device, and one
-    // RGB (software emulation) device, all indentified via GUIDs
+    // D3D7 supports one RGB (software emulation) device, one HAL device,
+    // and one HAL T&L device, all indentified via GUIDs
 
     D3DDEVICEDESC7 desc7 = GetBaseD3D7Caps(m_d3d7Options.disableAASupport);
 
-    // Hardware acceleration with T&L (HWVP)
-    desc7.deviceGUID = IID_IDirect3DTnLHalDevice;
-    char deviceNameTNL[100] = "D7VK T&L HAL";
-    char deviceDescTNL[100] = "D7VK T&L HAL";
+    // Software emulation, this is expected to be exposed (SWVP)
+    desc7.deviceGUID = IID_IDirect3DRGBDevice;
+    desc7.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                     & ~D3DDEVCAPS_HWRASTERIZATION
+                     & ~D3DDEVCAPS_DRAWPRIMITIVES2
+                     & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+    char deviceNameRGB[100] = "D7VK RGB";
+    char deviceDescRGB[100] = "D7VK RGB";
 
-    HRESULT hr = cb(&deviceNameTNL[0], &deviceDescTNL[0], &desc7, ctx);
+    HRESULT hr = cb(&deviceNameRGB[0], &deviceDescRGB[0], &desc7, ctx);
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
     // Hardware acceleration (no T&L, SWVP)
     desc7.deviceGUID = IID_IDirect3DHALDevice;
-    desc7.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT;
+    desc7.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
+                     | D3DDEVCAPS_DRAWPRIMITIVES2
+                     | D3DDEVCAPS_DRAWPRIMITIVES2EX;
     char deviceNameHAL[100] = "D7VK HAL";
     char deviceDescHAL[100] = "D7VK HAL";
 
@@ -122,13 +135,13 @@ namespace dxvk {
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
-    // Software emulation, this is expected to be exposed (SWVP)
-    desc7.deviceGUID = IID_IDirect3DRGBDevice;
-    desc7.dwDevCaps &= ~(D3DDEVCAPS_HWTRANSFORMANDLIGHT | D3DDEVCAPS_HWRASTERIZATION | D3DDEVCAPS_DRAWPRIMITIVES2EX);
-    char deviceNameRGB[100] = "D7VK RGB";
-    char deviceDescRGB[100] = "D7VK RGB";
+    // Hardware acceleration with T&L (HWVP)
+    desc7.deviceGUID = IID_IDirect3DTnLHalDevice;
+    desc7.dwDevCaps |= D3DDEVCAPS_HWTRANSFORMANDLIGHT;
+    char deviceNameTNL[100] = "D7VK T&L HAL";
+    char deviceDescTNL[100] = "D7VK T&L HAL";
 
-    cb(&deviceNameRGB[0], &deviceDescRGB[0], &desc7, ctx);
+    cb(&deviceNameTNL[0], &deviceDescTNL[0], &desc7, ctx);
 
     return D3D_OK;
   }
@@ -204,7 +217,7 @@ namespace dxvk {
 
       // Ignore any mode size dimensions when in windowed present mode
       if (exclusiveMode) {
-        ModeSize modeSize = m_parent->GetModeSize();
+        DDrawModeSize modeSize = m_parent->GetModeSize();
         // Wayland apparently needs this for somewhat proper back buffer sizing
         if ((modeSize.width  && modeSize.width  < desc.dwWidth)
          || (modeSize.height && modeSize.height < desc.dwHeight)) {
