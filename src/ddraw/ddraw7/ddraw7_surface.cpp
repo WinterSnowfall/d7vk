@@ -1,8 +1,9 @@
 #include "ddraw7_surface.h"
 
-#include "d3d7_multithread.h"
-#include "d3d7_caps.h"
-#include "ddraw7_gamma.h"
+#include "../ddraw_gamma.h"
+
+#include "../d3d7/d3d7_multithread.h"
+#include "../d3d7/d3d7_caps.h"
 
 namespace dxvk {
 
@@ -84,7 +85,7 @@ namespace dxvk {
       // This can never reasonably fail
       m_proxy->QueryInterface(__uuidof(IDirectDrawGammaControl), &d3d7GammaProxiedVoid);
       Com<IDirectDrawGammaControl> d3d7GammaProxied = static_cast<IDirectDrawGammaControl*>(d3d7GammaProxiedVoid);
-      *ppvObject = ref(new DDraw7GammaControl(std::move(d3d7GammaProxied), this));
+      *ppvObject = ref(new DDrawGammaControl(std::move(d3d7GammaProxied), this));
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {

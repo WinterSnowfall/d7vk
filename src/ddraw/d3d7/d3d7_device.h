@@ -1,12 +1,14 @@
 #pragma once
 
-#include "d3d7_include.h"
+#include "../ddraw_include.h"
+#include "../ddraw_wrapped_object.h"
+
+#include "../d3d9/d3d9_bridge.h"
+
 #include "d3d7_interface.h"
 #include "d3d7_options.h"
 #include "d3d7_multithread.h"
 #include "d3d7_caps.h"
-#include "ddraw7_wrapped_object.h"
-#include "../d3d9/d3d9_bridge.h"
 
 #include <array>
 #include <unordered_map>
