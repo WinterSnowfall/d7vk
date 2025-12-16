@@ -6,6 +6,8 @@
 #include "../d3d7/d3d7_device.h"
 
 #include "../ddraw_surface.h"
+#include "../ddraw2/ddraw2_surface.h"
+#include "../ddraw2/ddraw3_surface.h"
 #include "../ddraw4/ddraw4_surface.h"
 
 #include "ddraw7_format.h"
@@ -305,15 +307,17 @@ namespace dxvk {
     uint32_t         m_surfCount     = 0;
 
     // Legacy objects for QueryInterface calls
-    Com<DDrawSurface,  false> m_ddrawSurf;
-    Com<DDraw4Surface, false> m_ddraw4Surf;
+    Com<DDrawSurface,  false>           m_ddrawSurf;
+    Com<DDraw2Surface, false>           m_ddraw2Surf;
+    Com<DDraw3Surface, false>           m_ddraw3Surf;
+    Com<DDraw4Surface, false>           m_ddraw4Surf;
 
-    DDraw7Surface*   m_parentSurf    = nullptr;
+    DDraw7Surface*                      m_parentSurf    = nullptr;
 
-    D3D7Device*      m_d3d7Device    = nullptr;
+    D3D7Device*                         m_d3d7Device    = nullptr;
 
-    DDSURFACEDESC2   m_desc;
-    d3d9::D3DFORMAT  m_format;
+    DDSURFACEDESC2                      m_desc;
+    d3d9::D3DFORMAT                     m_format;
 
     Com<d3d9::IDirect3DCubeTexture9>    m_cubeMap;
     std::array<IDirectDrawSurface7*, 6> m_cubeMapSurfaces;

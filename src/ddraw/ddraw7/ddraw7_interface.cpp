@@ -80,11 +80,33 @@ namespace dxvk {
       }
       if (unlikely(riid == __uuidof(IDirectDraw2))) {
         Logger::warn("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw2");
-        return m_proxy->QueryInterface(riid, ppvObject);
+
+        if (unlikely(m_ddraw2Intf == nullptr)) {
+          Com<IDirectDraw2> ppvProxyObject;
+          HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+          if (unlikely(FAILED(hr)))
+            return hr;
+
+          m_ddraw2Intf = new DDraw2Interface(std::move(ppvProxyObject), this);
+        }
+
+        *ppvObject = m_ddraw2Intf.ref();
+        return S_OK;
       }
       if (unlikely(riid == __uuidof(IDirectDraw4))) {
         Logger::debug("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw4");
-        return m_proxy->QueryInterface(riid, ppvObject);
+
+        if (unlikely(m_ddraw4Intf == nullptr)) {
+          Com<IDirectDraw4> ppvProxyObject;
+          HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+          if (unlikely(FAILED(hr)))
+            return hr;
+
+          m_ddraw4Intf = new DDraw4Interface(std::move(ppvProxyObject), this);
+        }
+
+        *ppvObject = m_ddraw4Intf.ref();
+        return S_OK;
       }
     }
 
