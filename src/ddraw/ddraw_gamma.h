@@ -1,18 +1,20 @@
 #pragma once
 
-#include "d3d7_include.h"
-#include "d3d7_device.h"
-#include "ddraw7_surface.h"
+#include "ddraw_include.h"
+#include "ddraw_wrapped_object.h"
+
+#include "ddraw7/ddraw7_surface.h"
+#include "d3d7/d3d7_device.h"
 
 namespace dxvk {
 
-  class DDraw7GammaControl final : public DDrawWrappedObject<DDraw7Surface, IDirectDrawGammaControl, IUnknown> {
+  class DDrawGammaControl final : public DDrawWrappedObject<DDraw7Surface, IDirectDrawGammaControl, IUnknown> {
 
   public:
 
-    DDraw7GammaControl(Com<IDirectDrawGammaControl>&& proxyGamma, DDraw7Surface* pParent);
+    DDrawGammaControl(Com<IDirectDrawGammaControl>&& proxyGamma, DDraw7Surface* pParent);
 
-    ~DDraw7GammaControl();
+    ~DDrawGammaControl();
 
     HRESULT STDMETHODCALLTYPE GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
 
