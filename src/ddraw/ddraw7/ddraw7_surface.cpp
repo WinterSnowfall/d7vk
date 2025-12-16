@@ -1250,7 +1250,9 @@ namespace dxvk {
     } else if (IsRenderTarget()) {
       Logger::debug("DDraw7Surface::IntializeD3D9: Initializing render target...");
 
-      // Must be lockable for blitting to work
+      // Must be lockable for blitting to work. Note that
+      // D3D9 does not allow the creation of lockable RTs when
+      // using MSAA, but we have a D3D7 exception in place.
       hr = m_d3d7Device->GetD3D9()->CreateRenderTarget(
         m_desc.dwWidth, m_desc.dwHeight, m_format,
         multiSampleType, usage, TRUE, &surf, nullptr);

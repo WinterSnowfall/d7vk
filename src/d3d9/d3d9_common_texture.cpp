@@ -265,7 +265,7 @@ namespace dxvk {
     }
 
     // A multisample RT/DS must not be lockable
-    if (pDesc->IsLockable && sampleCount > VK_SAMPLE_COUNT_1_BIT)
+    if (!pDevice->IsD3D7Compatible() && pDesc->IsLockable && sampleCount > VK_SAMPLE_COUNT_1_BIT)
         return D3DERR_INVALIDCALL;
 
     return D3D_OK;
