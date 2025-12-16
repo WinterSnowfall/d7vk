@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <d3d.h>
 
-// Declare __uuidof for DDraw/D3D7 interfaces
+// Declare __uuidof for DDraw/D3D interfaces
 #ifdef __CRT_UUID_DECL
 __CRT_UUID_DECL(IDirectDraw,             0x6C14DB80, 0xA733, 0x11CE, 0xA5, 0x21, 0x00, 0x20, 0xAF, 0x0B, 0xE5, 0x60);
 __CRT_UUID_DECL(IDirectDraw2,            0xB3A6F3E0, 0x2B43, 0x11CF, 0xA2, 0xDE, 0x00, 0xAA, 0x00, 0xB9, 0x33, 0x56);
@@ -25,7 +25,13 @@ __CRT_UUID_DECL(IDirectDrawPalette,      0x6C14DB84, 0xA733, 0x11CE, 0xA5, 0x21,
 __CRT_UUID_DECL(IDirectDrawClipper,      0x6C14DB85, 0xA733, 0x11CE, 0xA5, 0x21, 0x00, 0x20, 0xAF, 0x0B, 0xE5, 0x60);
 __CRT_UUID_DECL(IDirectDrawGammaControl, 0x69C11C3E, 0xB46B, 0x11D1, 0xAD, 0x7A, 0x00, 0xC0, 0x4F, 0xC2, 0x9B, 0x4E);
 __CRT_UUID_DECL(IDirectDrawColorControl, 0x4B9F0EE0, 0x0D7E, 0x11D0, 0x9B, 0x06, 0x00, 0xA0, 0xC9, 0x03, 0xA3, 0xB8);
+__CRT_UUID_DECL(IDirect3D,               0x3BBA0080, 0x2421, 0x11CF, 0xA3, 0x1A, 0x00, 0xAA, 0x00, 0xB9, 0x33, 0x56);
+__CRT_UUID_DECL(IDirect3D2,              0x6AAE1EC1, 0x662A, 0x11D0, 0x88, 0x9D, 0x00, 0xAA, 0x00, 0xBB, 0xB7, 0x6A);
+__CRT_UUID_DECL(IDirect3D3,              0xBB223240, 0xE72B, 0x11D0, 0xA9, 0xB4, 0x00, 0xAA, 0x00, 0xC0, 0x99, 0x3E);
 __CRT_UUID_DECL(IDirect3D7,              0xF5049E77, 0x4861, 0x11D2, 0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8);
+__CRT_UUID_DECL(IDirect3DDevice,         0x64108800, 0x957D, 0x11D0, 0x89, 0xAB, 0x00, 0xA0, 0xC9, 0x05, 0x41, 0x29);
+__CRT_UUID_DECL(IDirect3DDevice2,        0x93281501, 0x8CF8, 0x11D0, 0x89, 0xAB, 0x00, 0xA0, 0xC9, 0x05, 0x41, 0x29);
+__CRT_UUID_DECL(IDirect3DDevice3,        0xB0AB3B60, 0x33D7, 0x11D1, 0xA9, 0x81, 0x00, 0xC0, 0x4F, 0xD7, 0xB1, 0x74);
 __CRT_UUID_DECL(IDirect3DDevice7,        0xF5049E79, 0x4861, 0x11D2, 0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8);
 __CRT_UUID_DECL(IDirect3DVertexBuffer7,  0xF5049E7D, 0x4861, 0x11D2, 0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8);
 __CRT_UUID_DECL(IDirect3DTexture2,       0x93281502, 0x8CF8, 0x11D0, 0x89, 0xAB, 0x00, 0xA0, 0xC9, 0x05, 0x41, 0x29);
@@ -43,13 +49,19 @@ interface DECLSPEC_UUID("6C14DB84-A733-11CE-A521-0020AF0BE560") IDirectDrawPalet
 interface DECLSPEC_UUID("6C14DB85-A733-11CE-A521-0020AF0BE560") IDirectDrawClipper;
 interface DECLSPEC_UUID("69C11C3E-B46B-11D1-AD7A-00C04FC29B4E") IDirectDrawGammaControl;
 interface DECLSPEC_UUID("4B9F0EE0-0D7E-11D0-9B06-00A0C903A3B8") IDirectDrawColorControl;
+interface DECLSPEC_UUID("3BBA0080-2421-11CF-A31A-00AA00B93356") IDirect3D;
+interface DECLSPEC_UUID("6AAE1EC1-662A-11D0-889D-00AA00BBB76A") IDirect3D2;
+interface DECLSPEC_UUID("BB223240-E72B-11D0-A9B4-00AA00C0993E") IDirect3D3;
 interface DECLSPEC_UUID("F5049E77-4861-11D2-A407-00A0C90629A8") IDirect3D7;
+interface DECLSPEC_UUID("64108800-957D-11D0-89AB-00A0C9054129") IDirect3DDevice;
+interface DECLSPEC_UUID("93281501-8CF8-11D0-89AB-00A0C9054129") IDirect3DDevice2;
+interface DECLSPEC_UUID("B0AB3B60-33D7-11D1-A981-00C04FD7B174") IDirect3DDevice3;
 interface DECLSPEC_UUID("F5049E79-4861-11D2-A407-00A0C90629A8") IDirect3DDevice7;
 interface DECLSPEC_UUID("F5049E7D-4861-11D2-A407-00A0C90629A8") IDirect3DVertexBuffer7;
 interface DECLSPEC_UUID("93281502-8CF8-11D0-89AB-00A0C9054129") IDirect3DTexture2;
 #endif
 
-// Undefine D3D7 macros
+// Undefine D3D macros
 #undef DIRECT3D_VERSION
 #undef D3D_SDK_VERSION
 
@@ -142,6 +154,11 @@ __CRT_UUID_DECL(d3d9::IDirect3DDevice9Ex,          0xB18B10CE, 0x2649, 0x405A, 0
 #include "../util/util_likely.h"
 #include "../util/util_string.h"
 
-// redefine needed D3D7 macros
+// redefine needed D3D macros
 #undef  D3DFVF_POSITION_MASK
 #define D3DFVF_POSITION_MASK    0x00E
+
+struct DDrawModeSize {
+  DWORD width;
+  DWORD height;
+};

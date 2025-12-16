@@ -5,14 +5,12 @@
 
 #include "../d3d9/d3d9_bridge.h"
 
+#include "../ddraw_interface.h"
+#include "../ddraw4/ddraw4_interface.h"
+
 #include "../d3d7/d3d7_interface.h"
 
 namespace dxvk {
-
-  struct ModeSize {
-    DWORD width  = 0;
-    DWORD height = 0;
-  };
 
   class D3D7Device;
   class DDraw7Surface;
@@ -109,7 +107,7 @@ namespace dxvk {
       return m_cooperativeLevel;
     }
 
-    ModeSize GetModeSize() const {
+    DDrawModeSize GetModeSize() const {
       return m_modeSize;
     }
 
@@ -134,14 +132,18 @@ namespace dxvk {
     static uint32_t             s_intfCount;
     uint32_t                    m_intfCount  = 0;
 
-    Com<D3D7Interface, false>   m_d3d7Intf;
+    // Legacy objects for QueryInterface calls
+    Com<DDrawInterface,  false> m_ddrawIntf;
+    Com<DDraw4Interface, false> m_ddraw4Intf;
+
+    Com<D3D7Interface,   false> m_d3d7Intf;
 
     HWND                        m_hwnd       = nullptr;
 
     bool                        m_waitForVBlank = true;
 
     DWORD                       m_cooperativeLevel = 0;
-    ModeSize                    m_modeSize;
+    DDrawModeSize               m_modeSize = { };
 
     DDraw7Surface*              m_lastDepthStencil = nullptr;
 
