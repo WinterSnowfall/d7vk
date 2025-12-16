@@ -52,10 +52,10 @@ namespace dxvk {
     InitReturnPtr(ppvObject);
 
     if (riid == __uuidof(IDirectDrawGammaControl)) {
-      return m_proxy->QueryInterface(riid, ppvObject);
+      return m_origin->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
-      return m_proxy->QueryInterface(riid, ppvObject);
+      return m_origin->QueryInterface(riid, ppvObject);
     }
 
     try {
