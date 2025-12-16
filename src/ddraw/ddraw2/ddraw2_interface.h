@@ -1,21 +1,21 @@
 #pragma once
 
-#include "ddraw_include.h"
-#include "ddraw_wrapped_object.h"
+#include "../ddraw_include.h"
+#include "../ddraw_wrapped_object.h"
 
 namespace dxvk {
 
   class DDraw7Interface;
 
   /**
-  * \brief Minimal IDirectDraw interface implementation for IDirectDraw7 QueryInterface calls
+  * \brief Minimal IDirectDraw2 interface implementation for IDirectDraw7 QueryInterface calls
   */
-  class DDrawInterface final : public DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown> {
+  class DDraw2Interface final : public DDrawWrappedObject<IUnknown, IDirectDraw2, IUnknown> {
 
   public:
-    DDrawInterface(Com<IDirectDraw>&& proxyIntf, DDraw7Interface* origin);
+    DDraw2Interface(Com<IDirectDraw2>&& proxyIntf, DDraw7Interface* origin);
 
-    ~DDrawInterface();
+    ~DDraw2Interface();
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
@@ -55,9 +55,11 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE SetCooperativeLevel(HWND hWnd, DWORD dwFlags);
 
-    HRESULT STDMETHODCALLTYPE SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP);
+    HRESULT STDMETHODCALLTYPE SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags);
 
     HRESULT STDMETHODCALLTYPE WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent);
+
+    HRESULT STDMETHODCALLTYPE GetAvailableVidMem(LPDDSCAPS lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree);
 
   private:
 
