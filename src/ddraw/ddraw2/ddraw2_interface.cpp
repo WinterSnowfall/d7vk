@@ -1,0 +1,177 @@
+#include "ddraw2_interface.h"
+
+#include "../ddraw7/ddraw7_interface.h"
+
+namespace dxvk {
+
+  uint32_t DDraw2Interface::s_intfCount = 0;
+
+  DDraw2Interface::DDraw2Interface(Com<IDirectDraw2>&& proxyIntf, DDraw7Interface* origin)
+    : DDrawWrappedObject<IUnknown, IDirectDraw2, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
+    , m_origin ( origin ) {
+    m_intfCount = ++s_intfCount;
+
+    Logger::debug(str::format("DDraw2Interface: Created a new interface nr. <<", m_intfCount, ">>"));
+  }
+
+  DDraw2Interface::~DDraw2Interface() {
+    Logger::debug(str::format("DDraw2Interface: Interface nr. <<", m_intfCount, ">> bites the dust"));
+  }
+
+  template<>
+  IUnknown* DDrawWrappedObject<IUnknown, IDirectDraw2, IUnknown>::GetInterface(REFIID riid) {
+    if (riid == __uuidof(IUnknown))
+      return this;
+    if (riid == __uuidof(IDirectDraw2)) {
+      if (unlikely(m_forwardToProxy)) {
+        Logger::debug("DDraw2Interface::QueryInterface: Forwarding interface query to proxied object");
+        // Hack: Return the proxied interface, as some applications need
+        // to use an unwrapped object in relation with external modules
+        void* ppvObject = nullptr;
+        HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
+        if (likely(SUCCEEDED(hr)))
+          return reinterpret_cast<IUnknown*>(ppvObject);
+      }
+      return this;
+    }
+
+    throw DxvkError("DDraw2Interface::QueryInterface: Unknown interface query");
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> DDraw2Interface::QueryInterface");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    // Standard way of retrieving a D3D interface
+    if (riid == __uuidof(IDirect3D2)) {
+      Logger::warn("DDraw2Interface::QueryInterface: Query for IDirect3D3");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    // Some games query for legacy ddraw interfaces
+    if (unlikely(riid == __uuidof(IDirectDraw))) {
+      Logger::debug("DDraw2Interface::QueryInterface: Query for legacy IDirectDraw");
+      return m_origin->QueryInterface(riid, ppvObject);
+    }
+
+    try {
+      *ppvObject = ref(this->GetInterface(riid));
+      return S_OK;
+    } catch (const DxvkError& e) {
+      Logger::warn(e.message());
+      Logger::warn(str::format(riid));
+      return E_NOINTERFACE;
+    }
+  }
+
+  // The documentation states: "The IDirectDraw2::Compact method is not currently implemented."
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::Compact() {
+    Logger::debug(">>> DDraw2Interface::Compact");
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
+    Logger::debug(">>> DDraw2Interface::CreateClipper: Forwarded");
+    return m_origin->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpColorTable, LPDIRECTDRAWPALETTE *lplpDDPalette, IUnknown *pUnkOuter) {
+    Logger::debug(">>> DDraw2Interface::CreatePalette: Forwarded");
+    return m_origin->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE *lplpDDSurface, IUnknown *pUnkOuter) {
+    Logger::warn("<<< DDraw2Interface::CreateSurface: Proxy");
+    return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::DuplicateSurface(LPDIRECTDRAWSURFACE lpDDSurface, LPDIRECTDRAWSURFACE *lplpDupDDSurface) {
+    Logger::warn("<<< DDraw2Interface::DuplicateSurface: Proxy");
+    return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK lpEnumModesCallback) {
+    Logger::debug("<<< DDraw2Interface::EnumDisplayModes: Proxy");
+    return m_proxy->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSD, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback) {
+    Logger::debug("<<< DDraw2Interface::EnumSurfaces: Proxy");
+    return m_proxy->EnumSurfaces(dwFlags, lpDDSD, lpContext, lpEnumSurfacesCallback);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::FlipToGDISurface() {
+    Logger::debug("*** DDraw2Interface::FlipToGDISurface: Ignoring");
+    return DD_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps) {
+    Logger::debug("<<< DDraw2Interface::GetCaps: Proxy");
+    return m_proxy->GetCaps(lpDDDriverCaps, lpDDHELCaps);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetDisplayMode(LPDDSURFACEDESC lpDDSurfaceDesc) {
+    Logger::debug("<<< DDraw2Interface::GetDisplayMode: Proxy");
+    return m_proxy->GetDisplayMode(lpDDSurfaceDesc);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes) {
+    Logger::debug(">>> DDraw2Interface::GetFourCCCodes: Forwarded");
+    return m_origin->GetFourCCCodes(lpNumCodes, lpCodes);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetGDISurface(LPDIRECTDRAWSURFACE *lplpGDIDDSurface) {
+    Logger::debug("<<< DDraw2Interface::GetGDISurface: Proxy");
+    return m_proxy->GetGDISurface(lplpGDIDDSurface);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetMonitorFrequency(LPDWORD lpdwFrequency) {
+    Logger::debug("<<< DDraw2Interface::GetMonitorFrequency: Proxy");
+    return m_proxy->GetMonitorFrequency(lpdwFrequency);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetScanLine(LPDWORD lpdwScanLine) {
+    Logger::debug("<<< DDraw2Interface::GetScanLine: Proxy");
+    return m_proxy->GetScanLine(lpdwScanLine);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetVerticalBlankStatus(LPBOOL lpbIsInVB) {
+    Logger::debug("<<< DDraw2Interface::GetVerticalBlankStatus: Proxy");
+    return m_proxy->GetVerticalBlankStatus(lpbIsInVB);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::Initialize(GUID* lpGUID) {
+    Logger::debug("<<< DDraw2Interface::Initialize: Proxy");
+    return m_proxy->Initialize(lpGUID);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::RestoreDisplayMode() {
+    Logger::debug("<<< DDraw2Interface::RestoreDisplayMode: Proxy");
+    return m_proxy->RestoreDisplayMode();
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
+    Logger::debug(">>> DDraw2Interface::SetCooperativeLevel: Forwarded");
+    return m_origin->SetCooperativeLevel(hWnd, dwFlags);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags) {
+    Logger::debug("<<< DDraw2Interface::SetDisplayMode: Proxy");
+    return m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
+    Logger::debug("<<< DDraw2Interface::WaitForVerticalBlank: Proxy");
+    return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+  }
+
+  HRESULT STDMETHODCALLTYPE DDraw2Interface::GetAvailableVidMem(LPDDSCAPS lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree) {
+    Logger::debug("<<< DDraw2Interface::GetAvailableVidMem: Proxy");
+    //TODO: Convert between LPDDSCAPS <-> LPDDSCAPS2
+    return m_proxy->GetAvailableVidMem(lpDDCaps, lpdwTotal, lpdwFree);
+  }
+
+}
