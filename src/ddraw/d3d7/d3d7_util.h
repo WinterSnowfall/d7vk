@@ -159,7 +159,7 @@ namespace dxvk {
     }
   }
 
-  inline D3DDEVICEDESC7 GetBaseD3D7Caps(bool disableAASupport) {
+  inline D3DDEVICEDESC7 GetD3D7Caps(const IID rclsid, bool disableAASupport) {
     D3DDEVICEDESC7 desc7;
 
     desc7.dwDevCaps = D3DDEVCAPS_CANBLTSYSTONONLOCAL
@@ -168,11 +168,11 @@ namespace dxvk {
                     | D3DDEVCAPS_EXECUTESYSTEMMEMORY
                     | D3DDEVCAPS_EXECUTEVIDEOMEMORY
                     | D3DDEVCAPS_FLOATTLVERTEX
-                    | D3DDEVCAPS_HWRASTERIZATION
-                    | D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                    | D3DDEVCAPS_DRAWPRIMITIVES2
+                 // | D3DDEVCAPS_HWRASTERIZATION
+                 // | D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                 // | D3DDEVCAPS_DRAWPRIMITIVES2
                  // | D3DDEVCAPS_SEPARATETEXTUREMEMORIES
-                    | D3DDEVCAPS_DRAWPRIMITIVES2EX
+                 // | D3DDEVCAPS_DRAWPRIMITIVES2EX
                  // | D3DDEVCAPS_SORTDECREASINGZ
                  // | D3DDEVCAPS_SORTEXACT
                     | D3DDEVCAPS_SORTINCREASINGZ // TODO: Check native
@@ -182,6 +182,18 @@ namespace dxvk {
                     | D3DDEVCAPS_TEXTUREVIDEOMEMORY
                     | D3DDEVCAPS_TLVERTEXSYSTEMMEMORY
                     | D3DDEVCAPS_TLVERTEXVIDEOMEMORY;
+
+    if (rclsid == IID_IDirect3DTnLHalDevice) {
+      desc7.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
+                       | D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                       | D3DDEVCAPS_DRAWPRIMITIVES2
+                       | D3DDEVCAPS_DRAWPRIMITIVES2EX;
+    }
+    else if (rclsid == IID_IDirect3DHALDevice) {
+      desc7.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
+                       | D3DDEVCAPS_DRAWPRIMITIVES2
+                       | D3DDEVCAPS_DRAWPRIMITIVES2EX;
+    }
 
     D3DPRIMCAPS prim;
     prim.dwSize = sizeof(D3DPRIMCAPS);
@@ -380,6 +392,9 @@ namespace dxvk {
     desc7.wMaxSimultaneousTextures = caps7::MaxSimultaneousTextures;
     desc7.dwMaxActiveLights        = caps7::MaxEnabledLights;
     desc7.dvMaxVertexW             = 1e10f;
+
+    desc7.deviceGUID               = rclsid;
+
     desc7.wMaxUserClipPlanes       = caps7::MaxClipPlanes;
     desc7.wMaxVertexBlendMatrices  = 4;
 
