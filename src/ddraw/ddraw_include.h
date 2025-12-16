@@ -154,11 +154,18 @@ __CRT_UUID_DECL(d3d9::IDirect3DDevice9Ex,          0xB18B10CE, 0x2649, 0x405A, 0
 #include "../util/util_likely.h"
 #include "../util/util_string.h"
 
+
 // redefine needed D3D macros
 #undef  D3DFVF_POSITION_MASK
 #define D3DFVF_POSITION_MASK    0x00E
 
-struct DDrawModeSize {
-  DWORD width;
-  DWORD height;
-};
+namespace dxvk {
+  static constexpr IID IID_IDirect3DTnLHalDevice = { 0xF5049E78, 0x4861, 0x11D2, {0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8} };
+  static constexpr IID IID_IDirect3DHALDevice    = { 0x84E63DE0, 0x46AA, 0x11CF, {0x81, 0x6F, 0x00, 0x00, 0xC0, 0x20, 0x15, 0x6E} };
+  static constexpr IID IID_IDirect3DRGBDevice    = { 0xA4665C60, 0x2673, 0x11CF, {0xA3, 0x1A, 0x00, 0xAA, 0x00, 0xB9, 0x33, 0x56} };
+
+  struct DDrawModeSize {
+    DWORD width;
+    DWORD height;
+  };
+}

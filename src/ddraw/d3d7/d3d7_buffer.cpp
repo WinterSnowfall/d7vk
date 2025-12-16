@@ -9,8 +9,6 @@ namespace dxvk {
 
   uint32_t D3D7VertexBuffer::s_buffCount = 0;
 
-  static constexpr IID IID_IDirect3DTnLHalDevice = { 0xf5049e78, 0x4861, 0x11d2, {0xa4, 0x07, 0x00, 0xa0, 0xc9, 0x06, 0x29, 0xa8} };
-
   D3D7VertexBuffer::D3D7VertexBuffer(
             Com<IDirect3DVertexBuffer7>&& buffProxy,
             Com<d3d9::IDirect3DVertexBuffer9>&& pBuffer9,

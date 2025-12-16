@@ -12,10 +12,6 @@ namespace dxvk {
 
   uint32_t D3D7Interface::s_intfCount = 0;
 
-  static constexpr IID IID_IDirect3DRGBDevice    = { 0xa4665c60, 0x2673, 0x11cf, {0xa3, 0x1a, 0x00, 0xaa, 0x00, 0xb9, 0x33, 0x56} };
-  static constexpr IID IID_IDirect3DHALDevice    = { 0x84e63de0, 0x46aa, 0x11cf, {0x81, 0x6f, 0x00, 0x00, 0xc0, 0x20, 0x15, 0x6e} };
-  static constexpr IID IID_IDirect3DTnLHalDevice = { 0xf5049e78, 0x4861, 0x11d2, {0xa4, 0x07, 0x00, 0xa0, 0xc9, 0x06, 0x29, 0xa8} };
-
   D3D7Interface::D3D7Interface(Com<IDirect3D7>&& d3d7IntfProxy, DDraw7Interface* pParent)
     : DDrawWrappedObject<DDraw7Interface, IDirect3D7, d3d9::IDirect3D9>(pParent, std::move(d3d7IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION))) {
     // Get the bridge interface to D3D9.
@@ -108,40 +104,35 @@ namespace dxvk {
     // D3D7 supports one RGB (software emulation) device, one HAL device,
     // and one HAL T&L device, all indentified via GUIDs
 
-    D3DDEVICEDESC7 desc7 = GetBaseD3D7Caps(m_d3d7Options.disableAASupport);
+    // Note: The enumeration order seems to matter for some applications,
+    // such as (The) Summoner, so always report RGB first, then HAL, then T&L HAL
 
     // Software emulation, this is expected to be exposed (SWVP)
-    desc7.deviceGUID = IID_IDirect3DRGBDevice;
-    desc7.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                     & ~D3DDEVCAPS_HWRASTERIZATION
-                     & ~D3DDEVCAPS_DRAWPRIMITIVES2
-                     & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
-    char deviceNameRGB[100] = "D7VK RGB";
+    D3DDEVICEDESC7 desc7RGB = GetD3D7Caps(IID_IDirect3DRGBDevice, m_d3d7Options.disableAASupport);
     char deviceDescRGB[100] = "D7VK RGB";
+    char deviceNameRGB[100] = "D7VK RGB";
 
-    HRESULT hr = cb(&deviceNameRGB[0], &deviceDescRGB[0], &desc7, ctx);
+    HRESULT hr = cb(&deviceDescRGB[0], &deviceNameRGB[0], &desc7RGB, ctx);
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
     // Hardware acceleration (no T&L, SWVP)
-    desc7.deviceGUID = IID_IDirect3DHALDevice;
-    desc7.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
-                     | D3DDEVCAPS_DRAWPRIMITIVES2
-                     | D3DDEVCAPS_DRAWPRIMITIVES2EX;
-    char deviceNameHAL[100] = "D7VK HAL";
+    D3DDEVICEDESC7 desc7HAL = GetD3D7Caps(IID_IDirect3DHALDevice, m_d3d7Options.disableAASupport);
     char deviceDescHAL[100] = "D7VK HAL";
+    char deviceNameHAL[100] = "D7VK HAL";
 
-    hr = cb(&deviceNameHAL[0], &deviceDescHAL[0], &desc7, ctx);
+    hr = cb(&deviceDescHAL[0], &deviceNameHAL[0], &desc7HAL, ctx);
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
     // Hardware acceleration with T&L (HWVP)
-    desc7.deviceGUID = IID_IDirect3DTnLHalDevice;
-    desc7.dwDevCaps |= D3DDEVCAPS_HWTRANSFORMANDLIGHT;
-    char deviceNameTNL[100] = "D7VK T&L HAL";
+    D3DDEVICEDESC7 desc7TNL = GetD3D7Caps(IID_IDirect3DTnLHalDevice, m_d3d7Options.disableAASupport);
     char deviceDescTNL[100] = "D7VK T&L HAL";
+    char deviceNameTNL[100] = "D7VK T&L HAL";
 
-    cb(&deviceNameTNL[0], &deviceDescTNL[0], &desc7, ctx);
+    hr = cb(&deviceDescTNL[0], &deviceNameTNL[0], &desc7TNL, ctx);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;
 
     return D3D_OK;
   }
@@ -162,10 +153,14 @@ namespace dxvk {
     DWORD vertexProcessing = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 
     if (rclsid == IID_IDirect3DTnLHalDevice) {
-      Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DTnLHalDevice device");
-      // Do not use exclusive HWVP, since some games call ProcessVertices
-      // even in situations where they are expliclity using HW T&L
-      vertexProcessing = D3DCREATE_MIXED_VERTEXPROCESSING;
+      if (likely(!m_d3d7Options.forceSWVPDevice)) {
+        Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DTnLHalDevice device");
+        // Do not use exclusive HWVP, since some games call ProcessVertices
+        // even in situations where they are expliclity using HW T&L
+        vertexProcessing = D3DCREATE_MIXED_VERTEXPROCESSING;
+      } else {
+        Logger::info("D3D7Interface::CreateDevice: Using SWVP for a IID_IDirect3DTnLHalDevice device");
+      }
     } else if (rclsid == IID_IDirect3DHALDevice) {
       Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
     } else if (rclsid == IID_IDirect3DRGBDevice) {
@@ -314,9 +309,7 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC7 desc7 = GetBaseD3D7Caps(m_d3d7Options.disableAASupport);
-    // Store the GUID of the created device
-    desc7.deviceGUID = rclsid;
+    D3DDEVICEDESC7 desc7 = GetD3D7Caps(rclsid, m_d3d7Options.disableAASupport);
 
     try{
       Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7, params,
@@ -345,13 +338,6 @@ namespace dxvk {
 
     if (unlikely(desc->dwSize != sizeof(D3DVERTEXBUFFERDESC)))
       return DDERR_INVALIDPARAMS;
-
-    // TODO: A wine test relies on this not being enforced.
-    // Check native to see if there's any truth to the claim.
-    if (unlikely(desc->dwNumVertices > D3DMAXNUMVERTICES)) {
-      Logger::err("D3D7Interface::CreateVertexBuffer: dwNumVertices exceeds D3DMAXNUMVERTICES");
-      return DDERR_INVALIDPARAMS;
-    }
 
     Com<IDirect3DVertexBuffer7> vertexBuffer7;
     // We don't really need a proxy buffer any longer
