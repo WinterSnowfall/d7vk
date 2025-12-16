@@ -13,6 +13,9 @@ namespace dxvk {
 
   struct D3D7Options {
 
+    /// Creates a SWVP D3D9 device even when a T&L HAL (HWVP) device is requested
+    bool forceSWVPDevice;
+
     /// Fully disables support for AA, lowering memory bandwidth pressure
     bool disableAASupport;
 
@@ -60,6 +63,7 @@ namespace dxvk {
     D3D7Options() {}
 
     D3D7Options(const Config& config) {
+      this->forceSWVPDevice       = config.getOption<bool>   ("d3d7.forceSWVPDevice",       false);
       this->disableAASupport      = config.getOption<bool>   ("d3d7.disableAASupport",      false);
       this->forceEnableAA         = config.getOption<bool>   ("d3d7.forceEnableAA",         false);
       this->forceProxiedPresent   = config.getOption<bool>   ("d3d7.forceProxiedPresent",   false);
