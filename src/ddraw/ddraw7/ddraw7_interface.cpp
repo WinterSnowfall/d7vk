@@ -63,10 +63,27 @@ namespace dxvk {
     }
     if (likely(m_d3d7Intf->GetOptions()->legacyQueryInterface)) {
       // Some games query for legacy ddraw interfaces
-      if (unlikely(riid == __uuidof(IDirectDraw)
-                || riid == __uuidof(IDirectDraw2)
-                || riid == __uuidof(IDirectDraw4))) {
-        Logger::warn("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw");
+      if (unlikely(riid == __uuidof(IDirectDraw))) {
+        Logger::debug("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw");
+
+        if (unlikely(m_ddrawIntf == nullptr)) {
+          Com<IDirectDraw> ppvProxyObject;
+          HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+          if (unlikely(FAILED(hr)))
+            return hr;
+
+          m_ddrawIntf = new DDrawInterface(std::move(ppvProxyObject), this);
+        }
+
+        *ppvObject = m_ddrawIntf.ref();
+        return S_OK;
+      }
+      if (unlikely(riid == __uuidof(IDirectDraw2))) {
+        Logger::warn("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw2");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+      if (unlikely(riid == __uuidof(IDirectDraw4))) {
+        Logger::debug("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw4");
         return m_proxy->QueryInterface(riid, ppvObject);
       }
     }
