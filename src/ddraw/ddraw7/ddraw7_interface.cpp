@@ -1,6 +1,7 @@
 #include "ddraw7_interface.h"
 
-#include "d3d7_device.h"
+#include "../d3d7/d3d7_device.h"
+
 #include "ddraw7_surface.h"
 
 #include <algorithm>
@@ -101,7 +102,7 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDClipper = ref(new DDraw7Clipper(std::move(lplpDDClipperProxy), this));
+      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this));
     } else {
       Logger::warn("DDraw7Interface::CreateClipper: Failed to create proxy clipper");
       return hr;
@@ -125,7 +126,7 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreatePalette(dwFlags, lpColorTable, &lplpDDPaletteProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDPalette = ref(new DDraw7Palette(std::move(lplpDDPaletteProxy), this));
+      *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), this));
     } else {
       Logger::warn("DDraw7Interface::CreatePalette: Failed to create proxy palette");
       return hr;

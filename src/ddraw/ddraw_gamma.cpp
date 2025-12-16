@@ -1,14 +1,14 @@
-#include "ddraw7_gamma.h"
+#include "ddraw_gamma.h"
 
 namespace dxvk {
 
-  DDraw7GammaControl::DDraw7GammaControl(Com<IDirectDrawGammaControl>&& proxyGamma, DDraw7Surface* pParent)
+  DDrawGammaControl::DDrawGammaControl(Com<IDirectDrawGammaControl>&& proxyGamma, DDraw7Surface* pParent)
     : DDrawWrappedObject<DDraw7Surface, IDirectDrawGammaControl, IUnknown>(pParent, std::move(proxyGamma), nullptr) {
-    Logger::debug("DDraw7GammaControl: Created a new gamma control interface");
+    Logger::debug("DDrawGammaControl: Created a new gamma control interface");
   }
 
-  DDraw7GammaControl::~DDraw7GammaControl() {
-    Logger::debug("DDraw7GammaControl: A gamma control interface bites the dust");
+  DDrawGammaControl::~DDrawGammaControl() {
+    Logger::debug("DDrawGammaControl: A gamma control interface bites the dust");
   }
 
   template<>
@@ -32,8 +32,8 @@ namespace dxvk {
     return m_parent->GetInterface(riid);
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7GammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData) {
-    Logger::debug(">>> DDraw7GammaControl::GetGammaRamp");
+  HRESULT STDMETHODCALLTYPE DDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData) {
+    Logger::debug(">>> DDrawGammaControl::GetGammaRamp");
 
     if (unlikely(lpRampData == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -41,21 +41,21 @@ namespace dxvk {
     RefreshD3D7Device();
     // For proxied pesentation we need to rely on ddraw to handle gamma
     if (likely(m_d3d7Device != nullptr && !m_parent->GetOptions()->forceProxiedPresent)) {
-      Logger::debug("DDraw7GammaControl::GetGammaRamp: Getting gamma ramp via D3D9");
+      Logger::debug("DDrawGammaControl::GetGammaRamp: Getting gamma ramp via D3D9");
       d3d9::D3DGAMMARAMP rampData = { };
       m_d3d7Device->GetD3D9()->GetGammaRamp(0, &rampData);
       // Both gamma structs are identical in content/size
       memcpy(static_cast<void*>(lpRampData), static_cast<const void*>(&rampData), sizeof(DDGAMMARAMP));
     } else {
-      Logger::debug("DDraw7GammaControl::GetGammaRamp: Getting gamma ramp via DDraw");
+      Logger::debug("DDrawGammaControl::GetGammaRamp: Getting gamma ramp via DDraw");
       return m_proxy->GetGammaRamp(dwFlags, lpRampData);
     }
 
     return DD_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE DDraw7GammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData) {
-    Logger::debug(">>> DDraw7GammaControl::SetGammaRamp");
+  HRESULT STDMETHODCALLTYPE DDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData) {
+    Logger::debug(">>> DDrawGammaControl::SetGammaRamp");
 
     if (unlikely(lpRampData == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -64,11 +64,11 @@ namespace dxvk {
       RefreshD3D7Device();
       // For proxied pesentation we need to rely on ddraw to handle gamma
       if (likely(m_d3d7Device != nullptr && !m_parent->GetOptions()->forceProxiedPresent)) {
-        Logger::debug("DDraw7GammaControl::SetGammaRamp: Setting gamma ramp via D3D9");
+        Logger::debug("DDrawGammaControl::SetGammaRamp: Setting gamma ramp via D3D9");
         m_d3d7Device->GetD3D9()->SetGammaRamp(0, D3DSGR_NO_CALIBRATION,
                                               reinterpret_cast<const d3d9::D3DGAMMARAMP*>(lpRampData));
       } else {
-        Logger::debug("DDraw7GammaControl::SetGammaRamp: Setting gamma ramp via DDraw");
+        Logger::debug("DDrawGammaControl::SetGammaRamp: Setting gamma ramp via DDraw");
         return m_proxy->SetGammaRamp(dwFlags, lpRampData);
       }
     }

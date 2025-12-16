@@ -34,11 +34,11 @@ if get_option('enable_d3d8')
   subdir('d3d8')
 endif
 
-if get_option('enable_d3d7')
-  if not get_option('enable_d3d9')
-    error('D3D9 is required for D3D7.')
+if get_option('enable_ddraw')
+  if not get_option('enable_ddraw')
+    error('D3D9 is required for DDRAW.')
   endif
-  subdir('d3d7')
+  subdir('ddraw')
 endif
 
 # Nothing selected
