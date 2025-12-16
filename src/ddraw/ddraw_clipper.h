@@ -1,20 +1,21 @@
 #pragma once
 
-#include "d3d7_include.h"
-#include "ddraw7_interface.h"
-#include "ddraw7_wrapped_object.h"
+#include "ddraw_include.h"
+#include "ddraw_wrapped_object.h"
+
+#include "ddraw7/ddraw7_interface.h"
 
 namespace dxvk {
 
-  class DDraw7Clipper final : public DDrawWrappedObject<DDraw7Interface, IDirectDrawClipper, IUnknown> {
+  class DDrawClipper final : public DDrawWrappedObject<DDraw7Interface, IDirectDrawClipper, IUnknown> {
 
   public:
 
-    DDraw7Clipper(
+    DDrawClipper(
           Com<IDirectDrawClipper>&& clipperProxy,
           DDraw7Interface* pParent);
 
-    ~DDraw7Clipper();
+    ~DDrawClipper();
 
     HRESULT STDMETHODCALLTYPE Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags);
 

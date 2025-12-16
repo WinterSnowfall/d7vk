@@ -1,11 +1,12 @@
 #pragma once
 
-#include "d3d7_include.h"
-#include "d3d7_caps.h"
-#include "ddraw7_surface.h"
+#include "../ddraw_include.h"
+#include "../ddraw7/ddraw7_surface.h"
 
 #include "../util/util_bit.h"
 #include "../util/util_flags.h"
+
+#include "d3d7_caps.h"
 
 #include <array>
 

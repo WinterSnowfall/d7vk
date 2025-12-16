@@ -2,14 +2,14 @@ ddraw_res = wrc_generator.process('version.rc')
 
 ddraw_src = [
   'ddraw_main.cpp',
-  'ddraw7_interface.cpp',
-  'ddraw7_surface.cpp',
-  'ddraw7_gamma.cpp',
-  'd3d7_buffer.cpp',
-  'd3d7_interface.cpp',
-  'd3d7_device.cpp',
-  'd3d7_state_block.cpp',
-  'd3d7_multithread.cpp'
+  'ddraw_gamma.cpp',
+  'ddraw7/ddraw7_interface.cpp',
+  'ddraw7/ddraw7_surface.cpp',
+  'd3d7/d3d7_buffer.cpp',
+  'd3d7/d3d7_interface.cpp',
+  'd3d7/d3d7_device.cpp',
+  'd3d7/d3d7_state_block.cpp',
+  'd3d7/d3d7_multithread.cpp'
 ]
 
 ddraw_ld_args      = []

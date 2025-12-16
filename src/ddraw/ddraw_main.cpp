@@ -1,6 +1,6 @@
-#include "d3d7_include.h"
+#include "ddraw_include.h"
 
-#include "ddraw7_interface.h"
+#include "ddraw7/ddraw7_interface.h"
 
 namespace dxvk {
 

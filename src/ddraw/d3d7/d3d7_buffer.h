@@ -1,9 +1,10 @@
 #pragma once
 
-#include "d3d7_include.h"
+#include "../ddraw_include.h"
+#include "../ddraw_wrapped_object.h"
+
 #include "d3d7_interface.h"
 #include "d3d7_device.h"
-#include "ddraw7_wrapped_object.h"
 
 namespace dxvk {
 
