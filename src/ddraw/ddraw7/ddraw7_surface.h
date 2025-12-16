@@ -1,10 +1,12 @@
 #pragma once
 
-#include "d3d7_include.h"
-#include "d3d7_device.h"
+#include "../ddraw_include.h"
+#include "../ddraw_wrapped_object.h"
+
+#include "../d3d7/d3d7_device.h"
+
 #include "ddraw7_format.h"
 #include "ddraw7_interface.h"
-#include "ddraw7_wrapped_object.h"
 
 #include <array>
 #include <unordered_map>
