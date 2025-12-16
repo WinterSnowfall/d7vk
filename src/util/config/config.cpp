@@ -1586,6 +1586,7 @@ namespace dxvk {
     /* Soulbringer - Uses legacy ddraw interfaces */
     { R"(\\SoulbringeVC(noeax)?\.exe$)", {{
       { "d3d7.forceProxiedPresent",         "True" },
+      { "d3d7.forceSWVPDevice",             "True" },
     }} },
 
   };
