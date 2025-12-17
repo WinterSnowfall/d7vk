@@ -11,11 +11,11 @@ namespace dxvk {
     , m_origin ( origin ) {
     m_intfCount = ++s_intfCount;
 
-    Logger::debug(str::format("DDraw4Interface: Created a new interface nr. <<", m_intfCount, ">>"));
+    Logger::debug(str::format("DDraw4Interface: Created a new interface nr. <<4-", m_intfCount, ">>"));
   }
 
   DDraw4Interface::~DDraw4Interface() {
-    Logger::debug(str::format("DDraw4Interface: Interface nr. <<", m_intfCount, ">> bites the dust"));
+    Logger::debug(str::format("DDraw4Interface: Interface nr. <<4-", m_intfCount, ">> bites the dust"));
   }
 
   template<>
@@ -54,8 +54,13 @@ namespace dxvk {
     // Some games query for legacy ddraw interfaces
     if (unlikely(riid == __uuidof(IDirectDraw)
               || riid == __uuidof(IDirectDraw2))) {
-      Logger::debug("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw");
-      return m_origin->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw");
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
 
     try {
@@ -75,13 +80,23 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
-    Logger::debug(">>> DDraw4Interface::CreateClipper: Forwarded");
-    return m_origin->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw4Interface::CreateClipper: Forwarded");
+      return m_origin->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
+    }
+
+    Logger::debug("<<< DDraw4Interface::CreateClipper: Proxy");
+    return m_proxy->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpColorTable, LPDIRECTDRAWPALETTE *lplpDDPalette, IUnknown *pUnkOuter) {
-    Logger::debug(">>> DDraw4Interface::CreatePalette: Forwarded");
-    return m_origin->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw4Interface::CreatePalette: Forwarded");
+      return m_origin->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
+    }
+
+    Logger::debug("<<< DDraw4Interface::CreatePalette: Proxy");
+    return m_proxy->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPDIRECTDRAWSURFACE4 *lplpDDSurface, IUnknown *pUnkOuter) {
@@ -120,8 +135,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes) {
-    Logger::debug(">>> DDraw4Interface::GetFourCCCodes: Forwarded");
-    return m_origin->GetFourCCCodes(lpNumCodes, lpCodes);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw4Interface::GetFourCCCodes: Forwarded");
+      return m_origin->GetFourCCCodes(lpNumCodes, lpCodes);
+    }
+
+    Logger::debug("<<< DDraw4Interface::GetFourCCCodes: Proxy");
+    return m_proxy->GetFourCCCodes(lpNumCodes, lpCodes);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::GetGDISurface(LPDIRECTDRAWSURFACE4 *lplpGDIDDSurface) {
@@ -155,8 +175,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
-    Logger::debug(">>> DDraw4Interface::SetCooperativeLevel: Forwarded");
-    return m_origin->SetCooperativeLevel(hWnd, dwFlags);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw4Interface::SetCooperativeLevel: Forwarded");
+      return m_origin->SetCooperativeLevel(hWnd, dwFlags);
+    }
+
+    Logger::debug("<<< DDraw4Interface::SetCooperativeLevel: Proxy");
+    return m_proxy->SetCooperativeLevel(hWnd, dwFlags);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags) {
@@ -170,8 +195,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::GetAvailableVidMem(LPDDSCAPS2 lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree) {
-    Logger::debug(">>> DDraw4Interface::GetAvailableVidMem: Forwarded");
-    return m_origin->GetAvailableVidMem(lpDDCaps, lpdwTotal, lpdwFree);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw4Interface::GetAvailableVidMem: Forwarded");
+      return m_origin->GetAvailableVidMem(lpDDCaps, lpdwTotal, lpdwFree);
+    }
+
+    Logger::debug("<<< DDraw4Interface::GetAvailableVidMem: Proxy");
+    return m_proxy->GetAvailableVidMem(lpDDCaps, lpdwTotal, lpdwFree);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE4 *pSurf) {
