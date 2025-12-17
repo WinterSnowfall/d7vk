@@ -1,5 +1,6 @@
 #include "ddraw_include.h"
 
+#include "ddraw_interface.h"
 #include "ddraw7/ddraw7_interface.h"
 
 namespace dxvk {
@@ -71,6 +72,52 @@ namespace dxvk {
     return DD_OK;
   }
 
+  HRESULT CreateDirectDraw(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuter) {
+    Logger::debug(">>> DirectDrawCreate");
+
+    typedef HRESULT (__stdcall *DirectDrawCreate_t)(GUID *lpGUID, LPVOID *lplpDD, IUnknown *pUnkOuter);
+    static DirectDrawCreate_t ProxiedDirectDrawCreate = nullptr;
+
+    if (unlikely(lplpDD == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDD);
+
+    try {
+      if (unlikely(ProxiedDirectDrawCreate == nullptr)) {
+        HMODULE hDDraw = GetProxiedDDrawModule();
+
+        if (unlikely(!hDDraw)) {
+          Logger::err("CreateDirectDrawEx: Failed to load proxied ddraw.dll");
+          return DDERR_GENERIC;
+        }
+
+        ProxiedDirectDrawCreate = reinterpret_cast<DirectDrawCreate_t>(::GetProcAddress(hDDraw, "DirectDrawCreate"));
+
+        if (unlikely(ProxiedDirectDrawCreate == nullptr)) {
+          Logger::err("CreateDirectDraw: Failed GetProcAddress");
+          return DDERR_GENERIC;
+        }
+      }
+
+      LPVOID lplpDDProxied = nullptr;
+      HRESULT hr = ProxiedDirectDrawCreate(lpGUID, &lplpDDProxied, pUnkOuter);
+
+      if (unlikely(FAILED(hr))) {
+        Logger::warn("CreateDirectDraw: Failed call to proxied interface");
+        return hr;
+      }
+
+      Com<IDirectDraw> DDrawIntfProxied = static_cast<IDirectDraw*>(lplpDDProxied);
+      *lplpDD = ref(new DDrawInterface(std::move(DDrawIntfProxied), nullptr));
+    } catch (const DxvkError& e) {
+      Logger::err(e.message());
+      return DDERR_GENERIC;
+    }
+
+    return DD_OK;
+  }
+
 }
 
 extern "C" {
@@ -132,36 +179,7 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawCreate(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuter) {
-    dxvk::Logger::debug("<<< DirectDrawCreate: Proxy");
-
-    typedef HRESULT (__stdcall *DirectDrawCreate_t)(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuter);
-    static DirectDrawCreate_t ProxiedDirectDrawCreate = nullptr;
-
-    if (unlikely(ProxiedDirectDrawCreate == nullptr)) {
-      dxvk::Logger::warn("DirectDrawCreate is a forwarded legacy interface only");
-
-      HMODULE hDDraw = dxvk::GetProxiedDDrawModule();
-
-      if (unlikely(hDDraw == nullptr)) {
-        dxvk::Logger::err("DirectDrawCreate: Failed to load proxied ddraw.dll");
-        return DDERR_GENERIC;
-      }
-
-      ProxiedDirectDrawCreate = reinterpret_cast<DirectDrawCreate_t>(GetProcAddress(hDDraw, "DirectDrawCreate"));
-
-      if (unlikely(ProxiedDirectDrawCreate == nullptr)) {
-        dxvk::Logger::err("DirectDrawCreate: Failed GetProcAddress");
-        return DDERR_GENERIC;
-      }
-    }
-
-    HRESULT hr = ProxiedDirectDrawCreate(lpGUID, lplpDD, pUnkOuter);
-
-    if (unlikely(FAILED(hr))) {
-      dxvk::Logger::warn("DirectDrawCreate: Failed call to proxied interface");
-    }
-
-    return hr;
+    return dxvk::CreateDirectDraw(lpGUID, lplpDD, pUnkOuter);
   }
 
   HRESULT WINAPI DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {

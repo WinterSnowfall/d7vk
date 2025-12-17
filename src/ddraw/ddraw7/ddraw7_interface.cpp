@@ -21,11 +21,11 @@ namespace dxvk {
 
     m_intfCount = ++s_intfCount;
 
-    Logger::debug(str::format("DDraw7Interface: Created a new interface nr. <<", m_intfCount, ">>"));
+    Logger::debug(str::format("DDraw7Interface: Created a new interface nr. <<7-", m_intfCount, ">>"));
   }
 
   DDraw7Interface::~DDraw7Interface() {
-    Logger::debug(str::format("DDraw7Interface: Interface nr. <<", m_intfCount, ">> bites the dust"));
+    Logger::debug(str::format("DDraw7Interface: Interface nr. <<7-", m_intfCount, ">> bites the dust"));
   }
 
   template<>
