@@ -24,10 +24,12 @@ namespace dxvk {
     m_d3d7Options = D3D7Options(*m_bridge->GetConfig());
 
     m_intfCount = ++s_intfCount;
+
+    Logger::debug(str::format("D3D7Interface: Created a new interface nr. ((7-", m_intfCount, "))"));
   }
 
   D3D7Interface::~D3D7Interface() {
-    Logger::debug(str::format("D3D7Interface: Interface nr. ((", m_intfCount, ")) bites the dust"));
+    Logger::debug(str::format("D3D7Interface: Interface nr. ((7-", m_intfCount, ")) bites the dust"));
   }
 
   // Interlocked refcount with the parent IDirectDraw7

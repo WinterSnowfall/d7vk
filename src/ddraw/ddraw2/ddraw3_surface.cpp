@@ -15,11 +15,11 @@ namespace dxvk {
     , m_origin ( origin ) {
     m_surfCount = ++s_surfCount;
 
-    Logger::debug(str::format("DDraw3Surface: Created a new surface nr. [[", m_surfCount, "]]:"));
+    Logger::debug(str::format("DDraw3Surface: Created a new surface nr. [[3-", m_surfCount, "]]"));
   }
 
   DDraw3Surface::~DDraw3Surface() {
-    Logger::debug(str::format("DDraw3Surface: Surface nr. [[", m_surfCount, "]] bites the dust"));
+    Logger::debug(str::format("DDraw3Surface: Surface nr. [[3-", m_surfCount, "]] bites the dust"));
   }
 
   template<>
@@ -39,8 +39,7 @@ namespace dxvk {
       return this;
     }
 
-    Logger::debug("DDraw3Surface::QueryInterface: Forwarding interface query to parent");
-    return m_parent->GetInterface(riid);
+    throw DxvkError("DDraw3Surface::QueryInterface: Unknown interface query");
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::QueryInterface(REFIID riid, void** ppvObject) {

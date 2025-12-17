@@ -55,7 +55,7 @@ namespace dxvk {
 
     m_deviceCount = ++s_deviceCount;
 
-    Logger::debug(str::format("D3D7Device: Created a new device nr. ((", m_deviceCount, "))"));
+    Logger::debug(str::format("D3D7Device: Created a new device nr. ((7-", m_deviceCount, "))"));
   }
 
   D3D7Device::~D3D7Device() {
@@ -73,7 +73,7 @@ namespace dxvk {
     if (m_parent->GetLastUsedDevice() == this)
       m_parent->SetLastUsedDevice(nullptr);
 
-    Logger::debug(str::format("D3D7Device: Device nr. ((", m_deviceCount, ")) bites the dust"));
+    Logger::debug(str::format("D3D7Device: Device nr. ((7-", m_deviceCount, ")) bites the dust"));
 
     m_parent->Release();
   }

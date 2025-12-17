@@ -44,7 +44,7 @@ namespace dxvk {
   DDraw7Surface::~DDraw7Surface() {
     m_parent->RemoveWrappedSurface(this);
 
-    Logger::debug(str::format("DDraw7Surface: Surface nr. [[", m_surfCount, "]] bites the dust"));
+    Logger::debug(str::format("DDraw7Surface: Surface nr. [[7-", m_surfCount, "]] bites the dust"));
 
     if (likely(m_isChildObject))
       m_parent->Release();
@@ -914,7 +914,7 @@ namespace dxvk {
   }
 
   inline HRESULT DDraw7Surface::IntializeD3D9(const bool initRT) {
-    Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Initializing nr. [[", m_surfCount, "]]"));
+    Logger::debug(str::format("DDraw7Surface::IntializeD3D9: Initializing nr. [[7-", m_surfCount, "]]"));
 
     if (unlikely(m_d3d7Device == nullptr)) {
       Logger::debug("DDraw7Surface::IntializeD3D9: Null device, can't initalize right now");
@@ -1292,7 +1292,7 @@ namespace dxvk {
   }
 
   inline HRESULT DDraw7Surface::UploadSurfaceData() {
-    Logger::debug(str::format("DDraw7Surface::UploadSurfaceData: Uploading nr. [[", m_surfCount, "]]"));
+    Logger::debug(str::format("DDraw7Surface::UploadSurfaceData: Uploading nr. [[7-", m_surfCount, "]]"));
 
     if (m_d3d7Device->HasDrawn() && (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable())) {
       Logger::debug("DDraw7Surface::UploadSurfaceData: Skipping upload");
