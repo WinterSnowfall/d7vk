@@ -288,7 +288,7 @@ namespace dxvk {
 
       const char* attached = IsAttached() ? "yes" : "no";
 
-      Logger::debug(str::format("DDraw7Surface: Created a new surface nr. [[", m_surfCount, "]]:"));
+      Logger::debug(str::format("DDraw7Surface: Created a new surface nr. [[7-", m_surfCount, "]]:"));
       Logger::debug(str::format("   Type:       ", type));
       Logger::debug(str::format("   Dimensions: ", m_desc.dwWidth, "x", m_desc.dwHeight));
       Logger::debug(str::format("   Format:     ", m_format));
@@ -312,9 +312,9 @@ namespace dxvk {
     Com<DDraw3Surface, false>           m_ddraw3Surf;
     Com<DDraw4Surface, false>           m_ddraw4Surf;
 
-    DDraw7Surface*                      m_parentSurf    = nullptr;
+    DDraw7Surface*                      m_parentSurf = nullptr;
 
-    D3D7Device*                         m_d3d7Device    = nullptr;
+    D3D7Device*                         m_d3d7Device = nullptr;
 
     DDSURFACEDESC2                      m_desc;
     d3d9::D3DFORMAT                     m_format;

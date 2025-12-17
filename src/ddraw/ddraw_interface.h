@@ -3,6 +3,9 @@
 #include "ddraw_include.h"
 #include "ddraw_wrapped_object.h"
 
+#include "ddraw2/ddraw2_interface.h"
+#include "ddraw4/ddraw4_interface.h"
+
 namespace dxvk {
 
   class DDraw7Interface;
@@ -61,10 +64,17 @@ namespace dxvk {
 
   private:
 
+    inline bool IsLegacyInterface() {
+      return m_origin != nullptr;
+    }
+
     static uint32_t             s_intfCount;
     uint32_t                    m_intfCount  = 0;
 
     DDraw7Interface*            m_origin = nullptr;
+
+    Com<DDraw2Interface, false> m_ddraw2Intf;
+    Com<DDraw4Interface, false> m_ddraw4Intf;
 
   };
 
