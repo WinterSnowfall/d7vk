@@ -15,8 +15,8 @@ namespace dxvk {
 
     DDrawWrappedObject(Parent* parent, Com<DDraw>&& proxiedIntf, Com<D3D9>&& object)
       : m_parent ( parent )
-      , m_d3d9  ( std::move(object) )
-      , m_proxy ( std::move(proxiedIntf) ) {
+      , m_proxy ( std::move(proxiedIntf) )
+      , m_d3d9  ( std::move(object) ) {
     }
 
     Parent* GetParent() const {
@@ -82,8 +82,8 @@ namespace dxvk {
 
     Parent*    m_parent = nullptr;
 
-    Com<D3D9>  m_d3d9;
     Com<DDraw> m_proxy;
+    Com<D3D9>  m_d3d9;
 
   };
 
