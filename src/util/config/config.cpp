@@ -1588,6 +1588,11 @@ namespace dxvk {
       { "d3d7.forceProxiedPresent",         "True" },
       { "d3d7.forceSWVPDevice",             "True" },
     }} },
+    /* Star Trek: Deep Space Nine - The Fallen    *
+     * Fixes missing mip map uploads              */
+    { R"(\\DS9\.exe$)", {{
+      { "d3d7.autoGenMipMaps",              "True" },
+    }} },
 
   };
 
