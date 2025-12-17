@@ -11,11 +11,11 @@ namespace dxvk {
     , m_origin ( origin ) {
     m_intfCount = ++s_intfCount;
 
-    Logger::debug(str::format("DDrawInterface: Created a new interface nr. <<", m_intfCount, ">>"));
+    Logger::debug(str::format("DDrawInterface: Created a new interface nr. <<1-", m_intfCount, ">>"));
   }
 
   DDrawInterface::~DDrawInterface() {
-    Logger::debug(str::format("DDrawInterface: Interface nr. <<", m_intfCount, ">> bites the dust"));
+    Logger::debug(str::format("DDrawInterface: Interface nr. <<1-", m_intfCount, ">> bites the dust"));
   }
 
   template<>
@@ -47,9 +47,67 @@ namespace dxvk {
     InitReturnPtr(ppvObject);
 
     // Standard way of retrieving a D3D interface
-    if (riid == __uuidof(IDirect3D)) {
+    if (riid == __uuidof(IDirect3D3)) {
+      Logger::warn("DDrawInterface::QueryInterface: Query for IDirect3D4");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    // Legacy way of retrieving a D3D7 interface
+    if (riid == __uuidof(IDirect3D7)) {
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDrawInterface::QueryInterface: Forwarded query for IDirect3D7");
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        // TODO: Create the object, similar to how it's done in DDrawInterface7
+        Logger::warn("DDrawInterface::QueryInterface: Query for IDirect3D7");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+    }
+    // Legacy way of getting a DDraw7 interface
+    if (riid == __uuidof(IDirectDraw7)) {
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDrawInterface::QueryInterface: Forwarded query for IDirectDraw7");
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        // TODO: Create the object, and pass it on
+        Logger::warn("DDrawInterface::QueryInterface: Query for IDirectDraw7");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+    }
+    // Standard way of retrieving a D3D interface
+    if (riid == __uuidof(IDirect3D)
+      ||riid == __uuidof(IDirect3D2)) {
       Logger::warn("DDrawInterface::QueryInterface: Query for IDirect3D");
       return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    if (unlikely(riid == __uuidof(IDirectDraw2))) {
+      Logger::debug("DDrawInterface::QueryInterface: Query for IDirectDraw2");
+
+      if (unlikely(m_ddraw2Intf == nullptr)) {
+        Com<IDirectDraw2> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        m_ddraw2Intf = new DDraw2Interface(std::move(ppvProxyObject), nullptr);
+      }
+
+      *ppvObject = m_ddraw2Intf.ref();
+      return S_OK;
+    }
+    if (unlikely(riid == __uuidof(IDirectDraw4))) {
+      Logger::debug("DDrawInterface::QueryInterface: Query for IDirectDraw4");
+
+      if (unlikely(m_ddraw4Intf == nullptr)) {
+        Com<IDirectDraw4> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        m_ddraw4Intf = new DDraw4Interface(std::move(ppvProxyObject), nullptr);
+      }
+
+      *ppvObject = m_ddraw4Intf.ref();
+      return S_OK;
     }
 
     try {
@@ -69,13 +127,23 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
-    Logger::debug(">>> DDrawInterface::CreateClipper: Forwarded");
-    return m_origin->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDrawInterface::CreateClipper: Forwarded");
+      return m_origin->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
+    }
+
+    Logger::debug("<<< DDrawInterface::CreateClipper: Proxy");
+    return m_proxy->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpColorTable, LPDIRECTDRAWPALETTE *lplpDDPalette, IUnknown *pUnkOuter) {
-    Logger::debug(">>> DDrawInterface::CreatePalette: Forwarded");
-    return m_origin->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDrawInterface::CreatePalette: Forwarded");
+      return m_origin->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
+    }
+
+    Logger::debug("<<< DDrawInterface::CreatePalette: Proxy");
+    return m_proxy->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE *lplpDDSurface, IUnknown *pUnkOuter) {
@@ -114,8 +182,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes) {
-    Logger::debug(">>> DDrawInterface::GetFourCCCodes: Forwarded");
-    return m_origin->GetFourCCCodes(lpNumCodes, lpCodes);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDrawInterface::GetFourCCCodes: Forwarded");
+      return m_origin->GetFourCCCodes(lpNumCodes, lpCodes);
+    }
+
+    Logger::debug("<<< DDrawInterface::GetFourCCCodes: Proxy");
+    return m_proxy->GetFourCCCodes(lpNumCodes, lpCodes);
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::GetGDISurface(LPDIRECTDRAWSURFACE *lplpGDIDDSurface) {
@@ -149,8 +222,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
-    Logger::debug(">>> DDrawInterface::SetCooperativeLevel: Forwarded");
-    return m_origin->SetCooperativeLevel(hWnd, dwFlags);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDrawInterface::SetCooperativeLevel: Forwarded");
+      return m_origin->SetCooperativeLevel(hWnd, dwFlags);
+    }
+
+    Logger::debug("<<< DDrawInterface::SetCooperativeLevel: Proxy");
+    return m_proxy->SetCooperativeLevel(hWnd, dwFlags);
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP) {

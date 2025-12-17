@@ -11,11 +11,11 @@ namespace dxvk {
     , m_origin ( origin ) {
     m_intfCount = ++s_intfCount;
 
-    Logger::debug(str::format("DDraw2Interface: Created a new interface nr. <<", m_intfCount, ">>"));
+    Logger::debug(str::format("DDraw2Interface: Created a new interface nr. <<2-", m_intfCount, ">>"));
   }
 
   DDraw2Interface::~DDraw2Interface() {
-    Logger::debug(str::format("DDraw2Interface: Interface nr. <<", m_intfCount, ">> bites the dust"));
+    Logger::debug(str::format("DDraw2Interface: Interface nr. <<2-", m_intfCount, ">> bites the dust"));
   }
 
   template<>
@@ -53,8 +53,13 @@ namespace dxvk {
     }
     // Some games query for legacy ddraw interfaces
     if (unlikely(riid == __uuidof(IDirectDraw))) {
-      Logger::debug("DDraw2Interface::QueryInterface: Query for legacy IDirectDraw");
-      return m_origin->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDraw2Interface::QueryInterface: Query for legacy IDirectDraw");
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        Logger::warn("DDraw2Interface::QueryInterface: Query for legacy IDirectDraw");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
 
     try {
@@ -74,13 +79,23 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
-    Logger::debug(">>> DDraw2Interface::CreateClipper: Forwarded");
-    return m_origin->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw2Interface::CreateClipper: Forwarded");
+      return m_origin->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
+    }
+
+    Logger::debug("<<< DDraw2Interface::CreateClipper: Proxy");
+    return m_proxy->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpColorTable, LPDIRECTDRAWPALETTE *lplpDDPalette, IUnknown *pUnkOuter) {
-    Logger::debug(">>> DDraw2Interface::CreatePalette: Forwarded");
-    return m_origin->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw2Interface::CreatePalette: Forwarded");
+      return m_origin->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
+    }
+
+    Logger::debug("<<< DDraw2Interface::CreatePalette: Proxy");
+    return m_proxy->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE *lplpDDSurface, IUnknown *pUnkOuter) {
@@ -119,8 +134,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes) {
-    Logger::debug(">>> DDraw2Interface::GetFourCCCodes: Forwarded");
-    return m_origin->GetFourCCCodes(lpNumCodes, lpCodes);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw2Interface::GetFourCCCodes: Forwarded");
+      return m_origin->GetFourCCCodes(lpNumCodes, lpCodes);
+    }
+
+    Logger::debug("<<< DDraw2Interface::GetFourCCCodes: Proxy");
+    return m_proxy->GetFourCCCodes(lpNumCodes, lpCodes);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetGDISurface(LPDIRECTDRAWSURFACE *lplpGDIDDSurface) {
@@ -154,8 +174,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
-    Logger::debug(">>> DDraw2Interface::SetCooperativeLevel: Forwarded");
-    return m_origin->SetCooperativeLevel(hWnd, dwFlags);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw2Interface::SetCooperativeLevel: Forwarded");
+      return m_origin->SetCooperativeLevel(hWnd, dwFlags);
+    }
+
+    Logger::debug("<<< DDraw2Interface::SetCooperativeLevel: Proxy");
+    return m_proxy->SetCooperativeLevel(hWnd, dwFlags);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags) {
