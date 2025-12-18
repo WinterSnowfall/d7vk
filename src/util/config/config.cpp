@@ -1328,10 +1328,12 @@ namespace dxvk {
     /**********************************************/
     /* 1NSANE - Invalid buffer discards and       *
      * artifacting when using a T&L HAL device,   *
-     * and broken main menu animations            */
-    { R"(\\Insane\\Game\.exe$)", {{
+     * and broken main menu animations. The game  *
+     * also needs proxied surfaces for intros.    */
+    { R"(\\(1|I)nsane\\Game\.exe$)", {{
       { "d3d9.maxFrameRate",                "-240" },
       { "d3d7.managedTNLBuffers",           "True" },
+      { "d3d7.proxiedLegacySurfaces",       "True" },
     }} },
     /* Sacrifice - Prevents hitching on asset     *
      * loading and generally improves performance *

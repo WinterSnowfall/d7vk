@@ -3,6 +3,8 @@
 #include "ddraw4_surface.h"
 
 #include "../ddraw7/ddraw7_interface.h"
+#include "../ddraw_interface.h"
+#include "../d3d6/d3d6_interface.h"
 
 namespace dxvk {
 
@@ -11,6 +13,15 @@ namespace dxvk {
   DDraw4Interface::DDraw4Interface(Com<IDirectDraw4>&& proxyIntf, DDraw7Interface* origin)
     : DDrawWrappedObject<IUnknown, IDirectDraw4, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
     , m_origin ( origin ) {
+    if (unlikely(!IsLegacyInterface())) {
+      // Initialize the IDirect3D6 interlocked object
+      void* d3d6IntfProxiedVoid = nullptr;
+      // This can never reasonably fail
+      m_proxy->QueryInterface(__uuidof(IDirect3D3), &d3d6IntfProxiedVoid);
+      Com<IDirect3D3> d3d6IntfProxied = static_cast<IDirect3D3*>(d3d6IntfProxiedVoid);
+      m_d3d6Intf = new D3D6Interface(std::move(d3d6IntfProxied), reinterpret_cast<DDrawInterface*>(this));
+    }
+
     m_intfCount = ++s_intfCount;
 
     Logger::debug(str::format("DDraw4Interface: Created a new interface nr. <<4-", m_intfCount, ">>"));
@@ -54,9 +65,8 @@ namespace dxvk {
         Logger::warn("DDraw4Interface::QueryInterface: Query for IDirect3D3");
         return m_proxy->QueryInterface(riid, ppvObject);
       } else {
-        // TODO: Implement this for D3D6
-        Logger::err("DDraw4Interface::QueryInterface: Unsupported IDirect3D3 interface");
-        return E_NOINTERFACE;
+        *ppvObject = m_d3d6Intf.ref();
+        return S_OK;
       }
     }
     // Some games query for legacy ddraw interfaces
@@ -120,10 +130,17 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPDIRECTDRAWSURFACE4 *lplpDDSurface, IUnknown *pUnkOuter) {
     if (likely(IsLegacyInterface())) {
-      Logger::warn(">>> DDraw4Interface::CreateSurface");
+      Logger::warn("<<< DDraw4Interface::CreateSurface: Proxy");
       return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
     }
-    
+
+    if (unlikely(m_d3d6Intf->GetOptions()->proxiedLegacySurfaces)) {
+      Logger::debug("<<< DDrawInterface::CreateSurface: Proxy");
+      return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
+    }
+
+    Logger::debug(">>> DDraw4Interface::CreateSurface");
+
     Com<IDirectDrawSurface4> ddrawSurface4Proxied;
     HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddrawSurface4Proxied, pUnkOuter);
 

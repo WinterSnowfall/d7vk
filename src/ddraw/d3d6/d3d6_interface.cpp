@@ -14,7 +14,7 @@ namespace dxvk {
     }
 
     // TODO: Have a D3D6 equivalent
-    m_bridge->EnableD3D7CompatibilityMode();
+    m_bridge->EnableD3D6CompatibilityMode();
 
     m_d3d7Options = D3D7Options(*m_bridge->GetConfig());
 
