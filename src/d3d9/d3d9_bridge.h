@@ -58,6 +58,11 @@ IDxvkD3D8Bridge : public IUnknown {
 MIDL_INTERFACE("D3D9D3D8-A407-773E-18E9-CAFEBEEF3000")
 IDxvkD3D8InterfaceBridge : public IUnknown {
   /**
+   * \brief Enforces D3D6-specific features and validations
+   */
+  virtual void EnableD3D6CompatibilityMode() = 0;
+
+  /**
    * \brief Enforces D3D7-specific features and validations
    */
   virtual void EnableD3D7CompatibilityMode() = 0;
@@ -128,6 +133,8 @@ namespace dxvk {
     HRESULT STDMETHODCALLTYPE QueryInterface(
             REFIID  riid,
             void** ppvObject);
+
+    void EnableD3D6CompatibilityMode();
 
     void EnableD3D7CompatibilityMode();
 

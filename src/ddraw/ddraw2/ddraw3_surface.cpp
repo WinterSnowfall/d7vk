@@ -52,10 +52,18 @@ namespace dxvk {
     InitReturnPtr(ppvObject);
 
     if (riid == __uuidof(IDirectDrawGammaControl)) {
-      return m_origin->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
-      return m_origin->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
 
     // Some games query for legacy ddraw surfaces
@@ -153,8 +161,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetDC(HDC *lphDC) {
-    Logger::debug(">>> DDraw3Surface::GetDC: Forwarded");
-    return m_origin->GetDC(lphDC);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw3Surface::GetDC: Forwarded");
+      return m_origin->GetDC(lphDC);
+    }
+
+    Logger::debug("<<< DDraw3Surface::GetDC: Proxy");
+    return m_proxy->GetDC(lphDC);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetFlipStatus(DWORD dwFlags) {
@@ -173,8 +186,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat) {
-    Logger::debug(">>> DDraw3Surface::GetPixelFormat: Forwarded");
-    return m_origin->GetPixelFormat(lpDDPixelFormat);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw3Surface::GetPixelFormat: Forwarded");
+      return m_origin->GetPixelFormat(lpDDPixelFormat);
+    }
+
+    Logger::debug("<<< DDraw3Surface::GetPixelFormat: Proxy");
+    return m_proxy->GetPixelFormat(lpDDPixelFormat);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc) {
@@ -200,8 +218,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::ReleaseDC(HDC hDC) {
-    Logger::debug(">>> DDraw3Surface::ReleaseDC: Forwarded");
-    return m_origin->ReleaseDC(hDC);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw3Surface::ReleaseDC: Forwarded");
+      return m_origin->ReleaseDC(hDC);
+    }
+
+    Logger::debug("<<< DDraw3Surface::ReleaseDC: Proxy");
+    return m_proxy->ReleaseDC(hDC);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Restore() {

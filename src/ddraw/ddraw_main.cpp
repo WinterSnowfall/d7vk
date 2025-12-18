@@ -262,7 +262,6 @@ extern "C" {
         return DDERR_GENERIC;
       }
 
-
       ProxiedDirectDrawEnumerateExA = reinterpret_cast<DirectDrawEnumerateExA_t>(GetProcAddress(hDDraw, "DirectDrawEnumerateExA"));
 
       if (unlikely(ProxiedDirectDrawEnumerateExA == nullptr)) {
@@ -293,7 +292,6 @@ extern "C" {
         dxvk::Logger::err("DirectDrawEnumerateExW: Failed to load proxied ddraw.dll");
         return DDERR_GENERIC;
       }
-
 
       ProxiedDirectDrawEnumerateExW = reinterpret_cast<DirectDrawEnumerateExW_t>(GetProcAddress(hDDraw, "DirectDrawEnumerateExW"));
 

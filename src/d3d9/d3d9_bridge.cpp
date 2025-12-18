@@ -119,12 +119,16 @@ namespace dxvk {
     return m_interface->QueryInterface(riid, ppvObject);
   }
 
-  void DxvkD3D8InterfaceBridge::EnableD3D8CompatibilityMode() {
-    m_interface->EnableD3D8CompatibilityMode();
+  void DxvkD3D8InterfaceBridge::EnableD3D6CompatibilityMode() {
+    m_interface->EnableD3D6CompatibilityMode();
   }
 
   void DxvkD3D8InterfaceBridge::EnableD3D7CompatibilityMode() {
     m_interface->EnableD3D7CompatibilityMode();
+  }
+
+  void DxvkD3D8InterfaceBridge::EnableD3D8CompatibilityMode() {
+    m_interface->EnableD3D8CompatibilityMode();
   }
 
   const Config* DxvkD3D8InterfaceBridge::GetConfig() const {

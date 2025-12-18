@@ -102,10 +102,6 @@ namespace dxvk {
 
     DDraw7Surface*   m_origin    = nullptr;
 
-    Com<DDraw2Surface, false> m_ddraw2Surface;
-    Com<DDraw3Surface, false> m_ddraw3Surface;
-    Com<DDraw4Surface, false> m_ddraw4Surface;
-
   };
 
 }
