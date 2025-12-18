@@ -287,7 +287,7 @@ namespace dxvk {
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
     DWORD deviceCreationFlags9 = vertexProcessing;
-    if (cooperativeLevel & DDSCL_MULTITHREADED)
+    if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_d3d7Options.forceMultiThreaded)
       deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
     if (cooperativeLevel & DDSCL_FPUPRESERVE)
       deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
