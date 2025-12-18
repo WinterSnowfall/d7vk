@@ -105,21 +105,19 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    if (likely(m_parent->GetOptions()->legacyQueryInterface)) {
-      // Some games query for legacy d3d devices
-      if (unlikely(riid == __uuidof(IDirect3DDevice)
-                || riid == __uuidof(IDirect3DDevice2)
-                || riid == __uuidof(IDirect3DDevice3))) {
-        Logger::warn("D3D7Device::QueryInterface: Query for legacy IDirect3DDevice");
-        return m_proxy->QueryInterface(riid, ppvObject);
-      }
-      // Some games query for legacy ddraw interfaces
-      if (unlikely(riid == __uuidof(IDirectDraw)
-                || riid == __uuidof(IDirectDraw2)
-                || riid == __uuidof(IDirectDraw4))) {
-        Logger::warn("D3D7Device::QueryInterface: Query for legacy IDirectDraw");
-        return m_proxy->QueryInterface(riid, ppvObject);
-      }
+    // Some games query for legacy d3d devices
+    if (unlikely(riid == __uuidof(IDirect3DDevice)
+              || riid == __uuidof(IDirect3DDevice2)
+              || riid == __uuidof(IDirect3DDevice3))) {
+      Logger::warn("D3D7Device::QueryInterface: Query for legacy IDirect3DDevice");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    // Some games query for legacy ddraw interfaces
+    if (unlikely(riid == __uuidof(IDirectDraw)
+              || riid == __uuidof(IDirectDraw2)
+              || riid == __uuidof(IDirectDraw4))) {
+      Logger::warn("D3D7Device::QueryInterface: Query for legacy IDirectDraw");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
 
     try {
