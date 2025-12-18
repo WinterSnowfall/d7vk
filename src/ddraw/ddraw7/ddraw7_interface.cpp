@@ -197,9 +197,9 @@ namespace dxvk {
               && (lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF))) {
       if (!m_d3d7Intf->GetOptions()->proxiedQueryInterface
         && m_d3d7Intf->GetOptions()->useD24X8forD32) {
-      // In case of up-front unsupported and unadvertised D32 depth stencil use,
-      // replace it with D24X8, as some games, such as Sacrifice, rely on it
-      // to properly enable 32-bit display modes (and revert to 16-bit otherwise)
+        // In case of up-front unsupported and unadvertised D32 depth stencil use,
+        // replace it with D24X8, as some games, such as Sacrifice, rely on it
+        // to properly enable 32-bit display modes (and revert to 16-bit otherwise)
         Logger::info("DDraw7Interface::CreateSurface: Using D24X8 instead of D32");
         lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask = 0xFFFFFF;
       } else {
@@ -584,7 +584,7 @@ namespace dxvk {
 
       auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddraw7Surface);
       if (unlikely(it != m_surfaces.end())) {
-          Logger::err("DDraw7Interface::AddWrappedSurface: Pre-existing wrapped surface found");
+        Logger::warn("DDraw7Interface::AddWrappedSurface: Pre-existing wrapped surface found");
       } else {
         m_surfaces.push_back(ddraw7Surface);
       }
@@ -597,9 +597,9 @@ namespace dxvk {
 
       auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddraw7Surface);
       if (likely(it != m_surfaces.end())) {
-          m_surfaces.erase(it);
+        m_surfaces.erase(it);
       } else {
-        Logger::err("DDraw7Interface::RemoveWrappedSurface: Surface not found");
+        Logger::warn("DDraw7Interface::RemoveWrappedSurface: Surface not found");
       }
     }
   }

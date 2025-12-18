@@ -31,6 +31,10 @@ namespace dxvk {
     /// implementations or simply do not use all the back buffers they create, which causes issues.
     bool forceSingleBackBuffer;
 
+    /// Force enable multithreaded protections. Some applications that don't
+    /// properly submit DDSCL_MULTITHREADED flags will crash otherwise.
+    bool forceMultiThreaded;
+
     /// If we detect a back buffer size larger than the application set display mode during device
     /// creation, we will use the mode size for the D3D9 back buffer. This is useful for full-screen
     /// presentation on Wayland, or in other situations when back buffer dimensions get altered in-flight.
@@ -73,6 +77,7 @@ namespace dxvk {
       this->forceEnableAA         = config.getOption<bool>   ("d3d7.forceEnableAA",          false);
       this->forceProxiedPresent   = config.getOption<bool>   ("d3d7.forceProxiedPresent",    false);
       this->forceSingleBackBuffer = config.getOption<bool>   ("d3d7.forceSingleBackBuffer",  false);
+      this->forceMultiThreaded    = config.getOption<bool>   ("d3d7.forceMultiThreaded",     false);
       this->backBufferResize      = config.getOption<bool>   ("d3d7.backBufferResize",       true);
       this->presentOnEndScene     = config.getOption<bool>   ("d3d7.presentOnEndScene",      false);
       this->autoGenMipMaps        = config.getOption<bool>   ("d3d7.autoGenMipMaps",         false);
@@ -85,7 +90,7 @@ namespace dxvk {
       // D3D9 options
       this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",     1024);
 
-      std::string backBufferGuardStr = Config::toLower(config.getOption<std::string> ("ddraw.backBufferGuard", "auto"));
+      std::string backBufferGuardStr = Config::toLower(config.getOption<std::string>("ddraw.backBufferGuard", "auto"));
       if (backBufferGuardStr == "strict") {
         this->backBufferGuard = D3D7BackBufferGuard::Strict;
       } else if (backBufferGuardStr == "disabled") {

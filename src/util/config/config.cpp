@@ -1422,9 +1422,11 @@ namespace dxvk {
     { R"(\\Armada\.exe$)", {{
       { "d3d7.forceProxiedPresent",         "True" },
     }} },
-    /* SCP - Containment Breach                   */
+    /* SCP - Containment Breach                   *
+     * Crashes without multithreading protection  */
     { R"(\\SCP - Containment Breach\.exe$)", {{
       { "d3d7.forceProxiedPresent",         "True" },
+      { "d3d7.forceMultiThreaded",          "True" },
     }} },
     /* Unreal                                     *
      * Fixes missing mip map uploads and physics  */
