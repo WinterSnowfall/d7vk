@@ -10,8 +10,9 @@ namespace dxvk {
 
   DDraw3Surface::DDraw3Surface(
         Com<IDirectDrawSurface3>&& surfProxy,
+        DDrawInterface* pParent,
         DDraw7Surface* origin)
-    : DDrawWrappedObject<DDraw2Interface, IDirectDrawSurface3, d3d9::IDirect3DSurface9>(nullptr, std::move(surfProxy), nullptr)
+    : DDrawWrappedObject<DDrawInterface, IDirectDrawSurface3, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
     , m_origin ( origin ) {
     m_surfCount = ++s_surfCount;
 
@@ -23,7 +24,7 @@ namespace dxvk {
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<DDraw2Interface, IDirectDrawSurface3, d3d9::IDirect3DSurface9>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<DDrawInterface, IDirectDrawSurface3, d3d9::IDirect3DSurface9>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
     if (riid == __uuidof(IDirectDrawSurface3)) {

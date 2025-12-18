@@ -15,7 +15,7 @@ namespace dxvk {
 
   public:
 
-    DDraw4Surface(Com<IDirectDrawSurface4>&& surfProxy, DDraw7Surface* origin);
+    DDraw4Surface(Com<IDirectDrawSurface4>&& surfProxy, DDraw4Interface* pParent, DDraw7Surface* origin);
 
     ~DDraw4Surface();
 
@@ -106,6 +106,10 @@ namespace dxvk {
     HRESULT STDMETHODCALLTYPE ChangeUniquenessValue();
 
   private:
+
+    inline bool IsLegacyInterface() {
+      return m_origin != nullptr;
+    }
 
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;

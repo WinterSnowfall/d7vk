@@ -1,6 +1,9 @@
 #include "ddraw_interface.h"
 
+#include "ddraw_surface.h"
+
 #include "ddraw7/ddraw7_interface.h"
+#include "d3d6/d3d6_interface.h"
 
 namespace dxvk {
 
@@ -9,6 +12,15 @@ namespace dxvk {
   DDrawInterface::DDrawInterface(Com<IDirectDraw>&& proxyIntf, DDraw7Interface* origin)
     : DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
     , m_origin ( origin ) {
+    if (unlikely(!IsLegacyInterface())) {
+      // Initialize the IDirect3D6 interlocked object
+      void* d3d6IntfProxiedVoid = nullptr;
+      // This can never reasonably fail
+      m_proxy->QueryInterface(__uuidof(IDirect3D7), &d3d6IntfProxiedVoid);
+      Com<IDirect3D3> d3d6IntfProxied = static_cast<IDirect3D3*>(d3d6IntfProxiedVoid);
+      m_d3d6Intf = new D3D6Interface(std::move(d3d6IntfProxied), this);
+    }
+    
     m_intfCount = ++s_intfCount;
 
     Logger::debug(str::format("DDrawInterface: Created a new interface nr. <<1-", m_intfCount, ">>"));
@@ -48,8 +60,13 @@ namespace dxvk {
 
     // Standard way of retrieving a D3D interface
     if (riid == __uuidof(IDirect3D3)) {
-      Logger::warn("DDrawInterface::QueryInterface: Query for IDirect3D4");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        Logger::warn("DDrawInterface::QueryInterface: Query for IDirect3D3");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      } else {
+        *ppvObject = m_d3d6Intf.ref();
+        return S_OK;
+      }
     }
     // Legacy way of retrieving a D3D7 interface
     if (riid == __uuidof(IDirect3D7)) {
@@ -76,8 +93,13 @@ namespace dxvk {
     // Standard way of retrieving a D3D interface
     if (riid == __uuidof(IDirect3D)
       ||riid == __uuidof(IDirect3D2)) {
-      Logger::warn("DDrawInterface::QueryInterface: Query for IDirect3D");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        Logger::warn("DDrawInterface::QueryInterface: Query for legacy IDirect3D");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      } else {
+        Logger::err("DDrawInterface::QueryInterface: Unsupported IDirect3D interface");
+        return E_NOINTERFACE;
+      }
     }
     if (unlikely(riid == __uuidof(IDirectDraw2))) {
       Logger::debug("DDrawInterface::QueryInterface: Query for IDirectDraw2");
@@ -108,6 +130,11 @@ namespace dxvk {
 
       *ppvObject = m_ddraw4Intf.ref();
       return S_OK;
+    }
+    // Something that 1NSANE queries for to play back the intros, allegedly...
+    if (unlikely(riid == GUID_IAMMediaStream)) {
+      Logger::debug("DDrawInterface::QueryInterface: Query for IAMMediaStream");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
 
     try {
@@ -147,8 +174,28 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE *lplpDDSurface, IUnknown *pUnkOuter) {
-    Logger::warn("<<< DDrawInterface::CreateSurface: Proxy");
-    return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
+    if (likely(IsLegacyInterface())) {
+      Logger::warn(">>> DDrawInterface::CreateSurface");
+      return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
+    }
+    
+    Com<IDirectDrawSurface> ddrawSurfaceProxied;
+    HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddrawSurfaceProxied, pUnkOuter);
+
+    if (likely(SUCCEEDED(hr))) {
+      try{
+        Com<DDrawSurface> surface = new DDrawSurface(std::move(ddrawSurfaceProxied), this, nullptr);
+        *lplpDDSurface = surface.ref();
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+    } else {
+      Logger::debug("DDrawInterface::CreateSurface: Failed to create proxy surface");
+      return hr;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::DuplicateSurface(LPDIRECTDRAWSURFACE lpDDSurface, LPDIRECTDRAWSURFACE *lplpDupDDSurface) {

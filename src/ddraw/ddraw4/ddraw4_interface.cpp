@@ -1,5 +1,7 @@
 #include "ddraw4_interface.h"
 
+#include "ddraw4_surface.h"
+
 #include "../ddraw7/ddraw7_interface.h"
 
 namespace dxvk {
@@ -48,8 +50,14 @@ namespace dxvk {
 
     // Standard way of retrieving a D3D interface
     if (riid == __uuidof(IDirect3D3)) {
-      Logger::warn("DDraw4Interface::QueryInterface: Query for IDirect3D3");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        Logger::warn("DDraw4Interface::QueryInterface: Query for IDirect3D3");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      } else {
+        // TODO: Implement this for D3D6
+        Logger::err("DDraw4Interface::QueryInterface: Unsupported IDirect3D3 interface");
+        return E_NOINTERFACE;
+      }
     }
     // Some games query for legacy ddraw interfaces
     if (unlikely(riid == __uuidof(IDirectDraw)
@@ -60,6 +68,17 @@ namespace dxvk {
       } else {
         Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw");
         return m_proxy->QueryInterface(riid, ppvObject);
+      }
+    }
+    // Standard way of retrieving a D3D interface
+    if (riid == __uuidof(IDirect3D)
+      ||riid == __uuidof(IDirect3D2)) {
+      if (likely(IsLegacyInterface())) {
+        Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirect3D");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      } else {
+        Logger::err("DDraw4Interface::QueryInterface: Unsupported IDirect3D interface");
+        return E_NOINTERFACE;
       }
     }
 
@@ -100,8 +119,28 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPDIRECTDRAWSURFACE4 *lplpDDSurface, IUnknown *pUnkOuter) {
-    Logger::warn("<<< DDraw4Interface::CreateSurface: Proxy");
-    return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
+    if (likely(IsLegacyInterface())) {
+      Logger::warn(">>> DDraw4Interface::CreateSurface");
+      return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
+    }
+    
+    Com<IDirectDrawSurface4> ddrawSurface4Proxied;
+    HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddrawSurface4Proxied, pUnkOuter);
+
+    if (likely(SUCCEEDED(hr))) {
+      try{
+        Com<DDraw4Surface> surface4 = new DDraw4Surface(std::move(ddrawSurface4Proxied), this, nullptr);
+        *lplpDDSurface = surface4.ref();
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+    } else {
+      Logger::debug("DDraw4Interface::CreateSurface: Failed to create proxy surface");
+      return hr;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::DuplicateSurface(LPDIRECTDRAWSURFACE4 lpDDSurface, LPDIRECTDRAWSURFACE4 *lplpDupDDSurface) {

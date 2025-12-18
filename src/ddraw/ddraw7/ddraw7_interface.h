@@ -6,6 +6,7 @@
 #include "../d3d9/d3d9_bridge.h"
 
 #include "../ddraw_interface.h"
+#include "../ddraw_format.h"
 #include "../ddraw2/ddraw2_interface.h"
 #include "../ddraw4/ddraw4_interface.h"
 

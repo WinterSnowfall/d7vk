@@ -6,11 +6,11 @@
 #include "../d3d7/d3d7_device.h"
 
 #include "../ddraw_surface.h"
+#include "../ddraw_format.h"
 #include "../ddraw2/ddraw2_surface.h"
 #include "../ddraw2/ddraw3_surface.h"
 #include "../ddraw4/ddraw4_surface.h"
 
-#include "ddraw7_format.h"
 #include "ddraw7_interface.h"
 
 #include <array>
