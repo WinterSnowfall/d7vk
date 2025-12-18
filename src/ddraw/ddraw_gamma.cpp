@@ -71,6 +71,8 @@ namespace dxvk {
         Logger::debug("DDrawGammaControl::SetGammaRamp: Setting gamma ramp via DDraw");
         return m_proxy->SetGammaRamp(dwFlags, lpRampData);
       }
+    } else {
+      Logger::info("DDrawGammaControl::SetGammaRamp: Ignoring application set gamma ramp");
     }
 
     return DD_OK;
