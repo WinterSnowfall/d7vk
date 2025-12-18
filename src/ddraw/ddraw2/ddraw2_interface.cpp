@@ -1,5 +1,8 @@
 #include "ddraw2_interface.h"
 
+#include "../ddraw_surface.h"
+#include "../ddraw_interface.h"
+
 #include "../ddraw7/ddraw7_interface.h"
 
 namespace dxvk {
@@ -99,8 +102,26 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE *lplpDDSurface, IUnknown *pUnkOuter) {
-    Logger::warn("<<< DDraw2Interface::CreateSurface: Proxy");
-    return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
+    Logger::debug(">>> DDraw2Interface::CreateSurface");
+
+    Com<IDirectDrawSurface> ddrawSurfaceProxied;
+    HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddrawSurfaceProxied, pUnkOuter);
+
+    if (likely(SUCCEEDED(hr))) {
+      try{
+        // TODO: Make away with the reinterpret_cast by having a different constructor, though it should be fine for now
+        Com<DDrawSurface> surface = new DDrawSurface(std::move(ddrawSurfaceProxied), reinterpret_cast<DDrawInterface*>(this), nullptr);
+        *lplpDDSurface = surface.ref();
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+    } else {
+      Logger::debug("DDraw2Interface::CreateSurface: Failed to create proxy surface");
+      return hr;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::DuplicateSurface(LPDIRECTDRAWSURFACE lpDDSurface, LPDIRECTDRAWSURFACE *lplpDupDDSurface) {
