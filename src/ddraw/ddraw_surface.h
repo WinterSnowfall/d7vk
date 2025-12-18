@@ -3,6 +3,10 @@
 #include "ddraw_include.h"
 #include "ddraw_wrapped_object.h"
 
+#include "ddraw2/ddraw2_surface.h"
+#include "ddraw2/ddraw3_surface.h"
+#include "ddraw4/ddraw4_surface.h"
+
 namespace dxvk {
 
   class DDrawInterface;
@@ -15,7 +19,7 @@ namespace dxvk {
 
   public:
 
-    DDrawSurface(Com<IDirectDrawSurface>&& surfProxy, DDraw7Surface* origin);
+    DDrawSurface(Com<IDirectDrawSurface>&& surfProxy, DDrawInterface* pParent, DDraw7Surface* origin);
 
     ~DDrawSurface();
 
@@ -89,10 +93,18 @@ namespace dxvk {
 
   private:
 
+    inline bool IsLegacyInterface() {
+      return m_origin != nullptr;
+    }
+
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
 
     DDraw7Surface*   m_origin    = nullptr;
+
+    Com<DDraw2Surface, false> m_ddraw2Surface;
+    Com<DDraw3Surface, false> m_ddraw3Surface;
+    Com<DDraw4Surface, false> m_ddraw4Surface;
 
   };
 

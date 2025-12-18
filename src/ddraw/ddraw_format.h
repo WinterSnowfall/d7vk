@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ddraw_include.h"
+#include "ddraw_include.h"
 
 namespace dxvk {
 

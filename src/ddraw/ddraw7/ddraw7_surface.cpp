@@ -103,7 +103,7 @@ namespace dxvk {
           if (unlikely(FAILED(hr)))
             return hr;
 
-          m_ddrawSurf = new DDrawSurface(std::move(ppvProxyObject), this);
+          m_ddrawSurf = new DDrawSurface(std::move(ppvProxyObject), nullptr, this);
         }
 
         *ppvObject = m_ddrawSurf.ref();
@@ -118,7 +118,7 @@ namespace dxvk {
           if (unlikely(FAILED(hr)))
             return hr;
 
-          m_ddraw2Surf = new DDraw2Surface(std::move(ppvProxyObject), this);
+          m_ddraw2Surf = new DDraw2Surface(std::move(ppvProxyObject), nullptr, this);
         }
 
         *ppvObject = m_ddraw2Surf.ref();
@@ -133,7 +133,7 @@ namespace dxvk {
           if (unlikely(FAILED(hr)))
             return hr;
 
-          m_ddraw3Surf = new DDraw3Surface(std::move(ppvProxyObject), this);
+          m_ddraw3Surf = new DDraw3Surface(std::move(ppvProxyObject), nullptr, this);
         }
 
         *ppvObject = m_ddraw3Surf.ref();
@@ -148,7 +148,7 @@ namespace dxvk {
           if (unlikely(FAILED(hr)))
             return hr;
 
-          m_ddraw4Surf = new DDraw4Surface(std::move(ppvProxyObject), this);
+          m_ddraw4Surf = new DDraw4Surface(std::move(ppvProxyObject), nullptr, this);
         }
 
         *ppvObject = m_ddraw4Surf.ref();
