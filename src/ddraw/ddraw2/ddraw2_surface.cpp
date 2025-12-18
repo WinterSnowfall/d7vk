@@ -10,8 +10,9 @@ namespace dxvk {
 
   DDraw2Surface::DDraw2Surface(
         Com<IDirectDrawSurface2>&& surfProxy,
+        DDrawInterface* pParent,
         DDraw7Surface* origin)
-    : DDrawWrappedObject<DDraw2Interface, IDirectDrawSurface2, d3d9::IDirect3DSurface9>(nullptr, std::move(surfProxy), nullptr)
+    : DDrawWrappedObject<DDrawInterface, IDirectDrawSurface2, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
     , m_origin ( origin ) {
     m_surfCount = ++s_surfCount;
 
@@ -23,7 +24,7 @@ namespace dxvk {
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<DDraw2Interface, IDirectDrawSurface2, d3d9::IDirect3DSurface9>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<DDrawInterface, IDirectDrawSurface2, d3d9::IDirect3DSurface9>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
     if (riid == __uuidof(IDirectDrawSurface2)) {
@@ -51,22 +52,40 @@ namespace dxvk {
     InitReturnPtr(ppvObject);
 
     if (riid == __uuidof(IDirectDrawGammaControl)) {
-      return m_origin->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
-      return m_origin->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
 
     // Some games query for legacy ddraw surfaces
     if (unlikely(riid == __uuidof(IDirectDrawSurface))) {
-      Logger::debug("DDraw2Surface::QueryInterface: Query for legacy IDirectDrawSurface");
-      return m_origin->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDraw2Surface::QueryInterface: Query for legacy IDirectDrawSurface");
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        Logger::warn("DDraw2Surface::QueryInterface: Query for legacy IDirectDrawSurface");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
     // Some games query for legacy ddraw interfaces
     if (unlikely(riid == __uuidof(IDirectDraw)
               || riid == __uuidof(IDirectDraw2))) {
-      Logger::debug("DDraw2Surface::QueryInterface: Query for legacy IDirectDraw");
-      return m_origin->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDraw2Surface::QueryInterface: Query for legacy IDirectDraw");
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        Logger::warn("DDraw2Surface::QueryInterface: Query for legacy IDirectDraw");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
 
     try {
@@ -151,8 +170,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::GetDC(HDC *lphDC) {
-    Logger::debug(">>> DDraw2Surface::GetDC: Forwarded");
-    return m_origin->GetDC(lphDC);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw2Surface::GetDC: Forwarded");
+      return m_origin->GetDC(lphDC);
+    }
+
+    Logger::debug("<<< DDraw2Surface::GetDC: Proxy");
+    return m_proxy->GetDC(lphDC);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::GetFlipStatus(DWORD dwFlags) {
@@ -171,8 +195,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat) {
-    Logger::debug(">>> DDraw2Surface::GetPixelFormat: Forwarded");
-    return m_origin->GetPixelFormat(lpDDPixelFormat);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw2Surface::GetPixelFormat: Forwarded");
+      return m_origin->GetPixelFormat(lpDDPixelFormat);
+    }
+
+    Logger::debug("<<< DDraw2Surface::GetPixelFormat: Proxy");
+    return m_proxy->GetPixelFormat(lpDDPixelFormat);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc) {
@@ -198,8 +227,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::ReleaseDC(HDC hDC) {
-    Logger::debug(">>> DDraw2Surface::ReleaseDC: Forwarded");
-    return m_origin->ReleaseDC(hDC);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw2Surface::ReleaseDC: Forwarded");
+      return m_origin->ReleaseDC(hDC);
+    }
+
+    Logger::debug("<<< DDraw2Surface::ReleaseDC: Proxy");
+    return m_proxy->ReleaseDC(hDC);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::Restore() {
