@@ -47,6 +47,10 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE EvictManagedTextures();
 
+    const D3D7Options* GetOptions() const {
+      return &m_d3d7Options;
+    }
+
   private:
 
     static uint32_t               s_intfCount;

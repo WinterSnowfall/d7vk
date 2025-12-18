@@ -2,14 +2,9 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
+#include "../ddraw_format.h"
 
 #include "../d3d7/d3d7_device.h"
-
-#include "../ddraw_surface.h"
-#include "../ddraw_format.h"
-#include "../ddraw2/ddraw2_surface.h"
-#include "../ddraw2/ddraw3_surface.h"
-#include "../ddraw4/ddraw4_surface.h"
 
 #include "ddraw7_interface.h"
 
@@ -305,12 +300,6 @@ namespace dxvk {
 
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount     = 0;
-
-    // Legacy objects for QueryInterface calls
-    Com<DDrawSurface,  false>           m_ddrawSurf;
-    Com<DDraw2Surface, false>           m_ddraw2Surf;
-    Com<DDraw3Surface, false>           m_ddraw3Surf;
-    Com<DDraw4Surface, false>           m_ddraw4Surf;
 
     DDraw7Surface*                      m_parentSurf = nullptr;
 

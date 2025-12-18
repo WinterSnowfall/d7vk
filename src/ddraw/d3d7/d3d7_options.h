@@ -41,6 +41,9 @@ namespace dxvk {
     /// Forward query interface calls to the proxied objects
     bool proxiedQueryInterface;
 
+    /// Forward surface creation calls to the proxied ddraw interfaces
+    bool proxiedLegacySurfaces;
+
     /// Allows or denies query interface calls to older DDraw/D3D interfaces. Used for debugging.
     bool legacyQueryInterface;
 
@@ -71,6 +74,7 @@ namespace dxvk {
       this->backBufferResize      = config.getOption<bool>   ("d3d7.backBufferResize",      true);
       this->presentOnEndScene     = config.getOption<bool>   ("d3d7.presentOnEndScene",     false);
       this->proxiedQueryInterface = config.getOption<bool>   ("d3d7.proxiedQueryInterface", false);
+      this->proxiedLegacySurfaces = config.getOption<bool>   ("d3d7.proxiedLegacySurfaces", false);
       this->legacyQueryInterface  = config.getOption<bool>   ("d3d7.legacyQueryInterface",  true);
       this->ignoreGammaRamp       = config.getOption<bool>   ("d3d7.ignoreGammaRamp",       false);
       this->autoGenMipMaps        = config.getOption<bool>   ("d3d7.autoGenMipMaps",        false);

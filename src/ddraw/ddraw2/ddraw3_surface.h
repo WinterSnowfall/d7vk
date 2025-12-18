@@ -97,6 +97,10 @@ namespace dxvk {
 
   private:
 
+    inline bool IsLegacyInterface() {
+      return m_origin != nullptr;
+    }
+
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
 

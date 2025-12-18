@@ -2,13 +2,9 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
+#include "../ddraw_format.h"
 
 #include "../d3d9/d3d9_bridge.h"
-
-#include "../ddraw_interface.h"
-#include "../ddraw_format.h"
-#include "../ddraw2/ddraw2_interface.h"
-#include "../ddraw4/ddraw4_interface.h"
 
 #include "../d3d7/d3d7_interface.h"
 
@@ -133,11 +129,6 @@ namespace dxvk {
 
     static uint32_t             s_intfCount;
     uint32_t                    m_intfCount  = 0;
-
-    // Legacy objects for QueryInterface calls
-    Com<DDrawInterface,  false> m_ddrawIntf;
-    Com<DDraw2Interface, false> m_ddraw2Intf;
-    Com<DDraw4Interface, false> m_ddraw4Intf;
 
     Com<D3D7Interface,   false> m_d3d7Intf;
 
