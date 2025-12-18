@@ -65,44 +65,42 @@ namespace dxvk {
       *ppvObject = m_d3d7Intf.ref();
       return S_OK;
     }
-    if (likely(m_d3d7Intf->GetOptions()->legacyQueryInterface)) {
-      // Some games query for legacy ddraw interfaces
-      if (unlikely(riid == __uuidof(IDirectDraw))) {
-        Logger::debug("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw");
+    // Some games query for legacy ddraw interfaces
+    if (unlikely(riid == __uuidof(IDirectDraw))) {
+      Logger::debug("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw");
 
-        Com<IDirectDraw> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      Com<IDirectDraw> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-        *ppvObject = ref(new DDrawInterface(std::move(ppvProxyObject), this));
+      *ppvObject = ref(new DDrawInterface(std::move(ppvProxyObject), this));
 
-        return S_OK;
-      }
-      if (unlikely(riid == __uuidof(IDirectDraw2))) {
-        Logger::warn("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw2");
+      return S_OK;
+    }
+    if (unlikely(riid == __uuidof(IDirectDraw2))) {
+      Logger::warn("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw2");
 
-        Com<IDirectDraw2> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      Com<IDirectDraw2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-        *ppvObject = ref(new DDraw2Interface(std::move(ppvProxyObject), this));
+      *ppvObject = ref(new DDraw2Interface(std::move(ppvProxyObject), this));
 
-        return S_OK;
-      }
-      if (unlikely(riid == __uuidof(IDirectDraw4))) {
-        Logger::debug("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw4");
+      return S_OK;
+    }
+    if (unlikely(riid == __uuidof(IDirectDraw4))) {
+      Logger::debug("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw4");
 
-        Com<IDirectDraw4> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      Com<IDirectDraw4> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-        *ppvObject = ref(new DDraw4Interface(std::move(ppvProxyObject), this));
+      *ppvObject = ref(new DDraw4Interface(std::move(ppvProxyObject), this));
 
-        return S_OK;
-      }
+      return S_OK;
     }
 
     try {
@@ -193,6 +191,20 @@ namespace dxvk {
     // Similarly strip the DDSCAPS2_OPAQUE flag on texture creation
     if (lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_TEXTURE) {
       lpDDSurfaceDesc->ddsCaps.dwCaps2 &= ~DDSCAPS2_OPAQUE;
+    }
+
+    if (unlikely((lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)
+              && (lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF))) {
+      if (!m_d3d7Intf->GetOptions()->proxiedQueryInterface
+        && m_d3d7Intf->GetOptions()->useD24X8forD32) {
+      // In case of up-front unsupported and unadvertised D32 depth stencil use,
+      // replace it with D24X8, as some games, such as Sacrifice, rely on it
+      // to properly enable 32-bit display modes (and revert to 16-bit otherwise)
+        Logger::info("DDraw7Interface::CreateSurface: Using D24X8 instead of D32");
+        lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask = 0xFFFFFF;
+      } else {
+        Logger::warn("DDraw7Interface::CreateSurface: Use of unsupported D32");
+      }
     }
 
     Com<IDirectDrawSurface7> ddraw7SurfaceProxied;

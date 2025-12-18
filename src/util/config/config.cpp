@@ -1371,15 +1371,16 @@ namespace dxvk {
      * also needs proxied surfaces for intros.    */
     { R"(\\(1|I)nsane\\Game\.exe$)", {{
       { "d3d9.maxFrameRate",                "-240" },
+      { "ddraw.proxiedLegacySurfaces",      "True" },
       { "d3d7.managedTNLBuffers",           "True" },
-      { "d3d7.proxiedLegacySurfaces",       "True" },
     }} },
     /* Sacrifice - Prevents hitching on asset     *
-     * loading and generally improves performance *
-     * and also fixes broken AI above 60 fps      */
+     * loading and fixes broken AI above 60 fps.  *
+     * Also support 32-bit modes, which need D32. */
     { R"(\\Sacrifice\.exe$)", {{
       { "d3d9.cachedWriteOnlyBuffers",      "True" },
       { "d3d9.maxFrameRate",                 "-60" },
+      { "d3d7.useD24X8forD32",              "True" },
     }} },
     /* Battle Isle: The Andosia War - Performance *
      * and black screen prevention on startup,    *
@@ -1387,7 +1388,7 @@ namespace dxvk {
     { R"(\\bitaw\.exe$)", {{
       { "d3d9.cachedWriteOnlyBuffers",      "True" },
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.backBufferGuard",           "Strict" },
+      { "ddraw.backBufferGuard",          "Strict" },
     }} },
     /* Startopia                                  */
     { R"(\\startopia\.exe$)", {{
@@ -1405,7 +1406,7 @@ namespace dxvk {
      * flickering on the loading screen           */
     { R"(\\GOTHIC(Mod)?\.EXE$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.proxiedQueryInterface",       "True" },
+      { "ddraw.proxiedQueryInterface",      "True" },
       { "d3d7.forceSingleBackBuffer",       "True" },
     }} },
     /* Gothic 2 / Night of the Raven              *
@@ -1413,19 +1414,19 @@ namespace dxvk {
      * flickering on the loading screen           */
     { R"(\\Gothic2\.exe)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.proxiedQueryInterface",       "True" },
+      { "ddraw.proxiedQueryInterface",      "True" },
       { "d3d7.forceSingleBackBuffer",       "True" },
     }} },
     /* Ground Control (to Major Tom)              */
     { R"(\\Ground Control\\gc\.exe$)", {{
-      { "d3d7.proxiedQueryInterface",       "True" },
+      { "ddraw.proxiedQueryInterface",      "True" },
     }} },
     /* Blade of Darkness - broken physics, main   *
      * menu transitions, animations and GUI       */
     { R"(\\Blade\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
+      { "ddraw.proxiedQueryInterface",      "True" },
       { "d3d7.forceSingleBackBuffer",       "True" },
-      { "d3d7.proxiedQueryInterface",       "True" },
     }} },
     /* Hogs of War - Fixes animation speed        */
     { R"(\\warhogs_\.exe$)", {{
@@ -1527,7 +1528,7 @@ namespace dxvk {
     /* Might and Magic IX / No One Lives Forever  */
     { R"(\\lithtech\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.proxiedQueryInterface",       "True" },
+      { "ddraw.proxiedQueryInterface",      "True" },
     }} },
     /* 3DMark2000 - Performance                   */
     { R"(\\3DMark2000\.exe$)", {{
