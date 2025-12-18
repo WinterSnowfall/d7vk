@@ -5,17 +5,17 @@
 
 namespace dxvk {
 
-  class DDraw2Interface;
+  class DDrawInterface;
   class DDraw7Surface;
 
   /**
   * \brief Minimal IDirectDrawSurface2 interface implementation for IDirectDrawSurface7 QueryInterface calls
   */
-  class DDraw2Surface final : public DDrawWrappedObject<DDraw2Interface, IDirectDrawSurface2, d3d9::IDirect3DSurface9> {
+  class DDraw2Surface final : public DDrawWrappedObject<DDrawInterface, IDirectDrawSurface2, d3d9::IDirect3DSurface9> {
 
   public:
 
-    DDraw2Surface(Com<IDirectDrawSurface2>&& surfProxy, DDraw7Surface* origin);
+    DDraw2Surface(Com<IDirectDrawSurface2>&& surfProxy, DDrawInterface* pParent, DDraw7Surface* origin);
 
     ~DDraw2Surface();
 
@@ -94,6 +94,10 @@ namespace dxvk {
     HRESULT STDMETHODCALLTYPE PageUnlock(DWORD dwFlags);
 
   private:
+
+    inline bool IsLegacyInterface() {
+      return m_origin != nullptr;
+    }
 
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;

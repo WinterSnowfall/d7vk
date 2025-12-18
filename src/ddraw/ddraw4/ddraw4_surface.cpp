@@ -10,9 +10,13 @@ namespace dxvk {
 
   DDraw4Surface::DDraw4Surface(
         Com<IDirectDrawSurface4>&& surfProxy,
+        DDraw4Interface* pParent,
         DDraw7Surface* origin)
-    : DDrawWrappedObject<DDraw4Interface, IDirectDrawSurface4, d3d9::IDirect3DSurface9>(nullptr, std::move(surfProxy), nullptr)
+    : DDrawWrappedObject<DDraw4Interface, IDirectDrawSurface4, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
     , m_origin ( origin ) {
+    if (unlikely(!IsLegacyInterface()))
+      m_parent->AddRef();
+
     m_surfCount = ++s_surfCount;
 
     Logger::debug(str::format("DDraw4Surface: Created a new surface nr. [[4-", m_surfCount, "]]"));
@@ -20,6 +24,9 @@ namespace dxvk {
 
   DDraw4Surface::~DDraw4Surface() {
     Logger::debug(str::format("DDraw4Surface: Surface nr. [[4-", m_surfCount, "]] bites the dust"));
+
+    if (unlikely(!IsLegacyInterface()))
+      m_parent->Release();
   }
 
   template<>
@@ -51,24 +58,42 @@ namespace dxvk {
     InitReturnPtr(ppvObject);
 
     if (riid == __uuidof(IDirectDrawGammaControl)) {
-      return m_origin->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
-      return m_origin->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
 
     // Some games query for legacy ddraw surfaces
     if (unlikely(riid == __uuidof(IDirectDrawSurface)
               || riid == __uuidof(IDirectDrawSurface2)
               || riid == __uuidof(IDirectDrawSurface3))) {
-      Logger::debug("DDraw4Surface::QueryInterface: Query for legacy IDirectDrawSurface");
-      return m_origin->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDraw4Surface::QueryInterface: Forwarded call for legacy IDirectDrawSurface");
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        Logger::warn("DDraw4Surface::QueryInterface: Query for legacy IDirectDrawSurface");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
     // Some games query for legacy ddraw interfaces
     if (unlikely(riid == __uuidof(IDirectDraw)
               || riid == __uuidof(IDirectDraw2))) {
-      Logger::debug("DDraw4Surface::QueryInterface: Query for legacy IDirectDraw");
-      return m_origin->QueryInterface(riid, ppvObject);
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDraw4Surface::QueryInterface: Forwarded call for legacy IDirectDraw");
+        return m_origin->QueryInterface(riid, ppvObject);
+      } else {
+        Logger::warn("DDraw4Surface::QueryInterface: Query for legacy IDirectDraw");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
 
     try {
@@ -127,8 +152,49 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetAttachedSurface(LPDDSCAPS2 lpDDSCaps, LPDIRECTDRAWSURFACE4 *lplpDDAttachedSurface) {
+    if (likely(IsLegacyInterface())) {
+      Logger::warn("<<< DDraw4Surface::GetAttachedSurface: Proxy");
+      return m_proxy->GetAttachedSurface(lpDDSCaps, lplpDDAttachedSurface);
+    }
+
     Logger::debug("<<< DDraw4Surface::GetAttachedSurface: Proxy");
-    return m_proxy->GetAttachedSurface(lpDDSCaps, lplpDDAttachedSurface);
+
+    if (unlikely(lpDDSCaps == nullptr || lplpDDAttachedSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (lpDDSCaps->dwCaps & DDSCAPS_PRIMARYSURFACE)
+      Logger::debug("DDraw4Surface::GetAttachedSurface: Querying for the front buffer");
+    else if (lpDDSCaps->dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP))
+      Logger::debug("DDraw4Surface::GetAttachedSurface: Querying for the back buffer");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_OFFSCREENPLAIN)
+      Logger::debug("DDraw4Surface::GetAttachedSurface: Querying for an offscreen plain surface");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_ZBUFFER)
+      Logger::debug("DDraw4Surface::GetAttachedSurface: Querying for a depth stencil");
+    else if ((lpDDSCaps->dwCaps  & DDSCAPS_MIPMAP)
+          || (lpDDSCaps->dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL))
+      Logger::debug("DDraw4Surface::GetAttachedSurface: Querying for a texture mip map");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_TEXTURE)
+      Logger::debug("DDraw4Surface::GetAttachedSurface: Querying for a texture");
+    else if (lpDDSCaps->dwCaps2 & DDSCAPS2_CUBEMAP)
+      Logger::debug("DDraw4Surface::GetAttachedSurface: Querying for a cube map");
+    else if (lpDDSCaps->dwCaps2 & DDSCAPS_OVERLAY)
+      Logger::debug("DDraw4Surface::GetAttachedSurface: Querying for an overlay");
+
+    Com<IDirectDrawSurface4> surface;
+    HRESULT hr = m_proxy->GetAttachedSurface(lpDDSCaps, &surface);
+
+    // These are rather common, as some games query expecting to get nothing in return, for
+    // example it's a common use case to query the mip attach chain until nothing is returned
+    if (FAILED(hr)) {
+      Logger::debug("DDraw4Surface::GetAttachedSurface: Failed to find the requested surface");
+      *lplpDDAttachedSurface = surface.ptr();
+      return hr;
+    }
+
+    Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(std::move(surface), m_parent, nullptr);
+    *lplpDDAttachedSurface = ddraw4Surface.ref();
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetBltStatus(DWORD dwFlags) {
@@ -137,8 +203,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetCaps(LPDDSCAPS2 lpDDSCaps) {
-    Logger::debug(">>> DDraw4Surface::GetCaps: Forwarded");
-    return m_origin->GetCaps(lpDDSCaps);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw4Surface::GetCaps: Forwarded");
+      return m_origin->GetCaps(lpDDSCaps);
+    }
+
+    Logger::debug("<<< DDraw4Surface::GetCaps: Proxy");
+    return m_proxy->GetCaps(lpDDSCaps);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetClipper(LPDIRECTDRAWCLIPPER *lplpDDClipper) {
@@ -152,8 +223,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetDC(HDC *lphDC) {
-    Logger::debug(">>> DDraw4Surface::GetDC: Forwarded");
-    return m_origin->GetDC(lphDC);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw4Surface::GetDC: Forwarded");
+      return m_origin->GetDC(lphDC);
+    }
+
+    Logger::debug("<<< DDraw4Surface::GetDC: Proxy");
+    return m_proxy->GetDC(lphDC);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetFlipStatus(DWORD dwFlags) {
@@ -172,13 +248,23 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat) {
-    Logger::debug(">>> DDraw4Surface::GetPixelFormat: Forwarded");
-    return m_origin->GetPixelFormat(lpDDPixelFormat);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw4Surface::GetPixelFormat: Forwarded");
+      return m_origin->GetPixelFormat(lpDDPixelFormat);
+    }
+
+    Logger::debug("<<< DDraw4Surface::GetPixelFormat: Proxy");
+    return m_proxy->GetPixelFormat(lpDDPixelFormat);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc) {
-    Logger::debug(">>> DDraw4Surface::GetSurfaceDesc: Forwarded");
-    return m_origin->GetSurfaceDesc(lpDDSurfaceDesc);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw4Surface::GetSurfaceDesc: Forwarded");
+      return m_origin->GetSurfaceDesc(lpDDSurfaceDesc);
+    }
+
+    Logger::debug("<<< DDraw4Surface::GetSurfaceDesc: Proxy");
+    return m_proxy->GetSurfaceDesc(lpDDSurfaceDesc);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC2 lpDDSurfaceDesc) {
@@ -192,13 +278,23 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent) {
-    Logger::debug(">>> DDraw4Surface::Lock: Forwarded");
-    return m_origin->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw4Surface::Lock: Forwarded");
+      return m_origin->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
+    }
+
+    Logger::debug("<<< DDraw4Surface::Lock: Proxy");
+    return m_proxy->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::ReleaseDC(HDC hDC) {
-    Logger::debug(">>> DDraw4Surface::ReleaseDC: Forwarded");
-    return m_origin->ReleaseDC(hDC);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw4Surface::ReleaseDC: Forwarded");
+      return m_origin->ReleaseDC(hDC);
+    }
+
+    Logger::debug("<<< DDraw4Surface::ReleaseDC: Proxy");
+    return m_proxy->ReleaseDC(hDC);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::Restore() {
@@ -227,8 +323,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::Unlock(LPRECT lpSurfaceData) {
-    Logger::debug(">>> DDraw4Surface::Unlock: Forwarded");
-    return m_origin->Unlock(lpSurfaceData);
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw4Surface::Unlock: Forwarded");
+      return m_origin->Unlock(lpSurfaceData);
+    }
+
+    Logger::debug("<<< DDraw4Surface::Unlock: Proxy");
+    return m_proxy->Unlock(lpSurfaceData);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFACE4 lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx) {
