@@ -2,6 +2,11 @@
 
 #include "../ddraw_gamma.h"
 
+#include "../ddraw_surface.h"
+#include "../ddraw2/ddraw2_surface.h"
+#include "../ddraw2/ddraw3_surface.h"
+#include "../ddraw4/ddraw4_surface.h"
+
 #include "../d3d7/d3d7_multithread.h"
 #include "../d3d7/d3d7_caps.h"
 
@@ -97,61 +102,48 @@ namespace dxvk {
       if (unlikely(riid == __uuidof(IDirectDrawSurface))) {
         Logger::debug("DDraw7Surface::QueryInterface: Query for legacy IDirectDrawSurface");
 
-        if (unlikely(m_ddrawSurf == nullptr)) {
-          Com<IDirectDrawSurface> ppvProxyObject;
-          HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-          if (unlikely(FAILED(hr)))
-            return hr;
+        Com<IDirectDrawSurface> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
 
-          m_ddrawSurf = new DDrawSurface(std::move(ppvProxyObject), nullptr, this);
-        }
-
-        *ppvObject = m_ddrawSurf.ref();
+        *ppvObject = ref(new DDrawSurface(std::move(ppvProxyObject), nullptr, this));
         return S_OK;
       }
       if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
         Logger::debug("DDraw7Surface::QueryInterface: Query for legacy IDirectDrawSurface2");
 
-        if (unlikely(m_ddraw2Surf == nullptr)) {
-          Com<IDirectDrawSurface2> ppvProxyObject;
-          HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-          if (unlikely(FAILED(hr)))
-            return hr;
+        Com<IDirectDrawSurface2> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
 
-          m_ddraw2Surf = new DDraw2Surface(std::move(ppvProxyObject), nullptr, this);
-        }
+        *ppvObject = ref(new DDraw2Surface(std::move(ppvProxyObject), nullptr, this));
 
-        *ppvObject = m_ddraw2Surf.ref();
         return S_OK;
       }
       if (unlikely(riid == __uuidof(IDirectDrawSurface3))) {
         Logger::debug("DDraw7Surface::QueryInterface: Query for legacy IDirectDrawSurface3");
 
-        if (unlikely(m_ddraw3Surf == nullptr)) {
-          Com<IDirectDrawSurface3> ppvProxyObject;
-          HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-          if (unlikely(FAILED(hr)))
-            return hr;
+        Com<IDirectDrawSurface3> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
 
-          m_ddraw3Surf = new DDraw3Surface(std::move(ppvProxyObject), nullptr, this);
-        }
+        *ppvObject = ref(new DDraw3Surface(std::move(ppvProxyObject), nullptr, this));
 
-        *ppvObject = m_ddraw3Surf.ref();
         return S_OK;
       }
       if (unlikely(riid == __uuidof(IDirectDrawSurface4))) {
         Logger::debug("DDraw7Surface::QueryInterface: Query for legacy IDirectDrawSurface4");
 
-        if (unlikely(m_ddraw4Surf == nullptr)) {
-          Com<IDirectDrawSurface4> ppvProxyObject;
-          HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-          if (unlikely(FAILED(hr)))
-            return hr;
+        Com<IDirectDrawSurface4> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
 
-          m_ddraw4Surf = new DDraw4Surface(std::move(ppvProxyObject), nullptr, this);
-        }
+        *ppvObject = ref(new DDraw4Surface(std::move(ppvProxyObject), nullptr, this));
 
-        *ppvObject = m_ddraw4Surf.ref();
         return S_OK;
       }
       // Some games query for legacy ddraw interfaces

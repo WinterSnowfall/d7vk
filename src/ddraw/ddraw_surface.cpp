@@ -70,46 +70,37 @@ namespace dxvk {
     if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
       Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawSurface2");
 
-      if (unlikely(m_ddraw2Surface == nullptr)) {
-        Com<IDirectDrawSurface2> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      Com<IDirectDrawSurface2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-        m_ddraw2Surface = new DDraw2Surface(std::move(ppvProxyObject), m_parent, nullptr);
-      }
+      *ppvObject = ref(new DDraw2Surface(std::move(ppvProxyObject), m_parent, nullptr));
 
-      *ppvObject = m_ddraw2Surface.ref();
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface3))) {
       Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawSurface3");
 
-      if (unlikely(m_ddraw3Surface == nullptr)) {
-        Com<IDirectDrawSurface3> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      Com<IDirectDrawSurface3> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-        m_ddraw3Surface = new DDraw3Surface(std::move(ppvProxyObject), m_parent, nullptr);
-      }
+      *ppvObject = ref(new DDraw3Surface(std::move(ppvProxyObject), m_parent, nullptr));
 
-      *ppvObject = m_ddraw3Surface.ref();
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface4))) {
       Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawSurface4");
 
-      if (unlikely(m_ddraw4Surface == nullptr)) {
-        Com<IDirectDrawSurface4> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      Com<IDirectDrawSurface4> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-        m_ddraw4Surface = new DDraw4Surface(std::move(ppvProxyObject), reinterpret_cast<DDraw4Interface*>(m_parent), nullptr);
-      }
+      *ppvObject = ref(new DDraw4Surface(std::move(ppvProxyObject), reinterpret_cast<DDraw4Interface*>(m_parent), nullptr));
 
-      *ppvObject = m_ddraw4Surface.ref();
       return S_OK;
     }
 

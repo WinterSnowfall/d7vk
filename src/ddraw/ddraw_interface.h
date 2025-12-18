@@ -76,9 +76,6 @@ namespace dxvk {
 
     Com<D3D6Interface,   false> m_d3d6Intf;
 
-    Com<DDraw2Interface, false> m_ddraw2Intf;
-    Com<DDraw4Interface, false> m_ddraw4Intf;
-
   };
 
 }

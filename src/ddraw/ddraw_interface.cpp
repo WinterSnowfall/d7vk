@@ -16,11 +16,11 @@ namespace dxvk {
       // Initialize the IDirect3D6 interlocked object
       void* d3d6IntfProxiedVoid = nullptr;
       // This can never reasonably fail
-      m_proxy->QueryInterface(__uuidof(IDirect3D7), &d3d6IntfProxiedVoid);
+      m_proxy->QueryInterface(__uuidof(IDirect3D3), &d3d6IntfProxiedVoid);
       Com<IDirect3D3> d3d6IntfProxied = static_cast<IDirect3D3*>(d3d6IntfProxiedVoid);
       m_d3d6Intf = new D3D6Interface(std::move(d3d6IntfProxied), this);
     }
-    
+
     m_intfCount = ++s_intfCount;
 
     Logger::debug(str::format("DDrawInterface: Created a new interface nr. <<1-", m_intfCount, ">>"));
@@ -104,31 +104,25 @@ namespace dxvk {
     if (unlikely(riid == __uuidof(IDirectDraw2))) {
       Logger::debug("DDrawInterface::QueryInterface: Query for IDirectDraw2");
 
-      if (unlikely(m_ddraw2Intf == nullptr)) {
-        Com<IDirectDraw2> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      Com<IDirectDraw2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-        m_ddraw2Intf = new DDraw2Interface(std::move(ppvProxyObject), nullptr);
-      }
+      *ppvObject = ref(new DDraw2Interface(std::move(ppvProxyObject), nullptr));
 
-      *ppvObject = m_ddraw2Intf.ref();
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDraw4))) {
       Logger::debug("DDrawInterface::QueryInterface: Query for IDirectDraw4");
 
-      if (unlikely(m_ddraw4Intf == nullptr)) {
-        Com<IDirectDraw4> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      Com<IDirectDraw4> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-        m_ddraw4Intf = new DDraw4Interface(std::move(ppvProxyObject), nullptr);
-      }
+      *ppvObject = ref(new DDraw4Interface(std::move(ppvProxyObject), nullptr));
 
-      *ppvObject = m_ddraw4Intf.ref();
       return S_OK;
     }
     // Something that 1NSANE queries for to play back the intros, allegedly...
@@ -175,10 +169,17 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE *lplpDDSurface, IUnknown *pUnkOuter) {
     if (likely(IsLegacyInterface())) {
-      Logger::warn(">>> DDrawInterface::CreateSurface");
+      Logger::warn("<<< DDrawInterface::CreateSurface: Proxy");
       return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
     }
-    
+
+    if (unlikely(m_d3d6Intf->GetOptions()->proxiedLegacySurfaces)) {
+      Logger::debug("<<< DDrawInterface::CreateSurface: Proxy");
+      return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
+    }
+
+    Logger::debug(">>> DDrawInterface::CreateSurface");
+
     Com<IDirectDrawSurface> ddrawSurfaceProxied;
     HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddrawSurfaceProxied, pUnkOuter);
 

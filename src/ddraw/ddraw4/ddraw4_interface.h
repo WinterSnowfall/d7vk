@@ -5,6 +5,7 @@
 
 namespace dxvk {
 
+  class D3D6Interface;
   class DDraw7Interface;
 
   /**
@@ -79,6 +80,8 @@ namespace dxvk {
     uint32_t                    m_intfCount  = 0;
 
     DDraw7Interface*            m_origin = nullptr;
+
+    Com<D3D6Interface,   false> m_d3d6Intf;
 
   };
 
