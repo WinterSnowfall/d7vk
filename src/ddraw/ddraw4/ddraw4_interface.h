@@ -3,10 +3,13 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
+#include <vector>
+
 namespace dxvk {
 
   class D3D6Interface;
   class DDraw7Interface;
+  class DDraw4Surface;
 
   /**
   * \brief Minimal IDirectDraw4 interface implementation for IDirectDraw7 QueryInterface calls
@@ -70,6 +73,12 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetDeviceIdentifier(LPDDDEVICEIDENTIFIER pDDDI, DWORD dwFlags);
 
+    bool IsWrappedSurface(IDirectDrawSurface4* surface) const;
+
+    void AddWrappedSurface(IDirectDrawSurface4* surface);
+
+    void RemoveWrappedSurface(IDirectDrawSurface4* surface);
+
   private:
 
     inline bool IsLegacyInterface() {
@@ -82,6 +91,8 @@ namespace dxvk {
     DDraw7Interface*            m_origin = nullptr;
 
     Com<D3D6Interface,   false> m_d3d6Intf;
+
+    std::vector<DDraw4Surface*> m_surfaces;
 
   };
 
