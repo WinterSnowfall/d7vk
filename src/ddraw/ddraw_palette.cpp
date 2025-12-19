@@ -34,8 +34,7 @@ namespace dxvk {
       return this;
     }
 
-    Logger::debug("DDrawPalette::QueryInterface: Forwarding interface query to parent");
-    return m_parent->GetInterface(riid);
+    throw DxvkError("DDrawPalette::QueryInterface: Unknown interface query");
   }
 
   HRESULT STDMETHODCALLTYPE DDrawPalette::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable) {

@@ -1559,6 +1559,12 @@ namespace dxvk {
     { R"(\\DS9\.exe$)", {{
       { "d3d7.autoGenMipMaps",              "True" },
     }} },
+    /* FIFA 2001 - The game uses an obnoixous     *
+     * mix of DDraw4/D3D6 for menu rendering and  *
+     * D3D7 for in-game rendering                 */
+    { R"(\\fifa2001\.exe$)", {{
+      { "ddraw.proxiedLegacySurfaces",      "True" },
+    }} },
 
   };
 

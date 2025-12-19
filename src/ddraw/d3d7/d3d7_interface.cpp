@@ -80,8 +80,8 @@ namespace dxvk {
     if (unlikely(riid == __uuidof(IDirectDraw)
               || riid == __uuidof(IDirectDraw2)
               || riid == __uuidof(IDirectDraw4))) {
-      Logger::warn("D3D7Interface::QueryInterface: Query for legacy IDirectDraw");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::debug("D3D7Interface::QueryInterface: Query for legacy IDirectDraw");
+      return m_parent->QueryInterface(riid, ppvObject);
     }
 
     try {

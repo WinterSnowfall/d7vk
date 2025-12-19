@@ -22,9 +22,6 @@ namespace dxvk {
     : DDrawWrappedObject<DDraw7Interface, IDirectDrawSurface7, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
     , m_isChildObject ( isChildObject )
     , m_parentSurf ( pParentSurf ) {
-    if (likely(m_isChildObject))
-      m_parent->AddRef();
-
     m_parent->AddWrappedSurface(this);
 
     // Retrieve and cache the proxy surface desc
@@ -50,9 +47,6 @@ namespace dxvk {
     m_parent->RemoveWrappedSurface(this);
 
     Logger::debug(str::format("DDraw7Surface: Surface nr. [[7-", m_surfCount, "]] bites the dust"));
-
-    if (likely(m_isChildObject))
-      m_parent->Release();
   }
 
   template<>
@@ -72,8 +66,7 @@ namespace dxvk {
       return this;
     }
 
-    Logger::debug("DDraw7Surface::QueryInterface: Forwarding interface query to parent");
-    return m_parent->GetInterface(riid);
+    throw DxvkError("DDraw7Surface::QueryInterface: Unknown interface query");
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::QueryInterface(REFIID riid, void** ppvObject) {
@@ -96,9 +89,9 @@ namespace dxvk {
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
       return m_proxy->QueryInterface(riid, ppvObject);
     }
-
     // Some games query for legacy ddraw surfaces
-    if (unlikely(riid == __uuidof(IDirectDrawSurface))) {
+    if (unlikely(riid == __uuidof(IUnknown)
+              || riid == __uuidof(IDirectDrawSurface))) {
       Logger::debug("DDraw7Surface::QueryInterface: Query for legacy IDirectDrawSurface");
 
       Com<IDirectDrawSurface> ppvProxyObject;
@@ -145,16 +138,10 @@ namespace dxvk {
 
       return S_OK;
     }
-    // Some games query for legacy ddraw interfaces
-    if (unlikely(riid == __uuidof(IDirectDraw)
-              || riid == __uuidof(IDirectDraw2)
-              || riid == __uuidof(IDirectDraw4))) {
-      Logger::warn("DDraw7Surface::QueryInterface: Query for legacy IDirectDraw");
-      return m_proxy->QueryInterface(riid, ppvObject);
-    }
     // Black & White queries for IDirect3DTexture2 for whatever reason...
-    if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
-      Logger::warn("DDraw7Surface::QueryInterface: Query for legacy IDirect3DTexture");
+    if (unlikely(riid == __uuidof(IDirect3DTexture)
+              || riid == __uuidof(IDirect3DTexture2))) {
+      Logger::debug("DDraw7Surface::QueryInterface: Query for legacy IDirect3DTexture");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
 

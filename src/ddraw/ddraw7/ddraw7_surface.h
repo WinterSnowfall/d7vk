@@ -136,6 +136,10 @@ namespace dxvk {
       return m_cubeMap.ptr();
     }
 
+    bool IsChildObject() const {
+      return m_isChildObject;
+    }
+
     bool IsTextureOrCubeMap() const {
       return IsTexture() || IsCubeMap();
     }
