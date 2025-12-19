@@ -587,6 +587,9 @@ namespace dxvk {
         Logger::warn("DDraw7Interface::AddWrappedSurface: Pre-existing wrapped surface found");
       } else {
         m_surfaces.push_back(ddraw7Surface);
+
+        if (likely(ddraw7Surface->IsChildObject()))
+          this->AddRef();
       }
     }
   }
@@ -598,6 +601,9 @@ namespace dxvk {
       auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddraw7Surface);
       if (likely(it != m_surfaces.end())) {
         m_surfaces.erase(it);
+
+        if (likely(ddraw7Surface->IsChildObject()))
+          this->Release();
       } else {
         Logger::warn("DDraw7Interface::RemoveWrappedSurface: Surface not found");
       }

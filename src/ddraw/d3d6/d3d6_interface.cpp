@@ -70,12 +70,12 @@ namespace dxvk {
       Logger::warn("D3D6Interface::QueryInterface: Query for legacy IDirect3D");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
-    // Some games query for legacy ddraw interfaces
+    // Some games query for ddraw interfaces
     if (unlikely(riid == __uuidof(IDirectDraw)
               || riid == __uuidof(IDirectDraw2)
               || riid == __uuidof(IDirectDraw4))) {
-      Logger::warn("D3D6Interface::QueryInterface: Query for legacy IDirectDraw");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::debug("D3D6Interface::QueryInterface: Query for IDirectDraw");
+      return m_parent->QueryInterface(riid, ppvObject);
     }
 
     try {
