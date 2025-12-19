@@ -23,7 +23,7 @@ namespace dxvk {
       return this;
     if (riid == __uuidof(IDirectDrawClipper)) {
       if (unlikely(m_forwardToProxy)) {
-        Logger::debug("DDraw7Palette::QueryInterface: Forwarding interface query to proxied object");
+        Logger::debug("DDrawClipper::QueryInterface: Forwarding interface query to proxied object");
         // Hack: Return the proxied interface, as some applications need
         // to use an unwrapped object in relation with external modules
         void* ppvObject = nullptr;
@@ -34,8 +34,7 @@ namespace dxvk {
       return this;
     }
 
-    Logger::debug("DDrawClipper::QueryInterface: Forwarding interface query to parent");
-    return m_parent->GetInterface(riid);
+    throw DxvkError("DDrawClipper::QueryInterface: Unknown interface query");
   }
 
   HRESULT STDMETHODCALLTYPE DDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags) {

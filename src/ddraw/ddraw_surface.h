@@ -3,10 +3,6 @@
 #include "ddraw_include.h"
 #include "ddraw_wrapped_object.h"
 
-#include "ddraw2/ddraw2_surface.h"
-#include "ddraw2/ddraw3_surface.h"
-#include "ddraw4/ddraw4_surface.h"
-
 namespace dxvk {
 
   class DDrawInterface;

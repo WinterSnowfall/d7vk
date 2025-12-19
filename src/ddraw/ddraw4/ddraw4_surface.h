@@ -105,11 +105,17 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE ChangeUniquenessValue();
 
+    bool IsChildObject() const {
+      return m_isChildObject;
+    }
+
   private:
 
     inline bool IsLegacyInterface() {
       return m_origin != nullptr;
     }
+
+    bool             m_isChildObject = true;
 
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;

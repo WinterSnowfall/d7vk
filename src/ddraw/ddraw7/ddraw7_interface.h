@@ -8,6 +8,8 @@
 
 #include "../d3d7/d3d7_interface.h"
 
+#include <vector>
+
 namespace dxvk {
 
   class D3D7Device;

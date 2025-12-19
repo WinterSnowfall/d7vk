@@ -95,8 +95,7 @@ namespace dxvk {
       return this;
     }
 
-    Logger::debug("D3D7Device::QueryInterface: Forwarding interface query to parent");
-    return m_parent->GetInterface(riid);
+    throw DxvkError("D3D7Device::QueryInterface: Unknown interface query");
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::QueryInterface(REFIID riid, void** ppvObject) {
@@ -105,18 +104,12 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // Some games query for legacy ddraw interfaces
-    if (unlikely(riid == __uuidof(IDirectDraw)
-              || riid == __uuidof(IDirectDraw2)
-              || riid == __uuidof(IDirectDraw4))) {
-      Logger::warn("D3D7Device::QueryInterface: Query for legacy IDirectDraw");
-      return m_proxy->QueryInterface(riid, ppvObject);
-    }
     // These aren't supported, but some games query for them anyway
     if (unlikely(riid == __uuidof(IDirect3DDevice)
               || riid == __uuidof(IDirect3DDevice2)
               || riid == __uuidof(IDirect3DDevice3))) {
-      return E_NOINTERFACE;
+      Logger::debug("D3D7Device::QueryInterface: Query for legacy IDirect3DDevice");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
 
     try {
