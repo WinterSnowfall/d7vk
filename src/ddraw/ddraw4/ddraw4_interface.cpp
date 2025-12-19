@@ -6,6 +6,8 @@
 #include "../ddraw_interface.h"
 #include "../d3d6/d3d6_interface.h"
 
+#include <algorithm>
+
 namespace dxvk {
 
   uint32_t DDraw4Interface::s_intfCount = 0;
@@ -278,6 +280,50 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw4Interface::GetDeviceIdentifier(LPDDDEVICEIDENTIFIER pDDDI, DWORD dwFlags) {
     Logger::debug("<<< DDraw4Interface::GetDeviceIdentifier: Proxy");
     return m_proxy->GetDeviceIdentifier(pDDDI, dwFlags);
+  }
+
+  bool DDraw4Interface::IsWrappedSurface(IDirectDrawSurface4* surface) const {
+    if (unlikely(surface == nullptr))
+      return false;
+
+    DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(surface);
+    auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddraw4Surface);
+    if (likely(it != m_surfaces.end()))
+      return true;
+
+    return false;
+  }
+
+  void DDraw4Interface::AddWrappedSurface(IDirectDrawSurface4* surface) {
+    if (likely(surface != nullptr)) {
+      DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(surface);
+
+      auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddraw4Surface);
+      if (unlikely(it != m_surfaces.end())) {
+        Logger::warn("DDraw7Interface::AddWrappedSurface: Pre-existing wrapped surface found");
+      } else {
+        m_surfaces.push_back(ddraw4Surface);
+
+        if (likely(ddraw4Surface->IsChildObject()))
+          this->AddRef();
+      }
+    }
+  }
+
+  void DDraw4Interface::RemoveWrappedSurface(IDirectDrawSurface4* surface) {
+    if (likely(surface != nullptr)) {
+      DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(surface);
+
+      auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddraw4Surface);
+      if (likely(it != m_surfaces.end())) {
+        m_surfaces.erase(it);
+
+        if (likely(ddraw4Surface->IsChildObject()))
+          this->Release();
+      } else {
+        Logger::warn("DDraw7Interface::RemoveWrappedSurface: Surface not found");
+      }
+    }
   }
 
 }

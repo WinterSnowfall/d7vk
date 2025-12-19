@@ -17,7 +17,7 @@ namespace dxvk {
       return this;
     if (riid == __uuidof(IDirectDrawGammaControl)) {
       if (unlikely(m_forwardToProxy)) {
-        Logger::debug("IDirectDrawGammaControl::QueryInterface: Forwarding interface query to proxied object");
+        Logger::debug("DDrawGammaControl::QueryInterface: Forwarding interface query to proxied object");
         // Hack: Return the proxied interface, as some applications need
         // to use an unwrapped object in relation with external modules
         void* ppvObject = nullptr;
@@ -28,8 +28,47 @@ namespace dxvk {
       return this;
     }
 
-    Logger::debug("IDirectDrawGammaControl::QueryInterface: Forwarding interface query to parent");
-    return m_parent->GetInterface(riid);
+    throw DxvkError("DDrawGammaControl::QueryInterface: Unknown interface query");
+  }
+
+  HRESULT STDMETHODCALLTYPE DDrawGammaControl::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> DDrawGammaControl::QueryInterface");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    if (unlikely(riid == __uuidof(IUnknown)
+              || riid == __uuidof(IDirectDrawSurface))) {
+      Logger::debug("DDrawGammaControl::QueryInterface: Query for IDirectDrawSurface");
+      return m_parent->QueryInterface(riid, ppvObject);
+    }
+    if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
+      Logger::debug("DDrawGammaControl::QueryInterface: Query for IDirectDrawSurface2");
+      return m_parent->QueryInterface(riid, ppvObject);
+    }
+    if (unlikely(riid == __uuidof(IDirectDrawSurface3))) {
+      Logger::debug("DDrawGammaControl::QueryInterface: Query for IDirectDrawSurface3");
+      return m_parent->QueryInterface(riid, ppvObject);
+    }
+    if (unlikely(riid == __uuidof(IDirectDrawSurface4))) {
+      Logger::debug("DDrawGammaControl::QueryInterface: Query for IDirectDrawSurface4");
+      return m_parent->QueryInterface(riid, ppvObject);
+    }
+    if (unlikely(riid == __uuidof(IDirectDrawSurface7))) {
+      Logger::debug("DDrawGammaControl::QueryInterface: Query for IDirectDrawSurface7");
+      return m_parent->QueryInterface(riid, ppvObject);
+    }
+
+    try {
+      *ppvObject = ref(this->GetInterface(riid));
+      return S_OK;
+    } catch (const DxvkError& e) {
+      Logger::warn(e.message());
+      Logger::warn(str::format(riid));
+      return E_NOINTERFACE;
+    }
   }
 
   HRESULT STDMETHODCALLTYPE DDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData) {
