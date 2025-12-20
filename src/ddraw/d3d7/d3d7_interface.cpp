@@ -166,7 +166,7 @@ namespace dxvk {
     } else if (rclsid == IID_IDirect3DRGBDevice) {
       Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
     } else {
-      Logger::err("D3D7Interface::CreateDevice: Unknown device type");
+      Logger::err("D3D7Interface::CreateDevice: Unsupported device type");
       return DDERR_INVALIDPARAMS;
     }
 
@@ -256,7 +256,7 @@ namespace dxvk {
       while (backBuffer != nullptr) {
         IDirectDrawSurface7* parentSurface = backBuffer;
         backBuffer = nullptr;
-        parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfacesCallback);
+        parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfaces7Callback);
         backBufferCount++;
         // the swapchain will eventually return to its origin
         if (backBuffer == rt7->GetProxied())

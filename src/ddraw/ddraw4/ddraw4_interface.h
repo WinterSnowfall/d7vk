@@ -2,12 +2,17 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
+#include "../ddraw_format.h"
+
+#include "../d3d9/d3d9_bridge.h"
+
+#include "../d3d6/d3d6_interface.h"
 
 #include <vector>
 
 namespace dxvk {
 
-  class D3D6Interface;
+  class D3D6Device;
   class DDraw7Interface;
   class DDraw4Surface;
 
@@ -79,6 +84,46 @@ namespace dxvk {
 
     void RemoveWrappedSurface(IDirectDrawSurface4* surface);
 
+    D3D6Interface* GetD3D7Interface() const {
+      return m_d3d6Intf.ptr();
+    }
+
+    D3D6Device* GetD3D6Device() const {
+      return m_d3d6Intf->GetLastUsedDevice();
+    }
+
+    const D3D7Options* GetOptions() const {
+      return m_d3d6Intf->GetOptions();
+    }
+
+    DDraw4Surface* GetLastDepthStencil() const {
+      return m_lastDepthStencil;
+    }
+
+    DWORD GetCooperativeLevel() const {
+      return m_cooperativeLevel;
+    }
+
+    DDrawModeSize GetModeSize() const {
+      return m_modeSize;
+    }
+
+    HWND GetHWND() const {
+      return m_hwnd;
+    }
+
+    void SetHWND(HWND hwnd) {
+      m_hwnd = hwnd;
+    }
+
+    void SetWaitForVBlank(bool waitForVBlank) {
+      m_waitForVBlank = waitForVBlank;
+    }
+
+    bool GetWaitForVBlank() const {
+      return m_waitForVBlank;
+    }
+
   private:
 
     inline bool IsLegacyInterface() {
@@ -91,6 +136,15 @@ namespace dxvk {
     DDraw7Interface*            m_origin = nullptr;
 
     Com<D3D6Interface,   false> m_d3d6Intf;
+
+    HWND                        m_hwnd       = nullptr;
+
+    bool                        m_waitForVBlank = true;
+
+    DWORD                       m_cooperativeLevel = 0;
+    DDrawModeSize               m_modeSize = { };
+
+    DDraw4Surface*              m_lastDepthStencil = nullptr;
 
     std::vector<DDraw4Surface*> m_surfaces;
 
