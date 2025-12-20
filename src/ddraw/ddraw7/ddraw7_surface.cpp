@@ -134,7 +134,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Surface(std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new DDraw4Surface(std::move(ppvProxyObject), nullptr, nullptr, this, false));
 
       return S_OK;
     }
@@ -379,7 +379,7 @@ namespace dxvk {
         if (unlikely(!IsInitialized()))
           IntializeD3D9(m_d3d7Device->GetRenderTarget() == this);
 
-        BlitToD3D7Surface(m_proxy.ptr(), m_d3d7Device->GetRenderTarget()->GetD3D9());
+        BlitToDDrawSurface(m_proxy.ptr(), m_d3d7Device->GetRenderTarget()->GetD3D9());
 
         if (unlikely(!m_parent->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
           if (unlikely(lpDDSurfaceTargetOverride != nullptr))
@@ -961,7 +961,7 @@ namespace dxvk {
     while (mipMap != nullptr) {
       IDirectDrawSurface7* parentSurface = mipMap;
       mipMap = nullptr;
-      parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
+      parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces7Callback);
       if (mipMap != nullptr) {
         m_mipCount++;
       }
