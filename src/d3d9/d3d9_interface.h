@@ -141,6 +141,10 @@ namespace dxvk {
 
     bool IsExtended() { return m_extended; }
 
+    bool IsD3D6Compatible() const {
+      return m_isD3D6Compatible;
+    }
+
     bool IsD3D7Compatible() const {
       return m_isD3D7Compatible;
     }
@@ -158,6 +162,8 @@ namespace dxvk {
     }
 
     void EnableD3D7CompatibilityMode() {
+      // D3D6 compatibility may have been previously set by a legacy interface
+      m_isD3D6Compatible = false;
       m_isD3D7Compatible = true;
       // D3D8 specific limitations and quirks are also very much in effect
       m_isD3D8Compatible = true;

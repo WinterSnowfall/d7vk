@@ -15,7 +15,7 @@
 
 namespace dxvk {
 
-  struct FilpRTFlags {
+  struct FilpRT7Flags {
     IDirectDrawSurface7* surf  = nullptr;
     DWORD                flags = 0;
   };
@@ -238,11 +238,11 @@ namespace dxvk {
     // Value of D3DRENDERSTATE_ANTIALIAS
     DWORD           m_antialias     = D3DANTIALIAS_NONE;
     // Value of D3DRENDERSTATE_LINEPATTERN
-    D3DLINEPATTERN  m_linePattern   = {};
+    D3DLINEPATTERN  m_linePattern   = { };
     // Value of D3DRENDERSTATE_ZVISIBLE (although the RS is not supported, its value is stored)
     DWORD           m_zVisible      = 0;
 
-    FilpRTFlags     m_flipRTFlags;
+    FilpRT7Flags    m_flipRTFlags;
 
     // Common index buffers used for indexed draws, split up into five sizes:
     // XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb

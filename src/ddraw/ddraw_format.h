@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 #include "ddraw_include.h"
 
 namespace dxvk {
@@ -451,8 +453,20 @@ namespace dxvk {
     return DD_OK;
   }
 
-  // Callback function used to navigate a flipable surface swapchain
-  inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+  // D3D6 Callback function used to navigate a flipable surface swapchain
+  inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfaces6Callback(IDirectDrawSurface4* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+    IDirectDrawSurface4** nextBackBuffer = static_cast<IDirectDrawSurface4**>(ctx);
+
+    if (desc->ddsCaps.dwCaps & DDSCAPS_FLIP) {
+      *nextBackBuffer = subsurf;
+      return DDENUMRET_CANCEL;
+    }
+
+    return DDENUMRET_OK;
+  }
+
+  // D3D7 callback function used to navigate a flipable surface swapchain
+  inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfaces7Callback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     IDirectDrawSurface7** nextBackBuffer = static_cast<IDirectDrawSurface7**>(ctx);
 
     if (desc->ddsCaps.dwCaps & DDSCAPS_FLIP) {
@@ -463,8 +477,21 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  // Callback function used to navigate the linked mip map chain
-  inline HRESULT STDMETHODCALLTYPE ListMipChainSurfacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+  // D3D6 callback function used to navigate the linked mip map chain
+  inline HRESULT STDMETHODCALLTYPE ListMipChainSurfaces4Callback(IDirectDrawSurface4* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+    IDirectDrawSurface4** nextMip = static_cast<IDirectDrawSurface4**>(ctx);
+
+    if ((desc->ddsCaps.dwCaps  & DDSCAPS_MIPMAP)
+     || (desc->ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL)) {
+      *nextMip = subsurf;
+      return DDENUMRET_CANCEL;
+    }
+
+    return DDENUMRET_OK;
+  }
+
+  // D3D7 callback function used to navigate the linked mip map chain
+  inline HRESULT STDMETHODCALLTYPE ListMipChainSurfaces7Callback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     IDirectDrawSurface7** nextMip = static_cast<IDirectDrawSurface7**>(ctx);
 
     if ((desc->ddsCaps.dwCaps  & DDSCAPS_MIPMAP)
@@ -476,7 +503,7 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  // Callback function used in cube map face/surface initialization
+  // D3D7 callback function used in cube map face/surface initialization
   inline HRESULT STDMETHODCALLTYPE EnumAndAttachCubeMapFacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     CubeMapAttachedSurfaces* cubeMapAttachedSurfaces = static_cast<CubeMapAttachedSurfaces*>(ctx);
 
@@ -510,19 +537,19 @@ namespace dxvk {
   inline void BlitToD3D9CubeMap(
       d3d9::IDirect3DCubeTexture9* cubeTex9,
       d3d9::D3DFORMAT format9,
-      IDirectDrawSurface7* surface7,
+      IDirectDrawSurface7* surface,
       uint32_t mipLevels) {
     // Properly handle cube textures with auto-generated mip maps
     const uint32_t actualMipLevels = std::max(1u, mipLevels);
 
     DDSURFACEDESC2 desc = { };
     desc.dwSize = sizeof(DDSURFACEDESC2);
-    surface7->GetSurfaceDesc(&desc);
+    surface->GetSurfaceDesc(&desc);
     const d3d9::D3DCUBEMAP_FACES face = GetCubemapFace(&desc);
 
     Logger::debug(str::format("BlitToD3D9CubeMap: Blitting face ", face));
 
-    IDirectDrawSurface7* mipMap = surface7;
+    IDirectDrawSurface7* mipMap = surface;
 
     Logger::debug(str::format("BlitToD3D9CubeMap: Blitting ", actualMipLevels, " mip map(s)"));
 
@@ -539,8 +566,8 @@ namespace dxvk {
       if (likely(SUCCEEDED(hr9))) {
         DDSURFACEDESC2 descMip;
         descMip.dwSize = sizeof(DDSURFACEDESC2);
-        HRESULT hr7 = mipMap->Lock(0, &descMip, DDLOCK_READONLY, 0);
-        if (likely(SUCCEEDED(hr7))) {
+        HRESULT hr = mipMap->Lock(0, &descMip, DDLOCK_READONLY, 0);
+        if (likely(SUCCEEDED(hr))) {
           Logger::debug(str::format("descMip.dwWidth:  ", descMip.dwWidth));
           Logger::debug(str::format("descMip.dwHeight: ", descMip.dwHeight));
           Logger::debug(str::format("descMip.lPitch:   ", descMip.lPitch));
@@ -575,22 +602,23 @@ namespace dxvk {
         IDirectDrawSurface7* parentSurface = mipMap;
         mipMap = nullptr;
 
-        parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
+        parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces7Callback);
       } else {
         Logger::warn(str::format("BlitToD3D9CubeMap: Failed to lock D3D9 mip ", i));
       }
     }
   }
 
+  template <typename SurfaceType>
   inline void BlitToD3D9Texture(
       d3d9::IDirect3DTexture9* texture9,
       d3d9::D3DFORMAT format9,
-      IDirectDrawSurface7* surface7,
+      SurfaceType* surface,
       uint32_t mipLevels) {
     // Properly handle textures with auto-generated mip maps
     const uint32_t actualMipLevels = std::max(1u, mipLevels);
 
-    IDirectDrawSurface7* mipMap = surface7;
+    SurfaceType* mipMap = surface;
 
     Logger::debug(str::format("BlitToD3D9Texture: Blitting ", actualMipLevels, " mip map(s)"));
 
@@ -607,8 +635,8 @@ namespace dxvk {
       if (likely(SUCCEEDED(hr9))) {
         DDSURFACEDESC2 descMip;
         descMip.dwSize = sizeof(DDSURFACEDESC2);
-        HRESULT hr7 = mipMap->Lock(0, &descMip, DDLOCK_READONLY, 0);
-        if (likely(SUCCEEDED(hr7))) {
+        HRESULT hr = mipMap->Lock(0, &descMip, DDLOCK_READONLY, 0);
+        if (likely(SUCCEEDED(hr))) {
           Logger::debug(str::format("descMip.dwWidth:  ", descMip.dwWidth));
           Logger::debug(str::format("descMip.dwHeight: ", descMip.dwHeight));
           Logger::debug(str::format("descMip.lPitch:   ", descMip.lPitch));
@@ -640,28 +668,34 @@ namespace dxvk {
         }
         texture9->UnlockRect(i);
 
-        IDirectDrawSurface7* parentSurface = mipMap;
+        SurfaceType* parentSurface = mipMap;
         mipMap = nullptr;
 
-        parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
+        if constexpr (std::is_same<SurfaceType, IDirectDrawSurface4>::value) {
+          parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces4Callback);
+        }
+        else if constexpr (std::is_same<SurfaceType, IDirectDrawSurface7>::value) {
+          parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces7Callback);
+        }
       } else {
         Logger::warn(str::format("BlitToD3D9Texture: Failed to lock D3D9 mip ", i));
       }
     }
   }
 
+  template <typename SurfaceType>
   inline void BlitToD3D9Surface(
       d3d9::IDirect3DSurface9* surface9,
       d3d9::D3DFORMAT format9,
-      IDirectDrawSurface7* surface7) {
+      SurfaceType* surface) {
     d3d9::D3DLOCKED_RECT rect9;
     // D3DLOCK_DISCARD will get ignored for MANAGED/SYSTEMMEM, but will work on DEFAULT
     HRESULT hr9 = surface9->LockRect(&rect9, 0, D3DLOCK_DISCARD);
     if (SUCCEEDED(hr9)) {
       DDSURFACEDESC2 desc;
       desc.dwSize = sizeof(DDSURFACEDESC2);
-      HRESULT hr7 = surface7->Lock(0, &desc, DDLOCK_READONLY, 0);
-      if (SUCCEEDED(hr7)) {
+      HRESULT hr = surface->Lock(0, &desc, DDLOCK_READONLY, 0);
+      if (SUCCEEDED(hr)) {
         Logger::debug(str::format("desc.dwWidth:  ", desc.dwWidth));
         Logger::debug(str::format("desc.dwHeight: ", desc.dwHeight));
         Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));
@@ -687,7 +721,7 @@ namespace dxvk {
           memcpy(rect9.pBits, desc.lpSurface, size);
           Logger::debug("BlitToD3D9Surface: Done blitting surface");
         }
-        surface7->Unlock(0);
+        surface->Unlock(0);
       } else {
         Logger::warn("BlitToD3D9Surface: Failed to lock surface");
       }
@@ -697,14 +731,15 @@ namespace dxvk {
     }
   }
 
-  // reverse blitter, used in the d3d7.forceProxiedPresent logic
-  inline void BlitToD3D7Surface(
-      IDirectDrawSurface7* surface7,
+  // reverse blitter, used in the forceProxiedPresent logic
+  template <typename SurfaceType>
+  inline void BlitToDDrawSurface(
+      SurfaceType* surface,
       d3d9::IDirect3DSurface9* surface9) {
     DDSURFACEDESC2 desc;
     desc.dwSize = sizeof(DDSURFACEDESC2);
-    HRESULT hr7 = surface7->Lock(0, &desc, DDLOCK_WRITEONLY, 0);
-    if (SUCCEEDED(hr7)) {
+    HRESULT hr = surface->Lock(0, &desc, DDLOCK_WRITEONLY, 0);
+    if (SUCCEEDED(hr)) {
       d3d9::D3DLOCKED_RECT rect9;
       HRESULT hr9 = surface9->LockRect(&rect9, 0, D3DLOCK_READONLY);
       if (SUCCEEDED(hr9)) {
@@ -713,7 +748,7 @@ namespace dxvk {
         Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));
         Logger::debug(str::format("rect.Pitch:    ", rect9.Pitch));
         if (unlikely(desc.lPitch != rect9.Pitch)) {
-          Logger::debug("BlitToD3D7Surface: Incompatible surface pitch");
+          Logger::debug("BlitToDDrawSurface: Incompatible surface pitch");
 
           uint8_t* data7 = reinterpret_cast<uint8_t*>(desc.lpSurface);
           uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9.pBits);
@@ -722,19 +757,19 @@ namespace dxvk {
           for (uint32_t h = 0; h < desc.dwHeight; h++)
             memcpy(&data7[h * desc.lPitch], &data9[h * rect9.Pitch], copyPitch);
 
-          Logger::debug("BlitToD3D7Surface: Done blitting surface row by row");
+          Logger::debug("BlitToDDrawSurface: Done blitting surface row by row");
         } else {
           const size_t size = static_cast<size_t>(desc.dwHeight * desc.lPitch);
           memcpy(desc.lpSurface, rect9.pBits, size);
-          Logger::debug("BlitToD3D7Surface: Done blitting surface");
+          Logger::debug("BlitToDDrawSurface: Done blitting surface");
         }
         surface9->UnlockRect();
       } else {
-        Logger::warn("BlitToD3D7Surface: Failed to lock D3D9 surface");
+        Logger::warn("BlitToDDrawSurface: Failed to lock D3D9 surface");
       }
-      surface7->Unlock(0);
+      surface->Unlock(0);
     } else {
-      Logger::warn("BlitToD3D7Surface: Failed to lock surface");
+      Logger::warn("BlitToDDrawSurface: Failed to lock surface");
     }
   }
 
