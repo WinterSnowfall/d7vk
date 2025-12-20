@@ -4,7 +4,7 @@
 #include "../ddraw_interface.h"
 
 #include "../ddraw7/ddraw7_interface.h"
-#include "../ddraw_interface.h"
+#include "../ddraw4/ddraw4_interface.h"
 #include "../d3d6/d3d6_interface.h"
 
 namespace dxvk {
@@ -20,7 +20,7 @@ namespace dxvk {
       // This can never reasonably fail
       m_proxy->QueryInterface(__uuidof(IDirect3D3), &d3d6IntfProxiedVoid);
       Com<IDirect3D3> d3d6IntfProxied = static_cast<IDirect3D3*>(d3d6IntfProxiedVoid);
-      m_d3d6Intf = new D3D6Interface(std::move(d3d6IntfProxied), reinterpret_cast<DDrawInterface*>(this));
+      m_d3d6Intf = new D3D6Interface(std::move(d3d6IntfProxied), reinterpret_cast<DDraw4Interface*>(this));
     }
 
     m_intfCount = ++s_intfCount;

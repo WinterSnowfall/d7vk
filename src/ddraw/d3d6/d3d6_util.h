@@ -2,7 +2,7 @@
 
 #include "../ddraw_include.h"
 
-#include "d3d7_caps.h"
+#include "../d3d7/d3d7_caps.h"
 
 namespace dxvk {
 
@@ -159,41 +159,67 @@ namespace dxvk {
     }
   }
 
-  inline D3DDEVICEDESC7 GetD3D7Caps(const IID rclsid, bool disableAASupport) {
-    D3DDEVICEDESC7 desc7;
+  inline D3DDEVICEDESC GetD3D6Caps(const IID rclsid, bool disableAASupport) {
+    D3DDEVICEDESC desc;
 
-    desc7.dwDevCaps = D3DDEVCAPS_CANBLTSYSTONONLOCAL
-                    | D3DDEVCAPS_CANRENDERAFTERFLIP
-                    | D3DDEVCAPS_DRAWPRIMTLVERTEX
-                    | D3DDEVCAPS_EXECUTESYSTEMMEMORY
-                    | D3DDEVCAPS_EXECUTEVIDEOMEMORY
-                    | D3DDEVCAPS_FLOATTLVERTEX
-                 // | D3DDEVCAPS_HWRASTERIZATION
-                 // | D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                 // | D3DDEVCAPS_DRAWPRIMITIVES2
-                 // | D3DDEVCAPS_SEPARATETEXTUREMEMORIES
-                 // | D3DDEVCAPS_DRAWPRIMITIVES2EX
-                 // | D3DDEVCAPS_SORTDECREASINGZ
-                 // | D3DDEVCAPS_SORTEXACT
-                    | D3DDEVCAPS_SORTINCREASINGZ // TODO: Check native
-                 // | D3DDEVCAPS_STRIDEDVERTICES // Mentioned in the docs, but apparently is a ghost
-                    | D3DDEVCAPS_TEXTURENONLOCALVIDMEM
-                 // | D3DDEVCAPS_TEXTURESYSTEMMEMORY
-                    | D3DDEVCAPS_TEXTUREVIDEOMEMORY
-                    | D3DDEVCAPS_TLVERTEXSYSTEMMEMORY
-                    | D3DDEVCAPS_TLVERTEXVIDEOMEMORY;
+    desc.dwFlags   = D3DDD_BCLIPPING
+                   | D3DDD_COLORMODEL
+                   | D3DDD_DEVCAPS
+                   | D3DDD_DEVICERENDERBITDEPTH
+                   | D3DDD_DEVICEZBUFFERBITDEPTH
+                   | D3DDD_LIGHTINGCAPS
+                   | D3DDD_LINECAPS
+                   | D3DDD_MAXBUFFERSIZE
+                   | D3DDD_MAXVERTEXCOUNT
+                   | D3DDD_TRANSFORMCAPS
+                   | D3DDD_TRICAPS;
 
-    if (rclsid == IID_IDirect3DTnLHalDevice) {
-      desc7.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
-                       | D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                       | D3DDEVCAPS_DRAWPRIMITIVES2
-                       | D3DDEVCAPS_DRAWPRIMITIVES2EX;
+    desc.dcmColorModel = D3DCOLOR_RGB;
+
+    desc.dwDevCaps = D3DDEVCAPS_CANRENDERAFTERFLIP
+                   | D3DDEVCAPS_DRAWPRIMTLVERTEX
+                   | D3DDEVCAPS_EXECUTESYSTEMMEMORY
+                   | D3DDEVCAPS_EXECUTEVIDEOMEMORY
+                   | D3DDEVCAPS_FLOATTLVERTEX
+                // | D3DDEVCAPS_HWRASTERIZATION
+                // | D3DDEVCAPS_DRAWPRIMITIVES2
+                // | D3DDEVCAPS_SEPARATETEXTUREMEMORIES
+                // | D3DDEVCAPS_DRAWPRIMITIVES2EX
+                // | D3DDEVCAPS_SORTDECREASINGZ
+                // | D3DDEVCAPS_SORTEXACT
+                   | D3DDEVCAPS_SORTINCREASINGZ // TODO: Check native
+                // | D3DDEVCAPS_TEXREPEATNOTSCALEDBYSIZE
+                   | D3DDEVCAPS_TEXTURENONLOCALVIDMEM
+                // | D3DDEVCAPS_TEXTURESYSTEMMEMORY
+                   | D3DDEVCAPS_TEXTUREVIDEOMEMORY
+                   | D3DDEVCAPS_TLVERTEXSYSTEMMEMORY
+                   | D3DDEVCAPS_TLVERTEXVIDEOMEMORY;
+
+    if (rclsid == IID_IDirect3DHALDevice) {
+      desc.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
+                      | D3DDEVCAPS_DRAWPRIMITIVES2
+                      | D3DDEVCAPS_DRAWPRIMITIVES2EX;
     }
-    else if (rclsid == IID_IDirect3DHALDevice) {
-      desc7.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
-                       | D3DDEVCAPS_DRAWPRIMITIVES2
-                       | D3DDEVCAPS_DRAWPRIMITIVES2EX;
-    }
+
+    D3DTRANSFORMCAPS transformCaps;
+    transformCaps.dwSize = sizeof(D3DTRANSFORMCAPS);
+    transformCaps.dwCaps = D3DTRANSFORMCAPS_CLIP;
+
+    desc.dtcTransformCaps = transformCaps;
+
+    desc.bClipping = TRUE;
+
+    D3DLIGHTINGCAPS lightingCaps;
+    lightingCaps.dwSize  = sizeof(D3DLIGHTINGCAPS);
+    lightingCaps.dwCaps  = D3DLIGHTCAPS_DIRECTIONAL
+                      // | D3DLIGHTCAPS_GLSPOT
+                         | D3DLIGHTCAPS_PARALLELPOINT // TODO: Check D3D9 support
+                         | D3DLIGHTCAPS_POINT
+                         | D3DLIGHTCAPS_SPOT;
+    lightingCaps.dwLightingModel = D3DLIGHTINGMODEL_RGB;
+    lightingCaps.dwNumLights = caps7::MaxEnabledLights;
+
+    desc.dlcLightingCaps = lightingCaps;
 
     D3DPRIMCAPS prim;
     prim.dwSize = sizeof(D3DPRIMCAPS);
@@ -333,79 +359,67 @@ namespace dxvk {
     prim.dwStippleWidth       = 32;
     prim.dwStippleHeight      = 32;
 
-    desc7.dpcLineCaps         = prim;
-    desc7.dpcTriCaps          = prim;
+    desc.dpcLineCaps         = prim;
+    desc.dpcTriCaps          = prim;
 
-    desc7.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_32;
-    desc7.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
-    desc7.dwMinTextureWidth        = 0;
-    desc7.dwMinTextureHeight       = 0;
-    desc7.dwMaxTextureWidth        = caps7::MaxTextureDimension;
-    desc7.dwMaxTextureHeight       = caps7::MaxTextureDimension;
-    desc7.dwMaxTextureRepeat       = 8192;
-    desc7.dwMaxTextureAspectRatio  = 8192;
-    desc7.dwMaxAnisotropy          = 16;
-    desc7.dvGuardBandLeft          = -32768.0f;
-    desc7.dvGuardBandTop           = -32768.0f;
-    desc7.dvGuardBandRight         = 32768.0f;
-    desc7.dvGuardBandBottom        = 32768.0f;
-    desc7.dvExtentsAdjust          = 0.0f;
+    desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_32;
+    desc.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
+    desc.dwMaxBufferSize          = 0;
+    desc.dwMaxVertexCount         = D3DDD_MAXVERTEXCOUNT;
+    desc.dwMinTextureWidth        = 0;
+    desc.dwMinTextureHeight       = 0;
+    desc.dwMaxTextureWidth        = caps7::MaxTextureDimension;
+    desc.dwMaxTextureHeight       = caps7::MaxTextureDimension;
+    desc.dwMaxTextureRepeat       = 8192;
+    desc.dwMaxTextureAspectRatio  = 8192;
+    desc.dwMaxAnisotropy          = 16;
+    desc.dvGuardBandLeft          = -32768.0f;
+    desc.dvGuardBandTop           = -32768.0f;
+    desc.dvGuardBandRight         = 32768.0f;
+    desc.dvGuardBandBottom        = 32768.0f;
+    desc.dvExtentsAdjust          = 0.0f;
 
-    desc7.dwStencilCaps        = D3DSTENCILCAPS_DECR
-                               | D3DSTENCILCAPS_DECRSAT
-                               | D3DSTENCILCAPS_INCR
-                               | D3DSTENCILCAPS_INCRSAT
-                               | D3DSTENCILCAPS_INVERT
-                               | D3DSTENCILCAPS_KEEP
-                               | D3DSTENCILCAPS_REPLACE
-                               | D3DSTENCILCAPS_ZERO;
+    desc.dwStencilCaps        = D3DSTENCILCAPS_DECR
+                              | D3DSTENCILCAPS_DECRSAT
+                              | D3DSTENCILCAPS_INCR
+                              | D3DSTENCILCAPS_INCRSAT
+                              | D3DSTENCILCAPS_INVERT
+                              | D3DSTENCILCAPS_KEEP
+                              | D3DSTENCILCAPS_REPLACE
+                              | D3DSTENCILCAPS_ZERO;
 
-    desc7.dwFVFCaps                = (caps7::MaxSimultaneousTextures & D3DFVFCAPS_TEXCOORDCOUNTMASK);
+    desc.dwFVFCaps                = (caps7::MaxSimultaneousTextures & D3DFVFCAPS_TEXCOORDCOUNTMASK);
                                 /* | D3DFVFCAPS_DONOTSTRIPELEMENTS; */
 
-    desc7.dwTextureOpCaps          = D3DTEXOPCAPS_ADD
-                                   | D3DTEXOPCAPS_ADDSIGNED
-                                   | D3DTEXOPCAPS_ADDSIGNED2X
-                                   | D3DTEXOPCAPS_ADDSMOOTH
-                                   | D3DTEXOPCAPS_BLENDCURRENTALPHA
-                                   | D3DTEXOPCAPS_BLENDDIFFUSEALPHA
-                                   | D3DTEXOPCAPS_BLENDFACTORALPHA
-                                   | D3DTEXOPCAPS_BLENDTEXTUREALPHA
-                                   | D3DTEXOPCAPS_BLENDTEXTUREALPHAPM
-                                   | D3DTEXOPCAPS_BUMPENVMAP
-                                   | D3DTEXOPCAPS_BUMPENVMAPLUMINANCE
-                                   | D3DTEXOPCAPS_DISABLE
-                                   | D3DTEXOPCAPS_DOTPRODUCT3
-                                   | D3DTEXOPCAPS_MODULATE
-                                   | D3DTEXOPCAPS_MODULATE2X
-                                   | D3DTEXOPCAPS_MODULATE4X
-                                   | D3DTEXOPCAPS_MODULATEALPHA_ADDCOLOR
-                                   | D3DTEXOPCAPS_MODULATECOLOR_ADDALPHA
-                                   | D3DTEXOPCAPS_MODULATEINVALPHA_ADDCOLOR
-                                   | D3DTEXOPCAPS_MODULATEINVCOLOR_ADDALPHA
-                                   | D3DTEXOPCAPS_PREMODULATE
-                                   | D3DTEXOPCAPS_SELECTARG1
-                                   | D3DTEXOPCAPS_SELECTARG2
-                                   | D3DTEXOPCAPS_SUBTRACT;
+    desc.dwTextureOpCaps          = D3DTEXOPCAPS_ADD
+                                  | D3DTEXOPCAPS_ADDSIGNED
+                                  | D3DTEXOPCAPS_ADDSIGNED2X
+                                  | D3DTEXOPCAPS_ADDSMOOTH
+                                  | D3DTEXOPCAPS_BLENDCURRENTALPHA
+                                  | D3DTEXOPCAPS_BLENDDIFFUSEALPHA
+                                  | D3DTEXOPCAPS_BLENDFACTORALPHA
+                                  | D3DTEXOPCAPS_BLENDTEXTUREALPHA
+                                  | D3DTEXOPCAPS_BLENDTEXTUREALPHAPM
+                                  | D3DTEXOPCAPS_BUMPENVMAP
+                                  | D3DTEXOPCAPS_BUMPENVMAPLUMINANCE
+                                  | D3DTEXOPCAPS_DISABLE
+                                  | D3DTEXOPCAPS_DOTPRODUCT3
+                                  | D3DTEXOPCAPS_MODULATE
+                                  | D3DTEXOPCAPS_MODULATE2X
+                                  | D3DTEXOPCAPS_MODULATE4X
+                                  | D3DTEXOPCAPS_MODULATEALPHA_ADDCOLOR
+                                  | D3DTEXOPCAPS_MODULATECOLOR_ADDALPHA
+                                  | D3DTEXOPCAPS_MODULATEINVALPHA_ADDCOLOR
+                                  | D3DTEXOPCAPS_MODULATEINVCOLOR_ADDALPHA
+                                  | D3DTEXOPCAPS_PREMODULATE
+                                  | D3DTEXOPCAPS_SELECTARG1
+                                  | D3DTEXOPCAPS_SELECTARG2
+                                  | D3DTEXOPCAPS_SUBTRACT;
 
-    desc7.wMaxTextureBlendStages   = caps7::MaxTextureBlendStages;
-    desc7.wMaxSimultaneousTextures = caps7::MaxSimultaneousTextures;
-    desc7.dwMaxActiveLights        = caps7::MaxEnabledLights;
-    desc7.dvMaxVertexW             = 1e10f;
+    desc.wMaxTextureBlendStages   = caps7::MaxTextureBlendStages;
+    desc.wMaxSimultaneousTextures = caps7::MaxSimultaneousTextures;
 
-    desc7.deviceGUID               = rclsid;
-
-    desc7.wMaxUserClipPlanes       = caps7::MaxClipPlanes;
-    desc7.wMaxVertexBlendMatrices  = 4;
-
-    desc7.dwVertexProcessingCaps   = D3DVTXPCAPS_TEXGEN
-                                   | D3DVTXPCAPS_MATERIALSOURCE7
-                                   | D3DVTXPCAPS_VERTEXFOG
-                                   | D3DVTXPCAPS_DIRECTIONALLIGHTS
-                                   | D3DVTXPCAPS_POSITIONALLIGHTS;
-                                // | D3DVTXPCAPS_NONLOCALVIEWER; // Described in the official docs, otherwise a ghost
-
-    return desc7;
+    return desc;
   }
 
   inline bool IsValidRenderStateType(D3DRENDERSTATETYPE rs) {
