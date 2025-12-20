@@ -3,9 +3,14 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
+#include "../d3d6/d3d6_device.h"
+
+#include "ddraw4_interface.h"
+
+#include <unordered_map>
+
 namespace dxvk {
 
-  class DDraw4Interface;
   class DDraw7Surface;
 
   /**
@@ -15,7 +20,12 @@ namespace dxvk {
 
   public:
 
-    DDraw4Surface(Com<IDirectDrawSurface4>&& surfProxy, DDraw4Interface* pParent, DDraw7Surface* origin);
+    DDraw4Surface(
+        Com<IDirectDrawSurface4>&& surfProxy,
+        DDraw4Interface* pParent,
+        DDraw4Surface* pParentSurf,
+        DDraw7Surface* origin,
+        bool isChildObject);
 
     ~DDraw4Surface();
 
@@ -109,18 +119,180 @@ namespace dxvk {
       return m_isChildObject;
     }
 
+    bool IsTexture() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_TEXTURE;
+    }
+
+    bool IsRenderTarget() const {
+      return IsFrontBuffer() || IsBackBufferOrFlippable() || Is3DSurface();
+    }
+
+    bool IsForwardableSurface() const {
+      return IsFrontBuffer() || IsBackBufferOrFlippable() || IsDepthStencil() || IsOffScreenPlainSurface();
+    }
+
+    bool IsBackBufferOrFlippable() const {
+      return !IsFrontBuffer() && (m_desc.ddsCaps.dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP));
+    }
+
+    bool IsDepthStencil() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_ZBUFFER;
+    }
+
+    DDraw4Surface* GetAttachedDepthStencil() const {
+      return m_depthStencil.ptr();
+    }
+
+    void SetAttachedDepthStencil(DDraw4Surface* ds) {
+      ds->SetParentSurface(this);
+      m_depthStencil = ds;
+    }
+
+    void SetParentSurface(DDraw4Surface* surface) {
+      m_parentSurf = surface;
+    }
+
+    void ClearParentSurface() {
+      m_parentSurf = nullptr;
+    }
+
+    bool HasDirtyMipMaps() const {
+      return m_dirtyMipMaps;
+    }
+
+    void DirtyMipMaps() {
+      m_dirtyMipMaps = true;
+    }
+
+    void UnDirtyMipMaps() {
+      m_dirtyMipMaps = false;
+    }
+
+    HRESULT InitializeD3D9RenderTarget();
+
+    HRESULT InitializeOrUploadD3D9();
+
   private:
 
     inline bool IsLegacyInterface() {
       return m_origin != nullptr;
     }
 
+    inline bool IsAttached() const {
+      return m_parentSurf != nullptr;
+    }
+
+    inline bool IsComplex() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_COMPLEX;
+    }
+
+    inline bool IsNotKnown() const {
+      return !(m_desc.dwFlags & DDSD_CAPS);
+    }
+
+    inline bool IsPrimarySurface() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE;
+    }
+
+    inline bool IsFrontBuffer() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER;
+    }
+
+    inline bool IsBackBuffer() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER;
+    }
+
+    inline bool Is3DSurface() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_3DDEVICE;
+    }
+
+    inline bool IsOffScreenPlainSurface() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN;
+    }
+
+    inline bool IsTextureMip() const {
+      return (m_desc.ddsCaps.dwCaps  & DDSCAPS_MIPMAP) ||
+             (m_desc.ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL);
+    }
+
+    inline bool IsOverlay() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_OVERLAY;
+    }
+
+    inline bool IsManaged() const {
+      return m_desc.ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE;
+    }
+
+    inline HRESULT IntializeD3D9(const bool initRT);
+
+    inline HRESULT UploadSurfaceData();
+
+    inline void RefreshD3D6Device() {
+      D3D6Device* d3d6Device = m_parent->GetD3D6Device();
+      if (unlikely(m_d3d6Device != d3d6Device)) {
+        // Check if the device has been recreated and reset all D3D9 resources
+        if (unlikely(m_d3d6Device != nullptr)) {
+          Logger::debug("DDraw4Surface: Device context has changed, clearing all D3D9 resources");
+          m_texture = nullptr;
+          m_d3d9 = nullptr;
+        }
+        m_d3d6Device = d3d6Device;
+      }
+    }
+
+    inline void ListSurfaceDetails() const {
+      const char* type = "generic surface";
+
+      if (IsFrontBuffer())                type = "front buffer";
+      else if (IsBackBuffer())            type = "back buffer";
+      else if (IsTextureMip())            type = "texture mipmap";
+      else if (IsTexture())               type = "texture";
+      else if (IsDepthStencil())          type = "depth stencil";
+      else if (IsOffScreenPlainSurface()) type = "offscreen plain surface";
+      else if (IsOverlay())               type = "overlay";
+      else if (Is3DSurface())             type = "render target";
+      else if (IsNotKnown())              type = "unknown";
+
+      const char* attached = IsAttached() ? "yes" : "no";
+
+      Logger::debug(str::format("DDraw4Surface: Created a new surface nr. [[4-", m_surfCount, "]]:"));
+      Logger::debug(str::format("   Type:       ", type));
+      Logger::debug(str::format("   Dimensions: ", m_desc.dwWidth, "x", m_desc.dwHeight));
+      Logger::debug(str::format("   Format:     ", m_format));
+      Logger::debug(str::format("   IsComplex:  ", IsComplex() ? "yes" : "no"));
+      Logger::debug(str::format("   HasMips:    ", m_desc.dwMipMapCount ? "yes" : "no"));
+      Logger::debug(str::format("   IsAttached: ", attached));
+      if (IsFrontBuffer())
+        Logger::debug(str::format("   BackBuffer: ", m_desc.dwBackBufferCount));
+    }
+
     bool             m_isChildObject = true;
+    bool             m_dirtyMipMaps  = false;
+    uint32_t         m_mipCount      = 0;
 
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
 
-    DDraw7Surface*   m_origin    = nullptr;
+    DDraw4Surface*                      m_parentSurf = nullptr;
+
+    DDraw7Surface*                      m_origin     = nullptr;
+
+    D3D6Device*                         m_d3d6Device = nullptr;
+
+    DDSURFACEDESC2                      m_desc;
+    d3d9::D3DFORMAT                     m_format;
+
+    Com<d3d9::IDirect3DTexture9>        m_texture;
+
+    // Back buffers will have depth stencil surfaces as attachments (in practice
+    // I have never seen more than one depth stencil being attached at a time)
+    Com<DDraw4Surface>                  m_depthStencil;
+
+    // These are attached surfaces, which are typically mips or other types of generated
+    // surfaces, which need to exist for the entire lifecycle of their parent surface.
+    // They are implemented with linked list, so for example only one mip level
+    // will be held in a parent texture, and the next mip level will be held in the previous mip.
+    std::unordered_map<IDirectDrawSurface4*, Com<DDraw4Surface, false>> m_attachedSurfaces;
 
   };
 
