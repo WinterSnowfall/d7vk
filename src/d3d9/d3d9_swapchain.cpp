@@ -1379,11 +1379,10 @@ namespace dxvk {
     if (this->GetParent()->Is9On12Device())
       return this->GetParent()->IsExtended() ? "D3D9On12Ex" : "D3D9On12";
 
-    return this->GetParent()->IsD3D7Compatible() ? "D3D7" :
+    return this->GetParent()->IsD3D6Compatible() ? "D3D6" :
+           this->GetParent()->IsD3D7Compatible() ? "D3D7" :
            this->GetParent()->IsD3D8Compatible() ? "D3D8" :
            this->GetParent()->IsExtended() ? "D3D9Ex" : "D3D9";
-
-    return "D3D7";
   }
 
 
