@@ -73,9 +73,9 @@ namespace dxvk {
     if (m_parent->GetLastUsedDevice() == this)
       m_parent->SetLastUsedDevice(nullptr);
 
-    Logger::debug(str::format("D3D7Device: Device nr. ((7-", m_deviceCount, ")) bites the dust"));
-
     m_parent->Release();
+
+    Logger::debug(str::format("D3D7Device: Device nr. ((7-", m_deviceCount, ")) bites the dust"));
   }
 
   template<>
@@ -270,7 +270,7 @@ namespace dxvk {
           // If we have drawn anything, we need to make sure we blit back
           // the results onto the d3d7 render target before we flip it
           if (m_hasDrawn)
-            BlitToD3D7Surface(m_rt->GetProxied(), m_rt->GetD3D9());
+            BlitToDDrawSurface(m_rt->GetProxied(), m_rt->GetD3D9());
           m_rt->GetProxied()->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
         } else {
           m_d3d9->Present(NULL, NULL, NULL, NULL);
@@ -1538,7 +1538,7 @@ namespace dxvk {
                             std::forward_as_tuple(std::move(surf9)));
 
       IDirectDrawSurface7* nextBackBuffer = nullptr;
-      parentSurface->EnumAttachedSurfaces(&nextBackBuffer, ListBackBufferSurfacesCallback);
+      parentSurface->EnumAttachedSurfaces(&nextBackBuffer, ListBackBufferSurfaces7Callback);
 
       // the swapchain will eventually return to its origin
       if (nextBackBuffer == origin)
