@@ -6,6 +6,7 @@
 #include "d3d6_buffer.h"
 #include "d3d6_texture.h"
 #include "d3d6_util.h"
+#include "d3d6_viewport.h"
 
 namespace dxvk {
 
@@ -144,17 +145,21 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D6Device::AddViewport(IDirect3DViewport3 *viewport) {
     Logger::debug("<<< D3D6Device::AddViewport: Proxy");
-    return m_proxy->AddViewport(viewport);
+    Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
+    return m_proxy->AddViewport(d3d6Viewport->GetProxied());
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DeleteViewport(IDirect3DViewport3 *viewport) {
     Logger::debug("<<< D3D6Device::DeleteViewport: Proxy");
-    return m_proxy->DeleteViewport(viewport);
+    Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
+    return m_proxy->DeleteViewport(d3d6Viewport->GetProxied());
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::NextViewport(IDirect3DViewport3 *ref, IDirect3DViewport3 **viewport, DWORD flags) {
-    Logger::debug("<<< D3D6Device::NextViewport: Proxy");
-    return m_proxy->NextViewport(ref, viewport, flags);
+    Logger::warn("<<< D3D6Device::NextViewport: Proxy");
+    Com<D3D6Viewport> ref6 = static_cast<D3D6Viewport*>(ref);
+    // TODO: Wrap the return or better, cache viewports in the interface and look them up
+    return m_proxy->NextViewport(ref6->GetProxied(), viewport, flags);
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx) {
@@ -322,15 +327,16 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::SetCurrentViewport(IDirect3DViewport3 *viewport) {
-    Logger::debug(">>> D3D6Device::GetDirect3D");
+    Logger::debug(">>> D3D6Device::SetCurrentViewport");
 
-    HRESULT hr = m_proxy->SetCurrentViewport(viewport);
+    Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
+    HRESULT hr = m_proxy->SetCurrentViewport(d3d6Viewport->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
     D3DVIEWPORT2 viewport6;
     viewport6.dwSize = sizeof(D3DVIEWPORT2);
-    hr = viewport->GetViewport2(&viewport6);
+    hr = d3d6Viewport->GetProxied()->GetViewport2(&viewport6);
     if (unlikely(FAILED(hr)))
       return hr;
 
@@ -344,11 +350,16 @@ namespace dxvk {
 
     // TODO: Set up materials, lights and everything else that's in the viewport
 
-    return m_d3d9->SetViewport(&viewport9);
+    hr = m_d3d9->SetViewport(&viewport9);
+    if(unlikely(FAILED(hr)))
+      Logger::err("D3D6Device::SetCurrentViewport: Failed to set the D3D9 viewport");
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetCurrentViewport(IDirect3DViewport3 **viewport) {
-    Logger::debug("<<< D3D6Device::GetDirect3D: Proxy");
+    Logger::warn("<<< D3D6Device::GetCurrentViewport: Proxy");
+    // TODO: Wrap the return or better, cache viewports in the interface and look them up
     return m_proxy->GetCurrentViewport(viewport);
   }
 
@@ -498,8 +509,17 @@ namespace dxvk {
       default:
         break;
 
+      // "Texture handle for use when rendering with the IDirect3DDevice2 or earlier interfaces."
+      case D3DRENDERSTATE_TEXTUREHANDLE:
+        *lpdwRenderState = 0;
+        return D3D_OK;
+
       case D3DRENDERSTATE_ANTIALIAS:
         *lpdwRenderState = m_antialias;
+        return D3D_OK;
+
+      case D3DRENDERSTATE_TEXTUREADDRESS:
+        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_ADDRESSU, lpdwRenderState);
         return D3D_OK;
 
       // Always enabled on later APIs, so it can't really be turned off
@@ -508,8 +528,43 @@ namespace dxvk {
         *lpdwRenderState = TRUE;
         return D3D_OK;
 
+      case D3DRENDERSTATE_WRAPU:
+      case D3DRENDERSTATE_WRAPV:
+        *lpdwRenderState = FALSE;
+        return D3D_OK;
+
       case D3DRENDERSTATE_LINEPATTERN:
         *lpdwRenderState = bit::cast<DWORD>(m_linePattern);
+        return D3D_OK;
+
+      case D3DRENDERSTATE_MONOENABLE:
+        *lpdwRenderState = R2_COPYPEN;
+        return D3D_OK;
+
+      case D3DRENDERSTATE_ROP2:
+        *lpdwRenderState = FALSE;
+        return D3D_OK;
+
+      case D3DRENDERSTATE_PLANEMASK:
+        *lpdwRenderState = 0;
+        return D3D_OK;
+
+      case D3DRENDERSTATE_TEXTUREMAG:
+        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MAGFILTER, lpdwRenderState);
+        return D3D_OK;
+
+      case D3DRENDERSTATE_TEXTUREMIN:
+        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MINFILTER, lpdwRenderState);
+        return D3D_OK;
+
+      // "This render state is used when rendering with the IDirect3DDevice2 interface."
+      case D3DRENDERSTATE_TEXTUREMAPBLEND:
+        *lpdwRenderState = D3DTBLEND_MODULATE;
+        return D3D_OK;
+
+      case D3DRENDERSTATE_SUBPIXEL:
+      case D3DRENDERSTATE_SUBPIXELX:
+        *lpdwRenderState = FALSE;
         return D3D_OK;
 
       // Not supported by D3D7 either, but its value is stored.
@@ -522,6 +577,11 @@ namespace dxvk {
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
+      // TODO:
+      case D3DRENDERSTATE_STIPPLEENABLE:
+        *lpdwRenderState = FALSE;
+        return D3D_OK;
+
       case D3DRENDERSTATE_EDGEANTIALIAS:
         State9 = d3d9::D3DRS_ANTIALIASEDLINEENABLE;
         break;
@@ -531,6 +591,23 @@ namespace dxvk {
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
+      // TODO:
+      case D3DRENDERSTATE_BORDERCOLOR:
+        *lpdwRenderState = 0;
+        return D3D_OK;
+
+      case D3DRENDERSTATE_TEXTUREADDRESSU:
+        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_ADDRESSU, lpdwRenderState);
+        return D3D_OK;
+
+      case D3DRENDERSTATE_TEXTUREADDRESSV:
+        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_ADDRESSV, lpdwRenderState);
+        return D3D_OK;
+
+      case D3DRENDERSTATE_MIPMAPLODBIAS:
+        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MIPMAPLODBIAS, lpdwRenderState);
+        return D3D_OK;
+
       case D3DRENDERSTATE_ZBIAS: {
         DWORD bias  = 0;
         HRESULT res = m_d3d9->GetRenderState(d3d9::D3DRS_DEPTHBIAS, &bias);
@@ -538,14 +615,55 @@ namespace dxvk {
         return res;
       } break;
 
+      case D3DRENDERSTATE_ANISOTROPY:
+        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MAXANISOTROPY, lpdwRenderState);
+        return D3D_OK;
+
+      // "Batched primitives are implicitly flushed when rendering with the
+      // IDirect3DDevice3 interface, as well as when rendering with execute buffers."
+      case D3DRENDERSTATE_FLUSHBATCH:
+        *lpdwRenderState = TRUE;
+        return D3D_OK;
+
       // TODO:
-      case D3DRENDERSTATE_EXTENTS:
+      case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
       // TODO:
-      case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-        *lpdwRenderState = FALSE;
+      case D3DRENDERSTATE_STIPPLEPATTERN00:
+      case D3DRENDERSTATE_STIPPLEPATTERN01:
+      case D3DRENDERSTATE_STIPPLEPATTERN02:
+      case D3DRENDERSTATE_STIPPLEPATTERN03:
+      case D3DRENDERSTATE_STIPPLEPATTERN04:
+      case D3DRENDERSTATE_STIPPLEPATTERN05:
+      case D3DRENDERSTATE_STIPPLEPATTERN06:
+      case D3DRENDERSTATE_STIPPLEPATTERN07:
+      case D3DRENDERSTATE_STIPPLEPATTERN08:
+      case D3DRENDERSTATE_STIPPLEPATTERN09:
+      case D3DRENDERSTATE_STIPPLEPATTERN10:
+      case D3DRENDERSTATE_STIPPLEPATTERN11:
+      case D3DRENDERSTATE_STIPPLEPATTERN12:
+      case D3DRENDERSTATE_STIPPLEPATTERN13:
+      case D3DRENDERSTATE_STIPPLEPATTERN14:
+      case D3DRENDERSTATE_STIPPLEPATTERN15:
+      case D3DRENDERSTATE_STIPPLEPATTERN16:
+      case D3DRENDERSTATE_STIPPLEPATTERN17:
+      case D3DRENDERSTATE_STIPPLEPATTERN18:
+      case D3DRENDERSTATE_STIPPLEPATTERN19:
+      case D3DRENDERSTATE_STIPPLEPATTERN20:
+      case D3DRENDERSTATE_STIPPLEPATTERN21:
+      case D3DRENDERSTATE_STIPPLEPATTERN22:
+      case D3DRENDERSTATE_STIPPLEPATTERN23:
+      case D3DRENDERSTATE_STIPPLEPATTERN24:
+      case D3DRENDERSTATE_STIPPLEPATTERN25:
+      case D3DRENDERSTATE_STIPPLEPATTERN26:
+      case D3DRENDERSTATE_STIPPLEPATTERN27:
+      case D3DRENDERSTATE_STIPPLEPATTERN28:
+      case D3DRENDERSTATE_STIPPLEPATTERN29:
+      case D3DRENDERSTATE_STIPPLEPATTERN30:
+      case D3DRENDERSTATE_STIPPLEPATTERN31:
+        *lpdwRenderState = 0;
         return D3D_OK;
     }
 
@@ -572,6 +690,10 @@ namespace dxvk {
       default:
         break;
 
+      // "Texture handle for use when rendering with the IDirect3DDevice2 or earlier interfaces."
+      case D3DRENDERSTATE_TEXTUREHANDLE:
+        return D3D_OK;
+
       case D3DRENDERSTATE_ANTIALIAS:
         State9        = d3d9::D3DRS_MULTISAMPLEANTIALIAS;
         m_antialias   = dwRenderState;
@@ -579,6 +701,20 @@ namespace dxvk {
                      || m_antialias == D3DANTIALIAS_SORTINDEPENDENT
                      || m_parent->GetOptions()->forceEnableAA ? TRUE : FALSE;
         break;
+
+      case D3DRENDERSTATE_TEXTUREADDRESS:
+        m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_ADDRESSU, dwRenderState);
+        m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_ADDRESSV, dwRenderState);
+        return D3D_OK;
+
+      case D3DRENDERSTATE_WRAPU:
+      case D3DRENDERSTATE_WRAPV:
+        static bool s_wrapUVErrorShown;
+
+        if (!std::exchange(s_wrapUVErrorShown, true))
+          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_WRAPU/V");
+
+        return D3D_OK;
 
       // Always enabled on later APIs, so it can't really be turned off
       // Even the D3D7 docs state: "Note that many 3-D adapters apply texture perspective correction unconditionally."
@@ -601,6 +737,47 @@ namespace dxvk {
         m_linePattern = bit::cast<D3DLINEPATTERN>(dwRenderState);
         return D3D_OK;
 
+      case D3DRENDERSTATE_MONOENABLE:
+        static bool s_monoEnableErrorShown;
+
+        if (!std::exchange(s_monoEnableErrorShown, true))
+          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_MONOENABLE");
+
+        return D3D_OK;
+
+      case D3DRENDERSTATE_ROP2:
+        static bool s_ROP2ErrorShown;
+
+        if (!std::exchange(s_ROP2ErrorShown, true))
+          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_ROP2");
+
+        return D3D_OK;
+
+      // "This render state is not supported by the software rasterizers, and is often ignored by hardware drivers."
+      case D3DRENDERSTATE_PLANEMASK:
+        return D3D_OK;
+
+      case D3DRENDERSTATE_TEXTUREMAG:
+        m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MAGFILTER, dwRenderState);
+        return D3D_OK;
+
+      case D3DRENDERSTATE_TEXTUREMIN:
+        m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MINFILTER, dwRenderState);
+        return D3D_OK;
+
+      // "This render state is used when rendering with the IDirect3DDevice2 interface."
+      case D3DRENDERSTATE_TEXTUREMAPBLEND:
+        return D3D_OK;
+
+      case D3DRENDERSTATE_SUBPIXEL:
+      case D3DRENDERSTATE_SUBPIXELX:
+          static bool s_subpixelErrorShown;
+
+        if (!std::exchange(s_subpixelErrorShown, true))
+          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_SUBPIXEL/X");
+
+        return D3D_OK;
+
       // Not supported by D3D7 either, but its value is stored.
       case D3DRENDERSTATE_ZVISIBLE:
         m_zVisible = dwRenderState;
@@ -612,6 +789,15 @@ namespace dxvk {
 
         if (dwRenderState && !std::exchange(s_stippledAlphaErrorShown, true))
           Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEDALPHA");
+
+        return D3D_OK;
+
+      // TODO:
+      case D3DRENDERSTATE_STIPPLEENABLE:
+        static bool s_stippleEnableErrorShown;
+
+        if (dwRenderState && !std::exchange(s_stippleEnableErrorShown, true))
+          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEENABLE");
 
         return D3D_OK;
 
@@ -629,26 +815,87 @@ namespace dxvk {
 
         return D3D_OK;
 
+      // TODO:
+      case D3DRENDERSTATE_BORDERCOLOR:
+        static bool s_borderColorErrorShown;
+
+        if (dwRenderState && !std::exchange(s_borderColorErrorShown, true))
+          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_BORDERCOLOR");
+
+        return D3D_OK;
+
+      case D3DRENDERSTATE_TEXTUREADDRESSU:
+        m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_ADDRESSU, dwRenderState);
+        return D3D_OK;
+
+      case D3DRENDERSTATE_TEXTUREADDRESSV:
+        m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_ADDRESSV, dwRenderState);
+        return D3D_OK;
+
+      case D3DRENDERSTATE_MIPMAPLODBIAS:
+        m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MIPMAPLODBIAS, dwRenderState);
+        return D3D_OK;
+
       case D3DRENDERSTATE_ZBIAS:
         State9         = d3d9::D3DRS_DEPTHBIAS;
         dwRenderState  = bit::cast<DWORD>(static_cast<float>(dwRenderState) * ZBIAS_SCALE);
         break;
 
-      // TODO:
-      case D3DRENDERSTATE_EXTENTS:
-        static bool s_extentsErrorShown;
+      case D3DRENDERSTATE_ANISOTROPY:
+        m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MAXANISOTROPY, dwRenderState);
+        return D3D_OK;
 
-        if (dwRenderState && !std::exchange(s_extentsErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_EXTENTS");
+      // "Batched primitives are implicitly flushed when rendering with the
+      // IDirect3DDevice3 interface, as well as when rendering with execute buffers."
+      case D3DRENDERSTATE_FLUSHBATCH:
+        return D3D_OK;
+
+      // TODO:
+      case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:
+        static bool s_translucentErrorShown;
+
+        if (dwRenderState && !std::exchange(s_translucentErrorShown, true))
+          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT");
 
         return D3D_OK;
 
       // TODO:
-      case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-        static bool s_colorKeyBlendEnableErrorShown;
+      case D3DRENDERSTATE_STIPPLEPATTERN00:
+      case D3DRENDERSTATE_STIPPLEPATTERN01:
+      case D3DRENDERSTATE_STIPPLEPATTERN02:
+      case D3DRENDERSTATE_STIPPLEPATTERN03:
+      case D3DRENDERSTATE_STIPPLEPATTERN04:
+      case D3DRENDERSTATE_STIPPLEPATTERN05:
+      case D3DRENDERSTATE_STIPPLEPATTERN06:
+      case D3DRENDERSTATE_STIPPLEPATTERN07:
+      case D3DRENDERSTATE_STIPPLEPATTERN08:
+      case D3DRENDERSTATE_STIPPLEPATTERN09:
+      case D3DRENDERSTATE_STIPPLEPATTERN10:
+      case D3DRENDERSTATE_STIPPLEPATTERN11:
+      case D3DRENDERSTATE_STIPPLEPATTERN12:
+      case D3DRENDERSTATE_STIPPLEPATTERN13:
+      case D3DRENDERSTATE_STIPPLEPATTERN14:
+      case D3DRENDERSTATE_STIPPLEPATTERN15:
+      case D3DRENDERSTATE_STIPPLEPATTERN16:
+      case D3DRENDERSTATE_STIPPLEPATTERN17:
+      case D3DRENDERSTATE_STIPPLEPATTERN18:
+      case D3DRENDERSTATE_STIPPLEPATTERN19:
+      case D3DRENDERSTATE_STIPPLEPATTERN20:
+      case D3DRENDERSTATE_STIPPLEPATTERN21:
+      case D3DRENDERSTATE_STIPPLEPATTERN22:
+      case D3DRENDERSTATE_STIPPLEPATTERN23:
+      case D3DRENDERSTATE_STIPPLEPATTERN24:
+      case D3DRENDERSTATE_STIPPLEPATTERN25:
+      case D3DRENDERSTATE_STIPPLEPATTERN26:
+      case D3DRENDERSTATE_STIPPLEPATTERN27:
+      case D3DRENDERSTATE_STIPPLEPATTERN28:
+      case D3DRENDERSTATE_STIPPLEPATTERN29:
+      case D3DRENDERSTATE_STIPPLEPATTERN30:
+      case D3DRENDERSTATE_STIPPLEPATTERN31:
+        static bool s_stipplePatternErrorShown;
 
-        if (dwRenderState && !std::exchange(s_colorKeyBlendEnableErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_COLORKEYBLENDENABLE");
+        if (dwRenderState && !std::exchange(s_stipplePatternErrorShown, true))
+          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEPATTERNXX");
 
         return D3D_OK;
     }

@@ -7,6 +7,7 @@
 #include "d3d6_buffer.h"
 #include "d3d6_multithread.h"
 #include "d3d6_util.h"
+#include "d3d6_viewport.h"
 
 namespace dxvk {
 
@@ -110,8 +111,18 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::CreateViewport(LPDIRECT3DVIEWPORT3 *lplpD3DViewport, IUnknown *pUnkOuter) {
-    Logger::warn("<<< D3D6Interface::CreateViewport: Proxy");
-    return m_proxy->CreateViewport(lplpD3DViewport, pUnkOuter);
+    Logger::debug("<<< D3D6Interface::CreateViewport: Proxy");
+
+    Com<IDirect3DViewport3> lplpD3DViewportProxy;
+    HRESULT hr = m_proxy->CreateViewport(&lplpD3DViewportProxy, pUnkOuter);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    InitReturnPtr(lplpD3DViewport);
+
+    *lplpD3DViewport = ref(new D3D6Viewport(std::move(lplpD3DViewportProxy), this));
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::FindDevice(D3DFINDDEVICESEARCH *lpD3DFDS, D3DFINDDEVICERESULT *lpD3DFDR) {
