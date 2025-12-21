@@ -115,6 +115,10 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE ChangeUniquenessValue();
 
+    d3d9::IDirect3DTexture9* GetD3D9Texture() const {
+      return m_texture.ptr();
+    }
+
     bool IsChildObject() const {
       return m_isChildObject;
     }
