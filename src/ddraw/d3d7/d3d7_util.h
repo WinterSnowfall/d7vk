@@ -4,6 +4,8 @@
 
 #include "d3d7_caps.h"
 
+#include <vector>
+
 namespace dxvk {
 
   struct PackedVertexBuffer {
