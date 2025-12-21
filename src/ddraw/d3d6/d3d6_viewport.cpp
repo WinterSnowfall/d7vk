@@ -83,13 +83,19 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackground(D3DMATERIALHANDLE hMat) {
-    Logger::debug("<<< D3D6Viewport::SetBackground: Proxy");
-    return m_proxy->SetBackground(hMat);
+    Logger::warn("<<< D3D6Viewport::SetBackground: Proxy");
+    //return m_proxy->SetBackground(hMat);
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetBackground(D3DMATERIALHANDLE *material, BOOL *valid) {
     Logger::debug("<<< D3D6Viewport::GetBackground: Proxy");
-    return m_proxy->GetBackground(material, valid);
+    //return m_proxy->GetBackground(material, valid);
+
+    *material = 1;
+    *valid = TRUE;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackgroundDepth(IDirectDrawSurface *surface) {
@@ -108,18 +114,21 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::AddLight(IDirect3DLight *light) {
-    Logger::debug("<<< D3D6Viewport::AddLight: Proxy");
-    return m_proxy->AddLight(light);
+    Logger::warn("<<< D3D6Viewport::AddLight: Proxy");
+    //return m_proxy->AddLight(light);
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::DeleteLight(IDirect3DLight *light) {
-    Logger::debug("<<< D3D6Viewport::DeleteLight: Proxy");
-    return m_proxy->DeleteLight(light);
+    Logger::warn("<<< D3D6Viewport::DeleteLight: Proxy");
+    //return m_proxy->DeleteLight(light);
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::NextLight(IDirect3DLight *ref, IDirect3DLight **light, DWORD flags) {
-    Logger::debug("<<< D3D6Viewport::NextLight: Proxy");
-    return m_proxy->NextLight(ref, light, flags);
+    Logger::warn("<<< D3D6Viewport::NextLight: Proxy");
+    //return m_proxy->NextLight(ref, light, flags);
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetViewport2(D3DVIEWPORT2 *data) {
