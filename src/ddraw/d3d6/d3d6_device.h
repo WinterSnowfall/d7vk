@@ -22,6 +22,7 @@ namespace dxvk {
 
   class DDraw4Surface;
   class DDraw4Interface;
+  class D3D6Texture;
 
   /**
   * \brief D3D6 device implementation
@@ -203,7 +204,7 @@ namespace dxvk {
     Com<d3d9::IDirect3DSurface9>  m_fallBackBuffer;
     std::unordered_map<IDirectDrawSurface4*, Com<d3d9::IDirect3DSurface9>> m_backBuffers;
 
-    std::array<Com<DDraw4Surface, false>, caps7::TextureStageCount> m_textures;
+    std::array<Com<D3D6Texture, false>, caps7::TextureStageCount> m_textures;
 
     // Value of D3DRENDERSTATE_ANTIALIAS
     DWORD           m_antialias     = D3DANTIALIAS_NONE;
