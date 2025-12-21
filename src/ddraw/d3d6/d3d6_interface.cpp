@@ -100,22 +100,22 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::CreateLight(LPDIRECT3DLIGHT *lplpDirect3DLight, IUnknown *pUnkOuter) {
-    Logger::debug("<<< D3D6Interface::CreateLight: Proxy");
+    Logger::warn("<<< D3D6Interface::CreateLight: Proxy");
     return m_proxy->CreateLight(lplpDirect3DLight, pUnkOuter);
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::CreateMaterial(LPDIRECT3DMATERIAL3 *lplpDirect3DMaterial, IUnknown *pUnkOuter) {
-    Logger::debug("<<< D3D6Interface::CreateMaterial: Proxy");
+    Logger::warn("<<< D3D6Interface::CreateMaterial: Proxy");
     return m_proxy->CreateMaterial(lplpDirect3DMaterial, pUnkOuter);
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::CreateViewport(LPDIRECT3DVIEWPORT3 *lplpD3DViewport, IUnknown *pUnkOuter) {
-    Logger::debug("<<< D3D6Interface::CreateViewport: Proxy");
+    Logger::warn("<<< D3D6Interface::CreateViewport: Proxy");
     return m_proxy->CreateViewport(lplpD3DViewport, pUnkOuter);
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::FindDevice(D3DFINDDEVICESEARCH *lpD3DFDS, D3DFINDDEVICERESULT *lpD3DFDR) {
-    Logger::debug("<<< D3D6Interface::FindDevice: Proxy");
+    Logger::warn("<<< D3D6Interface::FindDevice: Proxy");
     return m_proxy->FindDevice(lpD3DFDS, lpD3DFDR);
   }
 
