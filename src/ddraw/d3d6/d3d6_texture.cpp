@@ -43,8 +43,11 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    if (unlikely(riid == __uuidof(IUnknown)
-              || riid == __uuidof(IDirectDrawSurface))) {
+    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
+      Logger::debug("D3D6Texture::QueryInterface: Query for IDirect3DTexture");
+      return m_parent->QueryInterface(riid, ppvObject);
+    }
+    if (unlikely(riid == __uuidof(IDirectDrawSurface))) {
       Logger::debug("D3D6Texture::QueryInterface: Query for IDirectDrawSurface");
       return m_parent->QueryInterface(riid, ppvObject);
     }
