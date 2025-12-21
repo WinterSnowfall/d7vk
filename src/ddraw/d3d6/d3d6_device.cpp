@@ -4,6 +4,7 @@
 #include "../ddraw4/ddraw4_surface.h"
 
 #include "d3d6_buffer.h"
+#include "d3d6_texture.h"
 #include "d3d6_util.h"
 
 namespace dxvk {
@@ -998,7 +999,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    //*surface = m_textures[stage].ref();
+    *texture = m_textures[stage].ref();
 
     return D3D_OK;
   }
@@ -1035,34 +1036,29 @@ namespace dxvk {
       return hr;
     }
 
-    // Binding texture stages
-    /*if (unlikely(!m_DD4IntfParent->IsWrappedSurface(surface))) {
-      Logger::err("D3D6Device::SetTexture: Received an unwrapped texture");
-      return DDERR_GENERIC;
-    }*/
-
     Logger::debug("D3D6Device::SetTexture: Binding D3D9 texture");
 
-    /*DDraw4Surface* surface6 = static_cast<DDraw4Surface*>(surface);
+    D3D6Texture* texture6 = static_cast<D3D6Texture*>(texture);
+    DDraw4Surface* surface6 = texture6->GetParent();
 
     // Only upload textures if any sort of blit/lock operation
     // has been performed on them since the last SetTexture call
-    if (surface7->HasDirtyMipMaps()) {
-      hr = surface7->InitializeOrUploadD3D9();
+    if (surface6->HasDirtyMipMaps()) {
+      hr = surface6->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D6Device::SetTexture: Failed to initialize/upload D3D9 texture");
         return hr;
       }
 
-      surface7->UnDirtyMipMaps();
+      surface6->UnDirtyMipMaps();
     } else {
       Logger::debug("D3D6Device::SetTexture: Skipping upload of texture and mip maps");
     }
 
-    if (unlikely(m_textures[stage] == surface7))
+    if (unlikely(m_textures[stage] == texture6))
       return D3D_OK;
 
-    d3d9::IDirect3DTexture9* tex9 = surface7->GetD3D9Texture();
+    d3d9::IDirect3DTexture9* tex9 = surface6->GetD3D9Texture();
 
     if (likely(tex9 != nullptr)) {
       hr = m_d3d9->SetTexture(stage, tex9);
@@ -1072,7 +1068,7 @@ namespace dxvk {
       }
     }
 
-    m_textures[stage] = surface7;*/
+    m_textures[stage] = texture6;
 
     return D3D_OK;
   }
