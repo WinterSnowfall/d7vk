@@ -990,7 +990,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, DWORD dwFlags) {
     D3D7DeviceLock lock = LockDevice();
 
-    Logger::warn("!!! D3D7Device::DrawPrimitiveStrided: Stub");
+    Logger::debug(">>> D3D7Device::DrawPrimitiveStrided");
 
     RefreshLastUsedDevice();
 
@@ -1000,30 +1000,31 @@ namespace dxvk {
     if (unlikely(lpVertexArray == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // TODO: lpVertexArray needs to be transformed into a non-strided vertex buffer stream
-    /*m_d3d9->SetFVF(dwVertexTypeDesc);
+    // Transform strided vertex data to a standard vertex buffer stream
+    PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
+
+    m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
                      GetPrimitiveCount(d3dptPrimitiveType, dwVertexCount),
-                     lpVertexArray,
-                     GetFVFSize(dwVertexTypeDesc));
+                     pvb.vertexData.data(),
+                     pvb.stride);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawPrimitiveStrided: Failed D3D9 call to DrawPrimitiveUP");
       return hr;
-    }*/
+    }
 
     if (unlikely(!m_hasDrawn))
       m_hasDrawn = true;
 
-    return D3D_OK;
-    //return hr;
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
     D3D7DeviceLock lock = LockDevice();
 
-    Logger::warn("!!! D3D7Device::DrawIndexedPrimitiveStrided: Stub");
+    Logger::debug(">>> D3D7Device::DrawIndexedPrimitiveStrided");
 
     RefreshLastUsedDevice();
 
@@ -1033,8 +1034,10 @@ namespace dxvk {
     if (unlikely(lpVertexArray == nullptr || lpwIndices == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // TODO: lpVertexArray needs to be transformed into a non-strided vertex buffer stream
-    /*m_d3d9->SetFVF(dwVertexTypeDesc);
+    // Transform strided vertex data to a standard vertex buffer stream
+    PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
+
+    m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
                       d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
                       0,
@@ -1042,19 +1045,18 @@ namespace dxvk {
                       GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount),
                       lpwIndices,
                       d3d9::D3DFMT_INDEX16,
-                      lpvVertices,
-                      GetFVFSize(dwVertexTypeDesc));
+                      pvb.vertexData.data(),
+                      pvb.stride);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
       return hr;
-    }*/
+    }
 
     if (unlikely(!m_hasDrawn))
       m_hasDrawn = true;
 
-    return D3D_OK;
-    //return hr;
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, DWORD dwFlags) {

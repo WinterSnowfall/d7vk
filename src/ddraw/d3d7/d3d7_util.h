@@ -6,6 +6,11 @@
 
 namespace dxvk {
 
+  struct PackedVertexBuffer {
+    std::vector<uint8_t> vertexData;
+    UINT stride;
+  };
+
   inline d3d9::D3DTRANSFORMSTATETYPE ConvertTransformState(D3DTRANSFORMSTATETYPE tst) {
     switch (tst) {
       case D3DTRANSFORMSTATE_WORLD:  return d3d9::D3DTRANSFORMSTATETYPE(D3DTS_WORLD);
@@ -61,69 +66,83 @@ namespace dxvk {
     return pool == d3d9::D3DPOOL_DEFAULT ? usageFlagsD3D9 | D3DUSAGE_DYNAMIC : usageFlagsD3D9;
   }
 
-  inline size_t GetFVFSize(DWORD fvf) {
+  inline size_t GetFVFPositionSize(DWORD fvf) {
     size_t size = 0;
 
     switch (fvf & D3DFVF_POSITION_MASK) {
       case D3DFVF_XYZ:
-          size += 3 * sizeof(FLOAT);
-          break;
+        size += 3 * sizeof(FLOAT);
+        break;
       case D3DFVF_XYZRHW:
-          size += 4 * sizeof(FLOAT);
-          break;
+        size += 4 * sizeof(FLOAT);
+        break;
       case D3DFVF_XYZB1:
-          size += 4 * sizeof(FLOAT);
-          break;
+        size += 4 * sizeof(FLOAT);
+        break;
       case D3DFVF_XYZB2:
-          size += 5 * sizeof(FLOAT);
-          break;
+        size += 5 * sizeof(FLOAT);
+        break;
       case D3DFVF_XYZB3:
-          size += 6 * sizeof(FLOAT);
-          break;
+        size += 6 * sizeof(FLOAT);
+        break;
       case D3DFVF_XYZB4:
-          size += 7 * sizeof(FLOAT);
-          break;
+        size += 7 * sizeof(FLOAT);
+        break;
       case D3DFVF_XYZB5:
-          size += 8 * sizeof(FLOAT);
-          break;
+        size += 8 * sizeof(FLOAT);
+        break;
     }
 
+    return size;
+  }
+
+  inline size_t GetFVFTexCoordSize(DWORD fvf, DWORD coord) {
+    size_t size = 0;
+
+    DWORD texCoordSize = (fvf >> (coord * 2 + 16)) & 0x3;
+    switch (texCoordSize) {
+      // D3DFVF_TEXTUREFORMAT2 0
+      case D3DFVF_TEXTUREFORMAT2:
+        size += 2 * sizeof(FLOAT);
+        break;
+      // D3DFVF_TEXTUREFORMAT3 1
+      case D3DFVF_TEXTUREFORMAT3:
+         size += 3 * sizeof(FLOAT);
+        break;
+      // D3DFVF_TEXTUREFORMAT4 2
+      case D3DFVF_TEXTUREFORMAT4:
+        size += 4 * sizeof(FLOAT);
+        break;
+      // D3DFVF_TEXTUREFORMAT1 3
+      case D3DFVF_TEXTUREFORMAT1:
+        size += sizeof(FLOAT);
+        break;
+    }
+
+    return size;
+  }
+
+  inline size_t GetFVFSize(DWORD fvf) {
+    size_t size = 0;
+
+    size += GetFVFPositionSize(fvf);
+
     if (fvf & D3DFVF_NORMAL) {
-        size += 3 * sizeof(FLOAT);
+      size += 3 * sizeof(FLOAT);
     }
     if (fvf & D3DFVF_RESERVED1) {
-        size += sizeof(DWORD);
+      size += sizeof(DWORD);
     }
     if (fvf & D3DFVF_DIFFUSE) {
-        size += sizeof(D3DCOLOR);
+      size += sizeof(D3DCOLOR);
     }
     if (fvf & D3DFVF_SPECULAR) {
-        size += sizeof(D3DCOLOR);
+      size += sizeof(D3DCOLOR);
     }
 
     DWORD textureCount = (fvf & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
     for (DWORD coord = 0; coord < textureCount; ++coord) {
-
-      DWORD texCoordSize = (fvf >> (coord * 2 + 16)) & 0x3;
-
-      switch (texCoordSize) {
-        // D3DFVF_TEXTUREFORMAT2 0
-        case D3DFVF_TEXTUREFORMAT2:
-            size += 2 * sizeof(FLOAT);
-            break;
-        // D3DFVF_TEXTUREFORMAT3 1
-        case D3DFVF_TEXTUREFORMAT3:
-            size += 3 * sizeof(FLOAT);
-            break;
-        // D3DFVF_TEXTUREFORMAT4 2
-        case D3DFVF_TEXTUREFORMAT4:
-            size += 4 * sizeof(FLOAT);
-            break;
-        // D3DFVF_TEXTUREFORMAT1 3
-        case D3DFVF_TEXTUREFORMAT1:
-            size += sizeof(FLOAT);
-            break;
-      }
+      size += GetFVFTexCoordSize(fvf, coord);
     }
 
     return size;
@@ -139,6 +158,60 @@ namespace dxvk {
       case D3DPT_TRIANGLESTRIP: return static_cast<UINT>(VertexCount - 2);
       case D3DPT_TRIANGLEFAN:   return static_cast<UINT>(VertexCount - 2);
     }
+  }
+
+  inline PackedVertexBuffer TransformStridedtoUP(
+        DWORD dwFVF,
+        LPD3DDRAWPRIMITIVESTRIDEDDATA lpVBStrided,
+        DWORD dwNumVertices) {
+    PackedVertexBuffer pvb;
+    pvb.stride = GetFVFSize(dwFVF);
+    pvb.vertexData.resize(pvb.stride * dwNumVertices);
+
+    DWORD dwNumTextures = (dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+
+    for (DWORD i = 0; i < dwNumVertices; i++) {
+      uint8_t* ptr = pvb.vertexData.data() + i * pvb.stride;
+
+      if ((dwFVF & D3DFVF_POSITION_MASK) && lpVBStrided->position.lpvData) {
+        size_t size = GetFVFPositionSize(dwFVF);
+        memcpy(ptr, (uint8_t*)lpVBStrided->position.lpvData + i * lpVBStrided->position.dwStride, size);
+        ptr += size;
+      }
+
+      if ((dwFVF & D3DFVF_NORMAL) && lpVBStrided->normal.lpvData) {
+        size_t size = 3 * sizeof(FLOAT);
+        memcpy(ptr, (uint8_t*)lpVBStrided->normal.lpvData + i * lpVBStrided->normal.dwStride, size);
+        ptr += size;
+      }
+
+      if (dwFVF & D3DFVF_RESERVED1) {
+        // D3DLVERTEX
+        ptr += sizeof(DWORD);
+      }
+
+      if ((dwFVF & D3DFVF_DIFFUSE) && lpVBStrided->diffuse.lpvData) {
+        size_t size = sizeof(D3DCOLOR);
+        memcpy(ptr, (uint8_t*)lpVBStrided->diffuse.lpvData + i * lpVBStrided->diffuse.dwStride, size);
+        ptr += size;
+      }
+
+      if ((dwFVF & D3DFVF_SPECULAR) && lpVBStrided->specular.lpvData) {
+        size_t size = sizeof(D3DCOLOR);
+        memcpy(ptr, (uint8_t*)lpVBStrided->specular.lpvData + i * lpVBStrided->specular.dwStride, size);
+        ptr += size;
+      }
+
+      for (DWORD t = 0; t < dwNumTextures; t++) {
+        if (lpVBStrided->textureCoords[t].lpvData) {
+          size_t size = GetFVFTexCoordSize(dwFVF, t);
+          memcpy(ptr, (uint8_t*)lpVBStrided->textureCoords[t].lpvData + i * lpVBStrided->textureCoords[t].dwStride, size);
+          ptr += size;
+        }
+      }
+    }
+
+    return pvb;
   }
 
   // If this D3DTEXTURESTAGESTATETYPE has been remapped to a d3d9::D3DSAMPLERSTATETYPE
