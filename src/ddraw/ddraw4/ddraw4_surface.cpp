@@ -1,6 +1,7 @@
 #include "ddraw4_surface.h"
 
 #include "ddraw4_interface.h"
+#include "../d3d6/d3d6_texture.h"
 
 #include "../ddraw7/ddraw7_surface.h"
 
@@ -124,8 +125,25 @@ namespace dxvk {
         return m_proxy->QueryInterface(riid, ppvObject);
       }
     }
-    if (unlikely(riid == __uuidof(IDirect3DTexture)
-              || riid == __uuidof(IDirect3DTexture2))) {
+    // Standard way of retrieving a texture for d3d6 SetTexture calls
+    if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
+      if (unlikely(IsLegacyInterface())) {
+        Logger::debug("DDraw4Surface::QueryInterface: Query for IDirect3DTexture2");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      } else {
+        Logger::debug("DDraw4Surface::QueryInterface: Query for IDirect3DTexture2");
+
+        Com<IDirect3DTexture2> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        *ppvObject = ref(new D3D6Texture(std::move(ppvProxyObject), this));
+
+        return S_OK;
+      }
+    }
+    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
       Logger::debug("DDraw4Surface::QueryInterface: Query for IDirect3DTexture");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
