@@ -1565,6 +1565,10 @@ namespace dxvk {
     { R"(\\fifa2001\.exe$)", {{
       { "ddraw.proxiedLegacySurfaces",      "True" },
     }} },
+    /* Sacred - Fixes transition artifacting      */
+    { R"(\\Sacred\.exe$)", {{
+      { "d3d7.forceSingleBackBuffer",       "True" },
+    }} },
 
   };
 
