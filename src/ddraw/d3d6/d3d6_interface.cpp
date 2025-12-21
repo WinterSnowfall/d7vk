@@ -5,6 +5,8 @@
 
 #include "d3d6_device.h"
 #include "d3d6_buffer.h"
+#include "d3d6_light.h"
+#include "d3d6_material.h"
 #include "d3d6_multithread.h"
 #include "d3d6_util.h"
 #include "d3d6_viewport.h"
@@ -101,13 +103,31 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::CreateLight(LPDIRECT3DLIGHT *lplpDirect3DLight, IUnknown *pUnkOuter) {
-    Logger::warn("<<< D3D6Interface::CreateLight: Proxy");
-    return m_proxy->CreateLight(lplpDirect3DLight, pUnkOuter);
+    Logger::debug(">>> D3D6Interface::CreateLight");
+
+    if (unlikely(lplpDirect3DLight == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDirect3DLight);
+
+    // We do not really need a proxy light object, it's a simple container
+    *lplpDirect3DLight = ref(new D3D6Light(nullptr, this));
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::CreateMaterial(LPDIRECT3DMATERIAL3 *lplpDirect3DMaterial, IUnknown *pUnkOuter) {
-    Logger::warn("<<< D3D6Interface::CreateMaterial: Proxy");
-    return m_proxy->CreateMaterial(lplpDirect3DMaterial, pUnkOuter);
+    Logger::debug(">>> D3D6Interface::CreateMaterial");
+
+    if (unlikely(lplpDirect3DMaterial == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDirect3DMaterial);
+
+    // We do not really need a proxy material object, it's a simple container
+    *lplpDirect3DMaterial = ref(new D3D6Material(nullptr, this));
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::CreateViewport(LPDIRECT3DVIEWPORT3 *lplpD3DViewport, IUnknown *pUnkOuter) {

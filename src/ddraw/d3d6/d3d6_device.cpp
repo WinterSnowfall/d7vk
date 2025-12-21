@@ -123,6 +123,9 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetCaps(D3DDEVICEDESC *hal_desc, D3DDEVICEDESC *hel_desc) {
     Logger::debug("<<< D3D6Device::GetCaps: Proxy");
+
+    RefreshLastUsedDevice();
+
     return m_proxy->GetCaps(hal_desc, hel_desc);
 
     /*RefreshLastUsedDevice();
@@ -140,23 +143,35 @@ namespace dxvk {
   // and not implemented in the IDirect3DDevice3 interface."
   HRESULT STDMETHODCALLTYPE D3D6Device::GetStats(D3DSTATS *stats) {
     Logger::debug(">>> D3D6Device::GetStats");
+
+    RefreshLastUsedDevice();
+
     return E_NOTIMPL;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::AddViewport(IDirect3DViewport3 *viewport) {
     Logger::debug("<<< D3D6Device::AddViewport: Proxy");
+
+    RefreshLastUsedDevice();
+
     Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
     return m_proxy->AddViewport(d3d6Viewport->GetProxied());
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DeleteViewport(IDirect3DViewport3 *viewport) {
     Logger::debug("<<< D3D6Device::DeleteViewport: Proxy");
+
+    RefreshLastUsedDevice();
+
     Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
     return m_proxy->DeleteViewport(d3d6Viewport->GetProxied());
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::NextViewport(IDirect3DViewport3 *ref, IDirect3DViewport3 **viewport, DWORD flags) {
     Logger::warn("<<< D3D6Device::NextViewport: Proxy");
+
+    RefreshLastUsedDevice();
+
     Com<D3D6Viewport> ref6 = static_cast<D3D6Viewport*>(ref);
     // TODO: Wrap the return or better, cache viewports in the interface and look them up
     return m_proxy->NextViewport(ref6->GetProxied(), viewport, flags);
@@ -329,6 +344,8 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Device::SetCurrentViewport(IDirect3DViewport3 *viewport) {
     Logger::debug(">>> D3D6Device::SetCurrentViewport");
 
+    RefreshLastUsedDevice();
+
     Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
     HRESULT hr = m_proxy->SetCurrentViewport(d3d6Viewport->GetProxied());
     if (unlikely(FAILED(hr)))
@@ -460,26 +477,41 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D6Device::Begin(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, DWORD dwFlags) {
     Logger::warn("!!! D3D6Device::Begin: Stub");
+
+    RefreshLastUsedDevice();
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::BeginIndexed(D3DPRIMITIVETYPE primitive_type, DWORD fvf, void *vertices, DWORD vertex_count, DWORD flags) {
     Logger::warn("!!! D3D6Device::BeginIndexed: Stub");
+
+    RefreshLastUsedDevice();
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::Vertex(void *vertex) {
     Logger::warn("!!! D3D6Device::Vertex: Stub");
+
+    RefreshLastUsedDevice();
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::Index(WORD wVertexIndex) {
     Logger::warn("!!! D3D6Device::Index: Stub");
+
+    RefreshLastUsedDevice();
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::End(DWORD dwFlags) {
     Logger::warn("!!! D3D6Device::End: Stub");
+
+    RefreshLastUsedDevice();
+
     return D3D_OK;
   }
 
@@ -905,12 +937,76 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LPDWORD lpdwLightState) {
-    Logger::debug("!!! D3D6Device::GetLightState: Stub");
+    Logger::debug(">>> D3D6Device::GetLightState");
+
+    RefreshLastUsedDevice();
+
+    switch (dwLightStateType) {
+      case D3DLIGHTSTATE_MATERIAL:
+        Logger::warn("D3D6Device::GetLightState: Use of unsupported D3DLIGHTSTATE_MATERIAL");
+        break;
+      case D3DLIGHTSTATE_AMBIENT:
+        Logger::warn("D3D6Device::GetLightState: Use of unsupported D3DLIGHTSTATE_AMBIENT");
+        break;
+      case D3DLIGHTSTATE_COLORMODEL:
+        Logger::debug("D3D6Device::GetLightState: Use of D3DLIGHTSTATE_COLORMODEL");
+        break;
+      case D3DLIGHTSTATE_FOGMODE:
+        m_d3d9->GetRenderState(d3d9::D3DRS_FOGTABLEMODE, lpdwLightState);
+        break;
+      case D3DLIGHTSTATE_FOGSTART:
+        m_d3d9->GetRenderState(d3d9::D3DRS_FOGSTART, lpdwLightState);
+        break;
+      case D3DLIGHTSTATE_FOGEND:
+        m_d3d9->GetRenderState(d3d9::D3DRS_FOGEND, lpdwLightState);
+        break;
+      case D3DLIGHTSTATE_FOGDENSITY:
+        m_d3d9->GetRenderState(d3d9::D3DRS_FOGDENSITY, lpdwLightState);
+        break;
+      case D3DLIGHTSTATE_COLORVERTEX:
+        Logger::warn("D3D6Device::GetLightState: Use of unsupported D3DLIGHTSTATE_COLORVERTEX");
+        break;
+      default:
+        break;
+    }
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DWORD dwLightState) {
-    Logger::debug("!!! D3D6Device::SetLightState: Stub");
+    Logger::debug(">>> D3D6Device::SetLightState");
+
+    RefreshLastUsedDevice();
+
+    switch (dwLightStateType) {
+      case D3DLIGHTSTATE_MATERIAL:
+        Logger::warn("D3D6Device::SetLightState: Use of unsupported D3DLIGHTSTATE_MATERIAL");
+        break;
+      case D3DLIGHTSTATE_AMBIENT:
+        Logger::warn("D3D6Device::SetLightState: Use of unsupported D3DLIGHTSTATE_AMBIENT");
+        break;
+      case D3DLIGHTSTATE_COLORMODEL:
+        Logger::debug("D3D6Device::SetLightState: Use of D3DLIGHTSTATE_COLORMODEL");
+        break;
+      case D3DLIGHTSTATE_FOGMODE:
+        m_d3d9->SetRenderState(d3d9::D3DRS_FOGTABLEMODE, dwLightState);
+        break;
+      case D3DLIGHTSTATE_FOGSTART:
+        m_d3d9->SetRenderState(d3d9::D3DRS_FOGSTART, dwLightState);
+        break;
+      case D3DLIGHTSTATE_FOGEND:
+        m_d3d9->SetRenderState(d3d9::D3DRS_FOGEND, dwLightState);
+        break;
+      case D3DLIGHTSTATE_FOGDENSITY:
+        m_d3d9->SetRenderState(d3d9::D3DRS_FOGDENSITY, dwLightState);
+        break;
+      case D3DLIGHTSTATE_COLORVERTEX:
+        Logger::warn("D3D6Device::SetLightState: Use of unsupported D3DLIGHTSTATE_COLORVERTEX");
+        break;
+      default:
+        break;
+    }
+
     return D3D_OK;
   }
 
