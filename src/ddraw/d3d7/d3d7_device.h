@@ -2,13 +2,13 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
+#include "../ddraw_options.h"
+#include "../ddraw_caps.h"
 
 #include "../d3d9/d3d9_bridge.h"
 
 #include "d3d7_interface.h"
-#include "d3d7_options.h"
 #include "d3d7_multithread.h"
-#include "d3d7_caps.h"
 
 #include <array>
 #include <unordered_map>
@@ -148,7 +148,7 @@ namespace dxvk {
       return m_multithread.AcquireLock();
     }
 
-    const D3D7Options* GetOptions() const {
+    const D3DOptions* GetOptions() const {
       return m_parent->GetOptions();
     }
 
@@ -171,12 +171,12 @@ namespace dxvk {
     bool HasDrawn() const {
       // Returning true here means we skip all proxied back buffer blits,
       // whereas returning false means we allow all proxied back buffer blits
-      return m_parent->GetOptions()->backBufferGuard == D3D7BackBufferGuard::Strict   ? true :
-             m_parent->GetOptions()->backBufferGuard == D3D7BackBufferGuard::Disabled ? false : m_hasDrawn;
+      return m_parent->GetOptions()->backBufferGuard == D3DBackBufferGuard::Strict   ? true :
+             m_parent->GetOptions()->backBufferGuard == D3DBackBufferGuard::Disabled ? false : m_hasDrawn;
     }
 
     void ResetDrawTracking() {
-      if (likely(m_parent->GetOptions()->backBufferGuard != D3D7BackBufferGuard::Strict))
+      if (likely(m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
         m_hasDrawn = false;
     }
 
@@ -202,7 +202,7 @@ namespace dxvk {
 
     // If the last index buffer is initalized, then all are initialized
     inline bool AreIndexBuffersInitialized() const {
-      return m_ib9[caps7::IndexBufferCount - 1] != nullptr;
+      return m_ib9[ddrawCaps::IndexBufferCount - 1] != nullptr;
     }
 
     bool                          m_hasDrawn      = false;
@@ -228,7 +228,7 @@ namespace dxvk {
     Com<d3d9::IDirect3DSurface9>  m_fallBackBuffer;
     std::unordered_map<IDirectDrawSurface7*, Com<d3d9::IDirect3DSurface9>> m_backBuffers;
 
-    std::array<Com<DDraw7Surface, false>, caps7::TextureStageCount> m_textures;
+    std::array<Com<DDraw7Surface, false>, ddrawCaps::TextureStageCount> m_textures;
 
     D3D7StateBlock* m_recorder       = nullptr;
     DWORD           m_recorderHandle = 0;
@@ -246,8 +246,8 @@ namespace dxvk {
 
     // Common index buffers used for indexed draws, split up into five sizes:
     // XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb
-    std::array<Com<d3d9::IDirect3DIndexBuffer9>, caps7::IndexBufferCount> m_ib9;
-    uint32_t m_ib9_uploads[caps7::IndexBufferCount] = {};
+    std::array<Com<d3d9::IDirect3DIndexBuffer9>, ddrawCaps::IndexBufferCount> m_ib9;
+    uint32_t m_ib9_uploads[ddrawCaps::IndexBufferCount] = {};
 
   };
 
