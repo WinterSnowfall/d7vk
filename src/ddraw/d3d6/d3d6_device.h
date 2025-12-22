@@ -197,6 +197,8 @@ namespace dxvk {
 
     d3d9::D3DPRESENT_PARAMETERS   m_params9;
 
+    D3DMATERIALHANDLE             m_materialHandle = 0;
+
     D3DDEVICEDESC                 m_desc;
     Com<DDraw4Surface>            m_rt;
     Com<DDraw4Surface, false>     m_rtOrig;
