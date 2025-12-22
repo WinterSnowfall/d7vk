@@ -351,9 +351,14 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
+    if (likely(m_viewport != nullptr))
+      m_viewport->SetDevice(nullptr);
+    m_viewport = d3d6Viewport.ptr();
+    m_viewport->SetDevice(this);
+
     D3DVIEWPORT2 viewport6;
     viewport6.dwSize = sizeof(D3DVIEWPORT2);
-    hr = d3d6Viewport->GetProxied()->GetViewport2(&viewport6);
+    hr = m_viewport->GetProxied()->GetViewport2(&viewport6);
     if (unlikely(FAILED(hr)))
       return hr;
 
@@ -942,17 +947,19 @@ namespace dxvk {
     RefreshLastUsedDevice();
 
     switch (dwLightStateType) {
+      // TODO:
       case D3DLIGHTSTATE_MATERIAL:
         Logger::warn("D3D6Device::GetLightState: Use of unsupported D3DLIGHTSTATE_MATERIAL");
         break;
       case D3DLIGHTSTATE_AMBIENT:
-        Logger::warn("D3D6Device::GetLightState: Use of unsupported D3DLIGHTSTATE_AMBIENT");
+        m_d3d9->GetRenderState(d3d9::D3DRS_AMBIENT, lpdwLightState);
         break;
       case D3DLIGHTSTATE_COLORMODEL:
         Logger::debug("D3D6Device::GetLightState: Use of D3DLIGHTSTATE_COLORMODEL");
+        *lpdwLightState = D3DCOLOR_RGB;
         break;
       case D3DLIGHTSTATE_FOGMODE:
-        m_d3d9->GetRenderState(d3d9::D3DRS_FOGTABLEMODE, lpdwLightState);
+        m_d3d9->GetRenderState(d3d9::D3DRS_FOGVERTEXMODE, lpdwLightState);
         break;
       case D3DLIGHTSTATE_FOGSTART:
         m_d3d9->GetRenderState(d3d9::D3DRS_FOGSTART, lpdwLightState);
@@ -964,10 +971,10 @@ namespace dxvk {
         m_d3d9->GetRenderState(d3d9::D3DRS_FOGDENSITY, lpdwLightState);
         break;
       case D3DLIGHTSTATE_COLORVERTEX:
-        Logger::warn("D3D6Device::GetLightState: Use of unsupported D3DLIGHTSTATE_COLORVERTEX");
+        m_d3d9->GetRenderState(d3d9::D3DRS_COLORVERTEX, lpdwLightState);
         break;
       default:
-        break;
+        return DDERR_INVALIDPARAMS;
     }
 
     return D3D_OK;
@@ -979,17 +986,18 @@ namespace dxvk {
     RefreshLastUsedDevice();
 
     switch (dwLightStateType) {
+      // TODO:
       case D3DLIGHTSTATE_MATERIAL:
         Logger::warn("D3D6Device::SetLightState: Use of unsupported D3DLIGHTSTATE_MATERIAL");
         break;
       case D3DLIGHTSTATE_AMBIENT:
-        Logger::warn("D3D6Device::SetLightState: Use of unsupported D3DLIGHTSTATE_AMBIENT");
+        m_d3d9->SetRenderState(d3d9::D3DRS_AMBIENT, dwLightState);
         break;
       case D3DLIGHTSTATE_COLORMODEL:
         Logger::debug("D3D6Device::SetLightState: Use of D3DLIGHTSTATE_COLORMODEL");
         break;
       case D3DLIGHTSTATE_FOGMODE:
-        m_d3d9->SetRenderState(d3d9::D3DRS_FOGTABLEMODE, dwLightState);
+        m_d3d9->SetRenderState(d3d9::D3DRS_FOGVERTEXMODE, dwLightState);
         break;
       case D3DLIGHTSTATE_FOGSTART:
         m_d3d9->SetRenderState(d3d9::D3DRS_FOGSTART, dwLightState);
@@ -1001,10 +1009,10 @@ namespace dxvk {
         m_d3d9->SetRenderState(d3d9::D3DRS_FOGDENSITY, dwLightState);
         break;
       case D3DLIGHTSTATE_COLORVERTEX:
-        Logger::warn("D3D6Device::SetLightState: Use of unsupported D3DLIGHTSTATE_COLORVERTEX");
+        m_d3d9->SetRenderState(d3d9::D3DRS_COLORVERTEX, dwLightState);
         break;
       default:
-        break;
+        return DDERR_INVALIDPARAMS;
     }
 
     return D3D_OK;
