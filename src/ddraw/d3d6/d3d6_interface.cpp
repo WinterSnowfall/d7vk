@@ -1,5 +1,6 @@
 #include "d3d6_interface.h"
 
+#include "../ddraw_util.h"
 #include "../ddraw4/ddraw4_interface.h"
 #include "../ddraw4/ddraw4_surface.h"
 
@@ -8,7 +9,6 @@
 #include "d3d6_light.h"
 #include "d3d6_material.h"
 #include "d3d6_multithread.h"
-#include "d3d6_util.h"
 #include "d3d6_viewport.h"
 
 namespace dxvk {
@@ -25,7 +25,7 @@ namespace dxvk {
     // TODO: Have a D3D6 equivalent
     m_bridge->EnableD3D6CompatibilityMode();
 
-    m_d3d7Options = D3D7Options(*m_bridge->GetConfig());
+    m_d3d6Options = D3DOptions(*m_bridge->GetConfig());
 
     m_intfCount = ++s_intfCount;
 
@@ -182,7 +182,7 @@ namespace dxvk {
 
     Com<DDraw4Surface> rt4;
     if (unlikely(!m_parent->IsWrappedSurface(lpDDS))) {
-      if (unlikely(m_d3d7Options.proxiedQueryInterface)) {
+      if (unlikely(m_d3d6Options.proxiedQueryInterface)) {
         Logger::debug("D3D6Interface::CreateDevice: Unwrapped surface passed as RT");
         rt4 = new DDraw4Surface(std::move(lpDDS), m_parent, nullptr, nullptr, true);
         // Hack: attach the last created depth stencil to the unwrapped RT
@@ -210,8 +210,8 @@ namespace dxvk {
     DWORD backBufferWidth  = desc.dwWidth;
     DWORD BackBufferHeight = desc.dwHeight;
 
-    if (likely(!m_d3d7Options.forceProxiedPresent &&
-                m_d3d7Options.backBufferResize)) {
+    if (likely(!m_d3d6Options.forceProxiedPresent &&
+                m_d3d6Options.backBufferResize)) {
       const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
@@ -232,7 +232,7 @@ namespace dxvk {
 
     // Determine the supported AA sample count by querying the D3D9 interface
     d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
-    if (likely(!m_d3d7Options.disableAASupport)) {
+    if (likely(!m_d3d6Options.disableAASupport)) {
       HRESULT hr4S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
                                                         TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
       if (unlikely(FAILED(hr4S))) {
@@ -255,7 +255,7 @@ namespace dxvk {
     Logger::info(str::format("D3D6Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
 
     DWORD backBufferCount = 0;
-    if (likely(!m_d3d7Options.forceSingleBackBuffer)) {
+    if (likely(!m_d3d6Options.forceSingleBackBuffer)) {
       IDirectDrawSurface4* backBuffer = rt4->GetProxied();
       while (backBuffer != nullptr) {
         IDirectDrawSurface4* parentSurface = backBuffer;
@@ -291,7 +291,7 @@ namespace dxvk {
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
-    if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_d3d7Options.forceMultiThreaded)
+    if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_d3d6Options.forceMultiThreaded)
       deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
     if (cooperativeLevel & DDSCL_FPUPRESERVE)
       deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
@@ -313,7 +313,7 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC desc6 = GetD3D6Caps(rclsid, m_d3d7Options.disableAASupport);
+    D3DDEVICEDESC desc6 = GetD3D6Caps(rclsid, m_d3d6Options.disableAASupport);
 
     try{
       Com<D3D6Device> device = new D3D6Device(std::move(d3d6DeviceProxy), this, desc6,
