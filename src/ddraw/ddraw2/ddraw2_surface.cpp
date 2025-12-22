@@ -54,9 +54,9 @@ namespace dxvk {
     if (riid == __uuidof(IDirectDrawGammaControl)) {
       if (likely(IsLegacyInterface())) {
         return m_origin->QueryInterface(riid, ppvObject);
-      } else {
-        return m_proxy->QueryInterface(riid, ppvObject);
       }
+
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
       return m_proxy->QueryInterface(riid, ppvObject);
@@ -66,37 +66,37 @@ namespace dxvk {
       if (likely(IsLegacyInterface())) {
         Logger::debug("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface");
         return m_origin->QueryInterface(riid, ppvObject);
-      } else {
-        Logger::warn("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface");
-        return m_proxy->QueryInterface(riid, ppvObject);
       }
+
+      Logger::warn("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface3))) {
       if (likely(IsLegacyInterface())) {
         Logger::debug("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface3");
         return m_origin->QueryInterface(riid, ppvObject);
-      } else {
-        Logger::warn("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface3");
-        return m_proxy->QueryInterface(riid, ppvObject);
       }
+
+      Logger::warn("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface3");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface4))) {
       if (likely(IsLegacyInterface())) {
         Logger::debug("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface4");
         return m_origin->QueryInterface(riid, ppvObject);
-      } else {
-        Logger::warn("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface4");
-        return m_proxy->QueryInterface(riid, ppvObject);
       }
+
+      Logger::warn("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface4");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface7))) {
       if (likely(IsLegacyInterface())) {
         Logger::debug("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface7");
         return m_origin->QueryInterface(riid, ppvObject);
-      } else {
-        Logger::warn("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface7");
-        return m_proxy->QueryInterface(riid, ppvObject);
       }
+
+      Logger::warn("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface7");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirect3DTexture)
               || riid == __uuidof(IDirect3DTexture2))) {
