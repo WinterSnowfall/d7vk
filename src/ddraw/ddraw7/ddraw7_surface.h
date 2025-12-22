@@ -119,7 +119,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetLOD(LPDWORD lod);
 
-    const D3D7Options* GetOptions() const {
+    const D3DOptions* GetOptions() const {
       return m_parent->GetOptions();
     }
 

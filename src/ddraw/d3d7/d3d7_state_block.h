@@ -1,12 +1,12 @@
 #pragma once
 
 #include "../ddraw_include.h"
+#include "../ddraw_caps.h"
+
 #include "../ddraw7/ddraw7_surface.h"
 
 #include "../util/util_bit.h"
 #include "../util/util_flags.h"
-
-#include "d3d7_caps.h"
 
 #include <array>
 
@@ -23,7 +23,7 @@ namespace dxvk {
   struct D3D7StateCaptures {
     D3D7CapturedStateFlags flags;
 
-    bit::bitset<caps7::TextureStageCount> textures;
+    bit::bitset<ddrawCaps::TextureStageCount> textures;
 
     D3D7StateCaptures() {
       // Ensure all bits are initialized to false
@@ -32,7 +32,7 @@ namespace dxvk {
   };
 
   struct D3D7CapturableState {
-    std::array<IDirectDrawSurface7*, caps7::TextureStageCount> textures;
+    std::array<IDirectDrawSurface7*, ddrawCaps::TextureStageCount> textures;
   };
 
   enum class D3D7StateBlockType : uint8_t {
