@@ -1,6 +1,11 @@
 #include "d3d6_viewport.h"
 
+#include "../ddraw4/ddraw4_surface.h"
+
 #include "d3d6_device.h"
+#include "d3d6_material.h"
+
+#include <algorithm>
 
 namespace dxvk {
 
@@ -61,11 +66,13 @@ namespace dxvk {
     return DDERR_UNSUPPORTED;
   }
 
+  // Legacy call, technically should not be very common
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetViewport(D3DVIEWPORT *data) {
     Logger::warn("<<< D3D6Viewport::GetViewport: Proxy");
     return m_proxy->GetViewport(data);
   }
 
+  // Legacy call, technically should not be very common
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetViewport(D3DVIEWPORT *data) {
     Logger::warn("<<< D3D6Viewport::SetViewport: Proxy");
     return m_proxy->SetViewport(data);
@@ -83,72 +90,147 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackground(D3DMATERIALHANDLE hMat) {
-    Logger::warn("<<< D3D6Viewport::SetBackground: Proxy");
-    //return m_proxy->SetBackground(hMat);
+    Logger::debug(">>> D3D6Viewport::SetBackground");
+
+    m_material = hMat;
+    // TODO: Look up the material and make it valid
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetBackground(D3DMATERIALHANDLE *material, BOOL *valid) {
-    Logger::debug("<<< D3D6Viewport::GetBackground: Proxy");
-    //return m_proxy->GetBackground(material, valid);
+    Logger::debug(">>> D3D6Viewport::GetBackground");
 
-    *material = 1;
+    if (unlikely(material == nullptr || valid == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    *material = m_material;
+    // TODO: Get the validity from the material or FALSE if it's not found
     *valid = TRUE;
 
     return D3D_OK;
   }
 
+  // Legacy call, technically should not be very common
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackgroundDepth(IDirectDrawSurface *surface) {
     Logger::warn("<<< D3D6Viewport::SetBackgroundDepth: Proxy");
     return m_proxy->SetBackgroundDepth(surface);
   }
 
+  // Legacy call, technically should not be very common
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetBackgroundDepth(IDirectDrawSurface **surface, BOOL *valid) {
     Logger::warn("<<< D3D6Viewport::SetBackgroundDepth: Proxy");
     return m_proxy->GetBackgroundDepth(surface, valid);
   }
 
+  // Legacy call, technically should not be very common
   HRESULT STDMETHODCALLTYPE D3D6Viewport::Clear(DWORD count, D3DRECT *rects, DWORD flags) {
     Logger::debug("<<< D3D6Viewport::Clear: Proxy");
-    return m_proxy->Clear(count, rects, flags);
+
+    HRESULT hr = m_proxy->Clear(count, rects, flags);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (unlikely(m_device == nullptr))
+      return D3DERR_VIEWPORTHASNODEVICE;
+
+    D3D6Device* d3d6Device = m_parent->GetLastUsedDevice();
+    if (likely(d3d6Device != nullptr)) {
+      HRESULT hr9 = d3d6Device->GetD3D9()->Clear(count, rects, flags, 0, 0.0f, 0);
+      if (unlikely(FAILED(hr9)))
+        Logger::err("D3D6Viewport::Clear: Failed D3D9 Clear call");
+    }
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::AddLight(IDirect3DLight *light) {
-    Logger::warn("<<< D3D6Viewport::AddLight: Proxy");
-    //return m_proxy->AddLight(light);
+    Logger::debug(">>> D3D6Viewport::AddLight");
+
+    if (unlikely(light == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    D3D6Light* light6 = reinterpret_cast<D3D6Light*>(light);
+
+    auto it = std::find(m_lights.begin(), m_lights.end(), light6);
+    if (unlikely(it != m_lights.end())) {
+      Logger::warn("D3D6Viewport::AddLight: Pre-existing light found");
+    } else {
+      m_lights.push_back(light6);
+    }
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::DeleteLight(IDirect3DLight *light) {
-    Logger::warn("<<< D3D6Viewport::DeleteLight: Proxy");
-    //return m_proxy->DeleteLight(light);
+    Logger::warn(">>> D3D6Viewport::DeleteLight");
+
+    if (unlikely(light == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    D3D6Light* light6 = reinterpret_cast<D3D6Light*>(light);
+
+    auto it = std::find(m_lights.begin(), m_lights.end(), light6);
+    if (likely(it != m_lights.end())) {
+      m_lights.erase(it);
+    } else {
+      Logger::warn("D3D6Viewport::DeleteLight: Light not found");
+    }
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::NextLight(IDirect3DLight *ref, IDirect3DLight **light, DWORD flags) {
     Logger::warn("<<< D3D6Viewport::NextLight: Proxy");
-    //return m_proxy->NextLight(ref, light, flags);
+    // TODO:
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetViewport2(D3DVIEWPORT2 *data) {
-    Logger::debug("<<< D3D6Viewport::GetViewport2: Proxy");
-    return m_proxy->GetViewport2(data);
+    Logger::debug(">>> D3D6Viewport::GetViewport2");
+
+    if (unlikely(data == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(data->dwSize != sizeof(D3DVIEWPORT2)))
+      return DDERR_INVALIDPARAMS;
+
+    *data = m_viewport;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetViewport2(D3DVIEWPORT2 *data) {
-    Logger::debug("<<< D3D6Viewport::SetViewport2: Proxy");
-    return m_proxy->SetViewport2(data);
+    Logger::debug(">>> D3D6Viewport::SetViewport2");
+
+    if (unlikely(data == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    m_viewport = *data;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackgroundDepth2(IDirectDrawSurface4 *surface) {
-    Logger::debug("<<< D3D6Viewport::SetBackgroundDepth2: Proxy");
-    return m_proxy->SetBackgroundDepth2(surface);
+    Logger::debug(">>> D3D6Viewport::SetBackgroundDepth2");
+
+    // TODO: Look up the depth and make it valid
+    m_materialDepth = reinterpret_cast<DDraw4Surface*>(surface);
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetBackgroundDepth2(IDirectDrawSurface4 **surface, BOOL *valid) {
-    Logger::debug("<<< D3D6Viewport::GetBackgroundDepth2: Proxy");
-    return m_proxy->GetBackgroundDepth2(surface, valid);
+    Logger::debug(">>> D3D6Viewport::GetBackgroundDepth2");
+
+    if (unlikely(surface == nullptr || valid == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    *surface = m_materialDepth;
+    // TODO: Get the validity from the surface or FALSE if it's not found
+    *valid = TRUE;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::Clear2(DWORD count, D3DRECT *rects, DWORD flags, DWORD color, D3DVALUE z, DWORD stencil) {
@@ -157,6 +239,9 @@ namespace dxvk {
     HRESULT hr = m_proxy->Clear2(count, rects, flags, color, z, stencil);
     if (unlikely(FAILED(hr)))
       return hr;
+
+    if (unlikely(m_device == nullptr))
+      return D3DERR_VIEWPORTHASNODEVICE;
 
     D3D6Device* d3d6Device = m_parent->GetLastUsedDevice();
     if (likely(d3d6Device != nullptr)) {
