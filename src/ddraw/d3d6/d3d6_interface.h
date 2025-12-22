@@ -3,11 +3,10 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
+#include "../ddraw_options.h"
 #include "../ddraw_format.h"
 
 #include "../d3d9/d3d9_bridge.h"
-
-#include "../d3d7/d3d7_options.h"
 
 namespace dxvk {
 
@@ -56,8 +55,8 @@ namespace dxvk {
       m_lastUsedDevice = device;
     }
 
-    const D3D7Options* GetOptions() const {
-      return &m_d3d7Options;
+    const D3DOptions* GetOptions() const {
+      return &m_d3d6Options;
     }
 
   private:
@@ -67,7 +66,7 @@ namespace dxvk {
 
     Com<IDxvkD3D8InterfaceBridge> m_bridge;
 
-    D3D7Options                   m_d3d7Options;
+    D3DOptions                    m_d3d6Options;
 
     D3D6Device*                   m_lastUsedDevice = nullptr;
 
