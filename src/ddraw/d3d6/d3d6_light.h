@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ddraw_include.h"
-#include "ddraw_wrapped_object.h"
+#include "../ddraw_include.h"
+#include "../ddraw_wrapped_object.h"
 
 #include "d3d6_interface.h"
 

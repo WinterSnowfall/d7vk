@@ -13,6 +13,16 @@ namespace dxvk {
     UINT stride;
   };
 
+  inline d3d9::D3DLIGHTTYPE ConvertLightType(D3DLIGHTTYPE type) {
+    switch (type) {
+      case D3DLIGHT_POINT:         return d3d9::D3DLIGHT_POINT;
+      case D3DLIGHT_SPOT:          return d3d9::D3DLIGHT_SPOT;
+      case D3DLIGHT_DIRECTIONAL:   return d3d9::D3DLIGHT_DIRECTIONAL;
+      case D3DLIGHT_PARALLELPOINT:
+      default:                     return d3d9::D3DLIGHT_POINT;
+    }
+  }
+
   inline d3d9::D3DTRANSFORMSTATETYPE ConvertTransformState(D3DTRANSFORMSTATETYPE tst) {
     switch (tst) {
       case D3DTRANSFORMSTATE_WORLD:  return d3d9::D3DTRANSFORMSTATETYPE(D3DTS_WORLD);
@@ -288,7 +298,7 @@ namespace dxvk {
     lightingCaps.dwSize  = sizeof(D3DLIGHTINGCAPS);
     lightingCaps.dwCaps  = D3DLIGHTCAPS_DIRECTIONAL
                       // | D3DLIGHTCAPS_GLSPOT
-                         | D3DLIGHTCAPS_PARALLELPOINT // TODO: Check D3D9 support
+                      // | D3DLIGHTCAPS_PARALLELPOINT // Not supported by D3D9
                          | D3DLIGHTCAPS_POINT
                          | D3DLIGHTCAPS_SPOT;
     lightingCaps.dwLightingModel = D3DLIGHTINGMODEL_RGB;

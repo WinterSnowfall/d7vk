@@ -2,16 +2,18 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
-
 #include "../ddraw_options.h"
 #include "../ddraw_format.h"
 
 #include "../d3d9/d3d9_bridge.h"
 
+#include <unordered_map>
+
 namespace dxvk {
 
   class DDraw4Interface;
   class D3D6Device;
+  class D3D6Material;
 
   /**
   * \brief D3D6 interface implementation
@@ -47,6 +49,8 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE EvictManagedTextures();
 
+    D3D6Material* GetMaterialFromHandle(D3DMATERIALHANDLE handle);
+
     D3D6Device* GetLastUsedDevice() const {
       return m_lastUsedDevice;
     }
@@ -69,6 +73,9 @@ namespace dxvk {
     D3DOptions                    m_d3d6Options;
 
     D3D6Device*                   m_lastUsedDevice = nullptr;
+
+    D3DMATERIALHANDLE             m_materialHandle = 0;
+    std::unordered_map<D3DMATERIALHANDLE, D3D6Material> m_materials;
 
   };
 

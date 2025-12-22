@@ -83,6 +83,7 @@ interface DECLSPEC_UUID("B0AB3B61-33D7-11D1-A981-00C04FD7B174") IDirect3DViewpor
 // Avoid redundant definitions (add D3D*_DEFINED macros here)
 #define D3DRECT_DEFINED
 #define D3DMATRIX_DEFINED
+#define D3DCOLORVALUE_DEFINED
 
 // Temporarily undefine __CRT_UUID_DECL
 // to allow imports in the d3d9 namespace
