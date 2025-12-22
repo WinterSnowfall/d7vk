@@ -81,9 +81,9 @@ namespace dxvk {
     if (riid == __uuidof(IDirectDrawGammaControl)) {
       if (unlikely(IsLegacyInterface())) {
         return m_origin->QueryInterface(riid, ppvObject);
-      } else {
-        return m_proxy->QueryInterface(riid, ppvObject);
       }
+
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
       return m_proxy->QueryInterface(riid, ppvObject);
@@ -93,55 +93,55 @@ namespace dxvk {
       if (unlikely(IsLegacyInterface())) {
         Logger::debug("DDraw4Surface::QueryInterface: Query for IDirectDrawSurface");
         return m_origin->QueryInterface(riid, ppvObject);
-      } else {
-        Logger::warn("DDraw4Surface::QueryInterface: Query for IDirectDrawSurface");
-        return m_proxy->QueryInterface(riid, ppvObject);
       }
+
+      Logger::warn("DDraw4Surface::QueryInterface: Query for IDirectDrawSurface");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
       if (unlikely(IsLegacyInterface())) {
         Logger::debug("DDraw4Surface::QueryInterface: Query for IDirectDrawSurface2");
         return m_origin->QueryInterface(riid, ppvObject);
-      } else {
-        Logger::warn("DDraw4Surface::QueryInterface: Query for IDirectDrawSurface2");
-        return m_proxy->QueryInterface(riid, ppvObject);
       }
+
+      Logger::warn("DDraw4Surface::QueryInterface: Query for IDirectDrawSurface2");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface3))) {
       if (unlikely(IsLegacyInterface())) {
         Logger::debug("DDraw4Surface::QueryInterface: Query for IDirectDrawSurface3");
         return m_origin->QueryInterface(riid, ppvObject);
-      } else {
-        Logger::warn("DDraw4Surface::QueryInterface: Query for IDirectDrawSurface3");
-        return m_proxy->QueryInterface(riid, ppvObject);
       }
+
+      Logger::warn("DDraw4Surface::QueryInterface: Query for IDirectDrawSurface3");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface7))) {
       if (unlikely(IsLegacyInterface())) {
         Logger::debug("DDraw4Surface::QueryInterface: Query for IDirectDrawSurface7");
         return m_origin->QueryInterface(riid, ppvObject);
-      } else {
-        Logger::warn("DDraw4Surface::QueryInterface: Query for IDirectDrawSurface7");
-        return m_proxy->QueryInterface(riid, ppvObject);
       }
+
+      Logger::warn("DDraw4Surface::QueryInterface: Query for IDirectDrawSurface7");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
     // Standard way of retrieving a texture for d3d6 SetTexture calls
     if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
       if (unlikely(IsLegacyInterface())) {
         Logger::debug("DDraw4Surface::QueryInterface: Query for IDirect3DTexture2");
         return m_proxy->QueryInterface(riid, ppvObject);
-      } else {
-        Logger::debug("DDraw4Surface::QueryInterface: Query for IDirect3DTexture2");
-
-        Com<IDirect3DTexture2> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
-
-        *ppvObject = ref(new D3D6Texture(std::move(ppvProxyObject), this));
-
-        return S_OK;
       }
+
+      Logger::debug("DDraw4Surface::QueryInterface: Query for IDirect3DTexture2");
+
+      Com<IDirect3DTexture2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D6Texture(std::move(ppvProxyObject), this));
+
+      return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DTexture))) {
       Logger::debug("DDraw4Surface::QueryInterface: Query for IDirect3DTexture");
