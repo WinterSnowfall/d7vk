@@ -72,6 +72,10 @@ namespace dxvk {
     static uint32_t             s_intfCount;
     uint32_t                    m_intfCount  = 0;
 
+    HWND                        m_hwnd       = nullptr;
+
+    DWORD                       m_cooperativeLevel = 0;
+
     DDraw7Interface*            m_origin = nullptr;
 
     Com<D3D6Interface,   false> m_d3d6Intf;
