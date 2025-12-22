@@ -23,7 +23,13 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetHandle (IDirect3DDevice3 *device, D3DMATERIALHANDLE *handle);
 
+    void SetActive(bool active) {
+      m_isActive = false;
+    }
+
   private:
+
+    bool             m_isActive = false;
 
     static uint32_t  s_materialCount;
     uint32_t         m_materialCount = 0;

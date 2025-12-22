@@ -5,7 +5,14 @@
 
 #include "d3d6_interface.h"
 
+#include <vector>
+
 namespace dxvk {
+
+  class DDraw4Surface;
+  class D3D6Light;
+  class D3D6Device;
+  class D3D6Material;
 
   class D3D6Viewport final : public DDrawWrappedObject<D3D6Interface, IDirect3DViewport3, IUnknown> {
 
@@ -53,10 +60,24 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE Clear2(DWORD count, D3DRECT *rects, DWORD flags, DWORD color, D3DVALUE z, DWORD stencil);
 
+    void SetDevice(D3D6Device* device) {
+      m_device = device;
+    }
+
   private:
 
-    static uint32_t  s_viewportCount;
-    uint32_t         m_viewportCount = 0;
+    static uint32_t   s_viewportCount;
+    uint32_t          m_viewportCount = 0;
+
+    D3DMATERIALHANDLE m_material = 0;
+
+    DDraw4Surface*    m_materialDepth = nullptr;
+
+    D3DVIEWPORT2      m_viewport = { };
+
+    D3D6Device*       m_device = nullptr;
+
+    std::vector<D3D6Light*> m_lights;
 
   };
 
