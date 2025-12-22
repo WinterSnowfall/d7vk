@@ -66,10 +66,10 @@ namespace dxvk {
       if (unlikely(IsLegacyInterface())) {
         Logger::warn("DDraw4Interface::QueryInterface: Query for IDirect3D3");
         return m_proxy->QueryInterface(riid, ppvObject);
-      } else {
-        *ppvObject = m_d3d6Intf.ref();
-        return S_OK;
       }
+
+      *ppvObject = m_d3d6Intf.ref();
+      return S_OK;
     }
     // Some games query for legacy ddraw interfaces
     if (unlikely(riid == __uuidof(IDirectDraw)
@@ -77,10 +77,10 @@ namespace dxvk {
       if (unlikely(IsLegacyInterface())) {
         Logger::debug("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw");
         return m_origin->QueryInterface(riid, ppvObject);
-      } else {
-        Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw");
-        return m_proxy->QueryInterface(riid, ppvObject);
       }
+
+      Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
     // Standard way of retrieving a D3D interface
     if (riid == __uuidof(IDirect3D)
@@ -88,10 +88,10 @@ namespace dxvk {
       if (unlikely(IsLegacyInterface())) {
         Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirect3D");
         return m_proxy->QueryInterface(riid, ppvObject);
-      } else {
-        Logger::err("DDraw4Interface::QueryInterface: Unsupported IDirect3D interface");
-        return E_NOINTERFACE;
       }
+
+      Logger::err("DDraw4Interface::QueryInterface: Unsupported IDirect3D interface");
+      return E_NOINTERFACE;
     }
 
     try {

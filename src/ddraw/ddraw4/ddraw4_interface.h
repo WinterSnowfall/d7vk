@@ -104,6 +104,10 @@ namespace dxvk {
       return m_cooperativeLevel;
     }
 
+    void SetCooperativeLevel(DWORD cooperativeLevel) {
+      m_cooperativeLevel = cooperativeLevel;
+    }
+
     DDrawModeSize GetModeSize() const {
       return m_modeSize;
     }
