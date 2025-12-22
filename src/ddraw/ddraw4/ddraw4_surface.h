@@ -115,6 +115,15 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE ChangeUniquenessValue();
 
+    const D3DOptions* GetOptions() const {
+      return m_parent->GetOptions();
+    }
+
+    D3D6Device* GetD3D6Device() {
+      RefreshD3D6Device();
+      return m_d3d6Device;
+    }
+
     d3d9::IDirect3DTexture9* GetD3D9Texture() const {
       return m_texture.ptr();
     }

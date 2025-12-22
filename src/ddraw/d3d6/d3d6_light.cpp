@@ -78,6 +78,10 @@ namespace dxvk {
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    // Technically should also accept D3DLIGHT, but prior to D3D5
+    if (unlikely(data->dwSize != sizeof(D3DLIGHT2)))
+      return DDERR_INVALIDPARAMS;
+
     *data = m_light;
 
     return D3D_OK;

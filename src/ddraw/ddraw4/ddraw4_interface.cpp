@@ -432,7 +432,7 @@ namespace dxvk {
       return m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
     }
 
-    Logger::debug("<<< DDraw7Interface::SetDisplayMode: Proxy");
+    Logger::debug("<<< DDraw4Interface::SetDisplayMode: Proxy");
 
     HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
     if (unlikely(FAILED(hr)))
@@ -444,11 +444,11 @@ namespace dxvk {
 
       // Ignore any mode size dimensions when in windowed present mode
       if (exclusiveMode) {
-        Logger::debug("DDraw7Interface::SetDisplayMode: Exclusive full-screen present mode in use");
-        if (m_modeSize.width != dwWidth)
-          m_modeSize.width = dwWidth;
-        if (m_modeSize.height != dwHeight)
+        Logger::debug("DDraw4Interface::SetDisplayMode: Exclusive full-screen present mode in use");
+        if (m_modeSize.width != dwWidth || m_modeSize.height != dwHeight) {
+          m_modeSize.width  = dwWidth;
           m_modeSize.height = dwHeight;
+        }
       }
     }
 

@@ -267,7 +267,9 @@ namespace dxvk {
     if (likely(m_d3d6Device != nullptr)) {
       D3D6DeviceLock lock = m_d3d6Device->LockDevice();
       // Eclusive mode back buffer guard
-      if (exclusiveMode && m_d3d6Device->HasDrawn() && (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable())) {
+      if (exclusiveMode && m_d3d6Device->HasDrawn() &&
+         (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()) &&
+          m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
         return DD_OK;
       // Windowed mode presentation path
       } else if (!exclusiveMode && m_d3d6Device->HasDrawn() && IsPrimarySurface()) {

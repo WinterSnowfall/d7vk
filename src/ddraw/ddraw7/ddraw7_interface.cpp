@@ -409,10 +409,10 @@ namespace dxvk {
       // Ignore any mode size dimensions when in windowed present mode
       if (exclusiveMode) {
         Logger::debug("DDraw7Interface::SetDisplayMode: Exclusive full-screen present mode in use");
-        if (m_modeSize.width != dwWidth)
+        if (m_modeSize.width != dwWidth || m_modeSize.height != dwHeight) {
           m_modeSize.width = dwWidth;
-        if (m_modeSize.height != dwHeight)
           m_modeSize.height = dwHeight;
+        }
       }
     }
 

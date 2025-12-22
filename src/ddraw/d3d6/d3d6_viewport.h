@@ -1,7 +1,8 @@
 #pragma once
 
-#include "ddraw_include.h"
-#include "ddraw_wrapped_object.h"
+#include "../ddraw_include.h"
+#include "../ddraw_wrapped_object.h"
+#include "../ddraw_util.h"
 
 #include "d3d6_interface.h"
 
@@ -60,6 +61,12 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE Clear2(DWORD count, D3DRECT *rects, DWORD flags, DWORD color, D3DVALUE z, DWORD stencil);
 
+    HRESULT ApplyViewport();
+
+    HRESULT ApplyMaterial();
+
+    HRESULT ApplyAndActivateLights();
+
     void SetDevice(D3D6Device* device) {
       m_device = device;
     }
@@ -69,7 +76,7 @@ namespace dxvk {
     static uint32_t   s_viewportCount;
     uint32_t          m_viewportCount = 0;
 
-    D3DMATERIALHANDLE m_material = 0;
+    D3DMATERIALHANDLE m_materialHandle = 0;
 
     DDraw4Surface*    m_materialDepth = nullptr;
 

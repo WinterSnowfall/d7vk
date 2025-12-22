@@ -124,8 +124,12 @@ namespace dxvk {
 
     InitReturnPtr(lplpDirect3DMaterial);
 
-    // We do not really need a proxy material object, it's a simple container
-    *lplpDirect3DMaterial = ref(new D3D6Material(nullptr, this));
+    m_materialHandle++;
+    auto materialIterPair = m_materials.emplace(std::piecewise_construct,
+                                                std::forward_as_tuple(m_materialHandle),
+                                                std::forward_as_tuple(nullptr, this));
+
+    *lplpDirect3DMaterial = ref(&materialIterPair.first->second);
 
     return D3D_OK;
   }
@@ -390,6 +394,17 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Interface::EvictManagedTextures() {
     Logger::debug("<<< D3D6Interface::EvictManagedTextures:  Proxy");
     return m_proxy->EvictManagedTextures();
+  }
+
+  D3D6Material* D3D6Interface::GetMaterialFromHandle(D3DMATERIALHANDLE handle) {
+    auto materialsIter = m_materials.find(handle);
+
+    if (unlikely(materialsIter == m_materials.end())) {
+      Logger::err(str::format("D3D6Interface::GetMaterialFromHandle: Invalid handle: ", std::hex, handle));
+      return nullptr;
+    }
+
+    return &materialsIter->second;
   }
 
 }
