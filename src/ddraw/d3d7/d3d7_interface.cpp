@@ -1,12 +1,12 @@
 #include "d3d7_interface.h"
 
+#include "../ddraw_util.h"
 #include "../ddraw7/ddraw7_interface.h"
 #include "../ddraw7/ddraw7_surface.h"
 
 #include "d3d7_device.h"
 #include "d3d7_buffer.h"
 #include "d3d7_multithread.h"
-#include "d3d7_util.h"
 
 namespace dxvk {
 
@@ -21,7 +21,7 @@ namespace dxvk {
 
     m_bridge->EnableD3D7CompatibilityMode();
 
-    m_d3d7Options = D3D7Options(*m_bridge->GetConfig());
+    m_d3d7Options = D3DOptions(*m_bridge->GetConfig());
 
     m_intfCount = ++s_intfCount;
 

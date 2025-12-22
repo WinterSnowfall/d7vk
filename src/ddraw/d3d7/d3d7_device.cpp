@@ -1,17 +1,17 @@
 #include "d3d7_device.h"
 
+#include "../ddraw_util.h"
 #include "../ddraw7/ddraw7_surface.h"
 
 #include "d3d7_buffer.h"
 #include "d3d7_state_block.h"
-#include "d3d7_util.h"
 
 namespace dxvk {
 
   uint32_t D3D7Device::s_deviceCount = 0;
 
   // Index buffer sizes of XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb
-  static constexpr UINT IndexCount[caps7::IndexBufferCount] = {256, 1024, 4096, 16384, D3DMAXNUMVERTICES};
+  static constexpr UINT IndexCount[ddrawCaps::IndexBufferCount] = {256, 1024, 4096, 16384, D3DMAXNUMVERTICES};
 
   D3D7Device::D3D7Device(
       Com<IDirect3DDevice7>&& d3d7DeviceProxy,
@@ -276,7 +276,7 @@ namespace dxvk {
           m_d3d9->Present(NULL, NULL, NULL, NULL);
         }
 
-        if (likely(m_parent->GetOptions()->backBufferGuard != D3D7BackBufferGuard::Strict))
+        if (likely(m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
           m_hasDrawn = false;
       }
 
@@ -511,7 +511,7 @@ namespace dxvk {
 
     // As opposed to d3d8/9, d3d7 actually validates and
     // errors out in case of unknown/invalid render states
-    if (unlikely(!IsValidRenderStateType(dwRenderStateType)))
+    if (unlikely(!IsValidD3D7RenderStateType(dwRenderStateType)))
       return DDERR_INVALIDPARAMS;
 
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
@@ -618,7 +618,7 @@ namespace dxvk {
 
     // As opposed to d3d8/9, d3d7 actually validates and
     // errors out in case of unknown/invalid render states
-    if (unlikely(!IsValidRenderStateType(dwRenderStateType)))
+    if (unlikely(!IsValidD3D7RenderStateType(dwRenderStateType)))
       return DDERR_INVALIDPARAMS;
 
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
@@ -1128,7 +1128,7 @@ namespace dxvk {
     // Try to fit index buffer uploads into the smallest buffer size possible,
     // out of the five available: XS, S, M, L and XL (XL being the theoretical max)
     while (dwIndexCount > IndexCount[ibIndex]) {
-      if (unlikely(ibIndex > caps7::IndexBufferCount - 1)) {
+      if (unlikely(ibIndex > ddrawCaps::IndexBufferCount - 1)) {
         Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Exceeded size of largest index buffer");
         return DDERR_GENERIC;
       }
@@ -1180,7 +1180,7 @@ namespace dxvk {
     if (unlikely(surface == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(stage >= caps7::TextureStageCount)) {
+    if (unlikely(stage >= ddrawCaps::TextureStageCount)) {
       Logger::err(str::format("D3D7Device::GetTexture: Invalid texture stage: ", stage));
       return DDERR_INVALIDPARAMS;
     }
@@ -1197,7 +1197,7 @@ namespace dxvk {
 
     RefreshLastUsedDevice();
 
-    if (unlikely(stage >= caps7::TextureStageCount)) {
+    if (unlikely(stage >= ddrawCaps::TextureStageCount)) {
       Logger::err(str::format("D3D7Device::SetTexture: Invalid texture stage: ", stage));
       return DDERR_INVALIDPARAMS;
     }
@@ -1481,7 +1481,7 @@ namespace dxvk {
   inline HRESULT D3D7Device::InitializeIndexBuffers() {
     static constexpr DWORD Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 
-    for (uint32_t ibIndex = 0; ibIndex < caps7::IndexBufferCount ; ibIndex++) {
+    for (uint32_t ibIndex = 0; ibIndex < ddrawCaps::IndexBufferCount ; ibIndex++) {
       const UINT ibSize = IndexCount[ibIndex] * sizeof(WORD);
 
       Logger::debug(str::format("D3D7Device::InitializeIndexBuffer: Creating index buffer, size: ", ibSize));

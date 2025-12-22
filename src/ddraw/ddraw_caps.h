@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../ddraw_include.h"
+#include "ddraw_include.h"
 
-namespace dxvk::caps7 {
+namespace dxvk::ddrawCaps {
 
   constexpr uint32_t MaxClipPlanes                = 6;
   constexpr uint32_t MaxTextureDimension          = 8192; // TODO: Check native D3D7

@@ -7,9 +7,6 @@
 #include "../ddraw2/ddraw3_surface.h"
 #include "../ddraw4/ddraw4_surface.h"
 
-#include "../d3d7/d3d7_multithread.h"
-#include "../d3d7/d3d7_caps.h"
-
 namespace dxvk {
 
   uint32_t DDraw7Surface::s_surfCount = 0;
@@ -198,7 +195,7 @@ namespace dxvk {
       // Eclusive mode back buffer guard
       if (exclusiveMode && m_d3d7Device->HasDrawn() &&
          (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()) &&
-          m_parent->GetOptions()->backBufferGuard != D3D7BackBufferGuard::Disabled) {
+          m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
         return DD_OK;
       // Windowed mode presentation path
       } else if (!exclusiveMode && m_d3d7Device->HasDrawn() && IsPrimarySurface()) {

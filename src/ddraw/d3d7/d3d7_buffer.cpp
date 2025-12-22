@@ -1,9 +1,9 @@
 #include "d3d7_buffer.h"
 
+#include "../ddraw_util.h"
 #include "../ddraw7/ddraw7_interface.h"
 
 #include "d3d7_multithread.h"
-#include "d3d7_util.h"
 
 namespace dxvk {
 
