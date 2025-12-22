@@ -5,6 +5,7 @@
 #include "../ddraw4/ddraw4_surface.h"
 
 #include "d3d6_buffer.h"
+#include "d3d6_material.h"
 #include "d3d6_texture.h"
 #include "d3d6_viewport.h"
 
@@ -356,33 +357,24 @@ namespace dxvk {
     m_viewport = d3d6Viewport.ptr();
     m_viewport->SetDevice(this);
 
-    D3DVIEWPORT2 viewport6;
-    viewport6.dwSize = sizeof(D3DVIEWPORT2);
-    hr = m_viewport->GetProxied()->GetViewport2(&viewport6);
-    if (unlikely(FAILED(hr)))
-      return hr;
-
-    d3d9::D3DVIEWPORT9 viewport9;
-    viewport9.X = viewport6.dwX;
-    viewport9.X = viewport6.dwY;
-    viewport9.Width  = viewport6.dwWidth;
-    viewport9.Height = viewport6.dwHeight;
-    viewport9.MinZ = viewport6.dvMinZ;
-    viewport9.MaxZ = viewport6.dvMaxZ;
-
-    // TODO: Set up materials, lights and everything else that's in the viewport
-
-    hr = m_d3d9->SetViewport(&viewport9);
-    if(unlikely(FAILED(hr)))
-      Logger::err("D3D6Device::SetCurrentViewport: Failed to set the D3D9 viewport");
+    m_viewport->ApplyViewport();
+    m_viewport->ApplyMaterial();
+    m_viewport->ApplyAndActivateLights();
 
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetCurrentViewport(IDirect3DViewport3 **viewport) {
-    Logger::warn("<<< D3D6Device::GetCurrentViewport: Proxy");
-    // TODO: Wrap the return or better, cache viewports in the interface and look them up
-    return m_proxy->GetCurrentViewport(viewport);
+    Logger::debug(">>> D3D6Device::GetCurrentViewport");
+
+    if (unlikely(viewport == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(viewport);
+
+    *viewport = m_viewport;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::SetRenderTarget(IDirectDrawSurface4 *surface, DWORD flags) {
@@ -947,9 +939,10 @@ namespace dxvk {
     RefreshLastUsedDevice();
 
     switch (dwLightStateType) {
-      // TODO:
       case D3DLIGHTSTATE_MATERIAL:
-        Logger::warn("D3D6Device::GetLightState: Use of unsupported D3DLIGHTSTATE_MATERIAL");
+        BOOL isActive;
+        m_viewport->GetBackground(&m_materialHandle, &isActive);
+        *lpdwLightState = m_materialHandle;
         break;
       case D3DLIGHTSTATE_AMBIENT:
         m_d3d9->GetRenderState(d3d9::D3DRS_AMBIENT, lpdwLightState);
@@ -986,9 +979,21 @@ namespace dxvk {
     RefreshLastUsedDevice();
 
     switch (dwLightStateType) {
-      // TODO:
       case D3DLIGHTSTATE_MATERIAL:
-        Logger::warn("D3D6Device::SetLightState: Use of unsupported D3DLIGHTSTATE_MATERIAL");
+        m_materialHandle = dwLightState;
+
+        D3DMATERIAL material;
+        m_parent->GetMaterialFromHandle(dwLightState)->GetMaterial(&material);
+
+        d3d9::D3DMATERIAL9 material9;
+        material9.Diffuse  = material.dcvDiffuse;
+        material9.Ambient  = material.dcvAmbient;
+        material9.Specular = material.dcvSpecular;
+        material9.Emissive = material.dcvEmissive;
+        material9.Power    = material.dvPower;
+
+        m_d3d9->SetMaterial(&material9);
+
         break;
       case D3DLIGHTSTATE_AMBIENT:
         m_d3d9->SetRenderState(d3d9::D3DRS_AMBIENT, dwLightState);

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ddraw_include.h"
-#include "ddraw_wrapped_object.h"
+#include "../ddraw_include.h"
+#include "../ddraw_wrapped_object.h"
 
 #include "d3d6_interface.h"
 
@@ -25,6 +25,10 @@ namespace dxvk {
 
     void SetActive(bool active) {
       m_isActive = false;
+    }
+
+    bool GetActive() const {
+      return m_isActive;
     }
 
   private:
