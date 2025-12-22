@@ -1,17 +1,18 @@
 #pragma once
 
-#include "../ddraw_include.h"
+#include "ddraw_include.h"
+
 #include "../util/config/config.h"
 
 namespace dxvk {
 
-  enum class D3D7BackBufferGuard {
+  enum class D3DBackBufferGuard {
     Disabled,
     Enabled,
     Strict
   };
 
-  struct D3D7Options {
+  struct D3DOptions {
 
     /// Creates a SWVP D3D9 device even when a T&L HAL (HWVP) device is requested
     bool forceSWVPDevice;
@@ -67,11 +68,11 @@ namespace dxvk {
     bool ignoreGammaRamp;
 
     /// Determines how to handle proxy back buffer blits done by the application
-    D3D7BackBufferGuard backBufferGuard;
+    D3DBackBufferGuard backBufferGuard;
 
-    D3D7Options() {}
+    D3DOptions() {}
 
-    D3D7Options(const Config& config) {
+    D3DOptions(const Config& config) {
       this->forceSWVPDevice       = config.getOption<bool>   ("d3d7.forceSWVPDevice",        false);
       this->disableAASupport      = config.getOption<bool>   ("d3d7.disableAASupport",       false);
       this->forceEnableAA         = config.getOption<bool>   ("d3d7.forceEnableAA",          false);
@@ -92,11 +93,11 @@ namespace dxvk {
 
       std::string backBufferGuardStr = Config::toLower(config.getOption<std::string>("ddraw.backBufferGuard", "auto"));
       if (backBufferGuardStr == "strict") {
-        this->backBufferGuard = D3D7BackBufferGuard::Strict;
+        this->backBufferGuard = D3DBackBufferGuard::Strict;
       } else if (backBufferGuardStr == "disabled") {
-        this->backBufferGuard = D3D7BackBufferGuard::Disabled;
+        this->backBufferGuard = D3DBackBufferGuard::Disabled;
       } else {
-        this->backBufferGuard = D3D7BackBufferGuard::Enabled;
+        this->backBufferGuard = D3DBackBufferGuard::Enabled;
       }
     }
 

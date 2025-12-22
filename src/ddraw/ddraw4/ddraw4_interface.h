@@ -92,7 +92,7 @@ namespace dxvk {
       return m_d3d6Intf->GetLastUsedDevice();
     }
 
-    const D3D7Options* GetOptions() const {
+    const D3DOptions* GetOptions() const {
       return m_d3d6Intf->GetOptions();
     }
 
