@@ -59,37 +59,35 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // Standard way of retrieving a D3D interface
+    // Standard way of retrieving a D3D6 interface
     if (riid == __uuidof(IDirect3D3)) {
       if (likely(IsLegacyInterface())) {
         Logger::warn("DDrawInterface::QueryInterface: Query for IDirect3D3");
         return m_proxy->QueryInterface(riid, ppvObject);
-      } else {
-        *ppvObject = m_d3d6Intf.ref();
-        return S_OK;
       }
+
+      Logger::debug("DDrawInterface::QueryInterface: Query for IDirect3D3");
+
+      *ppvObject = m_d3d6Intf.ref();
+      return S_OK;
     }
     // Legacy way of retrieving a D3D7 interface
-    if (riid == __uuidof(IDirect3D7)) {
+    if (unlikely(riid == __uuidof(IDirect3D7))) {
       if (likely(IsLegacyInterface())) {
         Logger::debug("DDrawInterface::QueryInterface: Forwarded query for IDirect3D7");
         return m_origin->QueryInterface(riid, ppvObject);
-      } else {
-        // TODO: Create the object, similar to how it's done in DDrawInterface7
-        Logger::warn("DDrawInterface::QueryInterface: Query for IDirect3D7");
-        return m_proxy->QueryInterface(riid, ppvObject);
       }
-    }
-    // Legacy way of getting a DDraw7 interface
-    if (riid == __uuidof(IDirectDraw7)) {
-      if (likely(IsLegacyInterface())) {
-        Logger::debug("DDrawInterface::QueryInterface: Forwarded query for IDirectDraw7");
-        return m_origin->QueryInterface(riid, ppvObject);
-      } else {
-        // TODO: Create the object, and pass it on
-        Logger::warn("DDrawInterface::QueryInterface: Query for IDirectDraw7");
-        return m_proxy->QueryInterface(riid, ppvObject);
-      }
+
+      Logger::warn("DDrawInterface::QueryInterface: Query for IDirect3D7");
+
+      Com<IDirect3D7> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D7Interface(std::move(ppvProxyObject), nullptr));
+
+      return S_OK;
     }
     // Standard way of retrieving a D3D interface
     if (riid == __uuidof(IDirect3D)
@@ -97,12 +95,61 @@ namespace dxvk {
       if (likely(IsLegacyInterface())) {
         Logger::warn("DDrawInterface::QueryInterface: Query for legacy IDirect3D");
         return m_proxy->QueryInterface(riid, ppvObject);
-      } else {
-        Logger::err("DDrawInterface::QueryInterface: Unsupported IDirect3D interface");
-        return E_NOINTERFACE;
       }
+
+      Logger::err("DDrawInterface::QueryInterface: Unsupported IDirect3D interface");
+      return E_NOINTERFACE;
+    }
+    // Legacy way of getting a DDraw4 interface
+    if (riid == __uuidof(IDirectDraw4)) {
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDrawInterface::QueryInterface: Forwarded query for IDirectDraw4");
+        return m_origin->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("DDrawInterface::QueryInterface: Query for IDirectDraw4");
+
+      Com<IDirectDraw4> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      Com<DDraw4Interface> ddraw4Interface = new DDraw4Interface(std::move(ppvProxyObject), nullptr);
+      // Pass on the hWnd and cooperative level to the child interface
+      ddraw4Interface->SetHWND(m_hwnd);
+      ddraw4Interface->SetCooperativeLevel(m_cooperativeLevel);
+      *ppvObject = ddraw4Interface.ref();
+
+      return S_OK;
+    }
+    // Legacy way of getting a DDraw7 interface
+    if (unlikely(riid == __uuidof(IDirectDraw7))) {
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDrawInterface::QueryInterface: Forwarded query for IDirectDraw7");
+        return m_origin->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::warn("DDrawInterface::QueryInterface: Query for IDirectDraw7");
+
+      Com<IDirectDraw7> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      Com<DDraw7Interface> ddraw7Interface = new DDraw7Interface(std::move(ppvProxyObject));
+      // Pass on the hWnd and cooperative level to the child interface
+      ddraw7Interface->SetHWND(m_hwnd);
+      ddraw7Interface->SetCooperativeLevel(m_cooperativeLevel);
+      *ppvObject = ddraw7Interface.ref();
+
+      return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDraw2))) {
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDrawInterface::QueryInterface: Forwarded query for IDirectDraw2");
+        return m_origin->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("DDrawInterface::QueryInterface: Query for IDirectDraw2");
 
       Com<IDirectDraw2> ppvProxyObject;
@@ -114,19 +161,7 @@ namespace dxvk {
 
       return S_OK;
     }
-    if (unlikely(riid == __uuidof(IDirectDraw4))) {
-      Logger::debug("DDrawInterface::QueryInterface: Query for IDirectDraw4");
-
-      Com<IDirectDraw4> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      *ppvObject = ref(new DDraw4Interface(std::move(ppvProxyObject), nullptr));
-
-      return S_OK;
-    }
-    // Something that 1NSANE queries for to play back the intros, allegedly...
+    // Quite a lot of games query for this IID during intro playback
     if (unlikely(riid == GUID_IAMMediaStream)) {
       Logger::debug("DDrawInterface::QueryInterface: Query for IAMMediaStream");
       return m_proxy->QueryInterface(riid, ppvObject);
@@ -277,7 +312,15 @@ namespace dxvk {
     }
 
     Logger::debug("<<< DDrawInterface::SetCooperativeLevel: Proxy");
-    return m_proxy->SetCooperativeLevel(hWnd, dwFlags);
+
+    HRESULT hr = m_proxy->SetCooperativeLevel(hWnd, dwFlags);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    m_hwnd = hWnd;
+    m_cooperativeLevel = dwFlags;
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP) {
