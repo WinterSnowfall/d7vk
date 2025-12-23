@@ -191,19 +191,27 @@ namespace dxvk {
 
     inline HRESULT EnumerateBackBuffers(IDirectDrawSurface7* surface);
 
-    inline void RefreshLastUsedDevice() {
-      if (unlikely(m_parent->GetLastUsedDevice() != this))
-        m_parent->SetLastUsedDevice(this);
-    }
-
     inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
-
-    inline bool ShouldRecord() const { return m_recorder != nullptr; }
 
     // If the last index buffer is initalized, then all are initialized
     inline bool AreIndexBuffersInitialized() const {
       return m_ib9[ddrawCaps::IndexBufferCount - 1] != nullptr;
     }
+
+    inline bool ShouldRecord() const { return m_recorder != nullptr; }
+
+    inline void RefreshLastUsedDevice() {
+      if (unlikely(m_parent->GetLastUsedDevice() != this))
+        m_parent->SetLastUsedDevice(this);
+    }
+
+    inline void HandlePreDrawFlags(DWORD drawFlags) {
+      if (drawFlags & D3DDP_WAIT) {
+        Logger::debug(">>> D3D6Device:: Draw with D3DDP_DONOTUPDATEEXTENTS");
+      }
+    }
+
+    inline void HandlePostDrawFlags(DWORD drawFlags) { }
 
     bool                          m_hasDrawn      = false;
     bool                          m_inScene       = false;

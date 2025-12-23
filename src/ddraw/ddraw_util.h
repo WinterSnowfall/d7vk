@@ -13,16 +13,6 @@ namespace dxvk {
     UINT stride;
   };
 
-  inline d3d9::D3DLIGHTTYPE ConvertLightType(D3DLIGHTTYPE type) {
-    switch (type) {
-      case D3DLIGHT_POINT:         return d3d9::D3DLIGHT_POINT;
-      case D3DLIGHT_SPOT:          return d3d9::D3DLIGHT_SPOT;
-      case D3DLIGHT_DIRECTIONAL:   return d3d9::D3DLIGHT_DIRECTIONAL;
-      case D3DLIGHT_PARALLELPOINT:
-      default:                     return d3d9::D3DLIGHT_POINT;
-    }
-  }
-
   inline d3d9::D3DTRANSFORMSTATETYPE ConvertTransformState(D3DTRANSFORMSTATETYPE tst) {
     switch (tst) {
       case D3DTRANSFORMSTATE_WORLD:  return d3d9::D3DTRANSFORMSTATETYPE(D3DTS_WORLD);
@@ -329,7 +319,7 @@ namespace dxvk {
                            // | D3DPRASTERCAPS_PAT // Not implemented in D3D9
                               | D3DPRASTERCAPS_ROP2
                            // | D3DPRASTERCAPS_STIPPLE
-                              | D3DPRASTERCAPS_SUBPIXEL
+                           // | D3DPRASTERCAPS_SUBPIXEL
                            // | D3DPRASTERCAPS_SUBPIXELX
                            // | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
                            // | D3DPRASTERCAPS_WBUFFER
@@ -566,7 +556,7 @@ namespace dxvk {
                            // | D3DPRASTERCAPS_PAT // Not implemented in D3D9
                               | D3DPRASTERCAPS_ROP2
                            // | D3DPRASTERCAPS_STIPPLE
-                              | D3DPRASTERCAPS_SUBPIXEL
+                           // | D3DPRASTERCAPS_SUBPIXEL
                            // | D3DPRASTERCAPS_SUBPIXELX
                            // | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
                            // | D3DPRASTERCAPS_WBUFFER

@@ -4,8 +4,9 @@ namespace dxvk {
 
   uint32_t D3D6Material::s_materialCount = 0;
 
-  D3D6Material::D3D6Material(Com<IDirect3DMaterial3>&& proxyMaterial, D3D6Interface* pParent)
-    : DDrawWrappedObject<D3D6Interface, IDirect3DMaterial3, IUnknown>(pParent, std::move(proxyMaterial), nullptr) {
+  D3D6Material::D3D6Material(Com<IDirect3DMaterial3>&& proxyMaterial, D3D6Interface* pParent, D3DMATERIALHANDLE handle)
+    : DDrawWrappedObject<D3D6Interface, IDirect3DMaterial3, IUnknown>(pParent, std::move(proxyMaterial), nullptr)
+    , m_materialHandle ( handle ) {
     m_materialCount = ++s_materialCount;
 
     Logger::debug(str::format("D3D6Material: Created a new material nr. [[3-", m_materialCount, "]]"));
@@ -19,7 +20,7 @@ namespace dxvk {
   IUnknown* DDrawWrappedObject<D3D6Interface, IDirect3DMaterial3, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
-    // This appears to be largely unhandled for IDirect3DMaterial3...
+    // This appears to be largely unhandled for IDirect3DMaterial3
     /*if (riid == __uuidof(IDirect3DMaterial3)) {
       if (unlikely(m_forwardToProxy)) {
         Logger::debug("D3D6Material::QueryInterface: Forwarding interface query to proxied object");
@@ -55,7 +56,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Material::SetMaterial (D3DMATERIAL *data) {
-    Logger::debug(">>> D3D6Viewport::SetMaterial");
+    Logger::debug(">>> D3D6Material::SetMaterial");
 
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -66,7 +67,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Material::GetMaterial (D3DMATERIAL *data) {
-    Logger::debug(">>> D3D6Viewport::GetMaterial");
+    Logger::debug(">>> D3D6Material::GetMaterial");
 
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -77,13 +78,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Material::GetHandle (IDirect3DDevice3 *device, D3DMATERIALHANDLE *handle) {
-    Logger::debug(">>> D3D6Viewport::GetHandle");
+    Logger::debug(">>> D3D6Material::GetHandle");
 
     if(unlikely(device == nullptr || handle == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // Use the material count as a token, ignore the device
-    *handle = static_cast<D3DMATERIALHANDLE>(m_materialCount);
+    *handle = m_materialHandle;
 
     return D3D_OK;
   }

@@ -76,9 +76,11 @@ namespace dxvk {
     static uint32_t   s_viewportCount;
     uint32_t          m_viewportCount = 0;
 
+    BOOL              m_materialIsSet  = FALSE;
     D3DMATERIALHANDLE m_materialHandle = 0;
 
-    DDraw4Surface*    m_materialDepth = nullptr;
+    BOOL              m_materialDepthIsSet = FALSE;
+    DDraw4Surface*    m_materialDepth      = nullptr;
 
     D3DVIEWPORT2      m_viewport = { };
 

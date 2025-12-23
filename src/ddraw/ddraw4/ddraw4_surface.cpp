@@ -141,6 +141,9 @@ namespace dxvk {
 
       *ppvObject = ref(new D3D6Texture(std::move(ppvProxyObject), this));
 
+      // Arabian Nights needs a dirty here to properly update textures
+      DirtyMipMaps();
+
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DTexture))) {
@@ -199,7 +202,8 @@ namespace dxvk {
 
     Logger::debug("<<< DDraw4Surface::Blt: Proxy");
 
-    const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+    const bool exclusiveMode = (m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
+                            && !m_parent->GetOptions()->ignoreExclusiveMode;
 
     RefreshD3D6Device();
     if (likely(m_d3d6Device != nullptr)) {
@@ -235,7 +239,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures get uploaded during SetTexture calls
-      if (!IsTexture()) {
+      if (!IsTexture() || m_parent->GetOptions()->forceTextureUploads) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw4Surface::Blt: Failed upload to d3d9 surface");
@@ -261,7 +265,8 @@ namespace dxvk {
 
     Logger::debug("<<< DDraw4Surface::BltFast: Proxy");
 
-    const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+    const bool exclusiveMode = (m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
+                            && !m_parent->GetOptions()->ignoreExclusiveMode;
 
     RefreshD3D6Device();
     if (likely(m_d3d6Device != nullptr)) {
@@ -292,7 +297,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures get uploaded during SetTexture calls
-      if (!IsTexture()) {
+      if (!IsTexture() || m_parent->GetOptions()->forceTextureUploads) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw4Surface::BltFast: Failed upload to d3d9 surface");
@@ -695,8 +700,11 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (IsTexture())
+    if (!IsTexture() || m_parent->GetOptions()->forceTextureUploads) {
+      InitializeOrUploadD3D9();
+    } else {
       DirtyMipMaps();
+    }
 
     return hr;
   }
@@ -755,7 +763,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!IsTexture()) {
+      if (!IsTexture() || m_parent->GetOptions()->forceTextureUploads) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw4Surface::Unlock: Failed upload to d3d9 surface");
@@ -851,6 +859,15 @@ namespace dxvk {
     m_desc = { };
     m_desc.dwSize = sizeof(DDSURFACEDESC2);
     m_proxy->GetSurfaceDesc(&m_desc);
+
+    // We may need to recreate the d3d9 object based on the new desc
+    m_d3d9 = nullptr;
+
+    if (!IsTexture() || m_parent->GetOptions()->forceTextureUploads) {
+      InitializeOrUploadD3D9();
+    } else {
+      DirtyMipMaps();
+    }
 
     return hr;
   }

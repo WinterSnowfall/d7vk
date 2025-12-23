@@ -1336,7 +1336,7 @@ namespace dxvk {
       { "d3d7.managedTNLBuffers",           "True" },
     }} },
     /* Sacrifice - Prevents hitching on asset     *
-     * loading and fixes broken AI above 60 fps.  *
+     * loading and fixes broken AI above 60 FPS.  *
      * Also support 32-bit modes, which need D32. */
     { R"(\\Sacrifice\.exe$)", {{
       { "d3d9.cachedWriteOnlyBuffers",      "True" },
@@ -1353,7 +1353,7 @@ namespace dxvk {
     }} },
     /* Startopia                                  */
     { R"(\\startopia\.exe$)", {{
-      { "d3d7.forceProxiedPresent",         "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Escape from Monkey Island                  *
      * Startup crash with direct buffer mapping,  *
@@ -1361,14 +1361,14 @@ namespace dxvk {
     { R"(\\Monkey4\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-30" },
       { "d3d9.allowDirectBufferMapping",   "False" },
-      { "d3d7.forceSingleBackBuffer",       "True" },
+      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Gothic 1 - broken physics and              *
      * flickering on the loading screen           */
     { R"(\\GOTHIC(Mod)?\.EXE$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.proxiedQueryInterface",      "True" },
-      { "d3d7.forceSingleBackBuffer",       "True" },
+      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Gothic 2 / Night of the Raven              *
      * Broken physics and sliding speed, and      *
@@ -1376,7 +1376,7 @@ namespace dxvk {
     { R"(\\Gothic2\.exe)", {{
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.proxiedQueryInterface",      "True" },
-      { "d3d7.forceSingleBackBuffer",       "True" },
+      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Ground Control (to Major Tom)              */
     { R"(\\Ground Control\\gc\.exe$)", {{
@@ -1387,7 +1387,7 @@ namespace dxvk {
     { R"(\\Blade\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.proxiedQueryInterface",      "True" },
-      { "d3d7.forceSingleBackBuffer",       "True" },
+      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Hogs of War - Fixes animation speed        */
     { R"(\\warhogs_\.exe$)", {{
@@ -1400,32 +1400,32 @@ namespace dxvk {
     }} },
     /* Dungeon Siege                              */
     { R"(\\DungeonSiege\.exe$)", {{
-      { "d3d7.forceProxiedPresent",         "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Empire Earth / Art of Conquest             */
     { R"(\\(Empire Earth|EE-AOC)\.exe$)", {{
-      { "d3d7.forceProxiedPresent",         "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Etherlords                                 */
     { R"(\\Etherlords\.exe$)", {{
-      { "d3d7.forceProxiedPresent",         "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Etherlords 2                               */
     { R"(\\Etherlords2\.exe$)", {{
-      { "d3d7.forceProxiedPresent",         "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Evil Islands                               */
     { R"(\\Evil Islands\\game\.exe$)", {{
-      { "d3d7.forceProxiedPresent",         "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Star Trek: Armada                          */
     { R"(\\Armada\.exe$)", {{
-      { "d3d7.forceProxiedPresent",         "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* SCP - Containment Breach                   *
      * Crashes without multithreading protection  */
     { R"(\\SCP - Containment Breach\.exe$)", {{
-      { "d3d7.forceProxiedPresent",         "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
       { "d3d7.forceMultiThreaded",          "True" },
     }} },
     /* Unreal                                     *
@@ -1509,7 +1509,7 @@ namespace dxvk {
      * loading screens / menu transitions         */
     { R"(\\hitman\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.forceSingleBackBuffer",       "True" },
+      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Screamer 4x4 - Broken menu animation speed */
     { R"(\\Screamer4x4_d3d\.exe$)", {{
@@ -1530,7 +1530,7 @@ namespace dxvk {
     }} },
     /* The Mystery of the Druids                  */
     { R"(\\edd\.exe$)", {{
-      { "d3d7.forceProxiedPresent",         "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Silent Hunter II - Broken input handling   */
     { R"(\\Silent Hunter.*\\(Sim|Shell(1)?)\.exe$)", {{
@@ -1538,11 +1538,11 @@ namespace dxvk {
     }} },
     /* Enemy Engaged: Comanche vs Hokum           */
     { R"(\\cohokum\.exe$)", {{
-      { "d3d7.forceProxiedPresent",         "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* The Nations (Gold Edition)                 */
     { R"(\\The Nations.*\\bin\\game\.exe$)", {{
-      { "d3d7.forceProxiedPresent",         "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Need for Speed: Porsche Unleashed          *
      * Fixes missing mip maps on car models       */
@@ -1551,7 +1551,7 @@ namespace dxvk {
     }} },
     /* Soulbringer - Uses legacy ddraw interfaces */
     { R"(\\SoulbringeVC(noeax)?\.exe$)", {{
-      { "d3d7.forceProxiedPresent",         "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
       { "d3d7.forceSWVPDevice",             "True" },
     }} },
     /* Star Trek: Deep Space Nine - The Fallen    *
@@ -1567,7 +1567,32 @@ namespace dxvk {
     }} },
     /* Sacred - Fixes transition artifacting      */
     { R"(\\Sacred\.exe$)", {{
-      { "d3d7.forceSingleBackBuffer",       "True" },
+      { "ddraw.forceSingleBackBuffer",      "True" },
+    }} },
+
+    /**********************************************/
+    /* D3D6 GAMES                                 */
+    /**********************************************/
+    /* O.R.B: Off-World Resource Base             *
+     * Uses windowed present mode in full-screen  */
+    { R"(\\orb\.exe$)", {{
+      { "ddraw.ignoreExclusiveMode",        "True" },
+    }} },
+    /* Might and Magic VII: For Blood and Honor   */
+    { R"(\\MM7-Rel\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Might and Magic VIII: Day of the Destroyer */
+    { R"(\\MM8-Rel\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Omikron: The Nomad Soul                    *
+     * Lights and other effects break over 30 FPS.*
+     * The pause menu and dialogue subtitles are  *
+     * missing without proxy presentation.        */
+    { R"(\\Omikron.*\\Runtime\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "30" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
 
   };

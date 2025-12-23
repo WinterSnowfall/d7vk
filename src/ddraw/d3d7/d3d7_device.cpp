@@ -143,7 +143,7 @@ namespace dxvk {
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // Note: The list of formats exposed in d3d7 is restricted to the below
+    // Note: The list of formats exposed in d3d6 is restricted to the below
 
     DDPIXELFORMAT textureFormat = GetTextureFormat(d3d9::D3DFMT_X1R5G5B5);
     HRESULT hr = cb(&textureFormat, ctx);
@@ -264,17 +264,12 @@ namespace dxvk {
     HRESULT hr = m_d3d9->EndScene();
 
     if (likely(SUCCEEDED(hr))) {
-      if (unlikely(m_parent->GetOptions()->presentOnEndScene ||
-                   m_parent->GetOptions()->forceProxiedPresent)) {
-        if (m_parent->GetOptions()->forceProxiedPresent) {
-          // If we have drawn anything, we need to make sure we blit back
-          // the results onto the d3d7 render target before we flip it
-          if (m_hasDrawn)
-            BlitToDDrawSurface(m_rt->GetProxied(), m_rt->GetD3D9());
-          m_rt->GetProxied()->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
-        } else {
-          m_d3d9->Present(NULL, NULL, NULL, NULL);
-        }
+      if (m_parent->GetOptions()->forceProxiedPresent) {
+        // If we have drawn anything, we need to make sure we blit back
+        // the results onto the d3d7 render target before we flip it
+        if (m_hasDrawn)
+          BlitToDDrawSurface(m_rt->GetProxied(), m_rt->GetD3D9());
+        m_rt->GetProxied()->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
 
         if (likely(m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
           m_hasDrawn = false;
@@ -888,12 +883,16 @@ namespace dxvk {
     if (unlikely(lpvVertices == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    HandlePreDrawFlags(dwFlags);
+
     m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
                      GetPrimitiveCount(d3dptPrimitiveType, dwVertexCount),
                      lpvVertices,
                      GetFVFSize(dwVertexTypeDesc));
+
+    HandlePostDrawFlags(dwFlags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawPrimitive: Failed D3D9 call to DrawPrimitiveUP");
@@ -922,6 +921,8 @@ namespace dxvk {
     if (unlikely(d3dptPrimitiveType == D3DPT_POINTLIST))
       Logger::warn("D3D7Device::DrawIndexedPrimitiveVB: D3DPT_POINTLIST primitive type");
 
+    HandlePreDrawFlags(dwFlags);
+
     m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
                       d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
@@ -932,6 +933,8 @@ namespace dxvk {
                       d3d9::D3DFMT_INDEX16,
                       lpvVertices,
                       GetFVFSize(dwVertexTypeDesc));
+
+    HandlePostDrawFlags(dwFlags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
@@ -1003,12 +1006,16 @@ namespace dxvk {
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
 
+    HandlePreDrawFlags(dwFlags);
+
     m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
                      GetPrimitiveCount(d3dptPrimitiveType, dwVertexCount),
                      pvb.vertexData.data(),
                      pvb.stride);
+
+    HandlePostDrawFlags(dwFlags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawPrimitiveStrided: Failed D3D9 call to DrawPrimitiveUP");
@@ -1037,6 +1044,8 @@ namespace dxvk {
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
 
+    HandlePreDrawFlags(dwFlags);
+
     m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
                       d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
@@ -1047,6 +1056,8 @@ namespace dxvk {
                       d3d9::D3DFMT_INDEX16,
                       pvb.vertexData.data(),
                       pvb.stride);
+
+    HandlePostDrawFlags(dwFlags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
@@ -1079,12 +1090,16 @@ namespace dxvk {
       return D3DERR_VERTEXBUFFERLOCKED;
     }
 
+    HandlePreDrawFlags(dwFlags);
+
     m_d3d9->SetFVF(vb->GetFVF());
     m_d3d9->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
     HRESULT hr = m_d3d9->DrawPrimitive(
                            d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
                            dwStartVertex,
                            GetPrimitiveCount(d3dptPrimitiveType, dwNumVertices));
+
+    HandlePostDrawFlags(dwFlags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawPrimitiveVB: Failed D3D9 call to DrawPrimitive");
@@ -1135,6 +1150,8 @@ namespace dxvk {
       ibIndex++;
     }
 
+    HandlePreDrawFlags(dwFlags);
+
     d3d9::IDirect3DIndexBuffer9* ib9 = m_ib9[ibIndex].ptr();
 
     UploadIndices(ib9, lpwIndices, dwIndexCount);
@@ -1149,6 +1166,8 @@ namespace dxvk {
                     dwNumVertices,
                     0,
                     GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount));
+
+    HandlePostDrawFlags(dwFlags);
 
     if(unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed D3D9 call to DrawIndexedPrimitive");
@@ -1370,7 +1389,7 @@ namespace dxvk {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
 
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!ddraw7SurfaceDst->IsTextureOrCubeMap()) {
+      if (!ddraw7SurfaceDst->IsTextureOrCubeMap() || m_parent->GetOptions()->forceTextureUploads) {
         HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrInitDst))) {
           Logger::err("D3D7Device::Load: Failed to upload D3D9 destination surface data");
@@ -1474,6 +1493,9 @@ namespace dxvk {
     HRESULT hr = m_bridge->ResetSwapChain(params);
     if (unlikely(FAILED(hr)))
       Logger::err("D3D7Device::Reset: Failed to reset the D3D9 swapchain");
+    // Reset the current render target, so that it gets
+    // re-associated with the regenerated back buffers
+    m_rt->SetD3D9(nullptr);
     EnumerateBackBuffers(m_rtOrig->GetProxied());
     return hr;
   }
