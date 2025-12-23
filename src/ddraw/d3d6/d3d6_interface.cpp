@@ -22,7 +22,6 @@ namespace dxvk {
       throw DxvkError("D3D6Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
-    // TODO: Have a D3D6 equivalent
     m_bridge->EnableD3D6CompatibilityMode();
 
     m_d3d6Options = D3DOptions(*m_bridge->GetConfig());
@@ -127,7 +126,7 @@ namespace dxvk {
     m_materialHandle++;
     auto materialIterPair = m_materials.emplace(std::piecewise_construct,
                                                 std::forward_as_tuple(m_materialHandle),
-                                                std::forward_as_tuple(nullptr, this));
+                                                std::forward_as_tuple(nullptr, this, m_materialHandle));
 
     *lplpDirect3DMaterial = ref(&materialIterPair.first->second);
 
@@ -400,7 +399,7 @@ namespace dxvk {
     auto materialsIter = m_materials.find(handle);
 
     if (unlikely(materialsIter == m_materials.end())) {
-      Logger::err(str::format("D3D6Interface::GetMaterialFromHandle: Invalid handle: ", std::hex, handle));
+      Logger::warn(str::format("D3D6Interface::GetMaterialFromHandle: Invalid handle: ", handle));
       return nullptr;
     }
 

@@ -586,15 +586,18 @@ namespace dxvk {
       return m_proxy->RestoreAllSurfaces();
     }
 
-    Logger::debug("<<< DDraw7Interface::RestoreAllSurfaces: Proxy");
+    Logger::debug("<<< DDraw4Interface::RestoreAllSurfaces: Proxy");
 
     HRESULT hr = m_proxy->RestoreAllSurfaces();
     if (unlikely(FAILED(hr)))
       return hr;
 
     for (auto* surface : m_surfaces) {
-      if (surface->IsTexture())
+      if (!surface->IsTexture() || m_d3d6Intf->GetOptions()->forceTextureUploads) {
+        surface->InitializeOrUploadD3D9();
+      } else {
         surface->DirtyMipMaps();
+      }
     }
 
     return hr;

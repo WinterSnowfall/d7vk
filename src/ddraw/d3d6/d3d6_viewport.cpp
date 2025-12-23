@@ -130,17 +130,13 @@ namespace dxvk {
     if (unlikely(m_materialHandle == hMat))
       return D3D_OK;
 
-    D3D6Material* materialOld = m_parent->GetMaterialFromHandle(m_materialHandle);
     D3D6Material* material = m_parent->GetMaterialFromHandle(hMat);
 
     if (unlikely(material == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (likely(materialOld != nullptr))
-      materialOld->SetActive(false);
-    material->SetActive(true);
-
     m_materialHandle = hMat;
+    m_materialIsSet = TRUE;
 
     if (likely(m_device != nullptr))
       ApplyMaterial();
@@ -154,15 +150,9 @@ namespace dxvk {
     if (unlikely(material == nullptr || valid == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *material = m_materialHandle;
-
-    D3D6Material* material6 = m_parent->GetMaterialFromHandle(m_materialHandle);
-
-    if (material6->GetActive()) {
-      *valid = TRUE;
-    } else {
-      *valid = FALSE;
-    }
+    if (likely(m_materialIsSet))
+      *material = m_materialHandle;
+    *valid = m_materialIsSet;
 
     return D3D_OK;
   }
@@ -279,8 +269,8 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackgroundDepth2(IDirectDrawSurface4 *surface) {
     Logger::warn(">>> D3D6Viewport::SetBackgroundDepth2");
 
-    // TODO: Look up the depth and make it valid
     m_materialDepth = reinterpret_cast<DDraw4Surface*>(surface);
+    m_materialDepthIsSet = TRUE;
 
     return D3D_OK;
   }
@@ -291,9 +281,9 @@ namespace dxvk {
     if (unlikely(surface == nullptr || valid == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *surface = m_materialDepth;
-    // TODO: Get the validity from the surface or FALSE if it's not found
-    *valid = TRUE;
+    if (likely(m_materialDepthIsSet))
+      *surface = m_materialDepth;
+    *valid = m_materialDepthIsSet;
 
     return D3D_OK;
   }
@@ -337,7 +327,7 @@ namespace dxvk {
   }
 
   HRESULT D3D6Viewport::ApplyMaterial() {
-    if (!m_materialHandle)
+    if (!m_materialIsSet)
       return D3D_OK;
 
     Logger::debug("D3D6Viewport: Applying material to D3D9");
@@ -372,9 +362,11 @@ namespace dxvk {
     for (auto light: m_lights) {
       light->GetLight(reinterpret_cast<D3DLIGHT*>(&currentLight));
 
-      light9.Type         = ConvertLightType(currentLight.dltType);
+      const bool noSpecular = currentLight.dwFlags & D3DLIGHT_NO_SPECULAR;
+
+      light9.Type         = d3d9::D3DLIGHTTYPE(currentLight.dltType);
       light9.Diffuse      = currentLight.dcvColor;
-      light9.Specular     = currentLight.dcvColor;
+      light9.Specular     = noSpecular ? D3DCOLORVALUE({0, 0, 0, 0}) : currentLight.dcvColor;
       light9.Ambient      = currentLight.dcvColor;
       light9.Position     = currentLight.dvPosition;
       light9.Direction    = currentLight.dvDirection;

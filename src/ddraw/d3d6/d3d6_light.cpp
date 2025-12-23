@@ -67,6 +67,9 @@ namespace dxvk {
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    if (unlikely(data->dltType == D3DLIGHT_PARALLELPOINT))
+      Logger::warn("D3D6Light::SetLight: Unsupported light type D3DLIGHT_PARALLELPOINT");
+
     m_light = *data;
 
     return D3D_OK;

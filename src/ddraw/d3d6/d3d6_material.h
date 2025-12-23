@@ -11,7 +11,7 @@ namespace dxvk {
 
   public:
 
-    D3D6Material(Com<IDirect3DMaterial3>&& proxyMaterial, D3D6Interface* pParent);
+    D3D6Material(Com<IDirect3DMaterial3>&& proxyMaterial, D3D6Interface* pParent, D3DMATERIALHANDLE handle);
 
     ~D3D6Material();
 
@@ -23,22 +23,14 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetHandle (IDirect3DDevice3 *device, D3DMATERIALHANDLE *handle);
 
-    void SetActive(bool active) {
-      m_isActive = false;
-    }
-
-    bool GetActive() const {
-      return m_isActive;
-    }
-
   private:
 
-    bool             m_isActive = false;
+    static uint32_t   s_materialCount;
+    uint32_t          m_materialCount = 0;
 
-    static uint32_t  s_materialCount;
-    uint32_t         m_materialCount = 0;
+    D3DMATERIALHANDLE m_materialHandle = 0;
 
-    D3DMATERIAL      m_material = { };
+    D3DMATERIAL       m_material = { };
 
   };
 

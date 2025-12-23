@@ -187,7 +187,8 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
     Logger::debug("<<< DDraw7Surface::Blt: Proxy");
 
-    const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+    const bool exclusiveMode = (m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
+                            && !m_parent->GetOptions()->ignoreExclusiveMode;
 
     RefreshD3D7Device();
     if (likely(m_d3d7Device != nullptr)) {
@@ -224,7 +225,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!IsTextureOrCubeMap()) {
+      if (!IsTextureOrCubeMap() || m_parent->GetOptions()->forceTextureUploads) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::Blt: Failed upload to d3d9 surface");
@@ -245,7 +246,8 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDraw7Surface::BltFast: Proxy");
 
-    const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+    const bool exclusiveMode = (m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
+                            && !m_parent->GetOptions()->ignoreExclusiveMode;
 
     RefreshD3D7Device();
     if (likely(m_d3d7Device != nullptr)) {
@@ -276,7 +278,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!IsTextureOrCubeMap()) {
+      if (!IsTextureOrCubeMap() || m_parent->GetOptions()->forceTextureUploads) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::BltFast: Failed upload to d3d9 surface");
@@ -634,8 +636,11 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (IsTextureOrCubeMap())
+    if (!IsTextureOrCubeMap() || m_parent->GetOptions()->forceTextureUploads) {
+      InitializeOrUploadD3D9();
+    } else {
       DirtyMipMaps();
+    }
 
     return hr;
   }
@@ -684,7 +689,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!IsTextureOrCubeMap()) {
+      if (!IsTextureOrCubeMap() || m_parent->GetOptions()->forceTextureUploads) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::Unlock: Failed upload to d3d9 surface");
@@ -760,6 +765,15 @@ namespace dxvk {
     m_desc = { };
     m_desc.dwSize = sizeof(DDSURFACEDESC2);
     m_proxy->GetSurfaceDesc(&m_desc);
+
+    // We may need to recreate the d3d9 object based on the new desc
+    m_d3d9 = nullptr;
+
+    if (!IsTextureOrCubeMap() || m_parent->GetOptions()->forceTextureUploads) {
+      InitializeOrUploadD3D9();
+    } else {
+      DirtyMipMaps();
+    }
 
     return hr;
   }
