@@ -90,8 +90,20 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D6Texture::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2) {
     Logger::debug("<<< D3D6Texture::Load: Proxy");
+
     Com<D3D6Texture> d3d6Texture = static_cast<D3D6Texture*>(lpD3DTexture2);
-    return m_proxy->Load(d3d6Texture->GetProxied());
+
+    HRESULT hr = m_proxy->Load(d3d6Texture->GetProxied());
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (likely(!m_parent->GetOptions()->forceTextureUploads)) {
+      d3d6Texture->GetParent()->DirtyMipMaps();
+    } else {
+      d3d6Texture->GetParent()->InitializeOrUploadD3D9();
+    }
+
+    return hr;
   }
 
 }

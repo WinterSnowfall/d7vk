@@ -171,11 +171,6 @@ namespace dxvk {
 
     inline HRESULT EnumerateBackBuffers(IDirectDrawSurface4* surface);
 
-    inline void RefreshLastUsedDevice() {
-      if (unlikely(m_parent->GetLastUsedDevice() != this))
-        m_parent->SetLastUsedDevice(this);
-    }
-
     inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
 
     // If the last index buffer is initalized, then all are initialized
@@ -183,8 +178,39 @@ namespace dxvk {
       return m_ib9[ddrawCaps::IndexBufferCount - 1] != nullptr;
     }
 
+    inline void RefreshLastUsedDevice() {
+      if (unlikely(m_parent->GetLastUsedDevice() != this))
+        m_parent->SetLastUsedDevice(this);
+    }
+
+    inline void HandlePreDrawFlags(DWORD drawFlags) {
+      if (drawFlags & D3DDP_DONOTLIGHT) {
+        Logger::debug(">>> D3D6Device:: Draw with D3DDP_DONOTLIGHT");
+        m_d3d9->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
+        if (m_lighting)
+          m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+      }
+      if (drawFlags & D3DDP_DONOTCLIP) {
+        Logger::debug(">>> D3D6Device:: Draw with D3DDP_DONOTCLIP");
+      }
+      if (drawFlags & D3DDP_DONOTUPDATEEXTENTS) {
+        Logger::debug(">>> D3D6Device:: Draw with D3DDP_DONOTUPDATEEXTENTS");
+      }
+      if (drawFlags & D3DDP_WAIT) {
+        Logger::debug(">>> D3D6Device:: Draw with D3DDP_DONOTUPDATEEXTENTS");
+      }
+    }
+
+    inline void HandlePostDrawFlags(DWORD drawFlags) {
+      if ((drawFlags & D3DDP_DONOTLIGHT) && m_lighting) {
+        m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
+      }
+    }
+
     bool                          m_hasDrawn      = false;
     bool                          m_inScene       = false;
+
+    DWORD                         m_lighting      = FALSE;
 
     DDraw4Interface*              m_DD4IntfParent = nullptr;
 
