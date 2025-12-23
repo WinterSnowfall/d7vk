@@ -307,17 +307,12 @@ namespace dxvk {
     HRESULT hr = m_d3d9->EndScene();
 
     if (likely(SUCCEEDED(hr))) {
-      if (unlikely(m_parent->GetOptions()->presentOnEndScene ||
-                   m_parent->GetOptions()->forceProxiedPresent)) {
-        if (m_parent->GetOptions()->forceProxiedPresent) {
-          // If we have drawn anything, we need to make sure we blit back
-          // the results onto the d3d7 render target before we flip it
-          if (m_hasDrawn)
-            BlitToDDrawSurface(m_rt->GetProxied(), m_rt->GetD3D9());
-          m_rt->GetProxied()->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
-        } else {
-          m_d3d9->Present(NULL, NULL, NULL, NULL);
-        }
+      if (m_parent->GetOptions()->forceProxiedPresent) {
+        // If we have drawn anything, we need to make sure we blit back
+        // the results onto the d3d7 render target before we flip it
+        if (m_hasDrawn)
+          BlitToDDrawSurface(m_rt->GetProxied(), m_rt->GetD3D9());
+        m_rt->GetProxied()->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
 
         if (likely(m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
           m_hasDrawn = false;
@@ -740,7 +735,7 @@ namespace dxvk {
       case D3DRENDERSTATE_WRAPV:
         static bool s_wrapUVErrorShown;
 
-        if (!std::exchange(s_wrapUVErrorShown, true))
+        if (dwRenderState && !std::exchange(s_wrapUVErrorShown, true))
           Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_WRAPU/V");
 
         return D3D_OK;
@@ -769,7 +764,7 @@ namespace dxvk {
       case D3DRENDERSTATE_MONOENABLE:
         static bool s_monoEnableErrorShown;
 
-        if (!std::exchange(s_monoEnableErrorShown, true))
+        if (dwRenderState && !std::exchange(s_monoEnableErrorShown, true))
           Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_MONOENABLE");
 
         return D3D_OK;
@@ -802,7 +797,7 @@ namespace dxvk {
       case D3DRENDERSTATE_SUBPIXELX:
           static bool s_subpixelErrorShown;
 
-        if (!std::exchange(s_subpixelErrorShown, true))
+        if (dwRenderState && !std::exchange(s_subpixelErrorShown, true))
           Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_SUBPIXEL/X");
 
         return D3D_OK;
@@ -923,7 +918,7 @@ namespace dxvk {
       case D3DRENDERSTATE_STIPPLEPATTERN31:
         static bool s_stipplePatternErrorShown;
 
-        if (dwRenderState && !std::exchange(s_stipplePatternErrorShown, true))
+        if (!std::exchange(s_stipplePatternErrorShown, true))
           Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEPATTERNXX");
 
         return D3D_OK;
@@ -940,8 +935,6 @@ namespace dxvk {
 
     switch (dwLightStateType) {
       case D3DLIGHTSTATE_MATERIAL:
-        BOOL isActive;
-        m_viewport->GetBackground(&m_materialHandle, &isActive);
         *lpdwLightState = m_materialHandle;
         break;
       case D3DLIGHTSTATE_AMBIENT:
@@ -979,22 +972,35 @@ namespace dxvk {
     RefreshLastUsedDevice();
 
     switch (dwLightStateType) {
-      case D3DLIGHTSTATE_MATERIAL:
+      case D3DLIGHTSTATE_MATERIAL: {
         m_materialHandle = dwLightState;
 
-        D3DMATERIAL material;
-        m_parent->GetMaterialFromHandle(dwLightState)->GetMaterial(&material);
+        // Docs state: When no material is selected (NULL),
+        // the Direct3D lighting engine is disabled.
+        if (unlikely(!m_materialHandle)) {
+          m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+        } else {
+          D3D6Material* material6 = m_parent->GetMaterialFromHandle(dwLightState);
+          if (unlikely(material6 == nullptr))
+            return DDERR_INVALIDPARAMS;
 
-        d3d9::D3DMATERIAL9 material9;
-        material9.Diffuse  = material.dcvDiffuse;
-        material9.Ambient  = material.dcvAmbient;
-        material9.Specular = material.dcvSpecular;
-        material9.Emissive = material.dcvEmissive;
-        material9.Power    = material.dvPower;
+          D3DMATERIAL material;
+          material6->GetMaterial(&material);
 
-        m_d3d9->SetMaterial(&material9);
+          d3d9::D3DMATERIAL9 material9;
+          material9.Diffuse  = material.dcvDiffuse;
+          material9.Ambient  = material.dcvAmbient;
+          material9.Specular = material.dcvSpecular;
+          material9.Emissive = material.dcvEmissive;
+          material9.Power    = material.dvPower;
+
+          m_d3d9->SetMaterial(&material9);
+
+          m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
+        }
 
         break;
+      }
       case D3DLIGHTSTATE_AMBIENT:
         m_d3d9->SetRenderState(d3d9::D3DRS_AMBIENT, dwLightState);
         break;
@@ -1060,12 +1066,16 @@ namespace dxvk {
     if (unlikely(vertices == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    HandlePreDrawFlags(flags);
+
     m_d3d9->SetFVF(vertex_type);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
                      d3d9::D3DPRIMITIVETYPE(primitive_type),
                      GetPrimitiveCount(primitive_type, vertex_count),
                      vertices,
                      GetFVFSize(vertex_type));
+
+    HandlePostDrawFlags(flags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawPrimitive: Failed D3D9 call to DrawPrimitiveUP");
@@ -1094,6 +1104,8 @@ namespace dxvk {
     if (unlikely(primitive_type == D3DPT_POINTLIST))
       Logger::warn("D3D6Device::DrawIndexedPrimitiveVB: D3DPT_POINTLIST primitive type");
 
+    HandlePreDrawFlags(flags);
+
     m_d3d9->SetFVF(fvf);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
                       d3d9::D3DPRIMITIVETYPE(primitive_type),
@@ -1104,6 +1116,8 @@ namespace dxvk {
                       d3d9::D3DFMT_INDEX16,
                       vertices,
                       GetFVFSize(fvf));
+
+    HandlePostDrawFlags(flags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
@@ -1173,12 +1187,17 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // TODO: strided_data needs to be transformed into a non-strided vertex buffer stream
-    /*m_d3d9->SetFVF(fvf);
+
+    /*HandlePreDrawFlags(flags);
+
+    m_d3d9->SetFVF(fvf);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
                      d3d9::D3DPRIMITIVETYPE(primitive_type),
                      GetPrimitiveCount(primitive_type, vertex_count),
                      strided_data,
                      GetFVFSize(fvf));
+
+    HandlePostDrawFlags(flags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawPrimitiveStrided: Failed D3D9 call to DrawPrimitiveUP");
@@ -1206,7 +1225,9 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // TODO: strided_data needs to be transformed into a non-strided vertex buffer stream
-    /*m_d3d9->SetFVF(fvf);
+    /*HandlePreDrawFlags(flags);
+
+    m_d3d9->SetFVF(fvf);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
                       d3d9::D3DPRIMITIVETYPE(primitive_type),
                       0,
@@ -1216,6 +1237,8 @@ namespace dxvk {
                       d3d9::D3DFMT_INDEX16,
                       strided_data,
                       GetFVFSize(fvf));
+
+    HandlePostDrawFlags(flags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
@@ -1249,12 +1272,16 @@ namespace dxvk {
       return D3DERR_VERTEXBUFFERLOCKED;
     }
 
+    HandlePreDrawFlags(flags);
+
     m_d3d9->SetFVF(vb6->GetFVF());
     m_d3d9->SetStreamSource(0, vb6->GetD3D9(), 0, vb6->GetStride());
     HRESULT hr = m_d3d9->DrawPrimitive(
                            d3d9::D3DPRIMITIVETYPE(primitive_type),
                            start_vertex,
                            GetPrimitiveCount(primitive_type, vertex_count));
+
+    HandlePostDrawFlags(flags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawPrimitiveVB: Failed D3D9 call to DrawPrimitive");
@@ -1305,6 +1332,8 @@ namespace dxvk {
       ibIndex++;
     }
 
+    HandlePreDrawFlags(flags);
+
     d3d9::IDirect3DIndexBuffer9* ib9 = m_ib9[ibIndex].ptr();
 
     UploadIndices(ib9, indices, index_count);
@@ -1319,6 +1348,8 @@ namespace dxvk {
                     vb6->GetNumVertices(),
                     0,
                     GetPrimitiveCount(primitive_type, index_count));
+
+    HandlePostDrawFlags(flags);
 
     if(unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Failed D3D9 call to DrawIndexedPrimitive");
@@ -1533,6 +1564,9 @@ namespace dxvk {
     HRESULT hr = m_bridge->ResetSwapChain(params);
     if (unlikely(FAILED(hr)))
       Logger::err("D3D6Device::Reset: Failed to reset the D3D9 swapchain");
+    // Reset the current render target, so that it gets
+    // re-associated with the regenerated back buffers
+    m_rt->SetD3D9(nullptr);
     EnumerateBackBuffers(m_rtOrig->GetProxied());
     return hr;
   }
