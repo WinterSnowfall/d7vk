@@ -80,8 +80,8 @@ namespace dxvk {
       Logger::warn("DDraw2Interface::QueryInterface: Query for legacy IDirectDraw");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
-    // Standard way of retrieving a D3D interface
-    if (riid == __uuidof(IDirect3D)) {
+    // Standard way of retrieving a D3D3 interface
+    if (unlikely(riid == __uuidof(IDirect3D))) {
       if (likely(IsLegacyInterface())) {
         Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirect3D");
         return m_proxy->QueryInterface(riid, ppvObject);
@@ -89,6 +89,21 @@ namespace dxvk {
 
       Logger::err("DDraw4Interface::QueryInterface: Unsupported IDirect3D interface");
       return E_NOINTERFACE;
+    }
+    // Standard way of retrieving a D3D5 interface
+    if (unlikely(riid == __uuidof(IDirect3D2))) {
+      if (likely(IsLegacyInterface())) {
+        Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirect3D2");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::err("DDraw4Interface::QueryInterface: Unsupported IDirect3D2 interface");
+      return E_NOINTERFACE;
+    }
+    // Quite a lot of games query for this IID during intro playback
+    if (unlikely(riid == GUID_IAMMediaStream)) {
+      Logger::debug("DDrawInterface::QueryInterface: Query for IAMMediaStream");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
 
     try {
