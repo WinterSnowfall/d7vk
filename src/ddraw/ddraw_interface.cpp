@@ -89,15 +89,24 @@ namespace dxvk {
 
       return S_OK;
     }
-    // Standard way of retrieving a D3D interface
-    if (riid == __uuidof(IDirect3D)
-      ||riid == __uuidof(IDirect3D2)) {
+    // Standard way of retrieving a D3D3 interface
+    if (unlikely(riid == __uuidof(IDirect3D))) {
       if (likely(IsLegacyInterface())) {
         Logger::warn("DDrawInterface::QueryInterface: Query for legacy IDirect3D");
         return m_proxy->QueryInterface(riid, ppvObject);
       }
 
       Logger::err("DDrawInterface::QueryInterface: Unsupported IDirect3D interface");
+      return E_NOINTERFACE;
+    }
+    // Standard way of retrieving a D3D5 interface
+    if (unlikely(riid == __uuidof(IDirect3D2))) {
+      if (likely(IsLegacyInterface())) {
+        Logger::warn("DDrawInterface::QueryInterface: Query for legacy IDirect3D2");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::err("DDrawInterface::QueryInterface: Unsupported IDirect3D2 interface");
       return E_NOINTERFACE;
     }
     // Legacy way of getting a DDraw4 interface
