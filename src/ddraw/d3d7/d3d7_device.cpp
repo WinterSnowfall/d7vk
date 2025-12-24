@@ -1256,7 +1256,7 @@ namespace dxvk {
 
     // Only upload textures if any sort of blit/lock operation
     // has been performed on them since the last SetTexture call
-    if (surface7->HasDirtyMipMaps()) {
+    if (surface7->HasDirtyMipMaps() || m_parent->GetOptions()->forceTextureUploads) {
       hr = surface7->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Device::SetTexture: Failed to initialize/upload D3D9 texture");

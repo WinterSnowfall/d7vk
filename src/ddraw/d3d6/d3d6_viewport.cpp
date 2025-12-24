@@ -51,6 +51,13 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
+    // Some games query for legacy viewport interfaces
+    if (unlikely(riid == __uuidof(IDirect3DViewport)
+              || riid == __uuidof(IDirect3DViewport2))) {
+      Logger::warn("D3D6Viewport::QueryInterface: Query for legacy IDirect3DViewport");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
+
     try {
       *ppvObject = ref(this->GetInterface(riid));
       return S_OK;
