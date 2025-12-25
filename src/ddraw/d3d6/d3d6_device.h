@@ -183,9 +183,13 @@ namespace dxvk {
         m_parent->SetLastUsedDevice(this);
     }
 
-    inline void HandlePreDrawFlags(DWORD drawFlags) {
-      if (drawFlags & D3DDP_DONOTLIGHT) {
-        Logger::debug(">>> D3D6Device:: Draw with D3DDP_DONOTLIGHT");
+    inline void HandlePreDrawFlags(DWORD drawFlags, DWORD vertexTypeDesc) {
+      // Docs: "Direct3D normally performs lighting calculations
+      // on any vertices that contain a vertex normal."
+      if ((drawFlags & D3DDP_DONOTLIGHT) ||
+         !(vertexTypeDesc & D3DFVF_NORMAL)) {
+        if (drawFlags & D3DDP_DONOTLIGHT)
+          Logger::debug(">>> D3D6Device:: Draw with D3DDP_DONOTLIGHT");
         m_d3d9->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
         if (m_lighting)
           m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
@@ -197,12 +201,13 @@ namespace dxvk {
         Logger::debug(">>> D3D6Device:: Draw with D3DDP_DONOTUPDATEEXTENTS");
       }
       if (drawFlags & D3DDP_WAIT) {
-        Logger::debug(">>> D3D6Device:: Draw with D3DDP_DONOTUPDATEEXTENTS");
+        Logger::debug(">>> D3D6Device:: Draw with D3DDP_WAIT");
       }
     }
 
-    inline void HandlePostDrawFlags(DWORD drawFlags) {
-      if ((drawFlags & D3DDP_DONOTLIGHT) && m_lighting) {
+    inline void HandlePostDrawFlags(DWORD drawFlags, DWORD vertexTypeDesc) {
+      if (((drawFlags & D3DDP_DONOTLIGHT) ||
+          !(vertexTypeDesc & D3DFVF_NORMAL)) && m_lighting) {
         m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
       }
     }

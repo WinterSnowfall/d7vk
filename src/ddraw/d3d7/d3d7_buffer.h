@@ -67,6 +67,27 @@ namespace dxvk {
       return m_desc.dwCaps & D3DVBCAPS_OPTIMIZED;
     }
 
+    inline void HandlePreProcessVerticesFlags(DWORD pvFlags) {
+      // Disable lighting if the D3DVOP_LIGHT isn't specified
+      if (!(pvFlags & D3DVOP_LIGHT)) {
+        m_d3d7Device->GetD3D9()->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
+        if (m_lighting)
+          m_d3d7Device->GetD3D9()->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+      }
+      if (pvFlags & D3DVOP_CLIP) {
+        Logger::debug(">>> D3D6VertexBuffer:: Unsupported D3DVOP_CLIP");
+      }
+      if (pvFlags & D3DVOP_EXTENTS) {
+        Logger::debug(">>> D3D6VertexBuffer:: Unsupported D3DVOP_EXTENTS");
+      }
+    }
+
+    inline void HandlePostProcessVerticesFlags(DWORD pvFlags) {
+      if (!(pvFlags & D3DVOP_LIGHT) && m_lighting) {
+        m_d3d7Device->GetD3D9()->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
+      }
+    }
+
     inline void ListBufferDetails() const {
       Logger::debug(str::format("D3D7VertexBuffer: Created a new buffer nr. {{7-", m_buffCount, "}}:"));
       Logger::debug(str::format("   Size:     ", m_size));
@@ -78,6 +99,8 @@ namespace dxvk {
     uint32_t            m_buffCount  = 0;
 
     D3D7Device*         m_d3d7Device = nullptr;
+
+    DWORD               m_lighting   = FALSE;
 
     D3DVERTEXBUFFERDESC m_desc;
 
