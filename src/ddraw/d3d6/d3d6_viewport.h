@@ -73,18 +73,24 @@ namespace dxvk {
 
   private:
 
-    static uint32_t   s_viewportCount;
-    uint32_t          m_viewportCount = 0;
+    inline HRESULT ApplyAndActivateLight(DWORD index, D3D6Light* light6);
 
-    BOOL              m_materialIsSet  = FALSE;
-    D3DMATERIALHANDLE m_materialHandle = 0;
+    static uint32_t    s_viewportCount;
+    uint32_t           m_viewportCount = 0;
 
-    BOOL              m_materialDepthIsSet = FALSE;
-    DDraw4Surface*    m_materialDepth      = nullptr;
+    DWORD              m_lightIndex9 = 0;
 
-    D3DVIEWPORT2      m_viewport = { };
+    BOOL               m_materialIsSet  = FALSE;
+    D3DMATERIALHANDLE  m_materialHandle = 0;
 
-    D3D6Device*       m_device = nullptr;
+    BOOL               m_materialDepthIsSet = FALSE;
+    DDraw4Surface*     m_materialDepth      = nullptr;
+
+    D3DVIEWPORT2       m_viewport = { };
+
+    d3d9::D3DVIEWPORT9 m_viewport9 = { };
+
+    D3D6Device*        m_device = nullptr;
 
     std::vector<D3D6Light*> m_lights;
 

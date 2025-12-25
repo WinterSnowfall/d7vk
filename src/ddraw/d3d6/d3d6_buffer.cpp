@@ -126,31 +126,12 @@ namespace dxvk {
     if (unlikely(!(dwVertexOp & D3DVOP_TRANSFORM)))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(dwVertexOp & D3DVOP_CLIP)) {
-      static bool s_clipErrorShown;
-
-      if (!std::exchange(s_clipErrorShown, true))
-        Logger::warn("D3D7VertexBuffer::ProcessVertices: Unsupported vertex operation: D3DVOP_CLIP");
-    }
-    if (unlikely(dwVertexOp & D3DVOP_EXTENTS)) {
-      static bool s_extentsErrorShown;
-
-      if (!std::exchange(s_extentsErrorShown, true))
-        Logger::warn("D3D7VertexBuffer::ProcessVertices: Unsupported vertex operation: D3DVOP_EXTENTS");
-    }
-    if (unlikely(dwVertexOp & D3DVOP_LIGHT)) {
-      static bool s_lightErrorShown;
-
-      if (!std::exchange(s_lightErrorShown, true))
-        Logger::warn("D3D7VertexBuffer::ProcessVertices: Unsupported vertex operation: D3DVOP_LIGHT");
-    }
-
     D3D6Device* device = static_cast<D3D6Device*>(lpD3DDevice);
     D3D6VertexBuffer* vb = static_cast<D3D6VertexBuffer*>(lpSrcBuffer);
 
     vb->RefreshD3D6Device();
     if (unlikely(vb->GetDevice() == nullptr || device != vb->GetDevice())) {
-      Logger::err("D3D7VertexBuffer::ProcessVertices: Incompatible or null device");
+      Logger::err("D3D6VertexBuffer::ProcessVertices: Incompatible or null device");
       return DDERR_GENERIC;
     }
 
@@ -173,11 +154,15 @@ namespace dxvk {
 
     D3D6DeviceLock lock = device->LockDevice();
 
+    HandlePreProcessVerticesFlags(dwVertexOp);
+
     device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
     HRESULT hr = device->GetD3D9()->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_d3d9.ptr(), nullptr, dwFlags);
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7VertexBuffer::ProcessVertices: Failed call to D3D9 ProcessVertices");
+      Logger::err("D3D6VertexBuffer::ProcessVertices: Failed call to D3D9 ProcessVertices");
     }
+
+    HandlePostProcessVerticesFlags(dwVertexOp);
 
     return hr;
   }

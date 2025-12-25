@@ -63,6 +63,12 @@ namespace dxvk {
 
     m_material = *data;
 
+    m_material9.Diffuse  = m_material.dcvDiffuse;
+    m_material9.Ambient  = m_material.dcvAmbient;
+    m_material9.Specular = m_material.dcvSpecular;
+    m_material9.Emissive = m_material.dcvEmissive;
+    m_material9.Power    = m_material.dvPower;
+
     return D3D_OK;
   }
 

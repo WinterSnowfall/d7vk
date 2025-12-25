@@ -23,14 +23,20 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetHandle (IDirect3DDevice3 *device, D3DMATERIALHANDLE *handle);
 
+    const d3d9::D3DMATERIAL9* GetD3D9Material() const {
+      return &m_material9;
+    }
+
   private:
 
-    static uint32_t   s_materialCount;
-    uint32_t          m_materialCount = 0;
+    static uint32_t    s_materialCount;
+    uint32_t           m_materialCount = 0;
 
-    D3DMATERIALHANDLE m_materialHandle = 0;
+    D3DMATERIALHANDLE  m_materialHandle = 0;
 
-    D3DMATERIAL       m_material = { };
+    D3DMATERIAL        m_material = { };
+
+    d3d9::D3DMATERIAL9 m_material9 = { };
 
   };
 

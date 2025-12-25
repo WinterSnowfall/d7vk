@@ -547,7 +547,7 @@ namespace dxvk {
         return D3D_OK;
 
       // Always enabled on later APIs, so it can't really be turned off
-      // Even the D3D7 docs state: "Note that many 3-D adapters apply texture perspective correction unconditionally."
+      // Even the D3D6 docs state: "Note that many 3-D adapters apply texture perspective correction unconditionally."
       case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
         *lpdwRenderState = TRUE;
         return D3D_OK;
@@ -586,14 +586,14 @@ namespace dxvk {
         *lpdwRenderState = D3DTBLEND_MODULATE;
         return D3D_OK;
 
-      case D3DRENDERSTATE_SUBPIXEL:
-      case D3DRENDERSTATE_SUBPIXELX:
-        *lpdwRenderState = FALSE;
-        return D3D_OK;
-
       // Not supported by D3D7 either, but its value is stored.
       case D3DRENDERSTATE_ZVISIBLE:
         *lpdwRenderState = m_zVisible;
+        return D3D_OK;
+
+      case D3DRENDERSTATE_SUBPIXEL:
+      case D3DRENDERSTATE_SUBPIXELX:
+        *lpdwRenderState = FALSE;
         return D3D_OK;
 
       // TODO:
@@ -615,9 +615,8 @@ namespace dxvk {
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
-      // TODO:
       case D3DRENDERSTATE_BORDERCOLOR:
-        *lpdwRenderState = 0;
+        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_BORDERCOLOR, lpdwRenderState);
         return D3D_OK;
 
       case D3DRENDERSTATE_TEXTUREADDRESSU:
@@ -731,22 +730,23 @@ namespace dxvk {
         m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_ADDRESSV, dwRenderState);
         return D3D_OK;
 
+      // Always enabled on later APIs, so it can't really be turned off
+      // Even the D3D7 docs state: "Note that many 3-D adapters
+      // apply texture perspective correction unconditionally."
+      case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
+        static bool s_texturePerspectiveErrorShown;
+
+        if (!dwRenderState && !std::exchange(s_texturePerspectiveErrorShown, true))
+          Logger::debug("D3D6Device::SetRenderState: Disabling of D3DRENDERSTATE_TEXTUREPERSPECTIVE is not supported");
+
+        return D3D_OK;
+
       case D3DRENDERSTATE_WRAPU:
       case D3DRENDERSTATE_WRAPV:
         static bool s_wrapUVErrorShown;
 
         if (dwRenderState && !std::exchange(s_wrapUVErrorShown, true))
           Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_WRAPU/V");
-
-        return D3D_OK;
-
-      // Always enabled on later APIs, so it can't really be turned off
-      // Even the D3D7 docs state: "Note that many 3-D adapters apply texture perspective correction unconditionally."
-      case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
-        static bool s_texturePerspectiveErrorShown;
-
-        if (!dwRenderState && !std::exchange(s_texturePerspectiveErrorShown, true))
-          Logger::debug("D3D6Device::SetRenderState: Disabling of D3DRENDERSTATE_TEXTUREPERSPECTIVE is not supported");
 
         return D3D_OK;
 
@@ -781,30 +781,68 @@ namespace dxvk {
       case D3DRENDERSTATE_PLANEMASK:
         return D3D_OK;
 
-      case D3DRENDERSTATE_TEXTUREMAG:
-        m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MAGFILTER, dwRenderState);
+      // Docs: "[...]  only the first two (D3DFILTER_NEAREST and
+      // D3DFILTER_LINEAR) are valid with D3DRENDERSTATE_TEXTUREMAG."
+      case D3DRENDERSTATE_TEXTUREMAG: {
+        switch (dwRenderState) {
+          case D3DFILTER_NEAREST:
+          case D3DFILTER_LINEAR:
+            m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MAGFILTER, dwRenderState);
+            break;
+          default:
+            break;
+        }
         return D3D_OK;
+      }
 
-      case D3DRENDERSTATE_TEXTUREMIN:
-        m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MINFILTER, dwRenderState);
+      case D3DRENDERSTATE_TEXTUREMIN: {
+        switch (dwRenderState) {
+          case D3DFILTER_NEAREST:
+          case D3DFILTER_LINEAR:
+            m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MINFILTER, dwRenderState);
+            m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MIPFILTER, d3d9::D3DTEXF_NONE);
+            break;
+          // "The closest mipmap level is chosen and a point filter is applied."
+          case D3DFILTER_MIPNEAREST:
+            m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MINFILTER, d3d9::D3DTEXF_POINT);
+            m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MIPFILTER, d3d9::D3DTEXF_POINT);
+            break;
+          // "The closest mipmap level is chosen and a bilinear filter is applied within it."
+          case D3DFILTER_MIPLINEAR:
+            m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MINFILTER, d3d9::D3DTEXF_LINEAR);
+            m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MIPFILTER, d3d9::D3DTEXF_POINT);
+            break;
+          // "The two closest mipmap levels are chosen and then a linear
+          //  blend is used between point filtered samples of each level."
+          case D3DFILTER_LINEARMIPNEAREST:
+            m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MINFILTER, d3d9::D3DTEXF_POINT);
+            m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MIPFILTER, d3d9::D3DTEXF_LINEAR);
+            break;
+          // "The two closest mipmap levels are chosen and then combined using a bilinear filter."
+          case D3DFILTER_LINEARMIPLINEAR:
+            m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MINFILTER, d3d9::D3DTEXF_LINEAR);
+            m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MIPFILTER, d3d9::D3DTEXF_LINEAR);
+            break;
+          default:
+            break;
+        }
         return D3D_OK;
+      }
 
       // "This render state is used when rendering with the IDirect3DDevice2 interface."
       case D3DRENDERSTATE_TEXTUREMAPBLEND:
         return D3D_OK;
 
-      case D3DRENDERSTATE_SUBPIXEL:
-      case D3DRENDERSTATE_SUBPIXELX:
-          static bool s_subpixelErrorShown;
-
-        if (dwRenderState && !std::exchange(s_subpixelErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_SUBPIXEL/X");
-
-        return D3D_OK;
-
       // Not supported by D3D7 either, but its value is stored.
       case D3DRENDERSTATE_ZVISIBLE:
         m_zVisible = dwRenderState;
+        return D3D_OK;
+
+      // Docs state: "Most hardware either doesn't support it (always off) or
+      // always supports it (always on).", and "All hardware should be subpixel correct.
+      // Some software rasterizers are not subpixel correct because of the performance loss."
+      case D3DRENDERSTATE_SUBPIXEL:
+      case D3DRENDERSTATE_SUBPIXELX:
         return D3D_OK;
 
       // TODO:
@@ -839,13 +877,8 @@ namespace dxvk {
 
         return D3D_OK;
 
-      // TODO:
       case D3DRENDERSTATE_BORDERCOLOR:
-        static bool s_borderColorErrorShown;
-
-        if (dwRenderState && !std::exchange(s_borderColorErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_BORDERCOLOR");
-
+        m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_BORDERCOLOR, dwRenderState);
         return D3D_OK;
 
       case D3DRENDERSTATE_TEXTUREADDRESSU:
@@ -941,7 +974,7 @@ namespace dxvk {
         m_d3d9->GetRenderState(d3d9::D3DRS_AMBIENT, lpdwLightState);
         break;
       case D3DLIGHTSTATE_COLORMODEL:
-        Logger::debug("D3D6Device::GetLightState: Use of D3DLIGHTSTATE_COLORMODEL");
+        Logger::warn("D3D6Device::GetLightState: Unsupported D3DLIGHTSTATE_COLORMODEL");
         *lpdwLightState = D3DCOLOR_RGB;
         break;
       case D3DLIGHTSTATE_FOGMODE:
@@ -975,8 +1008,8 @@ namespace dxvk {
       case D3DLIGHTSTATE_MATERIAL: {
         m_materialHandle = dwLightState;
 
-        // Docs state: When no material is selected (NULL),
-        // the Direct3D lighting engine is disabled.
+        // Docs: "If the rendering device does not have a material assigned
+        // to it, the Direct3D lighting engine is disabled."
         if (unlikely(!m_materialHandle)) {
           m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
         } else {
@@ -984,18 +1017,7 @@ namespace dxvk {
           if (unlikely(material6 == nullptr))
             return DDERR_INVALIDPARAMS;
 
-          D3DMATERIAL material;
-          material6->GetMaterial(&material);
-
-          d3d9::D3DMATERIAL9 material9;
-          material9.Diffuse  = material.dcvDiffuse;
-          material9.Ambient  = material.dcvAmbient;
-          material9.Specular = material.dcvSpecular;
-          material9.Emissive = material.dcvEmissive;
-          material9.Power    = material.dvPower;
-
-          m_d3d9->SetMaterial(&material9);
-
+          m_d3d9->SetMaterial(material6->GetD3D9Material());
           m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
         }
 
@@ -1005,7 +1027,8 @@ namespace dxvk {
         m_d3d9->SetRenderState(d3d9::D3DRS_AMBIENT, dwLightState);
         break;
       case D3DLIGHTSTATE_COLORMODEL:
-        Logger::debug("D3D6Device::SetLightState: Use of D3DLIGHTSTATE_COLORMODEL");
+        if (unlikely(dwLightState != D3DCOLOR_RGB))
+          Logger::warn("D3D6Device::SetLightState: Unsupported D3DLIGHTSTATE_COLORMODEL");
         break;
       case D3DLIGHTSTATE_FOGMODE:
         m_d3d9->SetRenderState(d3d9::D3DRS_FOGVERTEXMODE, dwLightState);
@@ -1066,7 +1089,7 @@ namespace dxvk {
     if (unlikely(vertices == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    HandlePreDrawFlags(flags);
+    HandlePreDrawFlags(flags, vertex_type);
 
     m_d3d9->SetFVF(vertex_type);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
@@ -1075,7 +1098,7 @@ namespace dxvk {
                      vertices,
                      GetFVFSize(vertex_type));
 
-    HandlePostDrawFlags(flags);
+    HandlePostDrawFlags(flags, vertex_type);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawPrimitive: Failed D3D9 call to DrawPrimitiveUP");
@@ -1104,7 +1127,7 @@ namespace dxvk {
     if (unlikely(primitive_type == D3DPT_POINTLIST))
       Logger::warn("D3D6Device::DrawIndexedPrimitiveVB: D3DPT_POINTLIST primitive type");
 
-    HandlePreDrawFlags(flags);
+    HandlePreDrawFlags(flags, fvf);
 
     m_d3d9->SetFVF(fvf);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
@@ -1117,7 +1140,7 @@ namespace dxvk {
                       vertices,
                       GetFVFSize(fvf));
 
-    HandlePostDrawFlags(flags);
+    HandlePostDrawFlags(flags, fvf);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
@@ -1188,7 +1211,7 @@ namespace dxvk {
 
     // TODO: strided_data needs to be transformed into a non-strided vertex buffer stream
 
-    /*HandlePreDrawFlags(flags);
+    /*HandlePreDrawFlags(flags, fvf);
 
     m_d3d9->SetFVF(fvf);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
@@ -1197,7 +1220,7 @@ namespace dxvk {
                      strided_data,
                      GetFVFSize(fvf));
 
-    HandlePostDrawFlags(flags);
+    HandlePostDrawFlags(flags, fvf);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawPrimitiveStrided: Failed D3D9 call to DrawPrimitiveUP");
@@ -1225,7 +1248,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // TODO: strided_data needs to be transformed into a non-strided vertex buffer stream
-    /*HandlePreDrawFlags(flags);
+    /*HandlePreDrawFlags(flags, fvf);
 
     m_d3d9->SetFVF(fvf);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
@@ -1238,7 +1261,7 @@ namespace dxvk {
                       strided_data,
                       GetFVFSize(fvf));
 
-    HandlePostDrawFlags(flags);
+    HandlePostDrawFlags(flags, fvf);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
@@ -1272,7 +1295,7 @@ namespace dxvk {
       return D3DERR_VERTEXBUFFERLOCKED;
     }
 
-    HandlePreDrawFlags(flags);
+    HandlePreDrawFlags(flags, vb6->GetFVF());
 
     m_d3d9->SetFVF(vb6->GetFVF());
     m_d3d9->SetStreamSource(0, vb6->GetD3D9(), 0, vb6->GetStride());
@@ -1281,7 +1304,7 @@ namespace dxvk {
                            start_vertex,
                            GetPrimitiveCount(primitive_type, vertex_count));
 
-    HandlePostDrawFlags(flags);
+    HandlePostDrawFlags(flags, vb6->GetFVF());
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawPrimitiveVB: Failed D3D9 call to DrawPrimitive");
@@ -1332,7 +1355,7 @@ namespace dxvk {
       ibIndex++;
     }
 
-    HandlePreDrawFlags(flags);
+    HandlePreDrawFlags(flags, vb6->GetFVF());
 
     d3d9::IDirect3DIndexBuffer9* ib9 = m_ib9[ibIndex].ptr();
 
@@ -1349,7 +1372,7 @@ namespace dxvk {
                     0,
                     GetPrimitiveCount(primitive_type, index_count));
 
-    HandlePostDrawFlags(flags);
+    HandlePostDrawFlags(flags, vb6->GetFVF());
 
     if(unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Failed D3D9 call to DrawIndexedPrimitive");
