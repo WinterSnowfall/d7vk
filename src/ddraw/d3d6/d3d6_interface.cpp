@@ -97,8 +97,45 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg) {
-    Logger::debug("<<< D3D6Interface::EnumDevices: Proxy");
-    return m_proxy->EnumDevices(lpEnumDevicesCallback, lpUserArg);
+    Logger::debug(">>> D3D6Interface::EnumDevices");
+
+    if (unlikely(lpEnumDevicesCallback == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    // D3D6 reports both HAL and HEL caps for any time of device,
+    // with minor differences between the two. Note that the
+    // device listing order matters, so list RGB first, HAL second.
+
+    // Software emulation, this is expected to be exposed (SWVP)
+    GUID guid6RGB = IID_IDirect3DRGBDevice;
+    D3DDEVICEDESC desc6RGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC desc6RGB_HEL = desc6RGB_HAL;
+    desc6RGB_HAL.dwFlags = 0;
+    desc6RGB_HAL.dcmColorModel = 0;
+    char deviceDescRGB[100] = "D6VK RGB";
+    char deviceNameRGB[100] = "D6VK RGB";
+
+    HRESULT hr = lpEnumDevicesCallback(const_cast<GUID*>(&guid6RGB), &deviceDescRGB[0],
+                                       &deviceNameRGB[0], &desc6RGB_HAL, &desc6RGB_HEL, lpUserArg);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;
+
+    // Hardware acceleration (SWVP)
+    GUID guidHAL = IID_IDirect3DHALDevice;
+    D3DDEVICEDESC desc6HAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC desc6HAL_HEL = desc6HAL_HAL;
+    desc6RGB_HEL.dcmColorModel = 0;
+    desc6RGB_HEL.dwDevCaps &= ~D3DDEVCAPS_DRAWPRIMITIVES2
+                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+    char deviceDescHAL[100] = "D6VK HAL";
+    char deviceNameHAL[100] = "D6VK HAL";
+
+    hr = lpEnumDevicesCallback(const_cast<GUID*>(&guidHAL), &deviceDescHAL[0],
+                               &deviceNameHAL[0], &desc6HAL_HAL, &desc6HAL_HEL, lpUserArg);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::CreateLight(LPDIRECT3DLIGHT *lplpDirect3DLight, IUnknown *pUnkOuter) {
@@ -148,9 +185,67 @@ namespace dxvk {
     return D3D_OK;
   }
 
+  // Minimal implementation which should suffice in most cases
   HRESULT STDMETHODCALLTYPE D3D6Interface::FindDevice(D3DFINDDEVICESEARCH *lpD3DFDS, D3DFINDDEVICERESULT *lpD3DFDR) {
-    Logger::warn("<<< D3D6Interface::FindDevice: Proxy");
-    return m_proxy->FindDevice(lpD3DFDS, lpD3DFDR);
+    Logger::debug(">>> D3D6Interface::FindDevice");
+
+    if (unlikely(lpD3DFDS == nullptr || lpD3DFDR == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(lpD3DFDS->dwSize != sizeof(D3DFINDDEVICESEARCH)))
+      return DDERR_INVALIDPARAMS;
+
+    // Software emulation, this is expected to be exposed (SWVP)
+    D3DDEVICEDESC desc6RGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC desc6RGB_HEL = desc6RGB_HAL;
+    desc6RGB_HAL.dwFlags = 0;
+    desc6RGB_HAL.dcmColorModel = 0;
+
+    // Hardware acceleration (SWVP)
+    D3DDEVICEDESC desc6HAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC desc6HAL_HEL = desc6HAL_HAL;
+    desc6RGB_HEL.dcmColorModel = 0;
+    desc6RGB_HEL.dwDevCaps &= ~D3DDEVCAPS_DRAWPRIMITIVES2
+                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+
+    lpD3DFDR->dwSize = sizeof(D3DFINDDEVICERESULT);
+
+    if (likely(lpD3DFDS->dwFlags & D3DFDS_GUID)) {
+      Logger::debug("D3D6Interface::FindDevice: Matching by device GUID");
+
+      lpD3DFDR->guid = lpD3DFDS->guid;
+      if (lpD3DFDS->guid == IID_IDirect3DRGBDevice) {
+        lpD3DFDR->ddHwDesc = desc6RGB_HAL;
+        lpD3DFDR->ddSwDesc = desc6RGB_HEL;
+      } else if (lpD3DFDS->guid == IID_IDirect3DHALDevice) {
+        lpD3DFDR->ddHwDesc = desc6HAL_HAL;
+        lpD3DFDR->ddSwDesc = desc6HAL_HEL;
+      } else {
+        Logger::warn("D3D6Interface::FindDevice: Unknown device type, matching RGB");
+        lpD3DFDR->ddHwDesc = desc6RGB_HAL;
+        lpD3DFDR->ddSwDesc = desc6RGB_HEL;
+      }
+    } else if (lpD3DFDS->dwFlags & D3DFDS_HARDWARE) {
+      Logger::debug("D3D6Interface::FindDevice: Matching by hardware flag");
+
+      if (likely(lpD3DFDS->bHardware == TRUE)) {
+        lpD3DFDR->guid = IID_IDirect3DHALDevice;
+        lpD3DFDR->ddHwDesc = desc6HAL_HAL;
+        lpD3DFDR->ddSwDesc = desc6HAL_HEL;
+      } else {
+        lpD3DFDR->guid = IID_IDirect3DRGBDevice;
+        lpD3DFDR->ddHwDesc = desc6RGB_HAL;
+        lpD3DFDR->ddSwDesc = desc6RGB_HEL;
+      }
+    } else {
+      Logger::warn("D3D6Interface::FindDevice: Unhandled matching, using HAL");
+
+      lpD3DFDR->guid = IID_IDirect3DHALDevice;
+      lpD3DFDR->ddHwDesc = desc6HAL_HAL;
+      lpD3DFDR->ddSwDesc = desc6HAL_HEL;
+    }
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE4 lpDDS, LPDIRECT3DDEVICE3 *lplpD3DDevice, IUnknown *pUnkOuter) {
@@ -391,7 +486,18 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::EvictManagedTextures() {
-    Logger::debug("<<< D3D6Interface::EvictManagedTextures:  Proxy");
+    Logger::debug(">>> D3D6Interface::EvictManagedTextures");
+
+    if (likely(m_lastUsedDevice != nullptr)) {
+      D3D6DeviceLock lock = m_lastUsedDevice->LockDevice();
+
+      HRESULT hr = m_lastUsedDevice->GetD3D9()->EvictManagedResources();
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D6Interface::EvictManagedTextures: Failed D3D9 managed resource eviction");
+        return hr;
+      }
+    }
+
     return m_proxy->EvictManagedTextures();
   }
 
