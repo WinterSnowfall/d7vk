@@ -80,6 +80,50 @@ namespace dxvk {
       Logger::warn("DDraw2Interface::QueryInterface: Query for legacy IDirectDraw");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
+    // Legacy way of getting a DDraw4 interface
+    if (riid == __uuidof(IDirectDraw4)) {
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDraw2Interface::QueryInterface: Forwarded query for IDirectDraw4");
+        return m_origin->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirectDraw4");
+
+      Com<IDirectDraw4> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      Com<DDraw4Interface> ddraw4Interface = new DDraw4Interface(std::move(ppvProxyObject), nullptr);
+      // Pass on the hWnd and cooperative level to the child interface
+      ddraw4Interface->SetHWND(m_hwnd);
+      ddraw4Interface->SetCooperativeLevel(m_cooperativeLevel);
+      *ppvObject = ddraw4Interface.ref();
+
+      return S_OK;
+    }
+    // Legacy way of getting a DDraw7 interface
+    if (unlikely(riid == __uuidof(IDirectDraw7))) {
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDraw2Interface::QueryInterface: Forwarded query for IDirectDraw7");
+        return m_origin->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::warn("DDraw2Interface::QueryInterface: Query for IDirectDraw7");
+
+      Com<IDirectDraw7> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      Com<DDraw7Interface> ddraw7Interface = new DDraw7Interface(std::move(ppvProxyObject));
+      // Pass on the hWnd and cooperative level to the child interface
+      ddraw7Interface->SetHWND(m_hwnd);
+      ddraw7Interface->SetCooperativeLevel(m_cooperativeLevel);
+      *ppvObject = ddraw7Interface.ref();
+
+      return S_OK;
+    }
     // Standard way of retrieving a D3D3 interface
     if (unlikely(riid == __uuidof(IDirect3D))) {
       if (likely(IsLegacyInterface())) {
@@ -252,7 +296,15 @@ namespace dxvk {
     }
 
     Logger::debug("<<< DDraw2Interface::SetCooperativeLevel: Proxy");
-    return m_proxy->SetCooperativeLevel(hWnd, dwFlags);
+
+    HRESULT hr = m_proxy->SetCooperativeLevel(hWnd, dwFlags);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    m_hwnd = hWnd;
+    m_cooperativeLevel = dwFlags;
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags) {

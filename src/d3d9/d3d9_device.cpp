@@ -8767,7 +8767,7 @@ namespace dxvk {
     rs[D3DRS_SPECULARMATERIALSOURCE] = D3DMCS_COLOR2;
     rs[D3DRS_AMBIENTMATERIALSOURCE]  = D3DMCS_MATERIAL;
     rs[D3DRS_EMISSIVEMATERIALSOURCE] = D3DMCS_MATERIAL;
-    rs[D3DRS_LIGHTING]               = TRUE;
+    rs[D3DRS_LIGHTING]               = m_isD3D6Compatible ? FALSE : TRUE;
     rs[D3DRS_COLORVERTEX]            = TRUE;
     rs[D3DRS_LOCALVIEWER]            = TRUE;
     rs[D3DRS_RANGEFOGENABLE]         = FALSE;
@@ -8783,8 +8783,8 @@ namespace dxvk {
     rs[D3DRS_FOGENABLE]                  = FALSE;
     rs[D3DRS_FOGCOLOR]                   = 0;
     rs[D3DRS_FOGTABLEMODE]               = D3DFOG_NONE;
-    rs[D3DRS_FOGSTART]                   = bit::cast<DWORD>(0.0f);
-    rs[D3DRS_FOGEND]                     = bit::cast<DWORD>(1.0f);
+    rs[D3DRS_FOGSTART]                   = m_isD3D6Compatible ? bit::cast<DWORD>(1.0f)   : bit::cast<DWORD>(0.0f);
+    rs[D3DRS_FOGEND]                     = m_isD3D6Compatible ? bit::cast<DWORD>(100.0f) : bit::cast<DWORD>(1.0f);
     rs[D3DRS_FOGDENSITY]                 = bit::cast<DWORD>(1.0f);
     rs[D3DRS_FOGVERTEXMODE]              = D3DFOG_NONE;
     m_dirty.set(D3D9DeviceDirtyFlag::FogColor);
@@ -8910,8 +8910,8 @@ namespace dxvk {
       state[D3DSAMP_ADDRESSV]      = D3DTADDRESS_WRAP;
       state[D3DSAMP_ADDRESSW]      = D3DTADDRESS_WRAP;
       state[D3DSAMP_BORDERCOLOR]   = 0x00000000;
-      state[D3DSAMP_MAGFILTER]     = D3DTEXF_POINT;
-      state[D3DSAMP_MINFILTER]     = D3DTEXF_POINT;
+      state[D3DSAMP_MAGFILTER]     = m_isD3D6Compatible ? D3DTEXF_NONE : D3DTEXF_POINT;
+      state[D3DSAMP_MINFILTER]     = m_isD3D6Compatible ? D3DTEXF_NONE : D3DTEXF_POINT;
       state[D3DSAMP_MIPFILTER]     = D3DTEXF_NONE;
       state[D3DSAMP_MIPMAPLODBIAS] = bit::cast<DWORD>(0.0f);
       state[D3DSAMP_MAXMIPLEVEL]   = 0;

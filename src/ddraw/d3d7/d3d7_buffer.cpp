@@ -126,25 +126,6 @@ namespace dxvk {
     if (unlikely(!(dwVertexOp & D3DVOP_TRANSFORM)))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(dwVertexOp & D3DVOP_CLIP)) {
-      static bool s_clipErrorShown;
-
-      if (!std::exchange(s_clipErrorShown, true))
-        Logger::warn("D3D7VertexBuffer::ProcessVertices: Unsupported vertex operation: D3DVOP_CLIP");
-    }
-    if (unlikely(dwVertexOp & D3DVOP_EXTENTS)) {
-      static bool s_extentsErrorShown;
-
-      if (!std::exchange(s_extentsErrorShown, true))
-        Logger::warn("D3D7VertexBuffer::ProcessVertices: Unsupported vertex operation: D3DVOP_EXTENTS");
-    }
-    if (unlikely(dwVertexOp & D3DVOP_LIGHT)) {
-      static bool s_lightErrorShown;
-
-      if (!std::exchange(s_lightErrorShown, true))
-        Logger::warn("D3D7VertexBuffer::ProcessVertices: Unsupported vertex operation: D3DVOP_LIGHT");
-    }
-
     D3D7Device* device = static_cast<D3D7Device*>(lpD3DDevice);
     D3D7VertexBuffer* vb = static_cast<D3D7VertexBuffer*>(lpSrcBuffer);
 
@@ -176,11 +157,15 @@ namespace dxvk {
     if (device->IsMixedVPDevice())
       device->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
 
+    HandlePreProcessVerticesFlags(dwVertexOp);
+
     device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
     HRESULT hr = device->GetD3D9()->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_d3d9.ptr(), nullptr, dwFlags);
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7VertexBuffer::ProcessVertices: Failed call to D3D9 ProcessVertices");
     }
+
+    HandlePostProcessVerticesFlags(dwVertexOp);
 
     if (device->IsMixedVPDevice())
       device->GetD3D9()->SetSoftwareVertexProcessing(FALSE);
@@ -210,7 +195,11 @@ namespace dxvk {
     if (device->IsMixedVPDevice())
       device->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
 
+    HandlePreProcessVerticesFlags(dwVertexOp);
+
     // TODO: lpVertexArray needs to be transformed into a non-strided vertex buffer stream
+
+    HandlePostProcessVerticesFlags(dwVertexOp);
 
     if (device->IsMixedVPDevice())
       device->GetD3D9()->SetSoftwareVertexProcessing(FALSE);

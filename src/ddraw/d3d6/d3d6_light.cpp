@@ -70,7 +70,24 @@ namespace dxvk {
     if (unlikely(data->dltType == D3DLIGHT_PARALLELPOINT))
       Logger::warn("D3D6Light::SetLight: Unsupported light type D3DLIGHT_PARALLELPOINT");
 
-    m_light = *data;
+    // Docs: "Although this method's declaration specifies the lpLight parameter as being
+    // the address of a D3DLIGHT structure, that structure is not normally used. Rather,
+    // the D3DLIGHT2 structure is recommended to achieve the best lighting effects."
+    memcpy(&m_light, data, sizeof(D3DLIGHT2));
+
+    m_light9.Type         = d3d9::D3DLIGHTTYPE(m_light.dltType);
+    m_light9.Diffuse      = m_light.dcvColor;
+    m_light9.Specular     = HasSpectular() ? m_light.dcvColor : D3DCOLORVALUE({0, 0, 0, 0});
+    m_light9.Ambient      = m_light.dcvColor;
+    m_light9.Position     = m_light.dvPosition;
+    m_light9.Direction    = m_light.dvDirection;
+    m_light9.Range        = m_light.dvRange;
+    m_light9.Falloff      = m_light.dvFalloff;
+    m_light9.Attenuation0 = m_light.dvAttenuation0;
+    m_light9.Attenuation1 = m_light.dvAttenuation1;
+    m_light9.Attenuation2 = m_light.dvAttenuation2;
+    m_light9.Theta        = m_light.dvTheta;
+    m_light9.Phi          = m_light.dvPhi;
 
     return D3D_OK;
   }
@@ -85,7 +102,7 @@ namespace dxvk {
     if (unlikely(data->dwSize != sizeof(D3DLIGHT2)))
       return DDERR_INVALIDPARAMS;
 
-    *data = m_light;
+    memcpy(data, &m_light, sizeof(D3DLIGHT2));
 
     return D3D_OK;
   }

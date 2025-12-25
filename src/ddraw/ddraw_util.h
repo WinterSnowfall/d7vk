@@ -237,6 +237,8 @@ namespace dxvk {
   inline D3DDEVICEDESC GetD3D6Caps(const IID rclsid, bool disableAASupport) {
     D3DDEVICEDESC desc;
 
+    desc.dwSize    = sizeof(D3DDEVICEDESC);
+
     desc.dwFlags   = D3DDD_BCLIPPING
                    | D3DDD_COLORMODEL
                    | D3DDD_DEVCAPS
@@ -319,8 +321,8 @@ namespace dxvk {
                            // | D3DPRASTERCAPS_PAT // Not implemented in D3D9
                               | D3DPRASTERCAPS_ROP2
                            // | D3DPRASTERCAPS_STIPPLE
-                           // | D3DPRASTERCAPS_SUBPIXEL
-                           // | D3DPRASTERCAPS_SUBPIXELX
+                              | D3DPRASTERCAPS_SUBPIXEL
+                              | D3DPRASTERCAPS_SUBPIXELX
                            // | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
                            // | D3DPRASTERCAPS_WBUFFER
                               | D3DPRASTERCAPS_WFOG
@@ -556,8 +558,8 @@ namespace dxvk {
                            // | D3DPRASTERCAPS_PAT // Not implemented in D3D9
                               | D3DPRASTERCAPS_ROP2
                            // | D3DPRASTERCAPS_STIPPLE
-                           // | D3DPRASTERCAPS_SUBPIXEL
-                           // | D3DPRASTERCAPS_SUBPIXELX
+                              | D3DPRASTERCAPS_SUBPIXEL
+                              | D3DPRASTERCAPS_SUBPIXELX
                            // | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
                            // | D3DPRASTERCAPS_WBUFFER
                               | D3DPRASTERCAPS_WFOG
