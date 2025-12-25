@@ -107,12 +107,12 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // Ignore the dvScaleX, dvScaleY, dvMaxX and dvMaxY values for now
-    m_viewport.dwX      = data->dwX;
-    m_viewport.dwY      = data->dwY;
-    m_viewport.dwWidth  = data->dwWidth;
-    m_viewport.dwHeight = data->dwHeight;
-    m_viewport.dvMinZ   = data->dvMinZ;
-    m_viewport.dvMaxZ   = data->dvMaxZ;
+    m_viewport9.X      = m_viewport.dwX      = data->dwX;
+    m_viewport9.Y      = m_viewport.dwY      = data->dwY;
+    m_viewport9.Width  = m_viewport.dwWidth  = data->dwWidth;
+    m_viewport9.Height = m_viewport.dwHeight = data->dwHeight;
+    m_viewport9.MinZ   = m_viewport.dvMinZ   = data->dvMinZ;
+    m_viewport9.MaxZ   = m_viewport.dvMaxZ   = data->dvMaxZ;
 
     if (likely(m_device != nullptr))
       ApplyViewport();
@@ -210,10 +210,12 @@ namespace dxvk {
       Logger::warn("D3D6Viewport::AddLight: Pre-existing light found");
     } else {
       m_lights.push_back(light6);
+      light6->SetIndex(m_lightIndex9);
+      m_lightIndex9++;
     }
 
     if (likely(m_device != nullptr))
-      ApplyAndActivateLights();
+      ApplyAndActivateLight(light6->GetIndex(), light6);
 
     return D3D_OK;
   }
@@ -229,12 +231,16 @@ namespace dxvk {
     auto it = std::find(m_lights.begin(), m_lights.end(), light6);
     if (likely(it != m_lights.end())) {
       m_lights.erase(it);
+      if (likely(m_device != nullptr && light6->IsActive())) {
+        const DWORD light6Index = light6->GetIndex();
+        m_device->GetD3D9()->LightEnable(light6Index, FALSE);
+
+        if (light6Index == m_lightIndex9)
+          m_lightIndex9--;
+      }
     } else {
       Logger::warn("D3D6Viewport::DeleteLight: Light not found");
     }
-
-    if (likely(m_device != nullptr))
-      ApplyAndActivateLights();
 
     return D3D_OK;
   }
@@ -267,14 +273,22 @@ namespace dxvk {
 
     m_viewport = *data;
 
+    m_viewport9.X = m_viewport.dwX;
+    m_viewport9.Y = m_viewport.dwY;
+    m_viewport9.Width  = m_viewport.dwWidth;
+    m_viewport9.Height = m_viewport.dwHeight;
+    m_viewport9.MinZ = m_viewport.dvMinZ;
+    m_viewport9.MaxZ = m_viewport.dvMaxZ;
+
     if (likely(m_device != nullptr))
       ApplyViewport();
 
     return D3D_OK;
   }
 
+  // TODO: Actually apply it... somehow?
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackgroundDepth2(IDirectDrawSurface4 *surface) {
-    Logger::warn(">>> D3D6Viewport::SetBackgroundDepth2");
+    Logger::debug(">>> D3D6Viewport::SetBackgroundDepth2");
 
     m_materialDepth = reinterpret_cast<DDraw4Surface*>(surface);
     m_materialDepthIsSet = TRUE;
@@ -283,7 +297,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetBackgroundDepth2(IDirectDrawSurface4 **surface, BOOL *valid) {
-    Logger::warn(">>> D3D6Viewport::GetBackgroundDepth2");
+    Logger::debug(">>> D3D6Viewport::GetBackgroundDepth2");
 
     if (unlikely(surface == nullptr || valid == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -318,15 +332,7 @@ namespace dxvk {
   HRESULT D3D6Viewport::ApplyViewport() {
     Logger::debug("D3D6Viewport: Applying viewport to D3D9");
 
-    d3d9::D3DVIEWPORT9 viewport9;
-    viewport9.X = m_viewport.dwX;
-    viewport9.Y = m_viewport.dwY;
-    viewport9.Width  = m_viewport.dwWidth;
-    viewport9.Height = m_viewport.dwHeight;
-    viewport9.MinZ = m_viewport.dvMinZ;
-    viewport9.MaxZ = m_viewport.dvMaxZ;
-
-    HRESULT hr = m_device->GetD3D9()->SetViewport(&viewport9);
+    HRESULT hr = m_device->GetD3D9()->SetViewport(&m_viewport9);
     if(unlikely(FAILED(hr)))
       Logger::err("D3D6Viewport: Failed to set the D3D9 viewport");
 
@@ -339,19 +345,15 @@ namespace dxvk {
 
     Logger::debug("D3D6Viewport: Applying material to D3D9");
 
-    D3DMATERIAL material;
-    m_parent->GetMaterialFromHandle(m_materialHandle)->GetMaterial(&material);
+    D3D6Material* material6 = m_parent->GetMaterialFromHandle(m_materialHandle);
 
-    d3d9::D3DMATERIAL9 material9;
-    material9.Diffuse  = material.dcvDiffuse;
-    material9.Ambient  = material.dcvAmbient;
-    material9.Specular = material.dcvSpecular;
-    material9.Emissive = material.dcvEmissive;
-    material9.Power    = material.dvPower;
-
-    HRESULT hr = m_device->GetD3D9()->SetMaterial(&material9);
+    HRESULT hr = m_device->GetD3D9()->SetMaterial(material6->GetD3D9Material());
     if(unlikely(FAILED(hr)))
       Logger::err("D3D6Viewport: Failed to set the D3D9 material");
+
+    // Docs: "If the rendering device does not have a material assigned
+    // to it, the Direct3D lighting engine is disabled."
+    m_device->GetD3D9()->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
 
     return hr;
   }
@@ -361,46 +363,28 @@ namespace dxvk {
 
     uint32_t lightcounter = 0;
 
-    D3DLIGHT2 currentLight;
-    currentLight.dwSize = sizeof(D3DLIGHT2);
-
-    d3d9::D3DLIGHT9 light9;
-
-    for (auto light: m_lights) {
-      light->GetLight(reinterpret_cast<D3DLIGHT*>(&currentLight));
-
-      const bool noSpecular = currentLight.dwFlags & D3DLIGHT_NO_SPECULAR;
-
-      light9.Type         = d3d9::D3DLIGHTTYPE(currentLight.dltType);
-      light9.Diffuse      = currentLight.dcvColor;
-      light9.Specular     = noSpecular ? D3DCOLORVALUE({0, 0, 0, 0}) : currentLight.dcvColor;
-      light9.Ambient      = currentLight.dcvColor;
-      light9.Position     = currentLight.dvPosition;
-      light9.Direction    = currentLight.dvDirection;
-      light9.Range        = currentLight.dvRange;
-      light9.Falloff      = currentLight.dvFalloff;
-      light9.Attenuation0 = currentLight.dvAttenuation0;
-      light9.Attenuation1 = currentLight.dvAttenuation1;
-      light9.Attenuation2 = currentLight.dvAttenuation2;
-      light9.Theta        = currentLight.dvTheta;
-      light9.Phi          = currentLight.dvPhi;
-
-      HRESULT hr = m_device->GetD3D9()->SetLight(lightcounter, &light9);
-      if (unlikely(FAILED(hr))) {
-        Logger::err("D3D6Viewport::Clear2: Failed D3D9 SetLight call");
-      } else {
-        if (currentLight.dwFlags & D3DLIGHT_ACTIVE) {
-          m_device->GetD3D9()->LightEnable(lightcounter, TRUE);
-        } else {
-          // TODO: Clear and inactivate all exising lights on viewport reset
-          m_device->GetD3D9()->LightEnable(lightcounter, FALSE);
-        }
-
+    for (auto light6: m_lights) {
+      HRESULT hr = ApplyAndActivateLight(lightcounter, light6);
+      if (likely(SUCCEEDED(hr)))
         lightcounter++;
-      }
     }
 
     return D3D_OK;
+  }
+
+  HRESULT D3D6Viewport::ApplyAndActivateLight(DWORD index, D3D6Light* light6) {
+    HRESULT hr = m_device->GetD3D9()->SetLight(index, light6->GetD3D9Light());
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D6Viewport::Clear2: Failed D3D9 SetLight call");
+    } else {
+      if (light6->IsActive()) {
+        m_device->GetD3D9()->LightEnable(index, TRUE);
+      } else {
+        m_device->GetD3D9()->LightEnable(index, FALSE);
+      }
+    }
+
+    return hr;
   }
 
 }
