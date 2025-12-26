@@ -268,8 +268,9 @@ namespace dxvk {
     } else if (rclsid == IID_IDirect3DRGBDevice) {
       Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
     } else {
-      Logger::err("D3D6Interface::CreateDevice: Unsupported device type");
-      return DDERR_INVALIDPARAMS;
+      // Revenant uses a rclsid of 7a31a548-0000-0007-26ed-780000000000...
+      Logger::warn("D3D6Interface::CreateDevice: Unsupported device type, falling back to RGB");
+      rclsid == IID_IDirect3DRGBDevice;
     }
 
     HWND hwnd = m_parent->GetHWND();
