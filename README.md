@@ -2,6 +2,8 @@
 
 A Vulkan-based translation layer for Direct3D 7, which allows running 3D applications on Linux using Wine. It uses DXVK's D3D9 backend as well as Wine's DDraw implementation (or the windows native DDraw) and acts as a proxy between the two, providing a minimal D3D7-on-D3D9 implementation.
 
+Direct3D 6 is also supported, as an experimental addition, using the similar approach of a minimal D3D6-on-D3D9 implementation.
+
 ## FAQ
 
 ### Will D7VK work with every D3D7 game out there?
@@ -10,15 +12,25 @@ Sadly, no. D3D7 is a land of highly cursed API interoperability, and application
 
 If you're wondering about the current state of a certain game, a good starting point would be checking [the issue tracker](https://github.com/WinterSnowfall/d7vk/issues).
 
+### Wait, what? There's a D6VK in my D7VK! How did it get there?
+
+After looking over the D3D6 SDK documentation, it turned out to be somewhat approachable, so I have implemented it. Support for D3D7 still remains the main goal of the project, but support for D3D6 will also be provided, as an experimental addition. From a features and general compatibility standpoint, expect it to fare somewhat worse than D3D7, because, as I've said before: the further we stray from D3D8/9, the further we stray from the divine.
+
+### Why not spin off a D6VK or rename the project?
+
+All APIs prior to D3D8 fall under the cursed umbrella of DDraw, so it makes absolutely no sense to split things up. As for any renaming, that won't happen, since the project's main focus remains unchanged.
+
+### Does that mean you'll add support for D3D5 and D3D3 at some point?
+
+No. But we fully support D3D4 already, heh. Jokes aside, I have looked over earlier API documentation as well, and I can confidently say that while D3D6 is still reasonably similar to D3D9, earlier APIs employ a much, much cruder rendering pipeline that simply isn't worth mapping onto DXVK's D3D9 backend. It also makes very little sense to consider it, especially given its complexity, since there's very little hardware acceleration to speak of before D3D6 (and even in D3D6, if we're to be honest).
+
 ### What should I do if a game doesn't work (properly) with D7VK?
 
 I'll try to get as much game coverage as possible in D7VK, of course, but if something just doesn't work, simply use WineD3D - it's awesome and has the benefit of implementing *everything* there ever is to worry about in DDraw and GDI, so it's far, far less prone to cursed interop madness. Reports of issues and bugs are very welcome, as they ensure proper tracking and awareness, so please do report any problems you encounter if you have the time.
 
-### Is D7VK really needed?
+### I get this "Unsupported IDirect3D interface" error message on startup, what gives?
 
-No, not really. I am aware there are plenty of other (good) options out there for D3D7 translation, and while D7VK may perform better in some applications/situations, it will most likely not outperform those other options universally. But having more options on the table is a good thing in my book at least.
-
-You can also expect it to have the same level of per application/targeted configuration profiles and fixes that you're used to seeing in DXVK proper. It also gives us (D3D8/9 DXVK developers) a platform to stress test the fixed function implementation with even older games, which is one of the main goals of the project... besides me wanting to play Sacrifice and Disciples II on top of DXVK. Yeah, that's how it all started.
+The application is trying to create either a D3D3 or D3D5 device, which we outright don't support. You won't be able to run it with D7VK, sorry.
 
 ### Will DXVK's D3D9 config options work with D7VK?
 
@@ -38,6 +50,16 @@ You can, however, use the traditional DXVK config options for controlling either
 
 Yes, use `d3d7.forceEnableAA = True`. Note that AA is natively supported by D7VK, and some applications will outright provide you with the means to enable it. Only use the above config option if you want to force enable AA, regardless of application support. Please also keep in mind that force enabling AA may not work well in all cases, and screen edge artifacting and/or GUI element corruption are possible consequences.
 
+### Do the D3D7 config options work for D3D6?
+
+Yes. As do any of DVXK's D3D9 config options, just like they do for D3D7.
+
+### Is D7VK really needed?
+
+No, not really. I am aware there are plenty of other (good) options out there for D3D7 and D3D6 translation, and while D7VK may perform better in some applications/situations, it will most likely not outperform those other options universally. But having more options on the table is a good thing in my book at least.
+
+You can also expect it to have the same level of per application/targeted configuration profiles and fixes that you're used to seeing in DXVK proper. It also gives us (D3D8/9 DXVK developers) a platform to stress test the fixed function implementation with even older games, which is one of the main goals of the project... besides me wanting to play Sacrifice and Disciples II on top of DXVK. Yeah, that's how it all started.
+
 ### Will it work on Windows?
 
 Maybe? I'm not using Windows, so can't test it or develop it to be adapted to such situations. Its primarily intended use case is, and always will be, Wine/Linux. To that end, D7VK is pretty much aligned with upstream DXVK.
@@ -46,9 +68,9 @@ Maybe? I'm not using Windows, so can't test it or develop it to be adapted to su
 
 No.
 
-### Will it be expanded to include support for earlier D3D APIs?
+### Why not? Just do it!
 
-Also no. D3D7 is enough of a challenge and a mess as it is. The further we stray from D3D9, the further we stray from the divine.
+Because DXVK's development team have made it clear they are not interested in merging and/or maintaining anything prior to D3D8. Also, considering this project takes a minimal approach in its DDraw implementation, it operates on a different principle compared to mainline DXVK, which is why it's best kept as a separate project altogether. I understand the desire to forge the One Ring, ehm... have things unified, but in this case it simply isn't meant to be.
 
 ## Acknowledgments
 
@@ -69,6 +91,7 @@ Verify that your application uses D7VK instead of wined3d by enabling the HUD (s
 Listed below are the DLL requirements for using DXVK with any single API.
 
 - d3d7: `ddraw.dll`
+- d3d6: `ddraw.dll`
 
 ### HUD
 The `DXVK_HUD` environment variable controls a HUD which can display the framerate and some stat counters. It accepts a comma-separated list of the following options:

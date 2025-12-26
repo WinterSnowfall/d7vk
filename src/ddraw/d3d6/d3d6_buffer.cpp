@@ -191,9 +191,6 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
-    D3DDEVICEDESC deviceDesc;
-    m_d3d6Device->GetCaps(&deviceDesc, nullptr);
-
     d3d9::D3DPOOL pool = d3d9::D3DPOOL_DEFAULT;
 
     if (m_desc.dwCaps & D3DVBCAPS_SYSTEMMEMORY)
