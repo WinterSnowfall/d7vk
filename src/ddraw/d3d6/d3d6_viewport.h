@@ -86,7 +86,9 @@ namespace dxvk {
     BOOL               m_materialDepthIsSet = FALSE;
     DDraw4Surface*     m_materialDepth      = nullptr;
 
-    D3DVIEWPORT2       m_viewport = { };
+    BOOL               m_viewportIsSet = FALSE;
+    D3DVIEWPORT        m_viewport      = { };
+    D3DVIEWPORT2       m_viewport2     = { };
 
     d3d9::D3DVIEWPORT9 m_viewport9 = { };
 
