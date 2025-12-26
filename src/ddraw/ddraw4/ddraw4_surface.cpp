@@ -134,12 +134,16 @@ namespace dxvk {
 
       Logger::debug("DDraw4Surface::QueryInterface: Query for IDirect3DTexture2");
 
-      Com<IDirect3DTexture2> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
+      if (unlikely(m_texture6 == nullptr)) {
+        Com<IDirect3DTexture2> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
 
-      *ppvObject = ref(new D3D6Texture(std::move(ppvProxyObject), this));
+        m_texture6 = new D3D6Texture(std::move(ppvProxyObject), this);
+      }
+
+      *ppvObject = m_texture6.ref();
 
       // Arabian Nights needs a dirty here to properly update textures
       DirtyMipMaps();
