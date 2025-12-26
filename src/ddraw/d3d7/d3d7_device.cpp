@@ -59,7 +59,7 @@ namespace dxvk {
   }
 
   D3D7Device::~D3D7Device() {
-    // if at least the smallest index buffer saw any use, then print the stats
+    // If at least the smallest index buffer saw any use, then print the stats
     if (m_ib9_uploads[0] > 0) {
       Logger::info("D3D7Device: Common index buffer upload statistics:");
       Logger::info(str::format("   XS: ", m_ib9_uploads[0]));
@@ -267,8 +267,11 @@ namespace dxvk {
       if (m_parent->GetOptions()->forceProxiedPresent) {
         // If we have drawn anything, we need to make sure we blit back
         // the results onto the d3d7 render target before we flip it
-        if (m_hasDrawn)
+        if (m_hasDrawn) {
+          if (unlikely(!m_rt->IsInitialized()))
+            m_rt->InitializeD3D9RenderTarget();
           BlitToDDrawSurface(m_rt->GetProxied(), m_rt->GetD3D9());
+        }
         m_rt->GetProxied()->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
 
         if (likely(m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))

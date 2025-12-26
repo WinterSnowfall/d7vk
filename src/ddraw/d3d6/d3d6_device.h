@@ -11,6 +11,7 @@
 #include "d3d6_multithread.h"
 
 #include <array>
+#include <vector>
 #include <unordered_map>
 
 namespace dxvk {
@@ -171,6 +172,10 @@ namespace dxvk {
 
     inline HRESULT EnumerateBackBuffers(IDirectDrawSurface4* surface);
 
+    inline void AddViewportInternal(IDirect3DViewport3* viewport);
+
+    inline void DeleteViewportInternal(IDirect3DViewport3* viewport);
+
     inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
 
     // If the last index buffer is initalized, then all are initialized
@@ -240,7 +245,8 @@ namespace dxvk {
 
     std::array<Com<D3D6Texture, false>, ddrawCaps::TextureStageCount> m_textures;
 
-    D3D6Viewport*                 m_viewport = nullptr;
+    Com<D3D6Viewport>               m_currentViewport;
+    std::vector<Com<D3D6Viewport>>  m_viewports;
 
     // Value of D3DRENDERSTATE_ANTIALIAS
     DWORD           m_antialias     = D3DANTIALIAS_NONE;

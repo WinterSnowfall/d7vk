@@ -16,6 +16,12 @@ namespace dxvk {
     : DDrawWrappedObject<D3D6Interface, IDirect3DViewport3, IUnknown>(pParent, std::move(proxyViewport), nullptr) {
     m_viewportCount = ++s_viewportCount;
 
+    // Viewport default values
+    m_viewport.dwX    = m_viewport2.dwX    = 0;
+    m_viewport.dwX    = m_viewport2.dwY    = 0;
+    m_viewport.dvMinZ = m_viewport2.dvMinZ = 0.0f;
+    m_viewport.dvMaxZ = m_viewport2.dvMaxZ = 1.0f;
+
     Logger::debug(str::format("D3D6Viewport: Created a new viewport nr. [[3-", m_viewportCount, "]]"));
   }
 
@@ -76,7 +82,7 @@ namespace dxvk {
 
   // Legacy call, technically should not be very common
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetViewport(D3DVIEWPORT *data) {
-    Logger::warn("<<< D3D6Viewport::GetViewport: Proxy");
+    Logger::debug(">>> D3D6Viewport::GetViewport");
 
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -84,35 +90,46 @@ namespace dxvk {
     if (unlikely(data->dwSize != sizeof(D3DVIEWPORT)))
       return DDERR_INVALIDPARAMS;
 
-    // Ignore the dvScaleX, dvScaleY, dvMaxX and dvMaxY values for now
+    if (unlikely(!m_viewportIsSet))
+      return D3DERR_VIEWPORTDATANOTSET;
+
     data->dwX      = m_viewport.dwX;
     data->dwY      = m_viewport.dwY;
     data->dwWidth  = m_viewport.dwWidth;
     data->dwHeight = m_viewport.dwHeight;
-    data->dvScaleX = 0;
-    data->dvScaleY = 0;
-    data->dvMaxX   = 0;
-    data->dvMaxY   = 0;
     data->dvMinZ   = m_viewport.dvMinZ;
     data->dvMaxZ   = m_viewport.dvMaxZ;
+    // D3DVIEWPORT specific
+    data->dvScaleX = m_viewport.dvScaleX;
+    data->dvScaleY = m_viewport.dvScaleY;
 
     return D3D_OK;
   }
 
-  // Legacy call, technically should not be very common
+  // Docs state: "The method ignores the values in the dvMaxX, dvMaxY, dvMinZ, and dvMaxZ members."
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetViewport(D3DVIEWPORT *data) {
-    Logger::warn("<<< D3D6Viewport::SetViewport: Proxy");
+    Logger::debug(">>> D3D6Viewport::SetViewport");
 
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // Ignore the dvScaleX, dvScaleY, dvMaxX and dvMaxY values for now
+    if (unlikely(data->dwSize != sizeof(D3DVIEWPORT)))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(m_device == nullptr))
+      return D3DERR_VIEWPORTHASNODEVICE;
+
     m_viewport9.X      = m_viewport.dwX      = data->dwX;
     m_viewport9.Y      = m_viewport.dwY      = data->dwY;
     m_viewport9.Width  = m_viewport.dwWidth  = data->dwWidth;
     m_viewport9.Height = m_viewport.dwHeight = data->dwHeight;
-    m_viewport9.MinZ   = m_viewport.dvMinZ   = data->dvMinZ;
-    m_viewport9.MaxZ   = m_viewport.dvMaxZ   = data->dvMaxZ;
+    m_viewport9.MinZ   = m_viewport.dvMinZ;
+    m_viewport9.MaxZ   = m_viewport.dvMaxZ;
+    // D3DVIEWPORT specific
+    m_viewport.dvScaleX = data->dvScaleX;
+    m_viewport.dvScaleY = data->dvScaleY;
+
+    m_viewportIsSet = TRUE;
 
     if (likely(m_device != nullptr))
       ApplyViewport();
@@ -260,7 +277,20 @@ namespace dxvk {
     if (unlikely(data->dwSize != sizeof(D3DVIEWPORT2)))
       return DDERR_INVALIDPARAMS;
 
-    *data = m_viewport;
+    if (unlikely(!m_viewportIsSet))
+      return D3DERR_VIEWPORTDATANOTSET;
+
+    data->dwX      = m_viewport.dwX;
+    data->dwY      = m_viewport.dwY;
+    data->dwWidth  = m_viewport.dwWidth;
+    data->dwHeight = m_viewport.dwHeight;
+    data->dvMinZ   = m_viewport.dvMinZ;
+    data->dvMaxZ   = m_viewport.dvMaxZ;
+    // D3DVIEWPORT2 specific
+    data->dvClipX      = m_viewport2.dvClipX;
+    data->dvClipY      = m_viewport2.dvClipY;
+    data->dvClipWidth  = m_viewport2.dvClipWidth;
+    data->dvClipHeight = m_viewport2.dvClipHeight;
 
     return D3D_OK;
   }
@@ -271,14 +301,25 @@ namespace dxvk {
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    m_viewport = *data;
+    if (unlikely(data->dwSize != sizeof(D3DVIEWPORT2)))
+      return DDERR_INVALIDPARAMS;
 
-    m_viewport9.X = m_viewport.dwX;
-    m_viewport9.Y = m_viewport.dwY;
-    m_viewport9.Width  = m_viewport.dwWidth;
-    m_viewport9.Height = m_viewport.dwHeight;
-    m_viewport9.MinZ = m_viewport.dvMinZ;
-    m_viewport9.MaxZ = m_viewport.dvMaxZ;
+    if (unlikely(m_device == nullptr))
+      return D3DERR_VIEWPORTHASNODEVICE;
+
+    m_viewport9.X      = m_viewport2.dwX      = data->dwX;
+    m_viewport9.Y      = m_viewport2.dwY      = data->dwY;
+    m_viewport9.Width  = m_viewport2.dwWidth  = data->dwWidth;
+    m_viewport9.Height = m_viewport2.dwHeight = data->dwHeight;
+    m_viewport9.MinZ   = m_viewport2.dvMinZ   = data->dvMinZ;
+    m_viewport9.MaxZ   = m_viewport2.dvMaxZ   = data->dvMaxZ;
+    // D3DVIEWPORT2 specific
+    m_viewport2.dvClipX      = data->dvClipX;
+    m_viewport2.dvClipY      = data->dvClipY;
+    m_viewport2.dvClipWidth  = data->dvClipWidth;
+    m_viewport2.dvClipHeight = data->dvClipHeight;
+
+    m_viewportIsSet = TRUE;
 
     if (likely(m_device != nullptr))
       ApplyViewport();
@@ -372,7 +413,7 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT D3D6Viewport::ApplyAndActivateLight(DWORD index, D3D6Light* light6) {
+  inline HRESULT D3D6Viewport::ApplyAndActivateLight(DWORD index, D3D6Light* light6) {
     HRESULT hr = m_device->GetD3D9()->SetLight(index, light6->GetD3D9Light());
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Viewport::Clear2: Failed D3D9 SetLight call");

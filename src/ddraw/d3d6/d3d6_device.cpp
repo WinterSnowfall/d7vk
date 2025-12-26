@@ -9,6 +9,8 @@
 #include "d3d6_texture.h"
 #include "d3d6_viewport.h"
 
+#include <algorithm>
+
 namespace dxvk {
 
   uint32_t D3D6Device::s_deviceCount = 0;
@@ -60,7 +62,7 @@ namespace dxvk {
   }
 
   D3D6Device::~D3D6Device() {
-    // if at least the smallest index buffer saw any use, then print the stats
+    // If at least the smallest index buffer saw any use, then print the stats
     if (m_ib9_uploads[0] > 0) {
       Logger::info("D3D6Device: Common index buffer upload statistics:");
       Logger::info(str::format("   XS: ", m_ib9_uploads[0]));
@@ -68,6 +70,11 @@ namespace dxvk {
       Logger::info(str::format("   M : ", m_ib9_uploads[2]));
       Logger::info(str::format("   L : ", m_ib9_uploads[3]));
       Logger::info(str::format("   XL: ", m_ib9_uploads[4]));
+    }
+
+    // Dissasociate every bound viewport from this device
+    for (auto viewport : m_viewports) {
+      viewport->SetDevice(nullptr);
     }
 
     // Clear the parent interface device pointer if it points to this device
@@ -151,31 +158,51 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::AddViewport(IDirect3DViewport3 *viewport) {
-    Logger::debug("<<< D3D6Device::AddViewport: Proxy");
+    Logger::debug(">>> D3D6Device::AddViewport");
+
+    if (unlikely(viewport == nullptr))
+      return DDERR_INVALIDPARAMS;
 
     RefreshLastUsedDevice();
 
-    Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
-    return m_proxy->AddViewport(d3d6Viewport->GetProxied());
+    D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
+    HRESULT hr = m_proxy->AddViewport(d3d6Viewport->GetProxied());
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    AddViewportInternal(viewport);
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DeleteViewport(IDirect3DViewport3 *viewport) {
-    Logger::debug("<<< D3D6Device::DeleteViewport: Proxy");
+    Logger::debug(">>> D3D6Device::DeleteViewport");
+
+    if (unlikely(viewport == nullptr))
+      return DDERR_INVALIDPARAMS;
 
     RefreshLastUsedDevice();
 
-    Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
-    return m_proxy->DeleteViewport(d3d6Viewport->GetProxied());
+    D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
+    HRESULT hr = m_proxy->DeleteViewport(d3d6Viewport->GetProxied());
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    DeleteViewportInternal(viewport);
+
+    // Clear the current viewport if it is deleted from the device
+    if (m_currentViewport.ptr() == d3d6Viewport)
+      m_currentViewport = nullptr;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::NextViewport(IDirect3DViewport3 *ref, IDirect3DViewport3 **viewport, DWORD flags) {
-    Logger::warn("<<< D3D6Device::NextViewport: Proxy");
+    Logger::warn("!!! D3D6Device::NextViewport: Stub");
 
     RefreshLastUsedDevice();
 
-    Com<D3D6Viewport> ref6 = static_cast<D3D6Viewport*>(ref);
-    // TODO: Wrap the return or better, cache viewports in the interface and look them up
-    return m_proxy->NextViewport(ref6->GetProxied(), viewport, flags);
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx) {
@@ -310,8 +337,11 @@ namespace dxvk {
       if (m_parent->GetOptions()->forceProxiedPresent) {
         // If we have drawn anything, we need to make sure we blit back
         // the results onto the d3d7 render target before we flip it
-        if (m_hasDrawn)
+        if (m_hasDrawn) {
+          if (unlikely(!m_rt->IsInitialized()))
+            m_rt->InitializeD3D9RenderTarget();
           BlitToDDrawSurface(m_rt->GetProxied(), m_rt->GetD3D9());
+        }
         m_rt->GetProxied()->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
 
         if (likely(m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
@@ -340,6 +370,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Device::SetCurrentViewport(IDirect3DViewport3 *viewport) {
     Logger::debug(">>> D3D6Device::SetCurrentViewport");
 
+    if (unlikely(viewport == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     RefreshLastUsedDevice();
 
     Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
@@ -347,14 +380,11 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (likely(m_viewport != nullptr))
-      m_viewport->SetDevice(nullptr);
-    m_viewport = d3d6Viewport.ptr();
-    m_viewport->SetDevice(this);
+    m_currentViewport = d3d6Viewport.ptr();
 
-    m_viewport->ApplyViewport();
-    m_viewport->ApplyMaterial();
-    m_viewport->ApplyAndActivateLights();
+    m_currentViewport->ApplyViewport();
+    m_currentViewport->ApplyMaterial();
+    m_currentViewport->ApplyAndActivateLights();
 
     return D3D_OK;
   }
@@ -363,11 +393,14 @@ namespace dxvk {
     Logger::debug(">>> D3D6Device::GetCurrentViewport");
 
     if (unlikely(viewport == nullptr))
-      return DDERR_INVALIDPARAMS;
+      return D3DERR_NOCURRENTVIEWPORT;
 
     InitReturnPtr(viewport);
 
-    *viewport = m_viewport;
+    if (unlikely(m_currentViewport == nullptr))
+      return D3DERR_NOCURRENTVIEWPORT;
+
+    *viewport = m_currentViewport.ref();
 
     return D3D_OK;
   }
@@ -1666,6 +1699,30 @@ namespace dxvk {
     }
 
     return D3D_OK;
+  }
+
+  inline void D3D6Device::AddViewportInternal(IDirect3DViewport3* viewport) {
+    D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
+
+    auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d6Viewport);
+    if (unlikely(it != m_viewports.end())) {
+      Logger::warn("D3D6Device::AddViewportInternal: Pre-existing viewport found");
+    } else {
+      m_viewports.push_back(d3d6Viewport);
+      d3d6Viewport->SetDevice(this);
+    }
+  }
+
+  inline void D3D6Device::DeleteViewportInternal(IDirect3DViewport3* viewport) {
+    D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
+
+    auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d6Viewport);
+    if (likely(it != m_viewports.end())) {
+      m_viewports.erase(it);
+      d3d6Viewport->SetDevice(nullptr);
+    } else {
+      Logger::warn("D3D6Device::DeleteViewportInternal: Viewport not found");
+    }
   }
 
   inline void D3D6Device::UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount) {
