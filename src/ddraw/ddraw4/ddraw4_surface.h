@@ -295,6 +295,8 @@ namespace dxvk {
     DDSURFACEDESC2                      m_desc;
     d3d9::D3DFORMAT                     m_format;
 
+    Com<D3D6Texture, false>             m_texture6;
+
     Com<d3d9::IDirect3DTexture9>        m_texture;
 
     // Back buffers will have depth stencil surfaces as attachments (in practice
