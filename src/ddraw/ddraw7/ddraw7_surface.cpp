@@ -225,7 +225,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!IsTextureOrCubeMap() || m_parent->GetOptions()->forceTextureUploads) {
+      if (!IsTextureOrCubeMap()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::Blt: Failed upload to d3d9 surface");
@@ -278,7 +278,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!IsTextureOrCubeMap() || m_parent->GetOptions()->forceTextureUploads) {
+      if (!IsTextureOrCubeMap()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::BltFast: Failed upload to d3d9 surface");
@@ -636,7 +636,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (!IsTextureOrCubeMap() || m_parent->GetOptions()->forceTextureUploads) {
+    if (!IsTextureOrCubeMap()) {
       InitializeOrUploadD3D9();
     } else {
       DirtyMipMaps();
@@ -689,7 +689,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!IsTextureOrCubeMap() || m_parent->GetOptions()->forceTextureUploads) {
+      if (!IsTextureOrCubeMap()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::Unlock: Failed upload to d3d9 surface");
@@ -769,7 +769,7 @@ namespace dxvk {
     // We may need to recreate the d3d9 object based on the new desc
     m_d3d9 = nullptr;
 
-    if (!IsTextureOrCubeMap() || m_parent->GetOptions()->forceTextureUploads) {
+    if (!IsTextureOrCubeMap()) {
       InitializeOrUploadD3D9();
     } else {
       DirtyMipMaps();
