@@ -1,5 +1,8 @@
 #include "d3d6_material.h"
 
+#include "d3d6_device.h"
+#include "d3d6_viewport.h"
+
 namespace dxvk {
 
   uint32_t D3D6Material::s_materialCount = 0;
@@ -55,7 +58,7 @@ namespace dxvk {
     }
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Material::SetMaterial (D3DMATERIAL *data) {
+  HRESULT STDMETHODCALLTYPE D3D6Material::SetMaterial(D3DMATERIAL *data) {
     Logger::debug(">>> D3D6Material::SetMaterial");
 
     if (unlikely(data == nullptr))
@@ -69,10 +72,36 @@ namespace dxvk {
     m_material9.Emissive = m_material.dcvEmissive;
     m_material9.Power    = m_material.dvPower;
 
+    Logger::debug(str::format(">>> D3D6Material::SetMaterial: Updated material nr. ", m_materialHandle));
+    Logger::debug(str::format("   Diffuse:  ", m_material9.Diffuse.r, " ", m_material9.Diffuse.g, " ", m_material9.Diffuse.b));
+    Logger::debug(str::format("   Ambient:  ", m_material9.Ambient.r, " ", m_material9.Ambient.g, " ", m_material9.Ambient.b));
+    Logger::debug(str::format("   Specular: ", m_material9.Specular.r, " ", m_material9.Specular.g, " ", m_material9.Specular.b));
+    Logger::debug(str::format("   Emissive: ", m_material9.Emissive.r, " ", m_material9.Emissive.g, " ", m_material9.Emissive.b));
+    Logger::debug(str::format("   Power:    ", m_material9.Power));
+
+    // Update the D3D9 material directly if it's actively being used
+    D3D6Device* device6 = m_parent->GetLastUsedDevice();
+    if (likely(device6 != nullptr)) {
+      // Render state set material
+      D3DMATERIALHANDLE material = device6->GetCurrentMaterialHandle();
+      if (material == m_materialHandle) {
+        Logger::info(str::format("D3D6Material::SetMaterial: Applying material nr. ", m_materialHandle, " to D3D9"));
+        device6->GetD3D9()->SetMaterial(&m_material9);
+      // Current viewport set material (background)
+      } else {
+        D3D6Viewport* d3d6Viewport = device6->GetCurrentViewportInternal();
+        if (likely(d3d6Viewport != nullptr)) {
+          material = d3d6Viewport->GetCurrentMaterialHandle();
+          if (material == m_materialHandle)
+            d3d6Viewport->ApplyMaterial();
+        }
+      }
+    }
+
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Material::GetMaterial (D3DMATERIAL *data) {
+  HRESULT STDMETHODCALLTYPE D3D6Material::GetMaterial(D3DMATERIAL *data) {
     Logger::debug(">>> D3D6Material::GetMaterial");
 
     if (unlikely(data == nullptr))
@@ -83,7 +112,7 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Material::GetHandle (IDirect3DDevice3 *device, D3DMATERIALHANDLE *handle) {
+  HRESULT STDMETHODCALLTYPE D3D6Material::GetHandle(IDirect3DDevice3 *device, D3DMATERIALHANDLE *handle) {
     Logger::debug(">>> D3D6Material::GetHandle");
 
     if(unlikely(device == nullptr || handle == nullptr))
