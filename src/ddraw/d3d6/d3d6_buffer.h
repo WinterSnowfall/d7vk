@@ -73,19 +73,22 @@ namespace dxvk {
       // Disable lighting if the D3DVOP_LIGHT isn't specified
       if (!(pvFlags & D3DVOP_LIGHT)) {
         m_d3d6Device->GetD3D9()->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
-        if (m_lighting)
+        if (m_lighting) {
+          Logger::debug("D3D6VertexBuffer: Disabling lighting");
           m_d3d6Device->GetD3D9()->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+        }
       }
       if (pvFlags & D3DVOP_CLIP) {
-        Logger::debug(">>> D3D6VertexBuffer:: Unsupported D3DVOP_CLIP");
+        Logger::debug("D3D6VertexBuffer: Unsupported D3DVOP_CLIP");
       }
       if (pvFlags & D3DVOP_EXTENTS) {
-        Logger::debug(">>> D3D6VertexBuffer:: Unsupported D3DVOP_EXTENTS");
+        Logger::debug("D3D6VertexBuffer: Unsupported D3DVOP_EXTENTS");
       }
     }
 
     inline void HandlePostProcessVerticesFlags(DWORD pvFlags) {
       if (!(pvFlags & D3DVOP_LIGHT) && m_lighting) {
+        Logger::debug("D3D6VertexBuffer: Enabling lighting");
         m_d3d6Device->GetD3D9()->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
       }
     }

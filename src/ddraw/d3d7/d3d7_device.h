@@ -207,7 +207,7 @@ namespace dxvk {
 
     inline void HandlePreDrawFlags(DWORD drawFlags) {
       if (drawFlags & D3DDP_WAIT) {
-        Logger::debug(">>> D3D6Device:: Draw with D3DDP_DONOTUPDATEEXTENTS");
+        Logger::debug("D3D7Device: Draw with D3DDP_DONOTUPDATEEXTENTS");
       }
     }
 
