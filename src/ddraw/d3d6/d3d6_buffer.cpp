@@ -18,8 +18,6 @@ namespace dxvk {
     , m_desc ( desc )
     , m_stride ( GetFVFSize(desc.dwFVF) )
     , m_size ( m_stride * desc.dwNumVertices ) {
-    m_parent->AddRef();
-
     m_buffCount = ++s_buffCount;
 
     // 0 the size to cater for future GetVertexBufferDesc calls
@@ -29,8 +27,6 @@ namespace dxvk {
   }
 
   D3D6VertexBuffer::~D3D6VertexBuffer() {
-    m_parent->Release();
-
     Logger::debug(str::format("D3D7VertexBuffer: Buffer nr. {{7-", m_buffCount, "}} bites the dust"));
   }
 

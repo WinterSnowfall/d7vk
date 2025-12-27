@@ -249,11 +249,13 @@ namespace dxvk {
     std::vector<Com<D3D6Viewport>>  m_viewports;
 
     // Value of D3DRENDERSTATE_ANTIALIAS
-    DWORD           m_antialias     = D3DANTIALIAS_NONE;
+    DWORD           m_antialias       = D3DANTIALIAS_NONE;
     // Value of D3DRENDERSTATE_LINEPATTERN
-    D3DLINEPATTERN  m_linePattern   = {};
+    D3DLINEPATTERN  m_linePattern     = {};
     // Value of D3DRENDERSTATE_ZVISIBLE (although the RS is not supported, its value is stored)
-    DWORD           m_zVisible      = 0;
+    DWORD           m_zVisible        = 0;
+    // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
+    DWORD           m_textureMapBlend = D3DTBLEND_MODULATE;
 
     FilpRT6Flags    m_flipRTFlags;
 

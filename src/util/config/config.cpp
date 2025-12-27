@@ -1633,6 +1633,11 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                  "30" },
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Urban Chaos                                *
+     * Uses windowed present mode in full-screen  */
+    { R"(\\fallen\.exe$)", {{
+      { "ddraw.ignoreExclusiveMode",        "True" },
+    }} },
 
   };
 

@@ -434,6 +434,12 @@ namespace dxvk {
       }
     }
 
+    // A render target surface needs to have the DDSCAPS_3DDEVICE cap
+    if (unlikely(!rt6->Is3DSurface())) {
+      Logger::err("D3D6Device::SetRenderTarget: Surface is missing DDSCAPS_3DDEVICE");
+      return DDERR_INVALIDCAPS;
+    }
+
     HRESULT hr = rt6->InitializeD3D9RenderTarget();
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::SetRenderTarget: Failed to initialize D3D9 RT");
@@ -614,9 +620,8 @@ namespace dxvk {
         m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MINFILTER, lpdwRenderState);
         return D3D_OK;
 
-      // "This render state is used when rendering with the IDirect3DDevice2 interface."
       case D3DRENDERSTATE_TEXTUREMAPBLEND:
-        *lpdwRenderState = D3DTBLEND_MODULATE;
+        *lpdwRenderState = m_textureMapBlend;
         return D3D_OK;
 
       // Not supported by D3D7 either, but its value is stored.
@@ -734,10 +739,10 @@ namespace dxvk {
 
     RefreshLastUsedDevice();
 
-    // As opposed to d3d8/9, d3d6 actually validates and
-    // errors out in case of unknown/invalid render states
+    // As opposed to d3d7, d3d6 does not error out on
+    // unknown or invalid render states.
     if (unlikely(!IsValidD3D6RenderStateType(dwRenderStateType)))
-      return DDERR_INVALIDPARAMS;
+      return D3D_OK;
 
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
 
@@ -862,8 +867,72 @@ namespace dxvk {
         return D3D_OK;
       }
 
-      // "This render state is used when rendering with the IDirect3DDevice2 interface."
       case D3DRENDERSTATE_TEXTUREMAPBLEND:
+        m_textureMapBlend = dwRenderState;
+
+        switch (dwRenderState) {
+          // "In this mode, the RGB and alpha values of the texture replace
+          //  the colors that would have been used with no texturing."
+          case D3DTBLEND_DECAL:
+          case D3DTBLEND_COPY:
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_SELECTARG1);
+				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
+				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_CURRENT);
+				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_CURRENT);
+            break;
+          // "In this mode, the RGB values of the texture are multiplied with the RGB values
+          //  that would have been used with no texturing. Any alpha values in the texture
+          //  replace the alpha values in the colors that would have been used with no texturing;
+          //  if the texture does not contain an alpha component, alpha values at the vertices
+          //  in the source are interpolated between vertices."
+          case D3DTBLEND_MODULATE:
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG2);
+				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+            break;
+          // "In this mode, the RGB and alpha values of the texture are blended with the colors
+          //  that would have been used with no texturing, according to the following formulas [...]"
+          case D3DTBLEND_DECALALPHA:
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_BLENDTEXTUREALPHA);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG2);
+				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+            break;
+          // "In this mode, the RGB values of the texture are multiplied with the RGB values that
+          //  would have been used with no texturing, and the alpha values of the texture
+          //  are multiplied with the alpha values that would have been used with no texturing."
+          case D3DTBLEND_MODULATEALPHA:
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_MODULATE);
+				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+            break;
+          // "Add the Gouraud interpolants to the texture lookup with saturation semantics
+          //  (that is, if the color value overflows it is set to the maximum possible value)."
+          case D3DTBLEND_ADD:
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_ADD);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG2);
+				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+            break;
+          // Unsupported
+          default:
+          case D3DTBLEND_DECALMASK:
+          case D3DTBLEND_MODULATEMASK:
+            break;
+        }
+
         return D3D_OK;
 
       // Not supported by D3D7 either, but its value is stored.
