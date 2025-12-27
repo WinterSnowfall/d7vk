@@ -16,12 +16,6 @@ namespace dxvk {
     : DDrawWrappedObject<D3D6Interface, IDirect3DViewport3, IUnknown>(pParent, std::move(proxyViewport), nullptr) {
     m_viewportCount = ++s_viewportCount;
 
-    // Viewport default values
-    m_viewport.dwX    = m_viewport2.dwX    = 0;
-    m_viewport.dwX    = m_viewport2.dwY    = 0;
-    m_viewport.dvMinZ = m_viewport2.dvMinZ = 0.0f;
-    m_viewport.dvMaxZ = m_viewport2.dvMaxZ = 1.0f;
-
     Logger::debug(str::format("D3D6Viewport: Created a new viewport nr. [[3-", m_viewportCount, "]]"));
   }
 
@@ -105,6 +99,8 @@ namespace dxvk {
     data->dvMinZ   = m_viewport.dvMinZ;
     data->dvMaxZ   = m_viewport.dvMaxZ;
     // D3DVIEWPORT specific
+    data->dvMaxX   = m_viewport.dvMaxX;
+    data->dvMaxY   = m_viewport.dvMaxY;
     data->dvScaleX = m_viewport.dvScaleX;
     data->dvScaleY = m_viewport.dvScaleY;
 
@@ -136,15 +132,16 @@ namespace dxvk {
 
     m_viewportIsSet = TRUE;
 
-    if (likely(m_device != nullptr))
+    if (m_isCurrentViewport)
       ApplyViewport();
 
     return D3D_OK;
   }
 
+  // Used at least by X: Beyond The Frontier
   HRESULT STDMETHODCALLTYPE D3D6Viewport::TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen) {
-    Logger::warn("!!! D3D6Viewport::TransformVertices: Stub");
-    return D3D_OK;
+    Logger::debug("<<< D3D6Viewport::TransformVertices: Proxy");
+    return m_proxy->TransformVertices(vertex_count, data, flags, offscreen);
   }
 
   // Docs state: "The IDirect3DViewport3::LightElements method is not currently implemented."
@@ -167,7 +164,7 @@ namespace dxvk {
     m_materialHandle = hMat;
     m_materialIsSet = TRUE;
 
-    if (likely(m_device != nullptr))
+    if (m_device != nullptr && m_isCurrentViewport)
       ApplyMaterial();
 
     return D3D_OK;
@@ -236,12 +233,9 @@ namespace dxvk {
     } else {
       m_lights.push_back(light6);
       light6->SetViewport(this);
-      light6->SetIndex(m_lightIndex9);
-
-      m_lightIndex9++;
     }
 
-    if (likely(m_device != nullptr))
+    if (m_device != nullptr && m_isCurrentViewport)
       ApplyAndActivateLight(light6->GetIndex(), light6);
 
     return D3D_OK;
@@ -257,15 +251,13 @@ namespace dxvk {
 
     auto it = std::find(m_lights.begin(), m_lights.end(), light6);
     if (likely(it != m_lights.end())) {
-      m_lights.erase(it);
-      if (likely(m_device != nullptr && light6->IsActive())) {
-        light6->SetViewport(nullptr);
-        const DWORD light6Index = light6->GetIndex();
+      const DWORD light6Index = light6->GetIndex();
+      if (m_device != nullptr && m_isCurrentViewport && light6->IsActive()) {
+        Logger::warn(str::format("D3D6Viewport: Disabling light nr. ", light6Index));
         m_device->GetD3D9()->LightEnable(light6Index, FALSE);
-
-        if (light6Index == m_lightIndex9)
-          m_lightIndex9--;
       }
+      m_lights.erase(it);
+      light6->SetViewport(nullptr);
     } else {
       Logger::warn("D3D6Viewport::DeleteLight: Light not found");
     }
@@ -291,12 +283,12 @@ namespace dxvk {
     if (unlikely(!m_viewportIsSet))
       return D3DERR_VIEWPORTDATANOTSET;
 
-    data->dwX      = m_viewport.dwX;
-    data->dwY      = m_viewport.dwY;
-    data->dwWidth  = m_viewport.dwWidth;
-    data->dwHeight = m_viewport.dwHeight;
-    data->dvMinZ   = m_viewport.dvMinZ;
-    data->dvMaxZ   = m_viewport.dvMaxZ;
+    data->dwX      = m_viewport2.dwX;
+    data->dwY      = m_viewport2.dwY;
+    data->dwWidth  = m_viewport2.dwWidth;
+    data->dwHeight = m_viewport2.dwHeight;
+    data->dvMinZ   = m_viewport2.dvMinZ;
+    data->dvMaxZ   = m_viewport2.dvMaxZ;
     // D3DVIEWPORT2 specific
     data->dvClipX      = m_viewport2.dvClipX;
     data->dvClipY      = m_viewport2.dvClipY;
@@ -332,7 +324,7 @@ namespace dxvk {
 
     m_viewportIsSet = TRUE;
 
-    if (likely(m_device != nullptr))
+    if (m_isCurrentViewport)
       ApplyViewport();
 
     return D3D_OK;
@@ -382,6 +374,9 @@ namespace dxvk {
   }
 
   HRESULT D3D6Viewport::ApplyViewport() {
+    if (!m_viewportIsSet)
+      return D3D_OK;
+
     Logger::debug("D3D6Viewport: Applying viewport to D3D9");
 
     HRESULT hr = m_device->GetD3D9()->SetViewport(&m_viewport9);
@@ -395,43 +390,39 @@ namespace dxvk {
     if (!m_materialIsSet)
       return D3D_OK;
 
-    Logger::debug("D3D6Viewport: Applying material to D3D9");
-
     D3D6Material* material6 = m_parent->GetMaterialFromHandle(m_materialHandle);
+
+    Logger::debug(str::format("D3D6Viewport: Applying material nr. ", m_materialHandle, " to D3D9"));
 
     HRESULT hr = m_device->GetD3D9()->SetMaterial(material6->GetD3D9Material());
     if(unlikely(FAILED(hr)))
       Logger::err("D3D6Viewport: Failed to set the D3D9 material");
 
-    // Docs: "If the rendering device does not have a material assigned
-    // to it, the Direct3D lighting engine is disabled."
-    m_device->GetD3D9()->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
-
     return hr;
   }
 
   HRESULT D3D6Viewport::ApplyAndActivateLights() {
+    if (!m_lights.size())
+      return D3D_OK;
+
     Logger::debug("D3D6Viewport: Applying lights to D3D9");
 
-    uint32_t lightcounter = 0;
-
-    for (auto light6: m_lights) {
-      HRESULT hr = ApplyAndActivateLight(lightcounter, light6);
-      if (likely(SUCCEEDED(hr)))
-        lightcounter++;
-    }
+    for (auto light6: m_lights)
+      ApplyAndActivateLight(light6->GetIndex(), light6);
 
     return D3D_OK;
   }
 
-  inline HRESULT D3D6Viewport::ApplyAndActivateLight(DWORD index, D3D6Light* light6) {
+  HRESULT D3D6Viewport::ApplyAndActivateLight(DWORD index, D3D6Light* light6) {
     HRESULT hr = m_device->GetD3D9()->SetLight(index, light6->GetD3D9Light());
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6Viewport::Clear2: Failed D3D9 SetLight call");
+      Logger::err("D3D6Viewport: Failed D3D9 SetLight call");
     } else {
       if (light6->IsActive()) {
+        Logger::debug(str::format("D3D6Viewport: Enabling light nr. ", index));
         m_device->GetD3D9()->LightEnable(index, TRUE);
       } else {
+        Logger::debug(str::format("D3D6Viewport: Disabling light nr. ", index));
         m_device->GetD3D9()->LightEnable(index, FALSE);
       }
     }

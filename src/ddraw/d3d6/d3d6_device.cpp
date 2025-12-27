@@ -5,9 +5,7 @@
 #include "../ddraw4/ddraw4_surface.h"
 
 #include "d3d6_buffer.h"
-#include "d3d6_material.h"
 #include "d3d6_texture.h"
-#include "d3d6_viewport.h"
 
 #include <algorithm>
 
@@ -380,8 +378,12 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
+    if (likely(m_currentViewport != nullptr))
+      m_currentViewport->SetIsCurrentViewport(false);
+
     m_currentViewport = d3d6Viewport.ptr();
 
+    m_currentViewport->SetIsCurrentViewport(true);
     m_currentViewport->ApplyViewport();
     m_currentViewport->ApplyMaterial();
     m_currentViewport->ApplyAndActivateLights();
@@ -891,7 +893,8 @@ namespace dxvk {
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
-            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG2);
+            // TODO: Or D3DTOP_SELECTARG2 for no alpha? Patch it during SetTexture???
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
 				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
 				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
             break;
@@ -1108,20 +1111,17 @@ namespace dxvk {
 
     switch (dwLightStateType) {
       case D3DLIGHTSTATE_MATERIAL: {
+        // TODO: Maybe D3D_OK?
+        if (unlikely(!dwLightState))
+          return DDERR_INVALIDPARAMS;
+
+        D3D6Material* material6 = m_parent->GetMaterialFromHandle(dwLightState);
+        if (unlikely(material6 == nullptr))
+          return DDERR_INVALIDPARAMS;
+
         m_materialHandle = dwLightState;
-
-        // Docs: "If the rendering device does not have a material assigned
-        // to it, the Direct3D lighting engine is disabled."
-        if (unlikely(!m_materialHandle)) {
-          m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
-        } else {
-          D3D6Material* material6 = m_parent->GetMaterialFromHandle(dwLightState);
-          if (unlikely(material6 == nullptr))
-            return DDERR_INVALIDPARAMS;
-
-          m_d3d9->SetMaterial(material6->GetD3D9Material());
-          m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
-        }
+        Logger::info(str::format("D3D6Device::SetLightState: Applying material nr. ", dwLightState, " to D3D9"));
+        m_d3d9->SetMaterial(material6->GetD3D9Material());
 
         break;
       }
