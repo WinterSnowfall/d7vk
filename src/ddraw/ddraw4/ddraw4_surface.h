@@ -152,6 +152,10 @@ namespace dxvk {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_ZBUFFER;
     }
 
+    bool Is3DSurface() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_3DDEVICE;
+    }
+
     DDraw4Surface* GetAttachedDepthStencil() const {
       return m_depthStencil.ptr();
     }
@@ -213,10 +217,6 @@ namespace dxvk {
 
     inline bool IsBackBuffer() const {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER;
-    }
-
-    inline bool Is3DSurface() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_3DDEVICE;
     }
 
     inline bool IsOffScreenPlainSurface() const {

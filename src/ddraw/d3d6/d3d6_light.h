@@ -4,6 +4,7 @@
 #include "../ddraw_wrapped_object.h"
 
 #include "d3d6_interface.h"
+#include "d3d6_viewport.h"
 
 namespace dxvk {
 
@@ -27,6 +28,14 @@ namespace dxvk {
       return &m_light9;
     }
 
+    void SetViewport(D3D6Viewport* viewport) {
+      m_viewport = viewport;
+    }
+
+    bool HasViewport() const {
+      return m_viewport != nullptr;
+    }
+
     void SetIndex(DWORD index) {
       m_index9 = index;
     }
@@ -47,6 +56,8 @@ namespace dxvk {
 
     static uint32_t  s_lightCount;
     uint32_t         m_lightCount = 0;
+
+    D3D6Viewport*    m_viewport = nullptr;
 
     D3DLIGHT2        m_light = { };
 
