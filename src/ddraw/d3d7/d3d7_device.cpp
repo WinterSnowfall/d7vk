@@ -326,6 +326,12 @@ namespace dxvk {
       }
     }
 
+    // A render target surface needs to have the DDSCAPS_3DDEVICE cap
+    if (unlikely(!rt7->Is3DSurface())) {
+      Logger::err("D3D7Device::SetRenderTarget: Surface is missing DDSCAPS_3DDEVICE");
+      return DDERR_INVALIDCAPS;
+    }
+
     HRESULT hr = rt7->InitializeD3D9RenderTarget();
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::SetRenderTarget: Failed to initialize D3D9 RT");
