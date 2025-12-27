@@ -264,7 +264,8 @@ namespace dxvk {
     if (rclsid == IID_IDirect3DHALDevice) {
       Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
     } else if (rclsid == IID_IDirect3DMMXDevice) {
-      Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DMMXDevice device");
+      Logger::warn("D3D6Interface::CreateDevice: Unsupported MMMX device, falling back to RGB");
+      rclsid == IID_IDirect3DRGBDevice;
     } else if (rclsid == IID_IDirect3DRGBDevice) {
       Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
     } else {
@@ -416,8 +417,8 @@ namespace dxvk {
 
     try{
       Com<D3D6Device> device = new D3D6Device(std::move(d3d6DeviceProxy), this, desc6,
-                                              params, std::move(device9), rt4.ptr(),
-                                              deviceCreationFlags9);
+                                              rclsid, params, std::move(device9),
+                                              rt4.ptr(), deviceCreationFlags9);
       // Hold the address of the most recently created device, not a reference
       m_lastUsedDevice = device.ptr();
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)

@@ -78,12 +78,6 @@ namespace dxvk {
           m_d3d6Device->GetD3D9()->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
         }
       }
-      if (pvFlags & D3DVOP_CLIP) {
-        Logger::debug("D3D6VertexBuffer: Unsupported D3DVOP_CLIP");
-      }
-      if (pvFlags & D3DVOP_EXTENTS) {
-        Logger::debug("D3D6VertexBuffer: Unsupported D3DVOP_EXTENTS");
-      }
     }
 
     inline void HandlePostProcessVerticesFlags(DWORD pvFlags) {

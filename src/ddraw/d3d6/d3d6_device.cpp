@@ -20,6 +20,7 @@ namespace dxvk {
       Com<IDirect3DDevice3>&& d3d6DeviceProxy,
       D3D6Interface* pParent,
       D3DDEVICEDESC Desc,
+      REFCLSID deviceGUID,
       d3d9::D3DPRESENT_PARAMETERS Params9,
       Com<d3d9::IDirect3DDevice9>&& pDevice9,
       DDraw4Surface* pSurface,
@@ -29,6 +30,7 @@ namespace dxvk {
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
     , m_desc ( Desc )
+    , m_deviceGUID ( deviceGUID )
     , m_rt ( pSurface ) {
     // Get the bridge interface to D3D9
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8Bridge), reinterpret_cast<void**>(&m_bridge))))) {
@@ -128,21 +130,37 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetCaps(D3DDEVICEDESC *hal_desc, D3DDEVICEDESC *hel_desc) {
-    Logger::debug("<<< D3D6Device::GetCaps: Proxy");
+    Logger::debug(">>> D3D6Device::GetCaps");
 
     RefreshLastUsedDevice();
 
-    return m_proxy->GetCaps(hal_desc, hel_desc);
-
-    /*RefreshLastUsedDevice();
-
-    if (unlikely(desc == nullptr))
+    if (unlikely(hal_desc == nullptr || hel_desc == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *hal_desc = m_desc;
-    *hel_desc = m_desc;
+    if (unlikely(hal_desc->dwSize != sizeof(D3DDEVICEDESC)))
+      return DDERR_INVALIDPARAMS;
 
-    return D3D_OK;*/
+    if (unlikely(hel_desc->dwSize != sizeof(D3DDEVICEDESC)))
+      return DDERR_INVALIDPARAMS;
+
+    D3DDEVICEDESC desc_HAL = m_desc;
+    D3DDEVICEDESC desc_HEL = m_desc;
+
+    if (m_deviceGUID == IID_IDirect3DRGBDevice) {
+      desc_HAL.dwFlags = 0;
+      desc_HAL.dcmColorModel = 0;
+    } else if (m_deviceGUID == IID_IDirect3DHALDevice) {
+      desc_HEL.dcmColorModel = 0;
+      desc_HEL.dwDevCaps &= ~D3DDEVCAPS_DRAWPRIMITIVES2
+                          & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+    } else {
+      Logger::warn("D3D6Device::GetCaps: Unhandled device type");
+    }
+
+    *hal_desc = desc_HAL;
+    *hel_desc = desc_HEL;
+
+    return D3D_OK;
   }
 
   // Docs state: "The IDirect3DDevice3::GetStats method is obsolete,
@@ -156,12 +174,14 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::AddViewport(IDirect3DViewport3 *viewport) {
+    D3D6DeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D6Device::AddViewport");
+
+    RefreshLastUsedDevice();
 
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
-
-    RefreshLastUsedDevice();
 
     D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
     HRESULT hr = m_proxy->AddViewport(d3d6Viewport->GetProxied());
@@ -174,12 +194,14 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DeleteViewport(IDirect3DViewport3 *viewport) {
+    D3D6DeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D6Device::DeleteViewport");
+
+    RefreshLastUsedDevice();
 
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
-
-    RefreshLastUsedDevice();
 
     D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
     HRESULT hr = m_proxy->DeleteViewport(d3d6Viewport->GetProxied());
@@ -366,12 +388,14 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::SetCurrentViewport(IDirect3DViewport3 *viewport) {
+    D3D6DeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D6Device::SetCurrentViewport");
+
+    RefreshLastUsedDevice();
 
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
-
-    RefreshLastUsedDevice();
 
     Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
     HRESULT hr = m_proxy->SetCurrentViewport(d3d6Viewport->GetProxied());
@@ -392,7 +416,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetCurrentViewport(IDirect3DViewport3 **viewport) {
+    D3D6DeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D6Device::GetCurrentViewport");
+
+    RefreshLastUsedDevice();
 
     if (unlikely(viewport == nullptr))
       return D3DERR_NOCURRENTVIEWPORT;
@@ -1067,6 +1095,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LPDWORD lpdwLightState) {
+    D3D6DeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D6Device::GetLightState");
 
     RefreshLastUsedDevice();
@@ -1105,6 +1135,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DWORD dwLightState) {
+    D3D6DeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D6Device::SetLightState");
 
     RefreshLastUsedDevice();
@@ -1120,7 +1152,7 @@ namespace dxvk {
           return DDERR_INVALIDPARAMS;
 
         m_materialHandle = dwLightState;
-        Logger::info(str::format("D3D6Device::SetLightState: Applying material nr. ", dwLightState, " to D3D9"));
+        Logger::debug(str::format("D3D6Device::SetLightState: Applying material nr. ", dwLightState, " to D3D9"));
         m_d3d9->SetMaterial(material6->GetD3D9Material());
 
         break;
@@ -1553,9 +1585,15 @@ namespace dxvk {
     D3D6Texture* texture6 = static_cast<D3D6Texture*>(texture);
     DDraw4Surface* surface6 = texture6->GetParent();
 
+    if (unlikely(m_parent->GetOptions()->proxySetTexture)) {
+      HRESULT hrProxy = m_proxy->SetTexture(stage, texture6->GetProxied());
+      if (unlikely(FAILED(hrProxy)))
+        Logger::warn("D3D6Device::SetTexture: Failed proxied call");
+    }
+
     // Only upload textures if any sort of blit/lock operation
     // has been performed on them since the last SetTexture call
-    if (surface6->HasDirtyMipMaps() || m_parent->GetOptions()->forceTextureUploads) {
+    if (surface6->HasDirtyMipMaps() || m_parent->GetOptions()->alwaysDirtyMipMaps) {
       hr = surface6->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D6Device::SetTexture: Failed to initialize/upload D3D9 texture");
