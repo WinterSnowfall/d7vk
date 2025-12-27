@@ -57,12 +57,14 @@ namespace dxvk {
   // Docs state: "The method returns DDERR_ALREADYINITIALIZED because
   // the Direct3DLight object is initialized when it is created."
   HRESULT STDMETHODCALLTYPE D3D6Light::Initialize(IDirect3D *d3d) {
-    Logger::debug(">>> D3D6Viewport::Initialize");
+    Logger::debug(">>> D3D6Light::Initialize");
     return DDERR_ALREADYINITIALIZED;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Light::SetLight(D3DLIGHT *data) {
-    Logger::debug(">>> D3D6Viewport::SetLight");
+    Logger::debug(">>> D3D6Light::SetLight");
+
+    static constexpr D3DCOLORVALUE zeroValue = {{0.0f}, {0.0f}, {0.0f}, {0.0f}};
 
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -77,7 +79,7 @@ namespace dxvk {
 
     m_light9.Type         = d3d9::D3DLIGHTTYPE(m_light.dltType);
     m_light9.Diffuse      = m_light.dcvColor;
-    m_light9.Specular     = HasSpectular() ? m_light.dcvColor : D3DCOLORVALUE({0, 0, 0, 0});
+    m_light9.Specular     = HasSpecular() ? m_light.dcvColor : zeroValue;
     m_light9.Ambient      = m_light.dcvColor;
     m_light9.Position     = m_light.dvPosition;
     m_light9.Direction    = m_light.dvDirection;
@@ -89,11 +91,30 @@ namespace dxvk {
     m_light9.Theta        = m_light.dvTheta;
     m_light9.Phi          = m_light.dvPhi;
 
+    Logger::debug(str::format(">>> D3D6Light::SetLight: Updated light nr. ", m_lightCount));
+    Logger::debug(str::format("   Type:         ", m_light9.Type));
+    Logger::debug(str::format("   Diffuse:      ", m_light9.Diffuse.r, " ", m_light9.Diffuse.g, " ", m_light9.Diffuse.b));
+    Logger::debug(str::format("   Specular:     ", m_light9.Specular.r, " ", m_light9.Specular.g, " ", m_light9.Specular.b));
+    Logger::debug(str::format("   Ambient:      ", m_light9.Ambient.r, " ", m_light9.Ambient.g, " ", m_light9.Ambient.b));
+    Logger::debug(str::format("   Position:     ", m_light9.Position.x, " ", m_light9.Position.y, " ", m_light9.Position.z));
+    Logger::debug(str::format("   Direction:    ", m_light9.Direction.x, " ", m_light9.Direction.y, " ", m_light9.Direction.z));
+    Logger::debug(str::format("   Range:        ", m_light9.Range));
+    Logger::debug(str::format("   Falloff:      ", m_light9.Falloff));
+    Logger::debug(str::format("   Attenuation0: ", m_light9.Attenuation0));
+    Logger::debug(str::format("   Attenuation1: ", m_light9.Attenuation1));
+    Logger::debug(str::format("   Attenuation2: ", m_light9.Attenuation2));
+    Logger::debug(str::format("   Theta:        ", m_light9.Theta));
+    Logger::debug(str::format("   Phi:          ", m_light9.Phi));
+
+    // Update the D3D9 light directly if it's actively being used
+    if (m_viewport != nullptr && m_viewport->IsCurrentViewport())
+      m_viewport->ApplyAndActivateLight(m_lightCount, this);
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Light::GetLight(D3DLIGHT *data) {
-    Logger::debug(">>> D3D6Viewport::GetLight");
+    Logger::debug(">>> D3D6Light::GetLight");
 
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;

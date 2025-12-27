@@ -1599,6 +1599,10 @@ namespace dxvk {
     { R"(\\fallen\.exe$)", {{
       { "ddraw.ignoreExclusiveMode",        "True" },
     }} },
+    /* Redline - Fixes missing weapon mip maps    */
+    { R"(\\Redline\.exe$)", {{
+      { "d3d7.autoGenMipMaps",              "True" },
+    }} },
 
   };
 
