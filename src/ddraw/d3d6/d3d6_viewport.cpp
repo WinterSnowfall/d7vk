@@ -26,6 +26,11 @@ namespace dxvk {
   }
 
   D3D6Viewport::~D3D6Viewport() {
+    // Dissasociate every bound light from this viewport
+    for (auto light : m_lights) {
+      light->SetViewport(nullptr);
+    }
+
     Logger::debug(str::format("D3D6Viewport: Viewport nr. [[3-", m_viewportCount, "]] bites the dust"));
   }
 
@@ -138,8 +143,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen) {
-    Logger::debug("<<< D3D6Viewport::TransformVertices: Proxy");
-    return m_proxy->TransformVertices(vertex_count, data, flags, offscreen);
+    Logger::warn("!!! D3D6Viewport::TransformVertices: Stub");
+    return D3D_OK;
   }
 
   // Docs state: "The IDirect3DViewport3::LightElements method is not currently implemented."
@@ -222,12 +227,17 @@ namespace dxvk {
 
     D3D6Light* light6 = reinterpret_cast<D3D6Light*>(light);
 
+    if (unlikely(light6->HasViewport()))
+      return D3DERR_LIGHTHASVIEWPORT;
+
     auto it = std::find(m_lights.begin(), m_lights.end(), light6);
     if (unlikely(it != m_lights.end())) {
       Logger::warn("D3D6Viewport::AddLight: Pre-existing light found");
     } else {
       m_lights.push_back(light6);
+      light6->SetViewport(this);
       light6->SetIndex(m_lightIndex9);
+
       m_lightIndex9++;
     }
 
@@ -249,6 +259,7 @@ namespace dxvk {
     if (likely(it != m_lights.end())) {
       m_lights.erase(it);
       if (likely(m_device != nullptr && light6->IsActive())) {
+        light6->SetViewport(nullptr);
         const DWORD light6Index = light6->GetIndex();
         m_device->GetD3D9()->LightEnable(light6Index, FALSE);
 
