@@ -37,6 +37,7 @@ namespace dxvk {
         Com<IDirect3DDevice3>&& d3d6DeviceProxy,
         D3D6Interface* pParent,
         D3DDEVICEDESC Desc,
+        REFCLSID deviceGUID,
         d3d9::D3DPRESENT_PARAMETERS Params9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DDraw4Surface* pRT,
@@ -203,21 +204,10 @@ namespace dxvk {
       if (!HasValidMaterial() ||
           (drawFlags & D3DDP_DONOTLIGHT) ||
          !(vertexTypeDesc & D3DFVF_NORMAL)) {
-        if (drawFlags & D3DDP_DONOTLIGHT)
-          Logger::debug("D3D6Device: Draw with D3DDP_DONOTLIGHT");
         m_d3d9->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
         if (m_lighting)
           Logger::debug("D3D6Device: Disabling lighting");
           m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
-      }
-      if (drawFlags & D3DDP_DONOTCLIP) {
-        Logger::debug("D3D6Device: Draw with D3DDP_DONOTCLIP");
-      }
-      if (drawFlags & D3DDP_DONOTUPDATEEXTENTS) {
-        Logger::debug("D3D6Device: Draw with D3DDP_DONOTUPDATEEXTENTS");
-      }
-      if (drawFlags & D3DDP_WAIT) {
-        Logger::debug("D3D6Device: Draw with D3DDP_WAIT");
       }
     }
 
@@ -254,6 +244,8 @@ namespace dxvk {
     D3DMATERIALHANDLE             m_materialHandle = 0;
 
     D3DDEVICEDESC                 m_desc;
+    REFCLSID                      m_deviceGUID;
+
     Com<DDraw4Surface>            m_rt;
     Com<DDraw4Surface, false>     m_rtOrig;
     DDraw4Surface*                m_ds = nullptr;

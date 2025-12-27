@@ -1573,6 +1573,13 @@ namespace dxvk {
     /**********************************************/
     /* D3D6 GAMES                                 */
     /**********************************************/
+    /* Drakan: Order of the Flame                 *
+     * Fixes realtime character shadow updates    *
+     * and physics glitches at over 60 FPS        */
+    { R"(\\Drakan\.exe$)", {{
+      { "d3d9.maxFrameRate",                 "-60" },
+      { "ddraw.alwaysDirtyMipMaps",         "True" },
+    }} },
     /* O.R.B: Off-World Resource Base             *
      * Uses windowed present mode in full-screen  */
     { R"(\\orb\.exe$)", {{

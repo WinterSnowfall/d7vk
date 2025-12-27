@@ -205,14 +205,6 @@ namespace dxvk {
         m_parent->SetLastUsedDevice(this);
     }
 
-    inline void HandlePreDrawFlags(DWORD drawFlags) {
-      if (drawFlags & D3DDP_WAIT) {
-        Logger::debug("D3D7Device: Draw with D3DDP_DONOTUPDATEEXTENTS");
-      }
-    }
-
-    inline void HandlePostDrawFlags(DWORD drawFlags) { }
-
     bool                          m_hasDrawn      = false;
     bool                          m_inScene       = false;
 

@@ -892,16 +892,12 @@ namespace dxvk {
     if (unlikely(lpvVertices == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    HandlePreDrawFlags(dwFlags);
-
     m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
                      GetPrimitiveCount(d3dptPrimitiveType, dwVertexCount),
                      lpvVertices,
                      GetFVFSize(dwVertexTypeDesc));
-
-    HandlePostDrawFlags(dwFlags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawPrimitive: Failed D3D9 call to DrawPrimitiveUP");
@@ -930,8 +926,6 @@ namespace dxvk {
     if (unlikely(d3dptPrimitiveType == D3DPT_POINTLIST))
       Logger::warn("D3D7Device::DrawIndexedPrimitiveVB: D3DPT_POINTLIST primitive type");
 
-    HandlePreDrawFlags(dwFlags);
-
     m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
                       d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
@@ -942,8 +936,6 @@ namespace dxvk {
                       d3d9::D3DFMT_INDEX16,
                       lpvVertices,
                       GetFVFSize(dwVertexTypeDesc));
-
-    HandlePostDrawFlags(dwFlags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
@@ -1015,16 +1007,12 @@ namespace dxvk {
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
 
-    HandlePreDrawFlags(dwFlags);
-
     m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
                      GetPrimitiveCount(d3dptPrimitiveType, dwVertexCount),
                      pvb.vertexData.data(),
                      pvb.stride);
-
-    HandlePostDrawFlags(dwFlags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawPrimitiveStrided: Failed D3D9 call to DrawPrimitiveUP");
@@ -1053,8 +1041,6 @@ namespace dxvk {
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
 
-    HandlePreDrawFlags(dwFlags);
-
     m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
                       d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
@@ -1065,8 +1051,6 @@ namespace dxvk {
                       d3d9::D3DFMT_INDEX16,
                       pvb.vertexData.data(),
                       pvb.stride);
-
-    HandlePostDrawFlags(dwFlags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
@@ -1099,16 +1083,12 @@ namespace dxvk {
       return D3DERR_VERTEXBUFFERLOCKED;
     }
 
-    HandlePreDrawFlags(dwFlags);
-
     m_d3d9->SetFVF(vb->GetFVF());
     m_d3d9->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
     HRESULT hr = m_d3d9->DrawPrimitive(
                            d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
                            dwStartVertex,
                            GetPrimitiveCount(d3dptPrimitiveType, dwNumVertices));
-
-    HandlePostDrawFlags(dwFlags);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawPrimitiveVB: Failed D3D9 call to DrawPrimitive");
@@ -1159,8 +1139,6 @@ namespace dxvk {
       ibIndex++;
     }
 
-    HandlePreDrawFlags(dwFlags);
-
     d3d9::IDirect3DIndexBuffer9* ib9 = m_ib9[ibIndex].ptr();
 
     UploadIndices(ib9, lpwIndices, dwIndexCount);
@@ -1175,8 +1153,6 @@ namespace dxvk {
                     dwNumVertices,
                     0,
                     GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount));
-
-    HandlePostDrawFlags(dwFlags);
 
     if(unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed D3D9 call to DrawIndexedPrimitive");
@@ -1263,9 +1239,15 @@ namespace dxvk {
 
     DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
 
+    if (unlikely(m_parent->GetOptions()->proxySetTexture)) {
+      HRESULT hrProxy = m_proxy->SetTexture(stage, surface7->GetProxied());
+      if (unlikely(FAILED(hrProxy)))
+        Logger::warn("D3D7Device::SetTexture: Failed proxied call");
+    }
+
     // Only upload textures if any sort of blit/lock operation
     // has been performed on them since the last SetTexture call
-    if (surface7->HasDirtyMipMaps() || m_parent->GetOptions()->forceTextureUploads) {
+    if (surface7->HasDirtyMipMaps() || m_parent->GetOptions()->alwaysDirtyMipMaps) {
       hr = surface7->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Device::SetTexture: Failed to initialize/upload D3D9 texture");
@@ -1398,7 +1380,7 @@ namespace dxvk {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
 
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!ddraw7SurfaceDst->IsTextureOrCubeMap() || m_parent->GetOptions()->forceTextureUploads) {
+      if (!ddraw7SurfaceDst->IsTextureOrCubeMap()) {
         HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrInitDst))) {
           Logger::err("D3D7Device::Load: Failed to upload D3D9 destination surface data");

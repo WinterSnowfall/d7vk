@@ -146,7 +146,7 @@ namespace dxvk {
       *ppvObject = m_texture6.ref();
 
       // Arabian Nights needs a dirty here to properly update textures
-      DirtyMipMaps();
+      m_dirtyMipMaps = true;
 
       return S_OK;
     }
@@ -243,7 +243,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures get uploaded during SetTexture calls
-      if (!IsTexture() || m_parent->GetOptions()->forceTextureUploads) {
+      if (!IsTexture()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw4Surface::Blt: Failed upload to d3d9 surface");
@@ -301,7 +301,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures get uploaded during SetTexture calls
-      if (!IsTexture() || m_parent->GetOptions()->forceTextureUploads) {
+      if (!IsTexture()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw4Surface::BltFast: Failed upload to d3d9 surface");
@@ -704,7 +704,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (!IsTexture() || m_parent->GetOptions()->forceTextureUploads) {
+    if (!IsTexture()) {
       InitializeOrUploadD3D9();
     } else {
       DirtyMipMaps();
@@ -767,7 +767,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!IsTexture() || m_parent->GetOptions()->forceTextureUploads) {
+      if (!IsTexture()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw4Surface::Unlock: Failed upload to d3d9 surface");
@@ -867,7 +867,7 @@ namespace dxvk {
     // We may need to recreate the d3d9 object based on the new desc
     m_d3d9 = nullptr;
 
-    if (!IsTexture() || m_parent->GetOptions()->forceTextureUploads) {
+    if (!IsTexture()) {
       InitializeOrUploadD3D9();
     } else {
       DirtyMipMaps();
