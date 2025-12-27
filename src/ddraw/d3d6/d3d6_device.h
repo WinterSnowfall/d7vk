@@ -8,7 +8,9 @@
 #include "../d3d9/d3d9_bridge.h"
 
 #include "d3d6_interface.h"
+#include "d3d6_material.h"
 #include "d3d6_multithread.h"
+#include "d3d6_viewport.h"
 
 #include <array>
 #include <vector>
@@ -24,7 +26,6 @@ namespace dxvk {
   class DDraw4Surface;
   class DDraw4Interface;
   class D3D6Texture;
-  class D3D6Viewport;
 
   /**
   * \brief D3D6 device implementation
@@ -149,6 +150,14 @@ namespace dxvk {
       return m_rt.ptr();
     }
 
+    D3D6Viewport* GetCurrentViewportInternal() const {
+      return m_currentViewport.ptr();
+    }
+
+    D3DMATERIALHANDLE GetCurrentMaterialHandle() const {
+      return m_materialHandle;
+    }
+
     bool HasDrawn() const {
       // Returning true here means we skip all proxied back buffer blits,
       // whereas returning false means we allow all proxied back buffer blits
@@ -191,30 +200,39 @@ namespace dxvk {
     inline void HandlePreDrawFlags(DWORD drawFlags, DWORD vertexTypeDesc) {
       // Docs: "Direct3D normally performs lighting calculations
       // on any vertices that contain a vertex normal."
-      if ((drawFlags & D3DDP_DONOTLIGHT) ||
+      if (!HasValidMaterial() ||
+          (drawFlags & D3DDP_DONOTLIGHT) ||
          !(vertexTypeDesc & D3DFVF_NORMAL)) {
         if (drawFlags & D3DDP_DONOTLIGHT)
-          Logger::debug(">>> D3D6Device:: Draw with D3DDP_DONOTLIGHT");
+          Logger::debug("D3D6Device: Draw with D3DDP_DONOTLIGHT");
         m_d3d9->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
         if (m_lighting)
+          Logger::debug("D3D6Device: Disabling lighting");
           m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
       }
       if (drawFlags & D3DDP_DONOTCLIP) {
-        Logger::debug(">>> D3D6Device:: Draw with D3DDP_DONOTCLIP");
+        Logger::debug("D3D6Device: Draw with D3DDP_DONOTCLIP");
       }
       if (drawFlags & D3DDP_DONOTUPDATEEXTENTS) {
-        Logger::debug(">>> D3D6Device:: Draw with D3DDP_DONOTUPDATEEXTENTS");
+        Logger::debug("D3D6Device: Draw with D3DDP_DONOTUPDATEEXTENTS");
       }
       if (drawFlags & D3DDP_WAIT) {
-        Logger::debug(">>> D3D6Device:: Draw with D3DDP_WAIT");
+        Logger::debug("D3D6Device: Draw with D3DDP_WAIT");
       }
     }
 
     inline void HandlePostDrawFlags(DWORD drawFlags, DWORD vertexTypeDesc) {
-      if (((drawFlags & D3DDP_DONOTLIGHT) ||
-          !(vertexTypeDesc & D3DFVF_NORMAL)) && m_lighting) {
+      if ((!HasValidMaterial() ||
+          (drawFlags & D3DDP_DONOTLIGHT) ||
+         !(vertexTypeDesc & D3DFVF_NORMAL)) && m_lighting) {
+        Logger::debug("D3D6Device: Enabling lighting");
         m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
       }
+    }
+
+    inline bool HasValidMaterial() {
+      return m_materialHandle != 0
+         || (m_currentViewport != nullptr && m_currentViewport->GetCurrentMaterialHandle() != 0);
     }
 
     bool                          m_hasDrawn      = false;
