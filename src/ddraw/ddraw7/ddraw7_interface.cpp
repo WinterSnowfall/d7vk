@@ -544,7 +544,7 @@ namespace dxvk {
       return hr;
 
     for (auto* surface : m_surfaces) {
-      if (!surface->IsTextureOrCubeMap() || m_d3d7Intf->GetOptions()->forceTextureUploads) {
+      if (!surface->IsTextureOrCubeMap()) {
         surface->InitializeOrUploadD3D9();
       } else {
         surface->DirtyMipMaps();
