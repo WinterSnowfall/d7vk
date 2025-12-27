@@ -67,18 +67,30 @@ namespace dxvk {
 
     HRESULT ApplyAndActivateLights();
 
+    HRESULT ApplyAndActivateLight(DWORD index, D3D6Light* light6);
+
     void SetDevice(D3D6Device* device) {
       m_device = device;
     }
 
+    void SetIsCurrentViewport(bool isCurrentViewport) {
+      m_isCurrentViewport = isCurrentViewport;
+    }
+
+    D3DMATERIALHANDLE GetCurrentMaterialHandle() const {
+      return m_materialHandle;
+    }
+
+    bool IsCurrentViewport() const {
+      return m_isCurrentViewport;
+    }
+
   private:
 
-    inline HRESULT ApplyAndActivateLight(DWORD index, D3D6Light* light6);
+    bool               m_isCurrentViewport = false;
 
     static uint32_t    s_viewportCount;
     uint32_t           m_viewportCount = 0;
-
-    DWORD              m_lightIndex9 = 0;
 
     BOOL               m_materialIsSet  = FALSE;
     D3DMATERIALHANDLE  m_materialHandle = 0;

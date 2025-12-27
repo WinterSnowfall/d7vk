@@ -36,12 +36,8 @@ namespace dxvk {
       return m_viewport != nullptr;
     }
 
-    void SetIndex(DWORD index) {
-      m_index9 = index;
-    }
-
     DWORD GetIndex() const {
-      return m_index9;
+      return m_lightCount;
     }
 
     bool IsActive() const {
@@ -50,7 +46,7 @@ namespace dxvk {
 
   private:
 
-    inline bool HasSpectular() const {
+    inline bool HasSpecular() const {
       return !(m_light.dwFlags & D3DLIGHT_NO_SPECULAR);
     }
 
