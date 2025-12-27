@@ -63,6 +63,10 @@ namespace dxvk {
           Logger::warn("ConvertFormat: Unhandled dwRGBBitCount 16 format");
           return d3d9::D3DFMT_UNKNOWN;
         }
+        // Drakan: Order of the Flame uses a dwRGBBitCount of 24
+        // to request for D3DFMT_X8R8G8B8, based on provided bitmasks
+        case 24:
+          return d3d9::D3DFMT_X8R8G8B8;
         case 32: {
           // A: 1111 1111 0000 0000 0000 0000 0000 0000
           // R: 0000 0000 1111 1111 0000 0000 0000 0000

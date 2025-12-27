@@ -112,11 +112,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (likely(!m_parent->GetOptions()->forceTextureUploads)) {
-      d3d6Texture->GetParent()->DirtyMipMaps();
-    } else {
-      d3d6Texture->GetParent()->InitializeOrUploadD3D9();
-    }
+    d3d6Texture->GetParent()->DirtyMipMaps();
 
     return hr;
   }
