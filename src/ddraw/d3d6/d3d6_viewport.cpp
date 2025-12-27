@@ -107,7 +107,8 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // Docs state: "The method ignores the values in the dvMaxX, dvMaxY, dvMinZ, and dvMaxZ members."
+  // The docs state: "The method ignores the values in the dvMaxX, dvMaxY,
+  // dvMinZ, and dvMaxZ members.", however Drakan has shown this to be untrue.
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetViewport(D3DVIEWPORT *data) {
     Logger::debug(">>> D3D6Viewport::SetViewport");
 
@@ -124,11 +125,13 @@ namespace dxvk {
     m_viewport9.Y      = m_viewport.dwY      = data->dwY;
     m_viewport9.Width  = m_viewport.dwWidth  = data->dwWidth;
     m_viewport9.Height = m_viewport.dwHeight = data->dwHeight;
-    m_viewport9.MinZ   = m_viewport.dvMinZ;
-    m_viewport9.MaxZ   = m_viewport.dvMaxZ;
+    m_viewport9.MinZ   = m_viewport.dvMinZ   = data->dvMinZ;
+    m_viewport9.MaxZ   = m_viewport.dvMaxZ   = data->dvMaxZ;
     // D3DVIEWPORT specific
     m_viewport.dvScaleX = data->dvScaleX;
     m_viewport.dvScaleY = data->dvScaleY;
+    m_viewport.dvMaxX   = data->dvMaxX;
+    m_viewport.dvMaxY   = data->dvMaxY;
 
     m_viewportIsSet = TRUE;
 
@@ -206,12 +209,12 @@ namespace dxvk {
     if (unlikely(m_device == nullptr))
       return D3DERR_VIEWPORTHASNODEVICE;
 
-    D3D6Device* d3d6Device = m_parent->GetLastUsedDevice();
-    if (likely(d3d6Device != nullptr)) {
-      HRESULT hr9 = d3d6Device->GetD3D9()->Clear(count, rects, flags, 0, 1.0f, 0);
-      if (unlikely(FAILED(hr9)))
-        Logger::err("D3D6Viewport::Clear: Failed D3D9 Clear call");
-    }
+    if (!m_isCurrentViewport)
+      return D3D_OK;
+
+    HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, 0, 1.0f, 0);
+    if (unlikely(FAILED(hr9)))
+      Logger::err("D3D6Viewport::Clear: Failed D3D9 Clear call");
 
     return D3D_OK;
   }
@@ -253,7 +256,7 @@ namespace dxvk {
     if (likely(it != m_lights.end())) {
       const DWORD light6Index = light6->GetIndex();
       if (m_device != nullptr && m_isCurrentViewport && light6->IsActive()) {
-        Logger::warn(str::format("D3D6Viewport: Disabling light nr. ", light6Index));
+        Logger::debug(str::format("D3D6Viewport: Disabling light nr. ", light6Index));
         m_device->GetD3D9()->LightEnable(light6Index, FALSE);
       }
       m_lights.erase(it);
@@ -363,12 +366,12 @@ namespace dxvk {
     if (unlikely(m_device == nullptr))
       return D3DERR_VIEWPORTHASNODEVICE;
 
-    D3D6Device* d3d6Device = m_parent->GetLastUsedDevice();
-    if (likely(d3d6Device != nullptr)) {
-      HRESULT hr9 = d3d6Device->GetD3D9()->Clear(count, rects, flags, color, z, stencil);
-      if (unlikely(FAILED(hr9)))
-        Logger::err("D3D6Viewport::Clear2: Failed D3D9 Clear call");
-    }
+    if (!m_isCurrentViewport)
+      return D3D_OK;
+
+    HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, color, z, stencil);
+    if (unlikely(FAILED(hr9)))
+      Logger::err("D3D6Viewport::Clear2: Failed D3D9 Clear call");
 
     return D3D_OK;
   }
