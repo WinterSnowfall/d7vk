@@ -68,9 +68,14 @@ namespace dxvk {
     /// even in exclusive full-screen, since some games rely on it for presentation
     bool ignoreExclusiveMode;
 
-    /// Force texture uploads to D3D9 during blits/ locks. Will negatively
-    /// affect performance. Generally only useful for testing and debugging.
-    bool forceTextureUploads;
+    /// Always treats mip maps as dirty during SetTexture calls. Will negatively
+    /// affect performance, but is sometimes needed for corectness, as some
+    /// applications write to surfaces/mip maps outside of locks.
+    bool alwaysDirtyMipMaps;
+
+    /// Also proxies SetTexture calls onto the underlying ddraw implementation.
+    /// Useful only for debugging and apitrace inspection.
+    bool proxySetTexture;
 
     /// Determines how to handle proxy back buffer blits done by the application
     D3DBackBufferGuard backBufferGuard;
@@ -94,7 +99,8 @@ namespace dxvk {
       this->proxiedLegacySurfaces = config.getOption<bool>   ("ddraw.proxiedLegacySurfaces", false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("ddraw.ignoreGammaRamp",       false);
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
-      this->forceTextureUploads   = config.getOption<bool>   ("ddraw.forceTextureUploads",   false);
+      this->alwaysDirtyMipMaps    = config.getOption<bool>   ("ddraw.alwaysDirtyMipMaps",    false);
+      this->proxySetTexture       = config.getOption<bool>   ("ddraw.proxySetTexture",       false);
       // D3D9 options
       this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",     1024);
 
