@@ -36,10 +36,6 @@ namespace dxvk {
     /// presentation on Wayland, or in other situations when back buffer dimensions get altered in-flight.
     bool backBufferResize;
 
-    /// Automatically generate texture mip maps and ignore those copied (or not copied)
-    /// by the application. This is currently used as a workaround for all UE1 titles.
-    bool autoGenMipMaps;
-
     /// Place vertex buffers in the MANAGED pool when using a T&L HAL device
     bool managedTNLBuffers;
 
@@ -68,6 +64,10 @@ namespace dxvk {
     /// even in exclusive full-screen, since some games rely on it for presentation
     bool ignoreExclusiveMode;
 
+    /// Automatically generate texture mip maps and ignore those copied (or not copied)
+    /// by the application. This is currently used as a workaround for all UE1 titles.
+    bool autoGenMipMaps;
+
     /// Always treats mip maps as dirty during SetTexture calls. Will negatively
     /// affect performance, but is sometimes needed for corectness, as some
     /// applications write to surfaces/mip maps outside of locks.
@@ -88,7 +88,6 @@ namespace dxvk {
       this->disableAASupport      = config.getOption<bool>   ("d3d7.disableAASupport",       false);
       this->forceEnableAA         = config.getOption<bool>   ("d3d7.forceEnableAA",          false);
       this->forceMultiThreaded    = config.getOption<bool>   ("d3d7.forceMultiThreaded",     false);
-      this->autoGenMipMaps        = config.getOption<bool>   ("d3d7.autoGenMipMaps",         false);
       this->useD24X8forD32        = config.getOption<bool>   ("d3d7.useD24X8forD32",         false);
       this->managedTNLBuffers     = config.getOption<bool>   ("d3d7.managedTNLBuffers",      false);
       // DDraw options
@@ -99,6 +98,7 @@ namespace dxvk {
       this->proxiedLegacySurfaces = config.getOption<bool>   ("ddraw.proxiedLegacySurfaces", false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("ddraw.ignoreGammaRamp",       false);
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
+      this->autoGenMipMaps        = config.getOption<bool>   ("ddraw.autoGenMipMaps",        false);
       this->alwaysDirtyMipMaps    = config.getOption<bool>   ("ddraw.alwaysDirtyMipMaps",    false);
       this->proxySetTexture       = config.getOption<bool>   ("ddraw.proxySetTexture",       false);
       // D3D9 options

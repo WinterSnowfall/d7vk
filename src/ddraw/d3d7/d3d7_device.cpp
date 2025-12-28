@@ -411,6 +411,10 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       Logger::debug("D3D7Device::Clear: Failed proxied clear call");
 
+    // Fast skip
+    if (unlikely(!count && rects))
+      return D3D_OK;
+
     return m_d3d9->Clear(count, rects, flags, color, static_cast<float>(z), stencil);
   }
 
@@ -502,10 +506,6 @@ namespace dxvk {
     return m_d3d9->GetLight(idx, reinterpret_cast<d3d9::D3DLIGHT9*>(data));
   }
 
-  // ZBIAS can be an integer from 0 to 16 and needs to be remapped to float
-  static constexpr float ZBIAS_SCALE     = -10.0f / (1 << 16); // Consider 10x D16 precision
-  static constexpr float ZBIAS_SCALE_INV = 1 / ZBIAS_SCALE;
-
   HRESULT STDMETHODCALLTYPE D3D7Device::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
     D3D7DeviceLock lock = LockDevice();
 
@@ -584,7 +584,7 @@ namespace dxvk {
 
       case D3DRENDERSTATE_ZBIAS:
         State9         = d3d9::D3DRS_DEPTHBIAS;
-        dwRenderState  = bit::cast<DWORD>(static_cast<float>(dwRenderState) * ZBIAS_SCALE);
+        dwRenderState  = bit::cast<DWORD>(static_cast<float>(dwRenderState) * GetZBiasFactor());
         break;
 
       // TODO:
@@ -668,7 +668,7 @@ namespace dxvk {
       case D3DRENDERSTATE_ZBIAS: {
         DWORD bias  = 0;
         HRESULT res = m_d3d9->GetRenderState(d3d9::D3DRS_DEPTHBIAS, &bias);
-        *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(bias) * ZBIAS_SCALE_INV);
+        *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(bias) * (1 / GetZBiasFactor()));
         return res;
       } break;
 
@@ -1575,6 +1575,16 @@ namespace dxvk {
     ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
     memcpy(pData, static_cast<void*>(indices), size);
     ib9->Unlock();
+  }
+
+  inline float D3D7Device::GetZBiasFactor() {
+    static constexpr float ZBIAS_SCALE_D16 = -1.0f / ((1 << 16) - 1); // Consider D16 precision
+    static constexpr float ZBIAS_SCALE_D24 = -1.0f / ((1 << 24) - 1); // Consider D24 precision
+
+    if (m_ds == nullptr)
+      return ZBIAS_SCALE_D16;
+
+    return m_ds->GetZBufferBitDepth() == 24 ? ZBIAS_SCALE_D24 : ZBIAS_SCALE_D16;
   }
 
 }
