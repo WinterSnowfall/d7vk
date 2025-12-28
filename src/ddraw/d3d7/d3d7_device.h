@@ -193,6 +193,8 @@ namespace dxvk {
 
     inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
 
+    inline float GetZBiasFactor();
+
     // If the last index buffer is initalized, then all are initialized
     inline bool AreIndexBuffersInitialized() const {
       return m_ib9[ddrawCaps::IndexBufferCount - 1] != nullptr;
