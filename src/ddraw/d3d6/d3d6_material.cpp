@@ -82,19 +82,10 @@ namespace dxvk {
     // Update the D3D9 material directly if it's actively being used
     D3D6Device* device6 = m_parent->GetLastUsedDevice();
     if (likely(device6 != nullptr)) {
-      // Render state set material
       D3DMATERIALHANDLE material = device6->GetCurrentMaterialHandle();
       if (material == m_materialHandle) {
-        Logger::info(str::format("D3D6Material::SetMaterial: Applying material nr. ", m_materialHandle, " to D3D9"));
+        Logger::debug(str::format("D3D6Material::SetMaterial: Applying material nr. ", m_materialHandle, " to D3D9"));
         device6->GetD3D9()->SetMaterial(&m_material9);
-      // Current viewport set material (background)
-      } else {
-        D3D6Viewport* d3d6Viewport = device6->GetCurrentViewportInternal();
-        if (likely(d3d6Viewport != nullptr)) {
-          material = d3d6Viewport->GetCurrentMaterialHandle();
-          if (material == m_materialHandle)
-            d3d6Viewport->ApplyMaterial();
-        }
       }
     }
 
