@@ -1432,61 +1432,61 @@ namespace dxvk {
      * Fixes missing mip map uploads and physics  */
     { R"(\\Unreal\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Unreal Tournament                          *
      * Fixes missing mip map uploads              */
     { R"(\\UnrealTournament\.exe$)", {{
-      { "d3d7.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Rune                                       *
      * Fixes missing mip map uploads and physics  */
     { R"(\\Rune\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Deus Ex                                    *
      * Fixes missing mip map uploads and physics  */
     { R"(\\DeusEx\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Clive Barker's Undying                     *
      * Fixes missing mip map uploads, and broken  *
      * cutscene playback at high frame rates      */
     { R"(\\Undying\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",              "True" },
     }} },
     /* X-COM: Enforcer                            *
      * Fixes missing mip map uploads and physics  */
     { R"(\\XCom\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* The Wheel of Time                          *
      * Fixes missing mip map uploads and physics  */
     { R"(\\WoT\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Harry Potter and the Chamber of Secrets    *
      * Fixes missing mip map uploads and physics  */
     { R"(\\Harry Potter.*\\system\\Game\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Harry Potter and the Philosopher's Stone   *
      * Fixes missing mip map uploads and physics  */
     { R"(\\HP\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Messiah - Fixes missing mip map uploads    *
      * and cutscene playback / physics            */
     { R"(\\MessiahD3D\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Might and Magic IX / No One Lives Forever  */
     { R"(\\lithtech\.exe$)", {{
@@ -1547,7 +1547,7 @@ namespace dxvk {
     /* Need for Speed: Porsche Unleashed          *
      * Fixes missing mip maps on car models       */
     { R"(\\(Porsche|nfs5)\.exe$)", {{
-      { "d3d7.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Soulbringer - Uses legacy ddraw interfaces */
     { R"(\\SoulbringeVC(noeax)?\.exe$)", {{
@@ -1557,7 +1557,7 @@ namespace dxvk {
     /* Star Trek: Deep Space Nine - The Fallen    *
      * Fixes missing mip map uploads              */
     { R"(\\DS9\.exe$)", {{
-      { "d3d7.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* FIFA 2001 - The game uses an obnoixous     *
      * mix of DDraw4/D3D6 for menu rendering and  *
@@ -1608,7 +1608,7 @@ namespace dxvk {
     }} },
     /* Redline - Fixes missing weapon mip maps    */
     { R"(\\Redline\.exe$)", {{
-      { "d3d7.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
 
   };

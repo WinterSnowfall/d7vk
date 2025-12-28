@@ -76,7 +76,7 @@ namespace dxvk {
   // Docs state: "The IDirect3DViewport3::Initialize method is not implemented."
   HRESULT STDMETHODCALLTYPE D3D6Viewport::Initialize(IDirect3D *d3d) {
     Logger::debug(">>> D3D6Viewport::Initialize");
-    return DDERR_UNSUPPORTED;
+    return DDERR_ALREADYINITIALIZED;
   }
 
   // Legacy call, technically should not be very common
@@ -107,10 +107,12 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // The docs state: "The method ignores the values in the dvMaxX, dvMaxY,
-  // dvMinZ, and dvMaxZ members.", however Drakan has shown this to be untrue.
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetViewport(D3DVIEWPORT *data) {
     Logger::debug(">>> D3D6Viewport::SetViewport");
+
+    HRESULT hr = m_proxy->SetViewport(data);
+    if (unlikely(FAILED(hr)))
+      return hr;
 
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -121,17 +123,21 @@ namespace dxvk {
     if (unlikely(m_device == nullptr))
       return D3DERR_VIEWPORTHASNODEVICE;
 
+    // TODO: Check viewport dimensions against the currently set RT
+
+    // The docs state: "The method ignores the values in the dvMaxX, dvMaxY,
+    // dvMinZ, and dvMaxZ members.", which appears correct.
     m_viewport9.X      = m_viewport.dwX      = data->dwX;
     m_viewport9.Y      = m_viewport.dwY      = data->dwY;
     m_viewport9.Width  = m_viewport.dwWidth  = data->dwWidth;
     m_viewport9.Height = m_viewport.dwHeight = data->dwHeight;
-    m_viewport9.MinZ   = m_viewport.dvMinZ   = data->dvMinZ;
-    m_viewport9.MaxZ   = m_viewport.dvMaxZ   = data->dvMaxZ;
+    m_viewport9.MinZ   = m_viewport.dvMinZ   = 0.0f;
+    m_viewport9.MaxZ   = m_viewport.dvMaxZ   = 1.0f;
     // D3DVIEWPORT specific
     m_viewport.dvScaleX = data->dvScaleX;
     m_viewport.dvScaleY = data->dvScaleY;
-    m_viewport.dvMaxX   = data->dvMaxX;
-    m_viewport.dvMaxY   = data->dvMaxY;
+    m_viewport.dvMaxX   = 1.0f;
+    m_viewport.dvMaxY   = 1.0f;
 
     m_viewportIsSet = TRUE;
 
@@ -159,16 +165,24 @@ namespace dxvk {
     if (unlikely(m_materialHandle == hMat))
       return D3D_OK;
 
-    D3D6Material* material = m_parent->GetMaterialFromHandle(hMat);
+    D3D6Material* material6 = m_parent->GetMaterialFromHandle(hMat);
 
-    if (unlikely(material == nullptr))
+    if (unlikely(material6 == nullptr))
       return DDERR_INVALIDPARAMS;
 
     m_materialHandle = hMat;
     m_materialIsSet = TRUE;
 
-    if (m_device != nullptr && m_isCurrentViewport)
-      ApplyMaterial();
+    // The viewport will be set to the diffuse values of
+    // the material/background when cleared. It is not used
+    // in any other way as far as I can tell, certainly
+    // not as a standard D3D9 material (see D3DLIGHTSTATE_MATERIAL).
+    D3DMATERIAL material;
+    material6->GetMaterial(&material);
+    m_backgroundColor = D3DCOLOR_RGBA(static_cast<BYTE>(material.dcvDiffuse.r * 255.0f),
+                                      static_cast<BYTE>(material.dcvDiffuse.g * 255.0f),
+                                      static_cast<BYTE>(material.dcvDiffuse.b * 255.0f),
+                                      static_cast<BYTE>(material.dcvDiffuse.a * 255.0f));
 
     return D3D_OK;
   }
@@ -186,21 +200,34 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // Legacy call, technically should not be very common
+  // One could speculate this was meant to set a z-buffer depth value
+  // to be used during clears, perhaps, similarly to SetBackground(),
+  // however it has not seen any practical use in the wild
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackgroundDepth(IDirectDrawSurface *surface) {
-    Logger::warn("<<< D3D6Viewport::SetBackgroundDepth: Proxy");
-    return m_proxy->SetBackgroundDepth(surface);
+    Logger::warn("!!! D3D6Viewport::SetBackgroundDepth: Stub");
+    return D3D_OK;
   }
 
-  // Legacy call, technically should not be very common
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetBackgroundDepth(IDirectDrawSurface **surface, BOOL *valid) {
-    Logger::warn("<<< D3D6Viewport::SetBackgroundDepth: Proxy");
-    return m_proxy->GetBackgroundDepth(surface, valid);
+    Logger::warn("!!! D3D6Viewport::SetBackgroundDepth: Stub");
+
+    if (unlikely(surface == nullptr || valid == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(surface);
+
+    *valid = FALSE;
+
+    return D3D_OK;
   }
 
   // Legacy call, technically should not be very common
   HRESULT STDMETHODCALLTYPE D3D6Viewport::Clear(DWORD count, D3DRECT *rects, DWORD flags) {
     Logger::debug("<<< D3D6Viewport::Clear: Proxy");
+
+    // Fast skip
+    if (unlikely(!count && rects))
+      return D3D_OK;
 
     HRESULT hr = m_proxy->Clear(count, rects, flags);
     if (unlikely(FAILED(hr)))
@@ -209,12 +236,21 @@ namespace dxvk {
     if (unlikely(m_device == nullptr))
       return D3DERR_VIEWPORTHASNODEVICE;
 
-    if (!m_isCurrentViewport)
-      return D3D_OK;
+    // Temporarily activate this viewport in order to clear it
+    d3d9::D3DVIEWPORT9 currentViewport9;
+    if (!m_isCurrentViewport) {
+      currentViewport9 = m_device->GetCurrentViewportInternal()->GetD3D9Viewport();
+      m_device->GetD3D9()->SetViewport(&m_viewport9);
+    }
 
-    HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, 0, 1.0f, 0);
+    HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, m_backgroundColor, 1.0f, 0);
     if (unlikely(FAILED(hr9)))
       Logger::err("D3D6Viewport::Clear: Failed D3D9 Clear call");
+
+    // Restore the previously active viewport
+    if (!m_isCurrentViewport) {
+      m_device->GetD3D9()->SetViewport(&currentViewport9);
+    }
 
     return D3D_OK;
   }
@@ -304,6 +340,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetViewport2(D3DVIEWPORT2 *data) {
     Logger::debug(">>> D3D6Viewport::SetViewport2");
 
+    HRESULT hr = m_proxy->SetViewport2(data);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -313,10 +353,13 @@ namespace dxvk {
     if (unlikely(m_device == nullptr))
       return D3DERR_VIEWPORTHASNODEVICE;
 
+    // TODO: Check viewport dimensions against the currently set RT
+
     m_viewport9.X      = m_viewport2.dwX      = data->dwX;
     m_viewport9.Y      = m_viewport2.dwY      = data->dwY;
     m_viewport9.Width  = m_viewport2.dwWidth  = data->dwWidth;
     m_viewport9.Height = m_viewport2.dwHeight = data->dwHeight;
+    // TODO: Check if they should also be 0.0f & 1.0f here
     m_viewport9.MinZ   = m_viewport2.dvMinZ   = data->dvMinZ;
     m_viewport9.MaxZ   = m_viewport2.dvMaxZ   = data->dvMaxZ;
     // D3DVIEWPORT2 specific
@@ -333,31 +376,33 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // TODO: Actually apply it... somehow?
+  // One could speculate this was meant to set a z-buffer depth value
+  // to be used during clears, perhaps, similarly to SetBackground(),
+  // however it has not seen any practical use in the wild
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackgroundDepth2(IDirectDrawSurface4 *surface) {
-    Logger::debug(">>> D3D6Viewport::SetBackgroundDepth2");
-
-    m_materialDepth = reinterpret_cast<DDraw4Surface*>(surface);
-    m_materialDepthIsSet = TRUE;
-
+    Logger::warn("!!! D3D6Viewport::SetBackgroundDepth2: Stub");
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetBackgroundDepth2(IDirectDrawSurface4 **surface, BOOL *valid) {
-    Logger::debug(">>> D3D6Viewport::GetBackgroundDepth2");
+    Logger::warn("!!! D3D6Viewport::GetBackgroundDepth2: Stub");
 
     if (unlikely(surface == nullptr || valid == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (likely(m_materialDepthIsSet))
-      *surface = m_materialDepth;
-    *valid = m_materialDepthIsSet;
+    InitReturnPtr(surface);
+
+    *valid = FALSE;
 
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::Clear2(DWORD count, D3DRECT *rects, DWORD flags, DWORD color, D3DVALUE z, DWORD stencil) {
     Logger::debug("<<< D3D6Viewport::Clear2: Proxy");
+
+    // Fast skip
+    if (unlikely(!count && rects))
+      return D3D_OK;
 
     HRESULT hr = m_proxy->Clear2(count, rects, flags, color, z, stencil);
     if (unlikely(FAILED(hr)))
@@ -366,12 +411,21 @@ namespace dxvk {
     if (unlikely(m_device == nullptr))
       return D3DERR_VIEWPORTHASNODEVICE;
 
-    if (!m_isCurrentViewport)
-      return D3D_OK;
+    // Temporarily activate this viewport in order to clear it
+    d3d9::D3DVIEWPORT9 currentViewport9;
+    if (!m_isCurrentViewport) {
+      currentViewport9 = m_device->GetCurrentViewportInternal()->GetD3D9Viewport();
+      m_device->GetD3D9()->SetViewport(&m_viewport9);
+    }
 
     HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, color, z, stencil);
     if (unlikely(FAILED(hr9)))
       Logger::err("D3D6Viewport::Clear2: Failed D3D9 Clear call");
+
+    // Restore the previously active viewport
+    if (!m_isCurrentViewport) {
+      m_device->GetD3D9()->SetViewport(&currentViewport9);
+    }
 
     return D3D_OK;
   }
@@ -385,21 +439,6 @@ namespace dxvk {
     HRESULT hr = m_device->GetD3D9()->SetViewport(&m_viewport9);
     if(unlikely(FAILED(hr)))
       Logger::err("D3D6Viewport: Failed to set the D3D9 viewport");
-
-    return hr;
-  }
-
-  HRESULT D3D6Viewport::ApplyMaterial() {
-    if (!m_materialIsSet)
-      return D3D_OK;
-
-    D3D6Material* material6 = m_parent->GetMaterialFromHandle(m_materialHandle);
-
-    Logger::debug(str::format("D3D6Viewport: Applying material nr. ", m_materialHandle, " to D3D9"));
-
-    HRESULT hr = m_device->GetD3D9()->SetMaterial(material6->GetD3D9Material());
-    if(unlikely(FAILED(hr)))
-      Logger::err("D3D6Viewport: Failed to set the D3D9 material");
 
     return hr;
   }

@@ -188,6 +188,8 @@ namespace dxvk {
 
     inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
 
+    inline float GetZBiasFactor();
+
     // If the last index buffer is initalized, then all are initialized
     inline bool AreIndexBuffersInitialized() const {
       return m_ib9[ddrawCaps::IndexBufferCount - 1] != nullptr;
@@ -201,7 +203,7 @@ namespace dxvk {
     inline void HandlePreDrawFlags(DWORD drawFlags, DWORD vertexTypeDesc) {
       // Docs: "Direct3D normally performs lighting calculations
       // on any vertices that contain a vertex normal."
-      if (!HasValidMaterial() ||
+      if (m_materialHandle == 0 ||
           (drawFlags & D3DDP_DONOTLIGHT) ||
          !(vertexTypeDesc & D3DFVF_NORMAL)) {
         m_d3d9->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
@@ -212,17 +214,12 @@ namespace dxvk {
     }
 
     inline void HandlePostDrawFlags(DWORD drawFlags, DWORD vertexTypeDesc) {
-      if ((!HasValidMaterial() ||
+      if ((m_materialHandle == 0 ||
           (drawFlags & D3DDP_DONOTLIGHT) ||
          !(vertexTypeDesc & D3DFVF_NORMAL)) && m_lighting) {
         Logger::debug("D3D6Device: Enabling lighting");
         m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
       }
-    }
-
-    inline bool HasValidMaterial() {
-      return m_materialHandle != 0
-         || (m_currentViewport != nullptr && m_currentViewport->GetCurrentMaterialHandle() != 0);
     }
 
     bool                          m_hasDrawn      = false;

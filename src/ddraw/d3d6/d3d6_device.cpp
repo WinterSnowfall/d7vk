@@ -409,7 +409,6 @@ namespace dxvk {
 
     m_currentViewport->SetIsCurrentViewport(true);
     m_currentViewport->ApplyViewport();
-    m_currentViewport->ApplyMaterial();
     m_currentViewport->ApplyAndActivateLights();
 
     return D3D_OK;
@@ -576,10 +575,6 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // ZBIAS can be an integer from 0 to 16 and needs to be remapped to float
-  static constexpr float ZBIAS_SCALE     = -10.0f / (1 << 16); // Consider 10x D16 precision
-  static constexpr float ZBIAS_SCALE_INV = 1 / ZBIAS_SCALE;
-
   HRESULT STDMETHODCALLTYPE D3D6Device::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType, LPDWORD lpdwRenderState) {
     D3D6DeviceLock lock = LockDevice();
 
@@ -702,7 +697,7 @@ namespace dxvk {
       case D3DRENDERSTATE_ZBIAS: {
         DWORD bias  = 0;
         HRESULT res = m_d3d9->GetRenderState(d3d9::D3DRS_DEPTHBIAS, &bias);
-        *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(bias) * ZBIAS_SCALE_INV);
+        *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(bias) * (1 / GetZBiasFactor()));
         return res;
       } break;
 
@@ -1028,7 +1023,7 @@ namespace dxvk {
 
       case D3DRENDERSTATE_ZBIAS:
         State9         = d3d9::D3DRS_DEPTHBIAS;
-        dwRenderState  = bit::cast<DWORD>(static_cast<float>(dwRenderState) * ZBIAS_SCALE);
+        dwRenderState  = bit::cast<DWORD>(static_cast<float>(dwRenderState) * GetZBiasFactor());
         break;
 
       case D3DRENDERSTATE_ANISOTROPY:
@@ -1842,6 +1837,16 @@ namespace dxvk {
     ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
     memcpy(pData, static_cast<void*>(indices), size);
     ib9->Unlock();
+  }
+
+  inline float D3D6Device::GetZBiasFactor() {
+    static constexpr float ZBIAS_SCALE_D16 = -1.0f / ((1 << 16) - 1); // Consider D16 precision
+    static constexpr float ZBIAS_SCALE_D24 = -1.0f / ((1 << 24) - 1); // Consider D24 precision
+
+    if (m_ds == nullptr)
+      return ZBIAS_SCALE_D16;
+
+    return m_ds->GetZBufferBitDepth() == 24 ? ZBIAS_SCALE_D24 : ZBIAS_SCALE_D16;
   }
 
 }
