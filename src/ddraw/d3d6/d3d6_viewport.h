@@ -63,11 +63,13 @@ namespace dxvk {
 
     HRESULT ApplyViewport();
 
-    HRESULT ApplyMaterial();
-
     HRESULT ApplyAndActivateLights();
 
     HRESULT ApplyAndActivateLight(DWORD index, D3D6Light* light6);
+
+    d3d9::D3DVIEWPORT9 GetD3D9Viewport() const {
+      return m_viewport9;
+    }
 
     void SetDevice(D3D6Device* device) {
       m_device = device;
@@ -90,13 +92,11 @@ namespace dxvk {
     bool               m_isCurrentViewport = false;
 
     static uint32_t    s_viewportCount;
-    uint32_t           m_viewportCount = 0;
+    uint32_t           m_viewportCount   = 0;
 
-    BOOL               m_materialIsSet  = FALSE;
-    D3DMATERIALHANDLE  m_materialHandle = 0;
-
-    BOOL               m_materialDepthIsSet = FALSE;
-    DDraw4Surface*     m_materialDepth      = nullptr;
+    BOOL               m_materialIsSet   = FALSE;
+    D3DMATERIALHANDLE  m_materialHandle  = 0;
+    D3DCOLOR           m_backgroundColor = D3DCOLOR_RGBA(0, 0, 0, 0);
 
     BOOL               m_viewportIsSet = FALSE;
     D3DVIEWPORT        m_viewport      = { };
