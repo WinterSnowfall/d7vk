@@ -28,9 +28,9 @@ No. But we fully support D3D4 already, heh. Jokes aside, I have looked over earl
 
 I'll try to get as much game coverage as possible in D7VK, of course, but if something just doesn't work, simply use WineD3D - it's awesome and has the benefit of implementing *everything* there ever is to worry about in DDraw and GDI, so it's far, far less prone to cursed interop madness. Reports of issues and bugs are very welcome, as they ensure proper tracking and awareness, so please do report any problems you encounter if you have the time.
 
-### I get this "Unsupported IDirect3D interface" error message on startup, what gives?
+### I get this "Unsupported IDirect3D(2) interface" error message on startup... ?
 
-The application is trying to create either a D3D3 or D3D5 device, which we outright don't support. You won't be able to run it with D7VK, sorry.
+The application is trying to create either a D3D3 or D3D5 interface, which we outright don't support. You won't be able to run it with D7VK, sorry.
 
 ### Will DXVK's D3D9 config options work with D7VK?
 
