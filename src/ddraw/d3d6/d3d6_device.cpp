@@ -1254,7 +1254,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     if (unlikely(primitive_type == D3DPT_POINTLIST))
-      Logger::warn("D3D6Device::DrawIndexedPrimitiveVB: D3DPT_POINTLIST primitive type");
+      Logger::warn("D3D6Device::DrawIndexedPrimitive: D3DPT_POINTLIST primitive type");
 
     HandlePreDrawFlags(flags, fvf);
 

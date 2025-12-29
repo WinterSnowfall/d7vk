@@ -1549,10 +1549,12 @@ namespace dxvk {
     { R"(\\(Porsche|nfs5)\.exe$)", {{
       { "ddraw.autoGenMipMaps",             "True" },
     }} },
-    /* Soulbringer - Uses legacy ddraw interfaces */
+    /* Soulbringer - Uses legacy ddraw interfaces *
+     * and has broken rendering with direct       *
+     * buffer mapping on T&L devices              */
     { R"(\\SoulbringeVC(noeax)?\.exe$)", {{
+      { "d3d9.allowDirectBufferMapping",   "False" },
       { "ddraw.forceProxiedPresent",        "True" },
-      { "d3d7.forceSWVPDevice",             "True" },
     }} },
     /* Star Trek: Deep Space Nine - The Fallen    *
      * Fixes missing mip map uploads              */
@@ -1609,6 +1611,15 @@ namespace dxvk {
     /* Redline - Fixes missing weapon mip maps    */
     { R"(\\Redline\.exe$)", {{
       { "ddraw.autoGenMipMaps",             "True" },
+    }} },
+    /* 3DMark 99 (Max) - Enables VSync by default *
+     * (probably due to hardware and/or driver    *
+     * limitations of the time), and needs mixed  *
+     * SWVP for performance reasons               */
+    { R"(\\3dmark\.exe$)", {{
+      { "d3d9.presentInterval",                "0" },
+      { "d3d9.allowDirectBufferMapping",   "False" },
+      { "d3d7.useMixedSWVPforHAL",          "True" },
     }} },
 
   };
