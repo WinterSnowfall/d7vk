@@ -18,14 +18,12 @@ namespace dxvk {
       D3D7Interface* pParent,
       D3DDEVICEDESC7 Desc,
       d3d9::D3DPRESENT_PARAMETERS Params9,
-      DWORD VertexProcessing9,
       Com<d3d9::IDirect3DDevice9>&& pDevice9,
       DDraw7Surface* pSurface,
       DWORD CreationFlags9)
     : DDrawWrappedObject<D3D7Interface, IDirect3DDevice7, d3d9::IDirect3DDevice9>(pParent, std::move(d3d7DeviceProxy), std::move(pDevice9))
     , m_DD7IntfParent ( pParent->GetParent() )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
-    , m_vertexProcessing9 ( VertexProcessing9 )
     , m_params9 ( Params9 )
     , m_desc ( Desc )
     , m_rt ( pSurface ) {

@@ -261,8 +261,16 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
+    DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+
     if (rclsid == IID_IDirect3DHALDevice) {
       Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
+      if (unlikely(m_d3d6Options.useMixedSWVPforHAL)) {
+        // Use a MIXED device always set to SWVP instead of a pure SWVP device, because
+        // the D3D9 DXVK backend won't allow the use of uncached memory for pure SWVP devices
+        // and that is sometimes needed for performance reasons (e.g. 3DMark 99 Max)
+        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+      }
     } else if (rclsid == IID_IDirect3DMMXDevice) {
       Logger::warn("D3D6Interface::CreateDevice: Unsupported MMMX device, falling back to RGB");
       rclsid == IID_IDirect3DRGBDevice;
@@ -390,7 +398,6 @@ namespace dxvk {
     params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
-    DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
     if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_d3d6Options.forceMultiThreaded)
       deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
     if (cooperativeLevel & DDSCL_FPUPRESERVE)
@@ -423,6 +430,9 @@ namespace dxvk {
       m_lastUsedDevice = device.ptr();
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       m_lastUsedDevice->InitializeDS();
+      // Enable SWVP in case of MIXED HAL devices
+      if (unlikely(m_d3d6Options.useMixedSWVPforHAL && rclsid == IID_IDirect3DHALDevice))
+        m_lastUsedDevice->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
       *lplpD3DDevice = device.ref();
     } catch (const DxvkError& e) {
       Logger::err(e.message());
@@ -453,7 +463,7 @@ namespace dxvk {
 
     // We need to delay the D3D9 vertex buffer creation as long as possible, to ensure
     // that (ideally) we actually have a valid d3d7 device in place when that happens
-    *lpD3DVertexBuffer = ref(new D3D6VertexBuffer(std::move(vertexBuffer), nullptr, this, *lpVBDesc));
+    *lpD3DVertexBuffer = ref(new D3D6VertexBuffer(std::move(vertexBuffer), nullptr, this, dwFlags, *lpVBDesc));
 
     return D3D_OK;
   }

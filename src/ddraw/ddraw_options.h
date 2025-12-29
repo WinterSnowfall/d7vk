@@ -14,8 +14,8 @@ namespace dxvk {
 
   struct D3DOptions {
 
-    /// Creates a SWVP D3D9 device even when a T&L HAL (HWVP) device is requested
-    bool forceSWVPDevice;
+    /// Force the use of MIXED SWVP with an IID_IDirect3DHALDevice device.
+    bool useMixedSWVPforHAL;
 
     /// Fully disables support for AA, lowering memory bandwidth pressure
     bool disableAASupport;
@@ -84,7 +84,7 @@ namespace dxvk {
 
     D3DOptions(const Config& config) {
       // D3D6/7 options
-      this->forceSWVPDevice       = config.getOption<bool>   ("d3d7.forceSWVPDevice",        false);
+      this->useMixedSWVPforHAL    = config.getOption<bool>   ("d3d7.useMixedSWVPforHAL",     false);
       this->disableAASupport      = config.getOption<bool>   ("d3d7.disableAASupport",       false);
       this->forceEnableAA         = config.getOption<bool>   ("d3d7.forceEnableAA",          false);
       this->forceMultiThreaded    = config.getOption<bool>   ("d3d7.forceMultiThreaded",     false);
