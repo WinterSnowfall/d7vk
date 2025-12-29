@@ -2,8 +2,8 @@
 
 // DLL version information.
 VS_VERSION_INFO    VERSIONINFO
-FILEVERSION        10,0,17763,1
-PRODUCTVERSION     10,0,17763,1
+FILEVERSION        4,07,00,700
+PRODUCTVERSION     4,07,00,700
 FILEFLAGSMASK      VS_FFI_FILEFLAGSMASK
 FILEFLAGS          0
 FILEOS VOS_NT_WINDOWS32
@@ -15,13 +15,13 @@ BEGIN
     BLOCK "080904b0"
     BEGIN
       VALUE "CompanyName",      "DXVK"
-      VALUE "FileDescription",  "Direct3D 7 Runtime"
-      VALUE "FileVersion",      "10.0.17763.1 (WinBuild.160101.0800)"
-      VALUE "InternalName",     "DDRAW.dll"
+      VALUE "FileDescription",  "DirectDraw Runtime"
+      VALUE "FileVersion",      "4.07.00.0700"
+      VALUE "InternalName",     "DDraw.dll"
       VALUE "LegalCopyright",   "zlib/libpng license"
-      VALUE "OriginalFilename", "ddraw.dll"
+      VALUE "OriginalFilename", "DDraw.dll"
       VALUE "ProductName",      "DXVK"
-      VALUE "ProductVersion",   "10.0.17763.1"
+      VALUE "ProductVersion",   "4.07.00.0700"
     END
   END
   BLOCK "VarFileInfo"

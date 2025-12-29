@@ -37,7 +37,6 @@ namespace dxvk {
         D3D7Interface* pParent,
         D3DDEVICEDESC7 Desc,
         d3d9::D3DPRESENT_PARAMETERS Params9,
-        DWORD VertexProcessing9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DDraw7Surface* pRT,
         DWORD CreationFlags9);
@@ -164,8 +163,8 @@ namespace dxvk {
       return m_rt.ptr();
     }
 
-    bool IsMixedVPDevice() const {
-      return m_vertexProcessing9 == D3DCREATE_MIXED_VERTEXPROCESSING;
+    bool IsTNLDevice() const {
+      return m_desc.deviceGUID == IID_IDirect3DTnLHalDevice;
     }
 
     bool HasDrawn() const {

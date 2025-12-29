@@ -150,19 +150,21 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    DWORD vertexProcessing = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+    DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 
     if (rclsid == IID_IDirect3DTnLHalDevice) {
-      if (likely(!m_d3d7Options.forceSWVPDevice)) {
-        Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DTnLHalDevice device");
-        // Do not use exclusive HWVP, since some games call ProcessVertices
-        // even in situations where they are expliclity using HW T&L
-        vertexProcessing = D3DCREATE_MIXED_VERTEXPROCESSING;
-      } else {
-        Logger::info("D3D7Interface::CreateDevice: Using SWVP for a IID_IDirect3DTnLHalDevice device");
-      }
+      Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DTnLHalDevice device");
+      // Do not use exclusive HWVP, since some games call ProcessVertices
+      // even in situations where they are expliclity using HW T&L
+      deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
     } else if (rclsid == IID_IDirect3DHALDevice) {
       Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
+      if (unlikely(m_d3d7Options.useMixedSWVPforHAL)) {
+        // Use a MIXED device always set to SWVP instead of a pure SWVP device, because
+        // the D3D9 DXVK backend won't allow the use of uncached memory for pure SWVP devices
+        // and that is sometimes needed for performance reasons (e.g. 3DMark 99 Max)
+        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+      }
     } else if (rclsid == IID_IDirect3DRGBDevice) {
       Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
     } else {
@@ -286,7 +288,6 @@ namespace dxvk {
     params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
-    DWORD deviceCreationFlags9 = vertexProcessing;
     if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_d3d7Options.forceMultiThreaded)
       deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
     if (cooperativeLevel & DDSCL_FPUPRESERVE)
@@ -312,13 +313,16 @@ namespace dxvk {
     D3DDEVICEDESC7 desc7 = GetD3D7Caps(rclsid, m_d3d7Options.disableAASupport);
 
     try{
-      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7, params,
-                                              vertexProcessing, std::move(device9), rt7.ptr(),
-                                              deviceCreationFlags9);
+      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7,
+                                              params, std::move(device9),
+                                              rt7.ptr(), deviceCreationFlags9);
       // Hold the address of the most recently created device, not a reference
       m_lastUsedDevice = device.ptr();
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       m_lastUsedDevice->InitializeDS();
+      // Enable SWVP in case of MIXED HAL devices
+      if (unlikely(m_d3d7Options.useMixedSWVPforHAL && rclsid == IID_IDirect3DHALDevice))
+        m_lastUsedDevice->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
       *ppd3dDevice = device.ref();
     } catch (const DxvkError& e) {
       Logger::err(e.message());

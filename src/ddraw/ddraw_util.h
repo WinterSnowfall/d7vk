@@ -40,6 +40,7 @@ namespace dxvk {
     if ((lockFlags & DDLOCK_READONLY) && !(lockFlags & DDLOCK_WRITEONLY)) {
       lockFlagsD3D9 |= (DWORD)D3DLOCK_READONLY;
     }
+    // D3D7 only lock flags
     if (lockFlags & DDLOCK_DISCARDCONTENTS) {
       lockFlagsD3D9 |= (DWORD)D3DLOCK_DISCARD;
     }
@@ -50,7 +51,28 @@ namespace dxvk {
     return lockFlagsD3D9;
   }
 
-  inline DWORD ConvertUsageFlags(DWORD usageFlags, d3d9::D3DPOOL pool) {
+  inline DWORD ConvertD3D6UsageFlags(DWORD usageFlags, DWORD creationFlags, d3d9::D3DPOOL pool) {
+    DWORD usageFlagsD3D9 = 0;
+
+    // The D3D6 docs do not mention the presence of a D3DVBCAPS_DONOTCLIP flag,
+    // and only the creation flag D3DDP_DONOTCLIP is touted as being usable
+    if ((usageFlags & D3DVBCAPS_DONOTCLIP) || (creationFlags & D3DDP_DONOTCLIP)) {
+      usageFlagsD3D9 |= (DWORD)D3DUSAGE_DONOTCLIP;
+    }
+    if (usageFlags & D3DVBCAPS_SYSTEMMEMORY) {
+      usageFlagsD3D9 |= (DWORD)D3DUSAGE_SOFTWAREPROCESSING;
+    }
+    if (usageFlags & D3DVBCAPS_WRITEONLY) {
+      usageFlagsD3D9 |= (DWORD)D3DUSAGE_WRITEONLY;
+    }
+
+    // D3D6 does not use DDLOCK_DISCARDCONTENTS or
+    // DDLOCK_NOOVERWRITE, however, still mark DEFAULT buffers
+    // as DYNAMIC to handle any potential CPU read-backs
+    return pool == d3d9::D3DPOOL_DEFAULT ? usageFlagsD3D9 | D3DUSAGE_DYNAMIC : usageFlagsD3D9;
+  }
+
+  inline DWORD ConvertD3D7UsageFlags(DWORD usageFlags, d3d9::D3DPOOL pool) {
     DWORD usageFlagsD3D9 = 0;
 
     if (usageFlags & D3DVBCAPS_DONOTCLIP) {
@@ -63,8 +85,8 @@ namespace dxvk {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_WRITEONLY;
     }
 
-    // Though d3d7 does not specify it, all D3DPOOL_DEFAULT buffers NEED
-    // to be dynamic, otherwise some lock flags will not work properly
+    // Though D3D7 does not specify it, all D3DPOOL_DEFAULT buffers need
+    // to be DYNAMIC, otherwise some lock flags will not work properly
     return pool == d3d9::D3DPOOL_DEFAULT ? usageFlagsD3D9 | D3DUSAGE_DYNAMIC : usageFlagsD3D9;
   }
 
