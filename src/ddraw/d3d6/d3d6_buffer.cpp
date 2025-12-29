@@ -13,8 +13,10 @@ namespace dxvk {
             Com<IDirect3DVertexBuffer>&& buffProxy,
             Com<d3d9::IDirect3DVertexBuffer9>&& pBuffer9,
             D3D6Interface* pParent,
+            DWORD creationFlags,
             D3DVERTEXBUFFERDESC desc)
     : DDrawWrappedObject<D3D6Interface, IDirect3DVertexBuffer, d3d9::IDirect3DVertexBuffer9>(pParent, std::move(buffProxy), std::move(pBuffer9))
+    , m_creationFlags ( creationFlags )
     , m_desc ( desc )
     , m_stride ( GetFVFSize(desc.dwFVF) )
     , m_size ( m_stride * desc.dwNumVertices ) {
@@ -196,7 +198,7 @@ namespace dxvk {
 
     Logger::debug(str::format("D3D6VertexBuffer::IntializeD3D9: Placing in: ", poolPlacement));
 
-    const DWORD usage = ConvertUsageFlags(m_desc.dwCaps, pool);
+    const DWORD usage = ConvertD3D6UsageFlags(m_desc.dwCaps, m_creationFlags, pool);
     HRESULT hr = m_d3d6Device->GetD3D9()->CreateVertexBuffer(m_size, usage, m_desc.dwFVF, pool, &m_d3d9, nullptr);
 
     if (unlikely(FAILED(hr))) {
