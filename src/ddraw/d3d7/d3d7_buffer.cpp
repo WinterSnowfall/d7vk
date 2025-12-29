@@ -154,7 +154,7 @@ namespace dxvk {
 
     D3D7DeviceLock lock = device->LockDevice();
 
-    if (device->IsMixedVPDevice())
+    if (device->IsTNLDevice())
       device->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
 
     HandlePreProcessVerticesFlags(dwVertexOp);
@@ -167,7 +167,7 @@ namespace dxvk {
 
     HandlePostProcessVerticesFlags(dwVertexOp);
 
-    if (device->IsMixedVPDevice())
+    if (device->IsTNLDevice())
       device->GetD3D9()->SetSoftwareVertexProcessing(FALSE);
 
     return hr;
@@ -192,7 +192,7 @@ namespace dxvk {
 
     D3D7DeviceLock lock = device->LockDevice();
 
-    if (device->IsMixedVPDevice())
+    if (device->IsTNLDevice())
       device->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
 
     HandlePreProcessVerticesFlags(dwVertexOp);
@@ -201,7 +201,7 @@ namespace dxvk {
 
     HandlePostProcessVerticesFlags(dwVertexOp);
 
-    if (device->IsMixedVPDevice())
+    if (device->IsTNLDevice())
       device->GetD3D9()->SetSoftwareVertexProcessing(FALSE);
 
     return D3D_OK;
@@ -249,7 +249,7 @@ namespace dxvk {
 
     Logger::debug(str::format("D3D7VertexBuffer::IntializeD3D9: Placing in: ", poolPlacement));
 
-    const DWORD usage = ConvertUsageFlags(m_desc.dwCaps, pool);
+    const DWORD usage = ConvertD3D7UsageFlags(m_desc.dwCaps, pool);
     HRESULT hr = m_d3d7Device->GetD3D9()->CreateVertexBuffer(m_size, usage, m_desc.dwFVF, pool, &m_d3d9, nullptr);
 
     if (unlikely(FAILED(hr))) {
