@@ -107,37 +107,37 @@ namespace dxvk {
     // device listing order matters, so list RGB first, HAL second.
 
     // Software emulation, this is expected to be exposed (SWVP)
-    GUID guid6RGB = IID_IDirect3DRGBDevice;
-    D3DDEVICEDESC desc6RGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_d3d6Options.disableAASupport);
-    D3DDEVICEDESC desc6RGB_HEL = desc6RGB_HAL;
-    desc6RGB_HAL.dwFlags = 0;
-    desc6RGB_HAL.dcmColorModel = 0;
+    GUID guidRGB = IID_IDirect3DRGBDevice;
+    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC descRGB_HEL = descRGB_HAL;
+    descRGB_HAL.dwFlags = 0;
+    descRGB_HAL.dcmColorModel = 0;
     // Some applications apparently care about RGB texture caps
-    desc6RGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE;
-    desc6RGB_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE;
-    desc6RGB_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
-    desc6RGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
+    descRGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE;
+    descRGB_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE;
+    descRGB_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
+    descRGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
     char deviceDescRGB[100] = "D6VK RGB";
     char deviceNameRGB[100] = "D6VK RGB";
 
-    HRESULT hr = lpEnumDevicesCallback(const_cast<GUID*>(&guid6RGB), &deviceDescRGB[0],
-                                       &deviceNameRGB[0], &desc6RGB_HAL, &desc6RGB_HEL, lpUserArg);
+    HRESULT hr = lpEnumDevicesCallback(const_cast<GUID*>(&guidRGB), &deviceDescRGB[0],
+                                       &deviceNameRGB[0], &descRGB_HAL, &descRGB_HEL, lpUserArg);
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
     // Hardware acceleration (SWVP)
     GUID guidHAL = IID_IDirect3DHALDevice;
-    D3DDEVICEDESC desc6HAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_d3d6Options.disableAASupport);
-    D3DDEVICEDESC desc6HAL_HEL = desc6HAL_HAL;
-    desc6HAL_HEL.dcmColorModel = 0;
-    desc6HAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                            & ~D3DDEVCAPS_DRAWPRIMITIVES2
-                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC descHAL_HEL = descHAL_HAL;
+    descHAL_HEL.dcmColorModel = 0;
+    descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                           & ~D3DDEVCAPS_DRAWPRIMITIVES2
+                           & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
     char deviceDescHAL[100] = "D6VK HAL";
     char deviceNameHAL[100] = "D6VK HAL";
 
     hr = lpEnumDevicesCallback(const_cast<GUID*>(&guidHAL), &deviceDescHAL[0],
-                               &deviceNameHAL[0], &desc6HAL_HAL, &desc6HAL_HEL, lpUserArg);
+                               &deviceNameHAL[0], &descHAL_HAL, &descHAL_HEL, lpUserArg);
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
@@ -177,7 +177,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::CreateViewport(LPDIRECT3DVIEWPORT3 *lplpD3DViewport, IUnknown *pUnkOuter) {
-    Logger::debug("<<< D3D6Interface::CreateViewport: Proxy");
+    Logger::debug(">>> D3D6Interface::CreateViewport");
 
     Com<IDirect3DViewport3> lplpD3DViewportProxy;
     HRESULT hr = m_proxy->CreateViewport(&lplpD3DViewportProxy, pUnkOuter);
@@ -202,17 +202,17 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // Software emulation, this is expected to be exposed (SWVP)
-    D3DDEVICEDESC desc6RGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_d3d6Options.disableAASupport);
-    D3DDEVICEDESC desc6RGB_HEL = desc6RGB_HAL;
-    desc6RGB_HAL.dwFlags = 0;
-    desc6RGB_HAL.dcmColorModel = 0;
+    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC descRGB_HEL = descRGB_HAL;
+    descRGB_HAL.dwFlags = 0;
+    descRGB_HAL.dcmColorModel = 0;
 
     // Hardware acceleration (SWVP)
-    D3DDEVICEDESC desc6HAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_d3d6Options.disableAASupport);
-    D3DDEVICEDESC desc6HAL_HEL = desc6HAL_HAL;
-    desc6RGB_HEL.dcmColorModel = 0;
-    desc6RGB_HEL.dwDevCaps &= ~D3DDEVCAPS_DRAWPRIMITIVES2
-                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC descHAL_HEL = descHAL_HAL;
+    descRGB_HEL.dcmColorModel = 0;
+    descRGB_HEL.dwDevCaps &= ~D3DDEVCAPS_DRAWPRIMITIVES2
+                           & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
 
     lpD3DFDR->dwSize = sizeof(D3DFINDDEVICERESULT);
 
@@ -221,34 +221,34 @@ namespace dxvk {
 
       lpD3DFDR->guid = lpD3DFDS->guid;
       if (lpD3DFDS->guid == IID_IDirect3DRGBDevice) {
-        lpD3DFDR->ddHwDesc = desc6RGB_HAL;
-        lpD3DFDR->ddSwDesc = desc6RGB_HEL;
+        lpD3DFDR->ddHwDesc = descRGB_HAL;
+        lpD3DFDR->ddSwDesc = descRGB_HEL;
       } else if (lpD3DFDS->guid == IID_IDirect3DHALDevice) {
-        lpD3DFDR->ddHwDesc = desc6HAL_HAL;
-        lpD3DFDR->ddSwDesc = desc6HAL_HEL;
+        lpD3DFDR->ddHwDesc = descHAL_HAL;
+        lpD3DFDR->ddSwDesc = descHAL_HEL;
       } else {
         Logger::warn("D3D6Interface::FindDevice: Unknown device type, matching RGB");
-        lpD3DFDR->ddHwDesc = desc6RGB_HAL;
-        lpD3DFDR->ddSwDesc = desc6RGB_HEL;
+        lpD3DFDR->ddHwDesc = descRGB_HAL;
+        lpD3DFDR->ddSwDesc = descRGB_HEL;
       }
     } else if (lpD3DFDS->dwFlags & D3DFDS_HARDWARE) {
       Logger::debug("D3D6Interface::FindDevice: Matching by hardware flag");
 
       if (likely(lpD3DFDS->bHardware == TRUE)) {
         lpD3DFDR->guid = IID_IDirect3DHALDevice;
-        lpD3DFDR->ddHwDesc = desc6HAL_HAL;
-        lpD3DFDR->ddSwDesc = desc6HAL_HEL;
+        lpD3DFDR->ddHwDesc = descHAL_HAL;
+        lpD3DFDR->ddSwDesc = descHAL_HEL;
       } else {
         lpD3DFDR->guid = IID_IDirect3DRGBDevice;
-        lpD3DFDR->ddHwDesc = desc6RGB_HAL;
-        lpD3DFDR->ddSwDesc = desc6RGB_HEL;
+        lpD3DFDR->ddHwDesc = descRGB_HAL;
+        lpD3DFDR->ddSwDesc = descRGB_HEL;
       }
     } else {
       Logger::warn("D3D6Interface::FindDevice: Unhandled matching, using HAL");
 
       lpD3DFDR->guid = IID_IDirect3DHALDevice;
-      lpD3DFDR->ddHwDesc = desc6HAL_HAL;
-      lpD3DFDR->ddSwDesc = desc6HAL_HEL;
+      lpD3DFDR->ddHwDesc = descHAL_HAL;
+      lpD3DFDR->ddSwDesc = descHAL_HEL;
     }
 
     return D3D_OK;
@@ -268,6 +268,7 @@ namespace dxvk {
     }
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+    bool  rgbFallback          = false;
 
     if (rclsid == IID_IDirect3DHALDevice) {
       Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
@@ -279,14 +280,16 @@ namespace dxvk {
       }
     } else if (rclsid == IID_IDirect3DMMXDevice) {
       Logger::warn("D3D6Interface::CreateDevice: Unsupported MMMX device, falling back to RGB");
-      rclsid == IID_IDirect3DRGBDevice;
+      rgbFallback = true;
     } else if (rclsid == IID_IDirect3DRGBDevice) {
       Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
     } else {
       // Revenant uses a rclsid of 7a31a548-0000-0007-26ed-780000000000...
       Logger::warn("D3D6Interface::CreateDevice: Unsupported device type, falling back to RGB");
-      rclsid == IID_IDirect3DRGBDevice;
+      rgbFallback = true;
     }
+
+    const IID rclsidOverride = rgbFallback ? IID_IDirect3DRGBDevice : rclsid;
 
     HWND hwnd = m_parent->GetHWND();
     // Needed to sometimes safely skip intro playback on legacy devices
@@ -311,7 +314,7 @@ namespace dxvk {
     }
 
     Com<IDirect3DDevice3> d3d6DeviceProxy;
-    HRESULT hr = m_proxy->CreateDevice(rclsid, rt4->GetProxied(), &d3d6DeviceProxy, nullptr);
+    HRESULT hr = m_proxy->CreateDevice(rclsidOverride, rt4->GetProxied(), &d3d6DeviceProxy, nullptr);
     if (unlikely(FAILED(hr))) {
       Logger::warn("D3D6Interface::CreateDevice: Failed to create the proxy device");
       return hr;
@@ -426,18 +429,18 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC desc6 = GetD3D6Caps(rclsid, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC desc6 = GetD3D6Caps(rclsidOverride, m_d3d6Options.disableAASupport);
 
     try{
       Com<D3D6Device> device = new D3D6Device(std::move(d3d6DeviceProxy), this, desc6,
-                                              rclsid, params, std::move(device9),
+                                              rclsidOverride, params, std::move(device9),
                                               rt4.ptr(), deviceCreationFlags9);
       // Hold the address of the most recently created device, not a reference
       m_lastUsedDevice = device.ptr();
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       m_lastUsedDevice->InitializeDS();
       // Enable SWVP in case of MIXED HAL devices
-      if (unlikely(m_d3d6Options.useMixedSWVPforHAL && rclsid == IID_IDirect3DHALDevice))
+      if (unlikely(m_d3d6Options.useMixedSWVPforHAL && rclsidOverride == IID_IDirect3DHALDevice))
         m_lastUsedDevice->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
       *lplpD3DDevice = device.ref();
     } catch (const DxvkError& e) {

@@ -1626,6 +1626,10 @@ namespace dxvk {
     { R"(\\h&d\.exe$)", {{
       { "d3d9.allowDirectBufferMapping",   "False" },
     }} },
+    /* Dungeon Keeper 2                           */
+    { R"(\\DKII-DX\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
   };
 
