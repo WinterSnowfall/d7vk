@@ -1051,7 +1051,7 @@ namespace dxvk {
                       pvb.stride);
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
+      Logger::err("D3D7Device::DrawIndexedPrimitiveStrided: Failed D3D9 call to DrawIndexedPrimitiveUP");
       return hr;
     }
 
