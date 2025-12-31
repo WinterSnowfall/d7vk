@@ -4,7 +4,12 @@
 
 #include "ddraw7/ddraw7_interface.h"
 #include "ddraw4/ddraw4_interface.h"
+#include "ddraw2/ddraw2_interface.h"
+#include "d3d3/d3d3_interface.h"
+#include "d3d5/d3d5_interface.h"
 #include "d3d6/d3d6_interface.h"
+
+#include <algorithm>
 
 namespace dxvk {
 
@@ -71,6 +76,42 @@ namespace dxvk {
       *ppvObject = m_d3d6Intf.ref();
       return S_OK;
     }
+    // Standard way of retrieving a D3D5 interface
+    if (unlikely(riid == __uuidof(IDirect3D2))) {
+      if (likely(IsLegacyInterface())) {
+        Logger::warn("DDrawInterface::QueryInterface: Query for legacy IDirect3D2");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("DDrawInterface::QueryInterface: Query for IDirect3D2");
+
+      Com<IDirect3D2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D5Interface(std::move(ppvProxyObject), reinterpret_cast<DDraw2Interface*>(this)));
+
+      return S_OK;
+    }
+    // Standard way of retrieving a D3D3 interface
+    if (unlikely(riid == __uuidof(IDirect3D))) {
+      if (likely(IsLegacyInterface())) {
+        Logger::warn("DDrawInterface::QueryInterface: Query for legacy IDirect3D");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("DDrawInterface::QueryInterface: Query for IDirect3D");
+
+      Com<IDirect3D> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D3Interface(std::move(ppvProxyObject), this));
+
+      return S_OK;
+    }
     // Legacy way of retrieving a D3D7 interface
     if (unlikely(riid == __uuidof(IDirect3D7))) {
       if (likely(IsLegacyInterface())) {
@@ -88,26 +129,6 @@ namespace dxvk {
       *ppvObject = ref(new D3D7Interface(std::move(ppvProxyObject), nullptr));
 
       return S_OK;
-    }
-    // Standard way of retrieving a D3D3 interface
-    if (unlikely(riid == __uuidof(IDirect3D))) {
-      if (likely(IsLegacyInterface())) {
-        Logger::warn("DDrawInterface::QueryInterface: Query for legacy IDirect3D");
-        return m_proxy->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::err("DDrawInterface::QueryInterface: Unsupported IDirect3D interface");
-      return E_NOINTERFACE;
-    }
-    // Standard way of retrieving a D3D5 interface
-    if (unlikely(riid == __uuidof(IDirect3D2))) {
-      if (likely(IsLegacyInterface())) {
-        Logger::warn("DDrawInterface::QueryInterface: Query for legacy IDirect3D2");
-        return m_proxy->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::err("DDrawInterface::QueryInterface: Unsupported IDirect3D2 interface");
-      return E_NOINTERFACE;
     }
     // Legacy way of getting a DDraw4 interface
     if (riid == __uuidof(IDirectDraw4)) {
@@ -230,7 +251,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       try{
-        Com<DDrawSurface> surface = new DDrawSurface(std::move(ddrawSurfaceProxied), this, nullptr);
+        Com<DDrawSurface> surface = new DDrawSurface(std::move(ddrawSurfaceProxied), this, nullptr, nullptr, true);
         *lplpDDSurface = surface.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());
@@ -340,6 +361,50 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawInterface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
     Logger::debug("<<< DDrawInterface::WaitForVerticalBlank: Proxy");
     return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+  }
+
+  bool DDrawInterface::IsWrappedSurface(IDirectDrawSurface* surface) const {
+    if (unlikely(surface == nullptr))
+      return false;
+
+    DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(surface);
+    auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddrawSurface);
+    if (likely(it != m_surfaces.end()))
+      return true;
+
+    return false;
+  }
+
+  void DDrawInterface::AddWrappedSurface(IDirectDrawSurface* surface) {
+    if (likely(surface != nullptr)) {
+      DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(surface);
+
+      auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddrawSurface);
+      if (unlikely(it != m_surfaces.end())) {
+        Logger::warn("DDrawInterface::AddWrappedSurface: Pre-existing wrapped surface found");
+      } else {
+        m_surfaces.push_back(ddrawSurface);
+
+        if (likely(ddrawSurface->IsChildObject()))
+          this->AddRef();
+      }
+    }
+  }
+
+  void DDrawInterface::RemoveWrappedSurface(IDirectDrawSurface* surface) {
+    if (likely(surface != nullptr)) {
+      DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(surface);
+
+      auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddrawSurface);
+      if (likely(it != m_surfaces.end())) {
+        m_surfaces.erase(it);
+
+        if (likely(ddrawSurface->IsChildObject()))
+          this->Release();
+      } else {
+        Logger::warn("DDrawInterface::RemoveWrappedSurface: Surface not found");
+      }
+    }
   }
 
 }

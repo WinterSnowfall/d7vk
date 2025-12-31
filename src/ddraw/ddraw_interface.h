@@ -6,6 +6,8 @@
 #include "ddraw2/ddraw2_interface.h"
 #include "ddraw4/ddraw4_interface.h"
 
+#include <vector>
+
 namespace dxvk {
 
   class D3D6Interface;
@@ -63,6 +65,12 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent);
 
+    bool IsWrappedSurface(IDirectDrawSurface* surface) const;
+
+    void AddWrappedSurface(IDirectDrawSurface* surface);
+
+    void RemoveWrappedSurface(IDirectDrawSurface* surface);
+
   private:
 
     inline bool IsLegacyInterface() {
@@ -79,6 +87,8 @@ namespace dxvk {
     DDraw7Interface*            m_origin = nullptr;
 
     Com<D3D6Interface,   false> m_d3d6Intf;
+
+    std::vector<DDrawSurface*> m_surfaces;
 
   };
 

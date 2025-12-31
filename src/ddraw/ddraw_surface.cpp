@@ -11,15 +11,41 @@ namespace dxvk {
   DDrawSurface::DDrawSurface(
         Com<IDirectDrawSurface>&& surfProxy,
         DDrawInterface* pParent,
-        DDraw7Surface* origin)
+        DDrawSurface* pParentSurf,
+        DDraw7Surface* origin,
+        bool isChildObject)
     : DDrawWrappedObject<DDrawInterface, IDirectDrawSurface, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
+    , m_isChildObject ( isChildObject )
+    , m_parentSurf ( pParentSurf )
     , m_origin ( origin ) {
+    if (likely(!IsLegacyInterface())) {
+      m_parent->AddWrappedSurface(this);
+
+      // Retrieve and cache the proxy surface desc
+      m_desc.dwSize = sizeof(DDSURFACEDESC);
+      HRESULT hr = m_proxy->GetSurfaceDesc(&m_desc);
+
+      if (unlikely(FAILED(hr))) {
+        throw DxvkError("DDrawSurface: ERROR! Failed to retrieve new surface desc!");
+      } else {
+        // Determine the d3d9 surface format
+        m_format = ConvertFormat(m_desc.ddpfPixelFormat);
+      }
+    }
+
     m_surfCount = ++s_surfCount;
 
-    Logger::debug(str::format("DDrawSurface: Created a new surface nr. [[1-", m_surfCount, "]]"));
+    if (likely(!IsLegacyInterface())) {
+      ListSurfaceDetails();
+    } else {
+      Logger::debug(str::format("DDrawSurface: Created a new surface nr. [[1-", m_surfCount, "]]"));
+    }
   }
 
   DDrawSurface::~DDrawSurface() {
+    if (likely(!IsLegacyInterface()))
+      m_parent->RemoveWrappedSurface(this);
+
     Logger::debug(str::format("DDrawSurface: Surface nr. [[1-", m_surfCount, "]] bites the dust"));
   }
 
@@ -51,6 +77,26 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
+    // Apparently, the standard way of creating a HAL D3D3 device...
+    if (riid == IID_IDirect3DHALDevice) {
+      if (likely(IsLegacyInterface())) {
+        Logger::warn("DDrawSurface::QueryInterface: Query for IID_IDirect3DHALDevice");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DHALDevice");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    // Apparently, the standard way of creating a RGB D3D3 device...
+    if (riid == IID_IDirect3DRGBDevice) {
+      if (likely(IsLegacyInterface())) {
+        Logger::warn("DDrawSurface::QueryInterface: Query for IID_IDirect3DRGBDevice");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DRGBDevice");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
     if (riid == __uuidof(IDirectDrawGammaControl)) {
       if (likely(IsLegacyInterface())) {
         return m_origin->QueryInterface(riid, ppvObject);
@@ -120,8 +166,31 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::AddAttachedSurface(LPDIRECTDRAWSURFACE lpDDSAttachedSurface) {
+    if (unlikely(IsLegacyInterface())) {
+      Logger::warn("<<< DDrawSurface::AddAttachedSurface: Proxy");
+      return m_proxy->AddAttachedSurface(lpDDSAttachedSurface);
+    }
+
     Logger::debug("<<< DDrawSurface::AddAttachedSurface: Proxy");
-    return m_proxy->AddAttachedSurface(lpDDSAttachedSurface);
+
+    if (unlikely(lpDDSAttachedSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(!m_parent->IsWrappedSurface(lpDDSAttachedSurface))) {
+      Logger::warn("DDrawSurface::AddAttachedSurface: Attaching unwrapped surface");
+      return m_proxy->AddAttachedSurface(lpDDSAttachedSurface);
+    }
+
+    DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSAttachedSurface);
+
+    HRESULT hr = m_proxy->AddAttachedSurface(ddrawSurface->GetProxied());
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    ddrawSurface->SetParentSurface(this);
+    m_depthStencil = ddrawSurface;
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::AddOverlayDirtyRect(LPRECT lpRect) {
@@ -130,23 +199,87 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
+    if (unlikely(IsLegacyInterface())) {
+      Logger::warn("<<< DDrawSurface::Blt: Proxy");
+      return m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
+    }
+
     Logger::debug("<<< DDrawSurface::Blt: Proxy");
-    return m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
+
+    HRESULT hr;
+
+    if (unlikely(!m_parent->IsWrappedSurface(lpDDSrcSurface))) {
+      if (unlikely(lpDDSrcSurface != nullptr))
+        Logger::warn("DDrawSurface::Blt: Received an unwrapped source surface");
+      hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
+    } else {
+      DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSrcSurface);
+      hr = m_proxy->Blt(lpDestRect, ddrawSurface->GetProxied(), lpSrcRect, dwFlags, lpDDBltFx);
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags) {
     Logger::debug("<<< DDrawSurface::BltBatch: Proxy");
-    return m_proxy->BltBatch(lpDDBltBatch, dwCount, dwFlags);
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
+    if (unlikely(IsLegacyInterface())) {
+      Logger::warn("<<< DDrawSurface::BltFast: Proxy");
+      return m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
+    }
+
     Logger::debug("<<< DDrawSurface::BltFast: Proxy");
-    return m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
+
+    HRESULT hr;
+
+    if (unlikely(!m_parent->IsWrappedSurface(lpDDSrcSurface))) {
+      if (unlikely(lpDDSrcSurface != nullptr))
+        Logger::warn("DDrawSurface::BltFast: Received an unwrapped source surface");
+      hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
+    } else {
+      DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSrcSurface);
+      hr = m_proxy->BltFast(dwX, dwY, ddrawSurface->GetProxied(), lpSrcRect, dwTrans);
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE lpDDSAttachedSurface) {
+    if (unlikely(IsLegacyInterface())) {
+      Logger::warn("<<< DDrawSurface::DeleteAttachedSurface: Proxy");
+      return m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
+    }
+
     Logger::debug("<<< DDrawSurface::DeleteAttachedSurface: Proxy");
-    return m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
+
+    if (unlikely(!m_parent->IsWrappedSurface(lpDDSAttachedSurface))) {
+      if (unlikely(lpDDSAttachedSurface != nullptr))
+        Logger::warn("DDrawSurface::DeleteAttachedSurface: Deleting unwrapped surface");
+
+      HRESULT hrProxy = m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
+
+      // If lpDDSAttachedSurface is NULL, then all surfaces are detached
+      if (lpDDSAttachedSurface == nullptr && likely(SUCCEEDED(hrProxy)))
+        m_depthStencil = nullptr;
+
+      return hrProxy;
+    }
+
+    DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSAttachedSurface);
+
+    HRESULT hr = m_proxy->DeleteAttachedSurface(dwFlags, ddrawSurface->GetProxied());
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (likely(m_depthStencil == ddrawSurface)) {
+      ddrawSurface->ClearParentSurface();
+      m_depthStencil = nullptr;
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback) {
@@ -160,13 +293,74 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::Flip(LPDIRECTDRAWSURFACE lpDDSurfaceTargetOverride, DWORD dwFlags) {
-    Logger::debug("*** DDrawSurface::Flip: Ignoring");
-    return DD_OK;
+    Logger::debug("<<< DDrawSurface::Flip: Proxy");
+    return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTDRAWSURFACE *lplpDDAttachedSurface) {
-    Logger::warn("<<< DDrawSurface::GetAttachedSurface: Proxy");
-    return m_proxy->GetAttachedSurface(lpDDSCaps, lplpDDAttachedSurface);
+    if (unlikely(IsLegacyInterface())) {
+      Logger::warn("<<< DDrawSurface::GetAttachedSurface: Proxy");
+      return m_proxy->GetAttachedSurface(lpDDSCaps, lplpDDAttachedSurface);
+    }
+
+    Logger::debug("<<< DDrawSurface::GetAttachedSurface: Proxy");
+
+    if (unlikely(lpDDSCaps == nullptr || lplpDDAttachedSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (lpDDSCaps->dwCaps & DDSCAPS_PRIMARYSURFACE)
+      Logger::debug("DDrawSurface::GetAttachedSurface: Querying for the front buffer");
+    else if (lpDDSCaps->dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP))
+      Logger::debug("DDrawSurface::GetAttachedSurface: Querying for the back buffer");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_OFFSCREENPLAIN)
+      Logger::debug("DDrawSurface::GetAttachedSurface: Querying for an offscreen plain surface");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_ZBUFFER)
+      Logger::debug("DDrawSurface::GetAttachedSurface: Querying for a depth stencil");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_MIPMAP)
+      Logger::debug("DDrawSurface::GetAttachedSurface: Querying for a texture mip map");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_TEXTURE)
+      Logger::debug("DDrawSurface::GetAttachedSurface: Querying for a texture");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_OVERLAY)
+      Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for an overlay");
+
+    Com<IDirectDrawSurface> surface;
+    HRESULT hr = m_proxy->GetAttachedSurface(lpDDSCaps, &surface);
+
+    // These are rather common, as some games query expecting to get nothing in return, for
+    // example it's a common use case to query the mip attach chain until nothing is returned
+    if (FAILED(hr)) {
+      Logger::debug("DDrawSurface::GetAttachedSurface: Failed to find the requested surface");
+      *lplpDDAttachedSurface = surface.ptr();
+      return hr;
+    }
+
+    if (likely(!m_parent->IsWrappedSurface(surface.ptr()))) {
+      Logger::debug("DDrawSurface::GetAttachedSurface: Got a new unwrapped surface");
+      try {
+        auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
+        if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
+          Com<DDrawSurface> ddrawSurface = new DDrawSurface(std::move(surface), m_parent, this, nullptr, false);
+          m_attachedSurfaces.emplace(std::piecewise_construct,
+                                     std::forward_as_tuple(ddrawSurface->GetProxied()),
+                                     std::forward_as_tuple(ddrawSurface.ptr()));
+          // Do NOT ref here since we're managing the attached object lifecycle
+          *lplpDDAttachedSurface = ddrawSurface.ptr();
+        } else {
+          *lplpDDAttachedSurface = attachedSurfaceIter->second.ptr();
+        }
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        *lplpDDAttachedSurface = nullptr;
+        return DDERR_GENERIC;
+      }
+    // Can potentially happen with manually attached surfaces
+    } else {
+      Logger::debug("DDrawSurface::GetAttachedSurface: Got an existing wrapped surface");
+      Com<DDrawSurface> ddrawSurface = static_cast<DDrawSurface*>(surface.ptr());
+      *lplpDDAttachedSurface = ddrawSurface.ref();
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::GetBltStatus(DWORD dwFlags) {

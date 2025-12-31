@@ -14,6 +14,8 @@ ddraw_src = [
   'ddraw4/ddraw4_surface.cpp',
   'ddraw7/ddraw7_interface.cpp',
   'ddraw7/ddraw7_surface.cpp',
+  'd3d3/d3d3_interface.cpp',
+  'd3d5/d3d5_interface.cpp',
   'd3d6/d3d6_buffer.cpp',
   'd3d6/d3d6_device.cpp',
   'd3d6/d3d6_interface.cpp',

@@ -57,9 +57,17 @@ namespace dxvk {
     InitReturnPtr(ppvObject);
 
     // Some games query for legacy viewport interfaces
-    if (unlikely(riid == __uuidof(IDirect3DViewport)
-              || riid == __uuidof(IDirect3DViewport2))) {
+    if (unlikely(riid == __uuidof(IDirect3DViewport))) {
       Logger::warn("D3D6Viewport::QueryInterface: Query for legacy IDirect3DViewport");
+      // Revenant uses this QueryInterface call as a poor man's ref increment,
+      // and does absolutely nothing with the object. Since this isn't used at
+      // all in other contexts, make this a global hack of sorts, for now.
+      *ppvObject = ref(this);
+      return S_OK;
+      //return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    if (unlikely(riid == __uuidof(IDirect3DViewport2))) {
+      Logger::warn("D3D6Viewport::QueryInterface: Query for legacy IDirect3DViewport2");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
 
