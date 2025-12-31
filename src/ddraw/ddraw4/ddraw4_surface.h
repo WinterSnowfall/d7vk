@@ -2,6 +2,9 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
+#include "../ddraw_format.h"
+#include "../ddraw_clipper.h"
+#include "../ddraw_palette.h"
 
 #include "../d3d6/d3d6_device.h"
 
@@ -298,6 +301,9 @@ namespace dxvk {
 
     DDSURFACEDESC2                      m_desc;
     d3d9::D3DFORMAT                     m_format;
+
+    Com<DDrawClipper>                   m_clipper;
+    Com<DDrawPalette>                   m_palette;
 
     Com<D3D6Texture, false>             m_texture6;
 
