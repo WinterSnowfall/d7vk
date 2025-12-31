@@ -281,6 +281,7 @@ namespace dxvk {
                    | D3DDEVCAPS_EXECUTEVIDEOMEMORY
                    | D3DDEVCAPS_FLOATTLVERTEX
                 // | D3DDEVCAPS_HWRASTERIZATION
+                // | D3DDEVCAPS_HWTRANSFORMANDLIGHT
                 // | D3DDEVCAPS_DRAWPRIMITIVES2
                 // | D3DDEVCAPS_SEPARATETEXTUREMEMORIES
                 // | D3DDEVCAPS_DRAWPRIMITIVES2EX
@@ -296,6 +297,7 @@ namespace dxvk {
 
     if (rclsid == IID_IDirect3DHALDevice) {
       desc.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
+                      | D3DDEVCAPS_HWTRANSFORMANDLIGHT // Also advertised in D3D6
                       | D3DDEVCAPS_DRAWPRIMITIVES2
                       | D3DDEVCAPS_DRAWPRIMITIVES2EX;
     }

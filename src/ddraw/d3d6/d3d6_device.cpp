@@ -149,9 +149,15 @@ namespace dxvk {
     if (m_deviceGUID == IID_IDirect3DRGBDevice) {
       desc_HAL.dwFlags = 0;
       desc_HAL.dcmColorModel = 0;
+      // Some applications apparently care about RGB texture caps
+      desc_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE;
+      desc_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE;
+      desc_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
+      desc_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
     } else if (m_deviceGUID == IID_IDirect3DHALDevice) {
       desc_HEL.dcmColorModel = 0;
-      desc_HEL.dwDevCaps &= ~D3DDEVCAPS_DRAWPRIMITIVES2
+      desc_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                          & ~D3DDEVCAPS_DRAWPRIMITIVES2
                           & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
     } else {
       Logger::warn("D3D6Device::GetCaps: Unhandled device type");
@@ -1138,9 +1144,8 @@ namespace dxvk {
 
     switch (dwLightStateType) {
       case D3DLIGHTSTATE_MATERIAL: {
-        // TODO: Maybe D3D_OK?
         if (unlikely(!dwLightState))
-          return DDERR_INVALIDPARAMS;
+          return D3D_OK;
 
         D3D6Material* material6 = m_parent->GetMaterialFromHandle(dwLightState);
         if (unlikely(material6 == nullptr))
@@ -1328,7 +1333,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Device::DrawPrimitiveStrided(D3DPRIMITIVETYPE primitive_type, DWORD fvf, D3DDRAWPRIMITIVESTRIDEDDATA *strided_data, DWORD vertex_count, DWORD flags) {
     D3D6DeviceLock lock = LockDevice();
 
-    Logger::warn("!!! D3D6Device::DrawPrimitiveStrided: Stub");
+    Logger::debug(">>> D3D6Device::DrawPrimitiveStrided");
 
     RefreshLastUsedDevice();
 
@@ -1338,35 +1343,35 @@ namespace dxvk {
     if (unlikely(strided_data == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // TODO: strided_data needs to be transformed into a non-strided vertex buffer stream
+    // Transform strided vertex data to a standard vertex buffer stream
+    PackedVertexBuffer pvb = TransformStridedtoUP(fvf, strided_data, vertex_count);
 
-    /*HandlePreDrawFlags(flags, fvf);
+    HandlePreDrawFlags(flags, fvf);
 
     m_d3d9->SetFVF(fvf);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
                      d3d9::D3DPRIMITIVETYPE(primitive_type),
                      GetPrimitiveCount(primitive_type, vertex_count),
-                     strided_data,
-                     GetFVFSize(fvf));
+                     pvb.vertexData.data(),
+                     pvb.stride);
 
     HandlePostDrawFlags(flags, fvf);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawPrimitiveStrided: Failed D3D9 call to DrawPrimitiveUP");
       return hr;
-    }*/
+    }
 
     if (unlikely(!m_hasDrawn))
       m_hasDrawn = true;
 
-    return D3D_OK;
-    //return hr;
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE primitive_type, DWORD fvf, D3DDRAWPRIMITIVESTRIDEDDATA *strided_data, DWORD vertex_count, WORD *indices, DWORD index_count, DWORD flags) {
     D3D6DeviceLock lock = LockDevice();
 
-    Logger::warn("!!! D3D6Device::DrawIndexedPrimitiveStrided: Stub");
+    Logger::debug(">>> D3D6Device::DrawIndexedPrimitiveStrided");
 
     RefreshLastUsedDevice();
 
@@ -1376,8 +1381,10 @@ namespace dxvk {
     if (unlikely(strided_data == nullptr || indices == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // TODO: strided_data needs to be transformed into a non-strided vertex buffer stream
-    /*HandlePreDrawFlags(flags, fvf);
+    // Transform strided vertex data to a standard vertex buffer stream
+    PackedVertexBuffer pvb = TransformStridedtoUP(fvf, strided_data, vertex_count);
+
+    HandlePreDrawFlags(flags, fvf);
 
     m_d3d9->SetFVF(fvf);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
@@ -1387,21 +1394,20 @@ namespace dxvk {
                       GetPrimitiveCount(primitive_type, index_count),
                       indices,
                       d3d9::D3DFMT_INDEX16,
-                      strided_data,
-                      GetFVFSize(fvf));
+                      pvb.vertexData.data(),
+                      pvb.stride);
 
     HandlePostDrawFlags(flags, fvf);
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
+      Logger::err("D3D6Device::DrawIndexedPrimitiveStrided: Failed D3D9 call to DrawIndexedPrimitiveUP");
       return hr;
-    }*/
+    }
 
     if (unlikely(!m_hasDrawn))
       m_hasDrawn = true;
 
-    return D3D_OK;
-    //return hr;
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DrawPrimitiveVB(D3DPRIMITIVETYPE primitive_type, IDirect3DVertexBuffer *vb, DWORD start_vertex, DWORD vertex_count, DWORD flags) {

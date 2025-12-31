@@ -538,8 +538,21 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetClipper(LPDIRECTDRAWCLIPPER *lplpDDClipper) {
-    Logger::debug("<<< DDraw4Surface::GetClipper: Proxy");
-    return m_proxy->GetClipper(lplpDDClipper);
+    if (unlikely(IsLegacyInterface())) {
+      Logger::debug("<<< DDraw4Surface::GetClipper: Proxy");
+      return m_proxy->GetClipper(lplpDDClipper);
+    }
+
+    Logger::debug(">>> DDraw4Surface::GetClipper");
+
+    if (unlikely(lplpDDClipper == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDClipper);
+
+    *lplpDDClipper = m_clipper.ref();
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColorKey) {
@@ -593,8 +606,21 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetPalette(LPDIRECTDRAWPALETTE *lplpDDPalette) {
-    Logger::debug("<<< DDraw4Surface::GetPalette: Proxy");
-    return m_proxy->GetPalette(lplpDDPalette);
+    if (unlikely(IsLegacyInterface())) {
+      Logger::debug("<<< DDraw4Surface::GetPalette: Proxy");
+      return m_proxy->GetPalette(lplpDDPalette);
+    }
+
+    Logger::debug(">>> DDraw4Surface::GetPalette");
+
+    if (unlikely(lplpDDPalette == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDPalette);
+
+    *lplpDDPalette = m_palette.ref();
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat) {
@@ -721,9 +747,22 @@ namespace dxvk {
 
     Logger::debug("<<< DDraw4Surface::SetClipper: Proxy");
 
-    HRESULT hr = m_proxy->SetClipper(lpDDClipper);
+    // A nullptr lpDDClipper gets the current clipper detached
+    if (lpDDClipper == nullptr) {
+      HRESULT hr = m_proxy->SetClipper(lpDDClipper);
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-    if (likely(SUCCEEDED(hr) && lpDDClipper != nullptr)) {
+      m_clipper = nullptr;
+    } else {
+      DDrawClipper* ddrawClipper = static_cast<DDrawClipper*>(lpDDClipper);
+
+      HRESULT hr = m_proxy->SetClipper(ddrawClipper->GetProxied());
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      m_clipper = ddrawClipper;
+
       // A few games apparently call SetCooperativeLevel AFTER creating the
       // d3d device, let alone the interface, which is technically illegal,
       // but hey, like that ever stopped anyone...
@@ -735,7 +774,7 @@ namespace dxvk {
       }
     }
 
-    return hr;
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColorKey) {
@@ -749,8 +788,31 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette) {
+    if (unlikely(IsLegacyInterface())) {
+      Logger::debug("<<< DDraw4Surface::SetPalette: Proxy");
+      return m_proxy->SetPalette(lpDDPalette);
+    }
+
     Logger::debug("<<< DDraw4Surface::SetPalette: Proxy");
-    return m_proxy->SetPalette(lpDDPalette);
+
+    // A nullptr lpDDPalette gets the current palette detached
+    if (lpDDPalette == nullptr) {
+      HRESULT hr = m_proxy->SetPalette(lpDDPalette);
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      m_palette = nullptr;
+    } else {
+      DDrawPalette* ddrawPalette = static_cast<DDrawPalette*>(lpDDPalette);
+
+      HRESULT hr = m_proxy->SetPalette(ddrawPalette->GetProxied());
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      m_palette = ddrawPalette;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::Unlock(LPRECT lpSurfaceData) {

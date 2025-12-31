@@ -130,12 +130,9 @@ namespace dxvk {
       return m_origin->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
     }
 
-    Logger::debug("<<< DDraw4Interface::CreateClipper: Proxy");
-    // Note: Unfortunately, if we wrap clippers, WineD3D's ddraw will crash on an assert,
-    // as it expects the vtable to correspond to its internal clipper implementation
-    return m_proxy->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
+    Logger::debug(">>> DDraw4Interface::CreateClipper");
 
-    /*if (unlikely(lplpDDClipper == nullptr))
+    if (unlikely(lplpDDClipper == nullptr))
       return DDERR_INVALIDPARAMS;
 
     InitReturnPtr(lplpDDClipper);
@@ -144,13 +141,13 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this));
+      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), reinterpret_cast<DDraw7Interface*>(this)));
     } else {
       Logger::warn("DDraw4Interface::CreateClipper: Failed to create proxy clipper");
       return hr;
     }
 
-    return DD_OK;*/
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpColorTable, LPDIRECTDRAWPALETTE *lplpDDPalette, IUnknown *pUnkOuter) {
@@ -159,12 +156,9 @@ namespace dxvk {
       return m_origin->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
     }
 
-    Logger::debug("<<< DDraw4Interface::CreatePalette: Proxy");
-    // Note: Unfortunately, if we wrap palettes, WineD3D's ddraw will crash on an assert,
-    // as it expects the vtable to correspond to its internal palette implementation
-    return m_proxy->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
+    Logger::debug(">>> DDraw4Interface::CreatePalette");
 
-    /*if (unlikely(lplpDDPalette == nullptr))
+    if (unlikely(lplpDDPalette == nullptr))
       return DDERR_INVALIDPARAMS;
 
     InitReturnPtr(lplpDDPalette);
@@ -173,13 +167,13 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreatePalette(dwFlags, lpColorTable, &lplpDDPaletteProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), this));
+      *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), reinterpret_cast<DDraw7Interface*>(this)));
     } else {
       Logger::warn("DDraw4Interface::CreatePalette: Failed to create proxy palette");
       return hr;
     }
 
-    return DD_OK;*/
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPDIRECTDRAWSURFACE4 *lplpDDSurface, IUnknown *pUnkOuter) {
