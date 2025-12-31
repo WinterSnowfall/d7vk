@@ -3,6 +3,8 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_format.h"
+#include "../ddraw_clipper.h"
+#include "../ddraw_palette.h"
 
 #include "../d3d7/d3d7_device.h"
 
@@ -315,6 +317,9 @@ namespace dxvk {
 
     DDSURFACEDESC2                      m_desc;
     d3d9::D3DFORMAT                     m_format;
+
+    Com<DDrawClipper>                   m_clipper;
+    Com<DDrawPalette>                   m_palette;
 
     Com<d3d9::IDirect3DCubeTexture9>    m_cubeMap;
     std::array<IDirectDrawSurface7*, 6> m_cubeMapSurfaces;

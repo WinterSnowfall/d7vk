@@ -183,34 +183,8 @@ extern "C" {
   }
 
   HRESULT WINAPI DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
-    dxvk::Logger::debug("<<< DirectDrawCreateClipper: Proxy");
-
-    typedef HRESULT (__stdcall *DirectDrawCreateClipper_t)(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter);
-    static DirectDrawCreateClipper_t ProxiedDirectDrawCreateClipper = nullptr;
-
-    if (unlikely(ProxiedDirectDrawCreateClipper == nullptr)) {
-      HMODULE hDDraw = dxvk::GetProxiedDDrawModule();
-
-      if (unlikely(hDDraw == nullptr)) {
-        dxvk::Logger::err("DirectDrawCreateClipper: Failed to load proxied ddraw.dll");
-        return DDERR_GENERIC;
-      }
-
-      ProxiedDirectDrawCreateClipper = reinterpret_cast<DirectDrawCreateClipper_t>(GetProcAddress(hDDraw, "DirectDrawCreateClipper"));
-
-      if (unlikely(!ProxiedDirectDrawCreateClipper)) {
-        dxvk::Logger::err("DirectDrawCreateClipper: Failed GetProcAddress");
-        return DDERR_GENERIC;
-      }
-    }
-
-    HRESULT hr = ProxiedDirectDrawCreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
-
-    if (unlikely(FAILED(hr))) {
-      dxvk::Logger::warn("DirectDrawCreateClipper: Failed call to proxied interface");
-    }
-
-    return hr;
+    dxvk::Logger::warn("!!! DirectDrawCreateClipper: Stub");
+    return DD_OK;
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawCreateEx(GUID *lpGUID, LPVOID *lplpDD, REFIID iid, IUnknown *pUnkOuter) {
@@ -356,36 +330,9 @@ extern "C" {
     return DD_OK;
   }
 
-  // Note: will always return unwrapped surfaces, so we need to account for that
   DLLEXPORT HRESULT __stdcall GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS, DWORD arg) {
-    dxvk::Logger::debug("<<< GetSurfaceFromDC: Proxy");
-
-    typedef HRESULT (__stdcall *GetSurfaceFromDC_t)(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS, DWORD arg);
-    static GetSurfaceFromDC_t ProxiedGetSurfaceFromDC = nullptr;
-
-    if (unlikely(ProxiedGetSurfaceFromDC == nullptr)) {
-      HMODULE hDDraw = dxvk::GetProxiedDDrawModule();
-
-      if (unlikely(hDDraw == nullptr)) {
-        dxvk::Logger::err("GetSurfaceFromDC: Failed to load proxied ddraw.dll");
-        return DDERR_GENERIC;
-      }
-
-      ProxiedGetSurfaceFromDC = reinterpret_cast<GetSurfaceFromDC_t>(GetProcAddress(hDDraw, "GetSurfaceFromDC"));
-
-      if (unlikely(ProxiedGetSurfaceFromDC == nullptr)) {
-        dxvk::Logger::err("GetSurfaceFromDC: Failed GetProcAddress");
-        return DDERR_GENERIC;
-      }
-    }
-
-    HRESULT hr = ProxiedGetSurfaceFromDC(hdc, lpDDS, arg);
-
-    if (unlikely(FAILED(hr))) {
-      dxvk::Logger::warn("GetSurfaceFromDC: Failed call to proxied interface");
-    }
-
-    return hr;
+    dxvk::Logger::warn("!!! GetSurfaceFromDC: Stub");
+    return DD_OK;
   }
 
   DLLEXPORT HRESULT __stdcall RegisterSpecialCase(DWORD arg1, DWORD arg2, DWORD arg3, DWORD arg4) {

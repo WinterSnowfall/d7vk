@@ -497,8 +497,16 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetClipper(LPDIRECTDRAWCLIPPER *lplpDDClipper) {
-    Logger::debug("<<< DDraw7Surface::GetClipper: Proxy");
-    return m_proxy->GetClipper(lplpDDClipper);
+    Logger::debug(">>> DDraw7Surface::GetClipper");
+
+    if (unlikely(lplpDDClipper == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDClipper);
+
+    *lplpDDClipper = m_clipper.ref();
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColorKey) {
@@ -549,8 +557,16 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPalette(LPDIRECTDRAWPALETTE *lplpDDPalette) {
-    Logger::debug("<<< DDraw7Surface::GetPalette: Proxy");
-    return m_proxy->GetPalette(lplpDDPalette);
+    Logger::debug(">>> DDraw7Surface::GetPalette");
+
+    if (unlikely(lplpDDPalette == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDPalette);
+
+    *lplpDDPalette = m_palette.ref();
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat) {
@@ -648,9 +664,22 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper) {
     Logger::debug("<<< DDraw7Surface::SetClipper: Proxy");
 
-    HRESULT hr = m_proxy->SetClipper(lpDDClipper);
+    // A nullptr lpDDClipper gets the current clipper detached
+    if (lpDDClipper == nullptr) {
+      HRESULT hr = m_proxy->SetClipper(lpDDClipper);
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-    if (likely(SUCCEEDED(hr) && lpDDClipper != nullptr)) {
+      m_clipper = nullptr;
+    } else {
+      DDrawClipper* ddrawClipper = static_cast<DDrawClipper*>(lpDDClipper);
+
+      HRESULT hr = m_proxy->SetClipper(ddrawClipper->GetProxied());
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      m_clipper = ddrawClipper;
+
       // A few games apparently call SetCooperativeLevel AFTER creating the
       // d3d device, let alone the interface, which is technically illegal,
       // but hey, like that ever stopped anyone...
@@ -662,7 +691,7 @@ namespace dxvk {
       }
     }
 
-    return hr;
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColorKey) {
@@ -677,7 +706,25 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette) {
     Logger::debug("<<< DDraw7Surface::SetPalette: Proxy");
-    return m_proxy->SetPalette(lpDDPalette);
+
+    // A nullptr lpDDPalette gets the current palette detached
+    if (lpDDPalette == nullptr) {
+      HRESULT hr = m_proxy->SetPalette(lpDDPalette);
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      m_palette = nullptr;
+    } else {
+      DDrawPalette* ddrawPalette = static_cast<DDrawPalette*>(lpDDPalette);
+
+      HRESULT hr = m_proxy->SetPalette(ddrawPalette->GetProxied());
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      m_palette = ddrawPalette;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Unlock(LPRECT lpSurfaceData) {
