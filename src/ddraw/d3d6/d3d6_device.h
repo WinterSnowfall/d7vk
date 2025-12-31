@@ -37,7 +37,7 @@ namespace dxvk {
         Com<IDirect3DDevice3>&& d3d6DeviceProxy,
         D3D6Interface* pParent,
         D3DDEVICEDESC Desc,
-        REFCLSID deviceGUID,
+        GUID deviceGUID,
         d3d9::D3DPRESENT_PARAMETERS Params9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DDraw4Surface* pRT,
@@ -241,7 +241,7 @@ namespace dxvk {
     D3DMATERIALHANDLE             m_materialHandle = 0;
 
     D3DDEVICEDESC                 m_desc;
-    REFCLSID                      m_deviceGUID;
+    GUID                          m_deviceGUID;
 
     Com<DDraw4Surface>            m_rt;
     Com<DDraw4Surface, false>     m_rtOrig;
