@@ -69,8 +69,15 @@ namespace dxvk {
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(data->dltType == D3DLIGHT_PARALLELPOINT))
-      Logger::warn("D3D6Light::SetLight: Unsupported light type D3DLIGHT_PARALLELPOINT");
+    // Hidden & Dangeous spams a lot of parallel point lights
+    if (unlikely(data->dltType == D3DLIGHT_PARALLELPOINT)) {
+      static bool s_parallelPointErrorShown;
+
+      if (!std::exchange(s_parallelPointErrorShown, true))
+        Logger::warn("D3D6Light::SetLight: Unsupported light type D3DLIGHT_PARALLELPOINT");
+
+      return DDERR_INVALIDPARAMS;
+    }
 
     // Docs: "Although this method's declaration specifies the lpLight parameter as being
     // the address of a D3DLIGHT structure, that structure is not normally used. Rather,
