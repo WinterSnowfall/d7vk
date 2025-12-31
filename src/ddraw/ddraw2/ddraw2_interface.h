@@ -3,9 +3,12 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
+#include <vector>
+
 namespace dxvk {
 
-  class D3D6Interface;
+  class D3D5Interface;
+  class DDrawSurface;
   class DDraw7Interface;
 
   /**
@@ -62,6 +65,12 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetAvailableVidMem(LPDDSCAPS lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree);
 
+    bool IsWrappedSurface(IDirectDrawSurface* surface) const;
+
+    void AddWrappedSurface(IDirectDrawSurface* surface);
+
+    void RemoveWrappedSurface(IDirectDrawSurface* surface);
+
   private:
 
     inline bool IsLegacyInterface() {
@@ -77,7 +86,9 @@ namespace dxvk {
 
     DDraw7Interface*            m_origin = nullptr;
 
-    Com<D3D6Interface,   false> m_d3d6Intf;
+    Com<D3D5Interface,   false> m_d3d5Intf;
+
+    std::vector<DDrawSurface*> m_surfaces;
 
   };
 

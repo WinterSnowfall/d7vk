@@ -96,7 +96,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawSurface(std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new DDrawSurface(std::move(ppvProxyObject), nullptr, nullptr, this, false));
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
@@ -437,7 +437,7 @@ namespace dxvk {
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a texture");
     else if (lpDDSCaps->dwCaps2 & DDSCAPS2_CUBEMAP)
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for a cube map");
-    else if (lpDDSCaps->dwCaps2 & DDSCAPS_OVERLAY)
+    else if (lpDDSCaps->dwCaps & DDSCAPS_OVERLAY)
       Logger::debug("DDraw7Surface::GetAttachedSurface: Querying for an overlay");
 
     Com<IDirectDrawSurface7> surface;
