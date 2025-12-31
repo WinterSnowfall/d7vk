@@ -473,7 +473,7 @@ namespace dxvk {
       Logger::debug("DDraw4Surface::GetAttachedSurface: Querying for a texture mip map");
     else if (lpDDSCaps->dwCaps & DDSCAPS_TEXTURE)
       Logger::debug("DDraw4Surface::GetAttachedSurface: Querying for a texture");
-    else if (lpDDSCaps->dwCaps2 & DDSCAPS_OVERLAY)
+    else if (lpDDSCaps->dwCaps & DDSCAPS_OVERLAY)
       Logger::debug("DDraw4Surface::GetAttachedSurface: Querying for an overlay");
 
     Com<IDirectDrawSurface4> surface;
@@ -1101,13 +1101,13 @@ namespace dxvk {
     // isn't supported in D3D9, but we have a D3D7 exception in place.
     //
     if (IsRenderTarget() || initRT) {
-      Logger::debug("DDraw7Surface::IntializeD3D9: Usage: D3DUSAGE_RENDERTARGET");
+      Logger::debug("DDraw4Surface::IntializeD3D9: Usage: D3DUSAGE_RENDERTARGET");
       pool  = d3d9::D3DPOOL_DEFAULT;
       usage |= D3DUSAGE_RENDERTARGET;
     }
     // All depth stencils will be created in DEFAULT
     if (IsDepthStencil()) {
-      Logger::debug("DDraw7Surface::IntializeD3D9: Usage: D3DUSAGE_DEPTHSTENCIL");
+      Logger::debug("DDraw4Surface::IntializeD3D9: Usage: D3DUSAGE_DEPTHSTENCIL");
       pool  = d3d9::D3DPOOL_DEFAULT;
       usage |= D3DUSAGE_DEPTHSTENCIL;
     }
@@ -1115,11 +1115,11 @@ namespace dxvk {
     // General usage flags
     if (IsTexture()) {
       if (pool == d3d9::D3DPOOL_DEFAULT) {
-        Logger::debug("DDraw7Surface::IntializeD3D9: Usage: D3DUSAGE_DYNAMIC");
+        Logger::debug("DDraw4Surface::IntializeD3D9: Usage: D3DUSAGE_DYNAMIC");
         usage |= D3DUSAGE_DYNAMIC;
       }
       if (unlikely(m_parent->GetOptions()->autoGenMipMaps)) {
-        Logger::debug("DDraw7Surface::IntializeD3D9: Usage: D3DUSAGE_AUTOGENMIPMAP");
+        Logger::debug("DDraw4Surface::IntializeD3D9: Usage: D3DUSAGE_AUTOGENMIPMAP");
         usage |= D3DUSAGE_AUTOGENMIPMAP;
       }
     }
