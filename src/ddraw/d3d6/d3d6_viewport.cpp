@@ -239,7 +239,12 @@ namespace dxvk {
     // Temporarily activate this viewport in order to clear it
     d3d9::D3DVIEWPORT9 currentViewport9;
     if (!m_isCurrentViewport) {
-      currentViewport9 = m_device->GetCurrentViewportInternal()->GetD3D9Viewport();
+      D3D6Viewport* currentViewport = m_device->GetCurrentViewportInternal();
+      if (currentViewport != nullptr) {
+        currentViewport9 = currentViewport->GetD3D9Viewport();
+      } else {
+        m_device->GetD3D9()->GetViewport(&currentViewport9);
+      }
       m_device->GetD3D9()->SetViewport(&m_viewport9);
     }
 
@@ -414,7 +419,12 @@ namespace dxvk {
     // Temporarily activate this viewport in order to clear it
     d3d9::D3DVIEWPORT9 currentViewport9;
     if (!m_isCurrentViewport) {
-      currentViewport9 = m_device->GetCurrentViewportInternal()->GetD3D9Viewport();
+      D3D6Viewport* currentViewport = m_device->GetCurrentViewportInternal();
+      if (currentViewport != nullptr) {
+        currentViewport9 = currentViewport->GetD3D9Viewport();
+      }  else {
+        m_device->GetD3D9()->GetViewport(&currentViewport9);
+      }
       m_device->GetD3D9()->SetViewport(&m_viewport9);
     }
 

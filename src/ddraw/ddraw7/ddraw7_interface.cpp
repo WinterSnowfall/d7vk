@@ -126,11 +126,8 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
     Logger::debug(">>> DDraw7Interface::CreateClipper");
-    // Note: Unfortunately, if we wrap clippers, WineD3D's ddraw will crash on an assert,
-    // as it expects the vtable to correspond to its internal clipper implementation
-    return m_proxy->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
 
-    /*if (unlikely(lplpDDClipper == nullptr))
+    if (unlikely(lplpDDClipper == nullptr))
       return DDERR_INVALIDPARAMS;
 
     InitReturnPtr(lplpDDClipper);
@@ -145,16 +142,13 @@ namespace dxvk {
       return hr;
     }
 
-    return DD_OK;*/
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpColorTable, LPDIRECTDRAWPALETTE *lplpDDPalette, IUnknown *pUnkOuter) {
-    Logger::debug("<<< DDraw7Interface::CreatePalette: Proxy");
-    // Note: Unfortunately, if we wrap palettes, WineD3D's ddraw will crash on an assert,
-    // as it expects the vtable to correspond to its internal palette implementation
-    return m_proxy->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
+    Logger::debug(">>> DDraw7Interface::CreatePalette");
 
-    /*if (unlikely(lplpDDPalette == nullptr))
+    if (unlikely(lplpDDPalette == nullptr))
       return DDERR_INVALIDPARAMS;
 
     InitReturnPtr(lplpDDPalette);
@@ -169,7 +163,7 @@ namespace dxvk {
       return hr;
     }
 
-    return DD_OK;*/
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPDIRECTDRAWSURFACE7 *lplpDDSurface, IUnknown *pUnkOuter) {

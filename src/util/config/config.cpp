@@ -1621,6 +1621,11 @@ namespace dxvk {
       { "d3d9.allowDirectBufferMapping",   "False" },
       { "d3d7.useMixedSWVPforHAL",          "True" },
     }} },
+    /* Hidden & Dangerous (: Action Pack)         *
+     * Prevents crashing on startup               */
+    { R"(\\h&d\.exe$)", {{
+      { "d3d9.allowDirectBufferMapping",   "False" },
+    }} },
 
   };
 

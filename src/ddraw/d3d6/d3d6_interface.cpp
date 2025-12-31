@@ -112,6 +112,11 @@ namespace dxvk {
     D3DDEVICEDESC desc6RGB_HEL = desc6RGB_HAL;
     desc6RGB_HAL.dwFlags = 0;
     desc6RGB_HAL.dcmColorModel = 0;
+    // Some applications apparently care about RGB texture caps
+    desc6RGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE;
+    desc6RGB_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE;
+    desc6RGB_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
+    desc6RGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
     char deviceDescRGB[100] = "D6VK RGB";
     char deviceNameRGB[100] = "D6VK RGB";
 
@@ -124,8 +129,9 @@ namespace dxvk {
     GUID guidHAL = IID_IDirect3DHALDevice;
     D3DDEVICEDESC desc6HAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_d3d6Options.disableAASupport);
     D3DDEVICEDESC desc6HAL_HEL = desc6HAL_HAL;
-    desc6RGB_HEL.dcmColorModel = 0;
-    desc6RGB_HEL.dwDevCaps &= ~D3DDEVCAPS_DRAWPRIMITIVES2
+    desc6HAL_HEL.dcmColorModel = 0;
+    desc6HAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                            & ~D3DDEVCAPS_DRAWPRIMITIVES2
                             & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
     char deviceDescHAL[100] = "D6VK HAL";
     char deviceNameHAL[100] = "D6VK HAL";
