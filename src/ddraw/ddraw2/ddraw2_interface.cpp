@@ -14,8 +14,8 @@ namespace dxvk {
 
   uint32_t DDraw2Interface::s_intfCount = 0;
 
-  DDraw2Interface::DDraw2Interface(Com<IDirectDraw2>&& proxyIntf, DDraw7Interface* origin)
-    : DDrawWrappedObject<IUnknown, IDirectDraw2, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
+  DDraw2Interface::DDraw2Interface(Com<IDirectDraw2>&& proxyIntf, DDrawInterface* pParent, DDraw7Interface* origin)
+    : DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown>(pParent, std::move(proxyIntf), nullptr)
     , m_origin ( origin ) {
     if (unlikely(!IsLegacyInterface())) {
       // Initialize the IDirect3D5 interlocked object
@@ -36,7 +36,7 @@ namespace dxvk {
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<IUnknown, IDirectDraw2, IUnknown>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
     if (riid == __uuidof(IDirectDraw2)) {
@@ -81,7 +81,13 @@ namespace dxvk {
       }
 
       Logger::warn("DDraw2Interface::QueryInterface: Query for legacy IDirectDraw");
-      return m_proxy->QueryInterface(riid, ppvObject);
+
+      if (m_parent != nullptr) {
+        *ppvObject = ref(m_parent);
+        return S_OK;
+      } else {
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
     // Legacy way of getting a DDraw4 interface
     if (riid == __uuidof(IDirectDraw4)) {
@@ -97,7 +103,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      Com<DDraw4Interface> ddraw4Interface = new DDraw4Interface(std::move(ppvProxyObject), nullptr);
+      Com<DDraw4Interface> ddraw4Interface = new DDraw4Interface(std::move(ppvProxyObject), m_parent, nullptr);
       // Pass on the hWnd and cooperative level to the child interface
       ddraw4Interface->SetHWND(m_hwnd);
       ddraw4Interface->SetCooperativeLevel(m_cooperativeLevel);
@@ -307,8 +313,15 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    m_hwnd = hWnd;
-    m_cooperativeLevel = dwFlags;
+    const bool changed = m_cooperativeLevel != dwFlags;
+
+    // This needs to be called on interface init, so is a reliable
+    // way of getting the needed hWnd for d3d7 device creation
+    if (likely((dwFlags & DDSCL_NORMAL) || (dwFlags & DDSCL_EXCLUSIVE)))
+      m_hwnd = hWnd;
+
+    if (changed)
+      m_cooperativeLevel = dwFlags;
 
     return DD_OK;
   }

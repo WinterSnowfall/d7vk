@@ -9,15 +9,16 @@ namespace dxvk {
 
   class D3D5Interface;
   class DDrawSurface;
+  class DDrawInterface;
   class DDraw7Interface;
 
   /**
-  * \brief Minimal IDirectDraw2 interface implementation for IDirectDraw7 QueryInterface calls
+  * \brief DirectDraw2 interface implementation
   */
-  class DDraw2Interface final : public DDrawWrappedObject<IUnknown, IDirectDraw2, IUnknown> {
+  class DDraw2Interface final : public DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown> {
 
   public:
-    DDraw2Interface(Com<IDirectDraw2>&& proxyIntf, DDraw7Interface* origin);
+    DDraw2Interface(Com<IDirectDraw2>&& proxyIntf, DDrawInterface* pParent, DDraw7Interface* origin);
 
     ~DDraw2Interface();
 
@@ -71,6 +72,22 @@ namespace dxvk {
 
     void RemoveWrappedSurface(IDirectDrawSurface* surface);
 
+    DWORD GetCooperativeLevel() const {
+      return m_cooperativeLevel;
+    }
+
+    void SetCooperativeLevel(DWORD cooperativeLevel) {
+      m_cooperativeLevel = cooperativeLevel;
+    }
+
+    HWND GetHWND() const {
+      return m_hwnd;
+    }
+
+    void SetHWND(HWND hwnd) {
+      m_hwnd = hwnd;
+    }
+
   private:
 
     inline bool IsLegacyInterface() {
@@ -80,13 +97,13 @@ namespace dxvk {
     static uint32_t             s_intfCount;
     uint32_t                    m_intfCount  = 0;
 
-    HWND                        m_hwnd       = nullptr;
-
-    DWORD                       m_cooperativeLevel = 0;
-
     DDraw7Interface*            m_origin = nullptr;
 
     Com<D3D5Interface,   false> m_d3d5Intf;
+
+    HWND                        m_hwnd       = nullptr;
+
+    DWORD                       m_cooperativeLevel = 0;
 
     std::vector<DDrawSurface*> m_surfaces;
 
