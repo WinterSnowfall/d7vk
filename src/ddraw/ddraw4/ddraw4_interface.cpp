@@ -1,7 +1,6 @@
 #include "ddraw4_interface.h"
 
-#include "../d3d6/d3d6_interface.h"
-
+#include "../ddraw_interface.h"
 #include "../ddraw7/ddraw7_interface.h"
 
 #include "ddraw4_surface.h"
@@ -12,8 +11,8 @@ namespace dxvk {
 
   uint32_t DDraw4Interface::s_intfCount = 0;
 
-  DDraw4Interface::DDraw4Interface(Com<IDirectDraw4>&& proxyIntf, DDraw7Interface* origin)
-    : DDrawWrappedObject<IUnknown, IDirectDraw4, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
+  DDraw4Interface::DDraw4Interface(Com<IDirectDraw4>&& proxyIntf, DDrawInterface* pParent, DDraw7Interface* origin)
+    : DDrawWrappedObject<DDrawInterface, IDirectDraw4, IUnknown>(pParent, std::move(proxyIntf), nullptr)
     , m_origin ( origin ) {
     if (likely(!IsLegacyInterface())) {
       // Initialize the IDirect3D6 interlocked object
@@ -34,7 +33,7 @@ namespace dxvk {
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<IUnknown, IDirectDraw4, IUnknown>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<DDrawInterface, IDirectDraw4, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
     if (riid == __uuidof(IDirectDraw4)) {
@@ -72,14 +71,28 @@ namespace dxvk {
       return S_OK;
     }
     // Some games query for legacy ddraw interfaces
-    if (unlikely(riid == __uuidof(IDirectDraw)
-              || riid == __uuidof(IDirectDraw2))) {
+    if (unlikely(riid == __uuidof(IDirectDraw))) {
       if (unlikely(IsLegacyInterface())) {
         Logger::debug("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw");
         return m_origin->QueryInterface(riid, ppvObject);
       }
 
       Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw");
+      if (m_parent != nullptr) {
+        *ppvObject = ref(m_parent);
+        return S_OK;
+      } else {
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+    }
+    // Some games query for legacy ddraw interfaces
+    if (unlikely(riid == __uuidof(IDirectDraw2))) {
+      if (unlikely(IsLegacyInterface())) {
+        Logger::debug("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw2");
+        return m_origin->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw2");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
     // Standard way of retrieving a D3D3 interface

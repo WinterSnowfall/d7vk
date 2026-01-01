@@ -141,12 +141,12 @@ namespace dxvk {
           return hr;
 
         m_texture6 = new D3D6Texture(std::move(ppvProxyObject), this);
+
+        // Arabian Nights needs a dirty here to properly update textures
+        m_dirtyMipMaps = true;
       }
 
       *ppvObject = m_texture6.ref();
-
-      // Arabian Nights needs a dirty here to properly update textures
-      m_dirtyMipMaps = true;
 
       return S_OK;
     }
@@ -565,6 +565,8 @@ namespace dxvk {
       Logger::debug(">>> DDraw4Surface::GetDC: Forwarded");
       return m_origin->GetDC(lphDC);
     }
+
+    Logger::debug(">>> DDraw4Surface::GetDC");
 
     if (unlikely(m_parent->GetOptions()->forceProxiedPresent))
       return m_proxy->GetDC(lphDC);
