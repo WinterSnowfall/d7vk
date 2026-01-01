@@ -203,11 +203,6 @@ namespace dxvk {
       return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
     }
 
-    /*if (unlikely(m_d3d5Intf->GetOptions()->proxiedLegacySurfaces)) {
-      Logger::debug("<<< DDrawInterface::CreateSurface: Proxy");
-      return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
-    }*/
-
     Logger::debug(">>> DDraw2Interface::CreateSurface");
 
     Com<IDirectDrawSurface> ddrawSurfaceProxied;
