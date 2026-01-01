@@ -270,23 +270,29 @@ namespace dxvk {
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
     bool  rgbFallback          = false;
 
-    if (rclsid == IID_IDirect3DHALDevice) {
-      Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
-      if (unlikely(m_d3d6Options.useMixedSWVPforHAL)) {
-        // Use a MIXED device always set to SWVP instead of a pure SWVP device, because
-        // the D3D9 DXVK backend won't allow the use of uncached memory for pure SWVP devices
-        // and that is sometimes needed for performance reasons (e.g. 3DMark 99 Max)
+    if (likely(m_d3d6Options.deviceTypeOverride == D3DDeviceTypeOverride::None)) {
+      if (rclsid == IID_IDirect3DHALDevice) {
+        Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
+        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+      } else if (rclsid == IID_IDirect3DMMXDevice) {
+        Logger::warn("D3D6Interface::CreateDevice: Unsupported MMMX device, falling back to RGB");
+        rgbFallback = true;
+      } else if (rclsid == IID_IDirect3DRGBDevice) {
+        Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
+      } else {
+        // Revenant uses a rclsid of 7a31a548-0000-0007-26ed-780000000000...
+        Logger::warn("D3D6Interface::CreateDevice: Unsupported device type, falling back to RGB");
+        rgbFallback = true;
+      }
+    } else {
+      // Will default to SWVP, nothing to do in that case
+      if (m_d3d6Options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed) {
+        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+      } else if (m_d3d6Options.deviceTypeOverride == D3DDeviceTypeOverride::HWVP) {
+        deviceCreationFlags9 = D3DCREATE_HARDWARE_VERTEXPROCESSING;
+      } else if (m_d3d6Options.deviceTypeOverride == D3DDeviceTypeOverride::HWVPMixed) {
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
       }
-    } else if (rclsid == IID_IDirect3DMMXDevice) {
-      Logger::warn("D3D6Interface::CreateDevice: Unsupported MMMX device, falling back to RGB");
-      rgbFallback = true;
-    } else if (rclsid == IID_IDirect3DRGBDevice) {
-      Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
-    } else {
-      // Revenant uses a rclsid of 7a31a548-0000-0007-26ed-780000000000...
-      Logger::warn("D3D6Interface::CreateDevice: Unsupported device type, falling back to RGB");
-      rgbFallback = true;
     }
 
     const IID rclsidOverride = rgbFallback ? IID_IDirect3DRGBDevice : rclsid;
@@ -439,8 +445,8 @@ namespace dxvk {
       m_lastUsedDevice = device.ptr();
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       m_lastUsedDevice->InitializeDS();
-      // Enable SWVP in case of MIXED HAL devices
-      if (unlikely(m_d3d6Options.useMixedSWVPforHAL && rclsidOverride == IID_IDirect3DHALDevice))
+      // Enable SWVP in case of mixed SWVP devices
+      if (unlikely(m_d3d6Options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
         m_lastUsedDevice->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
       *lplpD3DDevice = device.ref();
     } catch (const DxvkError& e) {

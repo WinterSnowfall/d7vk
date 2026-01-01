@@ -18,15 +18,6 @@ namespace dxvk {
   DDrawInterface::DDrawInterface(Com<IDirectDraw>&& proxyIntf, DDraw7Interface* origin)
     : DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
     , m_origin ( origin ) {
-    if (unlikely(!IsLegacyInterface())) {
-      // Initialize the IDirect3D6 interlocked object
-      void* d3d6IntfProxiedVoid = nullptr;
-      // This can never reasonably fail
-      m_proxy->QueryInterface(__uuidof(IDirect3D3), &d3d6IntfProxiedVoid);
-      Com<IDirect3D3> d3d6IntfProxied = static_cast<IDirect3D3*>(d3d6IntfProxiedVoid);
-      m_d3d6Intf = new D3D6Interface(std::move(d3d6IntfProxied), reinterpret_cast<DDraw4Interface*>(this));
-    }
-
     m_intfCount = ++s_intfCount;
 
     Logger::debug(str::format("DDrawInterface: Created a new interface nr. <<1-", m_intfCount, ">>"));
@@ -73,7 +64,13 @@ namespace dxvk {
 
       Logger::debug("DDrawInterface::QueryInterface: Query for IDirect3D3");
 
-      *ppvObject = m_d3d6Intf.ref();
+      Com<IDirect3D3> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D6Interface(std::move(ppvProxyObject), reinterpret_cast<DDraw4Interface*>(this)));
+
       return S_OK;
     }
     // Standard way of retrieving a D3D5 interface
@@ -236,11 +233,6 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawInterface::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE *lplpDDSurface, IUnknown *pUnkOuter) {
     if (likely(IsLegacyInterface())) {
       Logger::warn("<<< DDrawInterface::CreateSurface: Proxy");
-      return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
-    }
-
-    if (unlikely(m_d3d6Intf->GetOptions()->proxiedLegacySurfaces)) {
-      Logger::debug("<<< DDrawInterface::CreateSurface: Proxy");
       return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
     }
 

@@ -163,8 +163,8 @@ namespace dxvk {
       return m_rt.ptr();
     }
 
-    bool IsTNLDevice() const {
-      return m_desc.deviceGUID == IID_IDirect3DTnLHalDevice;
+    bool IsMixedHWVP() const {
+      return m_isMixedHWVP && m_parent->GetOptions()->deviceTypeOverride != D3DDeviceTypeOverride::SWVPMixed;
     }
 
     bool HasDrawn() const {
@@ -206,6 +206,7 @@ namespace dxvk {
         m_parent->SetLastUsedDevice(this);
     }
 
+    bool                          m_isMixedHWVP   = false;
     bool                          m_hasDrawn      = false;
     bool                          m_inScene       = false;
 
@@ -218,7 +219,6 @@ namespace dxvk {
     static uint32_t               s_deviceCount;
     uint32_t                      m_deviceCount = 0;
 
-    DWORD                         m_vertexProcessing9 = 0;
     d3d9::D3DPRESENT_PARAMETERS   m_params9;
 
     D3DDEVICEDESC7                m_desc;

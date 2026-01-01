@@ -85,6 +85,7 @@ namespace dxvk {
       }
 
       Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DHALDevice");
+      Logger::warn("DDrawSurface::QueryInterface: Use of unsupported D3D3 device");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
     // Apparently, the standard way of creating a RGB D3D3 device...
@@ -95,6 +96,7 @@ namespace dxvk {
       }
 
       Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DRGBDevice");
+      Logger::warn("DDrawSurface::QueryInterface: Use of unsupported D3D3 device");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
     if (riid == __uuidof(IDirectDrawGammaControl)) {

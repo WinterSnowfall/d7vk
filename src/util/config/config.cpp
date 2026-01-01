@@ -1328,12 +1328,10 @@ namespace dxvk {
     /**********************************************/
     /* 1NSANE - Invalid buffer discards and       *
      * artifacting when using a T&L HAL device,   *
-     * and broken main menu animations. The game  *
-     * also needs proxied surfaces for intros.    */
+     * and broken main menu animations.           */
     { R"(\\(1|I)nsane\\Game\.exe$)", {{
       { "d3d9.maxFrameRate",                "-240" },
-      { "ddraw.proxiedLegacySurfaces",      "True" },
-      { "d3d7.managedTNLBuffers",           "True" },
+      { "d3d7.deviceTypeOverride",          "SWVP" },
     }} },
     /* Sacrifice - Prevents hitching on asset     *
      * loading and fixes broken AI above 60 FPS.  *
@@ -1561,12 +1559,6 @@ namespace dxvk {
     { R"(\\DS9\.exe$)", {{
       { "ddraw.autoGenMipMaps",             "True" },
     }} },
-    /* FIFA 2001 - The game uses an obnoixous     *
-     * mix of DDraw4/D3D6 for menu rendering and  *
-     * D3D7 for in-game rendering                 */
-    { R"(\\fifa2001\.exe$)", {{
-      { "ddraw.proxiedLegacySurfaces",      "True" },
-    }} },
     /* Sacred - Fixes transition artifacting      */
     { R"(\\Sacred\.exe$)", {{
       { "ddraw.forceSingleBackBuffer",      "True" },
@@ -1619,7 +1611,7 @@ namespace dxvk {
     { R"(\\3dmark\.exe$)", {{
       { "d3d9.presentInterval",                "0" },
       { "d3d9.allowDirectBufferMapping",   "False" },
-      { "d3d7.useMixedSWVPforHAL",          "True" },
+      { "d3d7.deviceTypeOverride",     "SWVPMixed" },
     }} },
     /* Hidden & Dangerous (: Action Pack)         *
      * Prevents crashing on startup               */

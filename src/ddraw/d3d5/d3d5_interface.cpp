@@ -107,6 +107,8 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D5Interface::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE lpDDS, LPDIRECT3DDEVICE2 *lplpD3DDevice) {
     Logger::debug("<<< D3D5Interface::CreateDevice: Proxy");
 
+    Logger::warn("D3D5Interface::CreateDevice: Use of unsupported D3D5 device");
+
     if (likely(m_parent->IsWrappedSurface(lpDDS))) {
       DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDS);
       return m_proxy->CreateDevice(rclsid, ddrawSurface->GetProxied(), lplpD3DDevice);
