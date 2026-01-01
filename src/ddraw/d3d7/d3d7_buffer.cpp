@@ -154,7 +154,7 @@ namespace dxvk {
 
     D3D7DeviceLock lock = device->LockDevice();
 
-    if (device->IsTNLDevice())
+    if (device->IsMixedHWVP())
       device->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
 
     HandlePreProcessVerticesFlags(dwVertexOp);
@@ -167,7 +167,7 @@ namespace dxvk {
 
     HandlePostProcessVerticesFlags(dwVertexOp);
 
-    if (device->IsTNLDevice())
+    if (device->IsMixedHWVP())
       device->GetD3D9()->SetSoftwareVertexProcessing(FALSE);
 
     return hr;
@@ -192,7 +192,7 @@ namespace dxvk {
 
     D3D7DeviceLock lock = device->LockDevice();
 
-    if (device->IsTNLDevice())
+    if (device->IsMixedHWVP())
       device->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
 
     HandlePreProcessVerticesFlags(dwVertexOp);
@@ -201,7 +201,7 @@ namespace dxvk {
 
     HandlePostProcessVerticesFlags(dwVertexOp);
 
-    if (device->IsTNLDevice())
+    if (device->IsMixedHWVP())
       device->GetD3D9()->SetSoftwareVertexProcessing(FALSE);
 
     return D3D_OK;
@@ -231,21 +231,12 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
-    D3DDEVICEDESC7 deviceDesc;
-    m_d3d7Device->GetCaps(&deviceDesc);
-
     d3d9::D3DPOOL pool = d3d9::D3DPOOL_DEFAULT;
 
-    if (m_desc.dwCaps & D3DVBCAPS_SYSTEMMEMORY) {
+    if (m_desc.dwCaps & D3DVBCAPS_SYSTEMMEMORY)
       pool = d3d9::D3DPOOL_SYSTEMMEM;
-    // Workaround for misbehaving T&L games, that happen to work fine on base HAL
-    } else if (unlikely(m_parent->GetOptions()->managedTNLBuffers
-                     && deviceDesc.deviceGUID == IID_IDirect3DTnLHalDevice)) {
-      pool = d3d9::D3DPOOL_MANAGED;
-    }
 
-    const char* poolPlacement = pool == d3d9::D3DPOOL_DEFAULT   ? "D3DPOOL_DEFAULT" :
-                                pool == d3d9::D3DPOOL_SYSTEMMEM ? "D3DPOOL_SYSTEMMEM" : "D3DPOOL_MANAGED";
+    const char* poolPlacement = pool == d3d9::D3DPOOL_DEFAULT ? "D3DPOOL_DEFAULT" : "D3DPOOL_SYSTEMMEM";
 
     Logger::debug(str::format("D3D7VertexBuffer::IntializeD3D9: Placing in: ", poolPlacement));
 
