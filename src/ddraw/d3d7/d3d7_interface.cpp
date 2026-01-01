@@ -152,24 +152,29 @@ namespace dxvk {
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 
-    if (rclsid == IID_IDirect3DTnLHalDevice) {
-      Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DTnLHalDevice device");
-      // Do not use exclusive HWVP, since some games call ProcessVertices
-      // even in situations where they are expliclity using HW T&L
-      deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
-    } else if (rclsid == IID_IDirect3DHALDevice) {
-      Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
-      if (unlikely(m_d3d7Options.useMixedSWVPforHAL)) {
-        // Use a MIXED device always set to SWVP instead of a pure SWVP device, because
-        // the D3D9 DXVK backend won't allow the use of uncached memory for pure SWVP devices
-        // and that is sometimes needed for performance reasons (e.g. 3DMark 99 Max)
+    if (likely(m_d3d7Options.deviceTypeOverride == D3DDeviceTypeOverride::None)) {
+      if (rclsid == IID_IDirect3DTnLHalDevice) {
+        Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DTnLHalDevice device");
+        // Do not use exclusive HWVP, since some games call ProcessVertices
+        // even in situations where they are expliclity using HW T&L
+        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+      } else if (rclsid == IID_IDirect3DHALDevice) {
+        Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
+      } else if (rclsid == IID_IDirect3DRGBDevice) {
+        Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
+      } else {
+        Logger::err("D3D7Interface::CreateDevice: Unsupported device type");
+        return DDERR_INVALIDPARAMS;
+      }
+    } else {
+      // Will default to SWVP, nothing to do in that case
+      if (m_d3d7Options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed) {
+        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+      } else if (m_d3d7Options.deviceTypeOverride == D3DDeviceTypeOverride::HWVP) {
+        deviceCreationFlags9 = D3DCREATE_HARDWARE_VERTEXPROCESSING;
+      } else if (m_d3d7Options.deviceTypeOverride == D3DDeviceTypeOverride::HWVPMixed) {
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
       }
-    } else if (rclsid == IID_IDirect3DRGBDevice) {
-      Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
-    } else {
-      Logger::err("D3D7Interface::CreateDevice: Unsupported device type");
-      return DDERR_INVALIDPARAMS;
     }
 
     HWND hwnd = m_parent->GetHWND();
@@ -320,8 +325,8 @@ namespace dxvk {
       m_lastUsedDevice = device.ptr();
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       m_lastUsedDevice->InitializeDS();
-      // Enable SWVP in case of MIXED HAL devices
-      if (unlikely(m_d3d7Options.useMixedSWVPforHAL && rclsid == IID_IDirect3DHALDevice))
+      // Enable SWVP in case of mixed SWVP devices
+      if (unlikely(m_d3d7Options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
         m_lastUsedDevice->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
       *ppd3dDevice = device.ref();
     } catch (const DxvkError& e) {
