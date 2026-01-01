@@ -22,6 +22,7 @@ namespace dxvk {
       DDraw7Surface* pSurface,
       DWORD CreationFlags9)
     : DDrawWrappedObject<D3D7Interface, IDirect3DDevice7, d3d9::IDirect3DDevice9>(pParent, std::move(d3d7DeviceProxy), std::move(pDevice9))
+    , m_isMixedHWVP ( CreationFlags9 & D3DCREATE_MIXED_VERTEXPROCESSING )
     , m_DD7IntfParent ( pParent->GetParent() )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
@@ -141,7 +142,7 @@ namespace dxvk {
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // Note: The list of formats exposed in d3d6 is restricted to the below
+    // Note: The list of formats exposed in D3D7 is restricted to the below
 
     DDPIXELFORMAT textureFormat = GetTextureFormat(d3d9::D3DFMT_X1R5G5B5);
     HRESULT hr = cb(&textureFormat, ctx);
@@ -153,7 +154,7 @@ namespace dxvk {
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    // D3DFMT_X4R4G4B4 is not supported by d3d7
+    // D3DFMT_X4R4G4B4 is not supported by D3D7
     textureFormat = GetTextureFormat(d3d9::D3DFMT_A4R4G4B4);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
@@ -174,14 +175,14 @@ namespace dxvk {
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    // Not supported in d3d9, but some games need
+    // Not supported in D3D9, but some games need
     // it to be advertised (for offscreen plain surfaces?)
     textureFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    // Not supported in d3d9, but some games may use it
+    // Not supported in D3D9, but some games may use it
     // Note: Advertizing P8 support breaks Sacrifice
     /*textureFormat = GetTextureFormat(d3d9::D3DFMT_P8);
     hr = cb(&textureFormat, ctx);
@@ -264,7 +265,7 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       if (m_parent->GetOptions()->forceProxiedPresent) {
         // If we have drawn anything, we need to make sure we blit back
-        // the results onto the d3d7 render target before we flip it
+        // the results onto the D3D7 render target before we flip it
         if (m_hasDrawn) {
           if (unlikely(!m_rt->IsInitialized()))
             m_rt->InitializeD3D9RenderTarget();
@@ -511,7 +512,7 @@ namespace dxvk {
 
     RefreshLastUsedDevice();
 
-    // As opposed to d3d8/9, d3d7 actually validates and
+    // As opposed to D3D8/9, D3D7 actually validates and
     // errors out in case of unknown/invalid render states
     if (unlikely(!IsValidD3D7RenderStateType(dwRenderStateType)))
       return DDERR_INVALIDPARAMS;
@@ -618,7 +619,7 @@ namespace dxvk {
     if (unlikely(lpdwRenderState == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // As opposed to d3d8/9, d3d7 actually validates and
+    // As opposed to D3D8/9, D3D7 actually validates and
     // errors out in case of unknown/invalid render states
     if (unlikely(!IsValidD3D7RenderStateType(dwRenderStateType)))
       return DDERR_INVALIDPARAMS;
