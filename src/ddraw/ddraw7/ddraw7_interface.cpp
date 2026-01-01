@@ -86,7 +86,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Interface(std::move(ppvProxyObject), this));
+      *ppvObject = ref(new DDraw2Interface(std::move(ppvProxyObject), nullptr, this));
 
       return S_OK;
     }
@@ -98,7 +98,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Interface(std::move(ppvProxyObject), this));
+      *ppvObject = ref(new DDraw4Interface(std::move(ppvProxyObject), nullptr, this));
 
       return S_OK;
     }

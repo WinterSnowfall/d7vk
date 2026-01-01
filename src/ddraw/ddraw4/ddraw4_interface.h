@@ -13,16 +13,17 @@
 namespace dxvk {
 
   class D3D6Device;
+  class DDrawInterface;
   class DDraw7Interface;
   class DDraw4Surface;
 
   /**
-  * \brief Minimal IDirectDraw4 interface implementation for IDirectDraw7 QueryInterface calls
+  * \brief DirectDraw4 interface implementation
   */
-  class DDraw4Interface final : public DDrawWrappedObject<IUnknown, IDirectDraw4, IUnknown> {
+  class DDraw4Interface final : public DDrawWrappedObject<DDrawInterface, IDirectDraw4, IUnknown> {
 
   public:
-    DDraw4Interface(Com<IDirectDraw4>&& proxyIntf, DDraw7Interface* origin);
+    DDraw4Interface(Com<IDirectDraw4>&& proxyIntf, DDrawInterface* pParent, DDraw7Interface* origin);
 
     ~DDraw4Interface();
 
