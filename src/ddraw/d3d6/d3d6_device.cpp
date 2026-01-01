@@ -239,7 +239,7 @@ namespace dxvk {
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // Note: The list of formats exposed in d3d7 is restricted to the below
+    // Note: The list of formats exposed in D3D6 is restricted to the below
 
     DDPIXELFORMAT textureFormat = GetTextureFormat(d3d9::D3DFMT_X1R5G5B5);
     HRESULT hr = cb(&textureFormat, ctx);
@@ -251,7 +251,7 @@ namespace dxvk {
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    // D3DFMT_X4R4G4B4 is not supported by d3d7
+    // D3DFMT_X4R4G4B4 is not supported by D3D6
     textureFormat = GetTextureFormat(d3d9::D3DFMT_A4R4G4B4);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
@@ -272,14 +272,14 @@ namespace dxvk {
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    // Not supported in d3d9, but some games need
+    // Not supported in D3D9, but some games need
     // it to be advertised (for offscreen plain surfaces?)
     textureFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    // Not supported in d3d9, but some games may use it
+    // Not supported in D3D9, but some games may use it
     // Note: Advertizing P8 support breaks Sacrifice
     /*textureFormat = GetTextureFormat(d3d9::D3DFMT_P8);
     hr = cb(&textureFormat, ctx);
@@ -362,7 +362,7 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       if (m_parent->GetOptions()->forceProxiedPresent) {
         // If we have drawn anything, we need to make sure we blit back
-        // the results onto the d3d7 render target before we flip it
+        // the results onto the D3D6 render target before we flip it
         if (m_hasDrawn) {
           if (unlikely(!m_rt->IsInitialized()))
             m_rt->InitializeD3D9RenderTarget();
@@ -591,10 +591,12 @@ namespace dxvk {
     if (unlikely(lpdwRenderState == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // As opposed to d3d8/9, d3d6 actually validates and
-    // errors out in case of unknown/invalid render states
-    if (unlikely(!IsValidD3D6RenderStateType(dwRenderStateType)))
-      return DDERR_INVALIDPARAMS;
+    // As opposed to D3D7, D3D6 does not error out on
+    // unknown or invalid render states.
+    if (unlikely(!IsValidD3D6RenderStateType(dwRenderStateType))) {
+      *lpdwRenderState = 0;
+      return D3D_OK;
+    }
 
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
 
@@ -770,7 +772,7 @@ namespace dxvk {
 
     RefreshLastUsedDevice();
 
-    // As opposed to d3d7, d3d6 does not error out on
+    // As opposed to D3D7, D3D6 does not error out on
     // unknown or invalid render states.
     if (unlikely(!IsValidD3D6RenderStateType(dwRenderStateType)))
       return D3D_OK;
@@ -1797,7 +1799,7 @@ namespace dxvk {
                             std::forward_as_tuple(std::move(surf9)));
 
       IDirectDrawSurface4* nextBackBuffer = nullptr;
-      //parentSurface->EnumAttachedSurfaces(&nextBackBuffer, ListBackBufferSurfacesCallback);
+      parentSurface->EnumAttachedSurfaces(&nextBackBuffer, ListBackBufferSurfaces6Callback);
 
       // the swapchain will eventually return to its origin
       if (nextBackBuffer == origin)
