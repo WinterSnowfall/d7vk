@@ -12,10 +12,15 @@ namespace dxvk {
     Strict
   };
 
-  struct D3DOptions {
+  enum class D3DDeviceTypeOverride {
+    None,
+    SWVP,
+    SWVPMixed,
+    HWVP,
+    HWVPMixed
+  };
 
-    /// Force the use of MIXED SWVP with an IID_IDirect3DHALDevice device.
-    bool useMixedSWVPforHAL;
+  struct D3DOptions {
 
     /// Fully disables support for AA, lowering memory bandwidth pressure
     bool disableAASupport;
@@ -36,9 +41,6 @@ namespace dxvk {
     /// presentation on Wayland, or in other situations when back buffer dimensions get altered in-flight.
     bool backBufferResize;
 
-    /// Place vertex buffers in the MANAGED pool when using a T&L HAL device
-    bool managedTNLBuffers;
-
     /// Replaces any use of D32 with D24X8. Needed for games such as
     /// Sacrifice, which won't enable 32-bit modes without D32 support.
     bool useD24X8forD32;
@@ -53,9 +55,6 @@ namespace dxvk {
 
     /// Forward query interface calls to the proxied objects
     bool proxiedQueryInterface;
-
-    /// Forward surface creation calls to the proxied ddraw interfaces
-    bool proxiedLegacySurfaces;
 
     /// Ignore any application set gamma ramp
     bool ignoreGammaRamp;
@@ -77,6 +76,10 @@ namespace dxvk {
     /// Useful only for debugging and apitrace inspection.
     bool proxySetTexture;
 
+    /// Force the use of a certain D3D9 device type. Sometimes needed to handle dubious
+    /// application buffer placement and/or other types of SWVP-related issues.
+    D3DDeviceTypeOverride deviceTypeOverride;
+
     /// Determines how to handle proxy back buffer blits done by the application
     D3DBackBufferGuard backBufferGuard;
 
@@ -84,25 +87,35 @@ namespace dxvk {
 
     D3DOptions(const Config& config) {
       // D3D6/7 options
-      this->useMixedSWVPforHAL    = config.getOption<bool>   ("d3d7.useMixedSWVPforHAL",     false);
       this->disableAASupport      = config.getOption<bool>   ("d3d7.disableAASupport",       false);
       this->forceEnableAA         = config.getOption<bool>   ("d3d7.forceEnableAA",          false);
       this->forceMultiThreaded    = config.getOption<bool>   ("d3d7.forceMultiThreaded",     false);
       this->useD24X8forD32        = config.getOption<bool>   ("d3d7.useD24X8forD32",         false);
-      this->managedTNLBuffers     = config.getOption<bool>   ("d3d7.managedTNLBuffers",      false);
       // DDraw options
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);
       this->forceProxiedPresent   = config.getOption<bool>   ("ddraw.forceProxiedPresent",   false);
       this->proxiedQueryInterface = config.getOption<bool>   ("ddraw.proxiedQueryInterface", false);
-      this->proxiedLegacySurfaces = config.getOption<bool>   ("ddraw.proxiedLegacySurfaces", false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("ddraw.ignoreGammaRamp",       false);
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
       this->autoGenMipMaps        = config.getOption<bool>   ("ddraw.autoGenMipMaps",        false);
       this->alwaysDirtyMipMaps    = config.getOption<bool>   ("ddraw.alwaysDirtyMipMaps",    false);
       this->proxySetTexture       = config.getOption<bool>   ("ddraw.proxySetTexture",       false);
       // D3D9 options
-      this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",     1024);
+      this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",      1024);
+
+      std::string deviceTypeOverrideStr = Config::toLower(config.getOption<std::string>("d3d7.deviceTypeOverride", "auto"));
+      if (deviceTypeOverrideStr == "swvp") {
+        this->deviceTypeOverride = D3DDeviceTypeOverride::SWVP;
+      } else if (deviceTypeOverrideStr == "swvpmixed") {
+        this->deviceTypeOverride = D3DDeviceTypeOverride::SWVPMixed;
+      } else if (deviceTypeOverrideStr == "hwvp") {
+        this->deviceTypeOverride = D3DDeviceTypeOverride::HWVP;
+      } else if (deviceTypeOverrideStr == "hwvpmixed") {
+        this->deviceTypeOverride = D3DDeviceTypeOverride::HWVPMixed;
+      } else {
+        this->deviceTypeOverride = D3DDeviceTypeOverride::None;
+      }
 
       std::string backBufferGuardStr = Config::toLower(config.getOption<std::string>("ddraw.backBufferGuard", "auto"));
       if (backBufferGuardStr == "strict") {

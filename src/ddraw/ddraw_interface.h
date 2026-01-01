@@ -86,9 +86,7 @@ namespace dxvk {
 
     DDraw7Interface*            m_origin = nullptr;
 
-    Com<D3D6Interface,   false> m_d3d6Intf;
-
-    std::vector<DDrawSurface*> m_surfaces;
+    std::vector<DDrawSurface*>  m_surfaces;
 
   };
 
