@@ -273,7 +273,6 @@ namespace dxvk {
     if (likely(m_d3d6Options.deviceTypeOverride == D3DDeviceTypeOverride::None)) {
       if (rclsid == IID_IDirect3DHALDevice) {
         Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
-        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
       } else if (rclsid == IID_IDirect3DMMXDevice) {
         Logger::warn("D3D6Interface::CreateDevice: Unsupported MMMX device, falling back to RGB");
         rgbFallback = true;
