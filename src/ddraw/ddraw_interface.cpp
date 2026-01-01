@@ -141,7 +141,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      Com<DDraw4Interface> ddraw4Interface = new DDraw4Interface(std::move(ppvProxyObject), nullptr);
+      Com<DDraw4Interface> ddraw4Interface = new DDraw4Interface(std::move(ppvProxyObject), this, nullptr);
       // Pass on the hWnd and cooperative level to the child interface
       ddraw4Interface->SetHWND(m_hwnd);
       ddraw4Interface->SetCooperativeLevel(m_cooperativeLevel);
@@ -184,7 +184,10 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Interface(std::move(ppvProxyObject), nullptr));
+      Com<DDraw2Interface> ddraw2Interface = new DDraw2Interface(std::move(ppvProxyObject), this, nullptr);
+      ddraw2Interface->SetHWND(m_hwnd);
+      ddraw2Interface->SetCooperativeLevel(m_cooperativeLevel);
+      *ppvObject = ddraw2Interface.ref();
 
       return S_OK;
     }
@@ -339,8 +342,15 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    m_hwnd = hWnd;
-    m_cooperativeLevel = dwFlags;
+    const bool changed = m_cooperativeLevel != dwFlags;
+
+    // This needs to be called on interface init, so is a reliable
+    // way of getting the needed hWnd for d3d7 device creation
+    if (likely((dwFlags & DDSCL_NORMAL) || (dwFlags & DDSCL_EXCLUSIVE)))
+      m_hwnd = hWnd;
+
+    if (changed)
+      m_cooperativeLevel = dwFlags;
 
     return DD_OK;
   }
