@@ -4,21 +4,21 @@ namespace dxvk {
 
   DDrawPalette::DDrawPalette(
         Com<IDirectDrawPalette>&& paletteProxy,
-        DDraw7Interface* pParent)
-    : DDrawWrappedObject<DDraw7Interface, IDirectDrawPalette, IUnknown>(pParent, std::move(paletteProxy), nullptr) {
+        DDrawInterface* pParent)
+    : DDrawWrappedObject<DDrawInterface, IDirectDrawPalette, IUnknown>(pParent, std::move(paletteProxy), nullptr) {
     m_parent->AddRef();
 
     Logger::debug("DDrawPalette: Created a new palette");
   }
 
   DDrawPalette::~DDrawPalette() {
-    Logger::debug("DDrawPalette: A palette bites the dust");
-
     m_parent->Release();
+
+    Logger::debug("DDrawPalette: A palette bites the dust");
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<DDraw7Interface, IDirectDrawPalette, IUnknown>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<DDrawInterface, IDirectDrawPalette, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
     if (riid == __uuidof(IDirectDrawPalette)) {
