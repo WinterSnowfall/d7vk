@@ -219,8 +219,24 @@ namespace dxvk {
       return m_origin->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
     }
 
-    Logger::debug("<<< DDrawInterface::CreateClipper: Proxy");
-    return m_proxy->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
+    Logger::debug(">>> DDrawInterface::CreateClipper");
+
+    if (unlikely(lplpDDClipper == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDClipper);
+
+    Com<IDirectDrawClipper> lplpDDClipperProxy;
+    HRESULT hr = m_proxy->CreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
+
+    if (likely(SUCCEEDED(hr))) {
+      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this));
+    } else {
+      Logger::warn("DDrawInterface::CreateClipper: Failed to create proxy clipper");
+      return hr;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpColorTable, LPDIRECTDRAWPALETTE *lplpDDPalette, IUnknown *pUnkOuter) {
@@ -229,8 +245,24 @@ namespace dxvk {
       return m_origin->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
     }
 
-    Logger::debug("<<< DDrawInterface::CreatePalette: Proxy");
-    return m_proxy->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
+    Logger::debug(">>> DDrawInterface::CreatePalette");
+
+    if (unlikely(lplpDDPalette == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDPalette);
+
+    Com<IDirectDrawPalette> lplpDDPaletteProxy;
+    HRESULT hr = m_proxy->CreatePalette(dwFlags, lpColorTable, &lplpDDPaletteProxy, pUnkOuter);
+
+    if (likely(SUCCEEDED(hr))) {
+      *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), this));
+    } else {
+      Logger::warn("DDrawInterface::CreatePalette: Failed to create proxy palette");
+      return hr;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE *lplpDDSurface, IUnknown *pUnkOuter) {
@@ -240,6 +272,19 @@ namespace dxvk {
     }
 
     Logger::debug(">>> DDrawInterface::CreateSurface");
+
+    // The cooperative level is always checked first
+    if (unlikely(!m_cooperativeLevel))
+      return DDERR_NOCOOPERATIVELEVELSET;
+
+    if (unlikely(lpDDSurfaceDesc == nullptr || lplpDDSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDSurface);
+
+    // We need to ensure we can always read from surfaces for upload to
+    // D3D9, so always strip the DDSCAPS_WRITEONLY flag on creation
+    lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_WRITEONLY;
 
     Com<IDirectDrawSurface> ddrawSurfaceProxied;
     HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddrawSurfaceProxied, pUnkOuter);

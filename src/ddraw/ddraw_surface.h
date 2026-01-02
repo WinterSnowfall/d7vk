@@ -3,6 +3,8 @@
 #include "ddraw_include.h"
 #include "ddraw_wrapped_object.h"
 #include "ddraw_format.h"
+#include "ddraw_clipper.h"
+#include "ddraw_palette.h"
 
 #include <unordered_map>
 
@@ -205,12 +207,15 @@ namespace dxvk {
 
     DDraw7Surface*   m_origin    = nullptr;
 
-    DDSURFACEDESC                      m_desc;
-    d3d9::D3DFORMAT                    m_format;
+    DDSURFACEDESC                       m_desc;
+    d3d9::D3DFORMAT                     m_format;
+
+    Com<DDrawClipper>                   m_clipper;
+    Com<DDrawPalette>                   m_palette;
 
     // Back buffers will have depth stencil surfaces as attachments (in practice
     // I have never seen more than one depth stencil being attached at a time)
-    Com<DDrawSurface>                  m_depthStencil;
+    Com<DDrawSurface>                   m_depthStencil;
 
     // These are attached surfaces, which are typically mips or other types of generated
     // surfaces, which need to exist for the entire lifecycle of their parent surface.
