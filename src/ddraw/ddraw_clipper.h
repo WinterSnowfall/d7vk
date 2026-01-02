@@ -3,17 +3,17 @@
 #include "ddraw_include.h"
 #include "ddraw_wrapped_object.h"
 
-#include "ddraw7/ddraw7_interface.h"
+#include "ddraw_interface.h"
 
 namespace dxvk {
 
-  class DDrawClipper final : public DDrawWrappedObject<DDraw7Interface, IDirectDrawClipper, IUnknown> {
+  class DDrawClipper final : public DDrawWrappedObject<DDrawInterface, IDirectDrawClipper, IUnknown> {
 
   public:
 
     DDrawClipper(
           Com<IDirectDrawClipper>&& clipperProxy,
-          DDraw7Interface* pParent);
+          DDrawInterface* pParent);
 
     ~DDrawClipper();
 
