@@ -1,5 +1,6 @@
 #include "ddraw_include.h"
 
+#include "ddraw_clipper.h"
 #include "ddraw_interface.h"
 #include "ddraw7/ddraw7_interface.h"
 
@@ -69,7 +70,7 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
-    return DD_OK;
+    return S_OK;
   }
 
   HRESULT CreateDirectDraw(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuter) {
@@ -115,7 +116,47 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
-    return DD_OK;
+    return S_OK;
+  }
+
+  HRESULT CreateDirectDrawClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
+    Logger::debug(">>> DirectDrawCreateClipper");
+
+    if (unlikely(lplpDDClipper == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDClipper);
+
+    typedef HRESULT (__stdcall *DirectDrawCreateClipper_t)(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter);
+    static DirectDrawCreateClipper_t ProxiedDirectDrawCreateClipper = nullptr;
+
+    if (unlikely(ProxiedDirectDrawCreateClipper == nullptr)) {
+      HMODULE hDDraw = GetProxiedDDrawModule();
+
+      if (unlikely(hDDraw == nullptr)) {
+        Logger::err("DirectDrawCreateClipper: Failed to load proxied ddraw.dll");
+        return DDERR_GENERIC;
+      }
+
+      ProxiedDirectDrawCreateClipper = reinterpret_cast<DirectDrawCreateClipper_t>(GetProcAddress(hDDraw, "DirectDrawCreateClipper"));
+
+      if (unlikely(ProxiedDirectDrawCreateClipper == nullptr)) {
+        Logger::err("DirectDrawCreateClipper: Failed GetProcAddress");
+        return DDERR_GENERIC;
+      }
+    }
+
+    Com<IDirectDrawClipper> lplpDDClipperProxy;
+    HRESULT hr = ProxiedDirectDrawCreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
+
+    if (unlikely(FAILED(hr))) {
+      Logger::warn("DirectDrawCreateClipper: Failed call to proxied interface");
+      return hr;
+    }
+
+    *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), nullptr));
+
+    return S_OK;
   }
 
 }
@@ -155,36 +196,36 @@ extern "C" {
 
   DLLEXPORT HRESULT __stdcall CompleteCreateSysmemSurface(DWORD arg) {
     dxvk::Logger::warn("!!! CompleteCreateSysmemSurface: Stub");
-    return DD_OK;
+    return S_OK;
   }
 
   DLLEXPORT HRESULT __stdcall D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd) {
     dxvk::Logger::warn("!!! D3DParseUnknownCommand: Stub");
-    return DD_OK;
+    return S_OK;
   }
 
   DLLEXPORT HRESULT __stdcall DDGetAttachedSurfaceLcl(DWORD arg1, DWORD arg2, DWORD arg3) {
     dxvk::Logger::warn("!!! DDGetAttachedSurfaceLcl: Stub");
-    return DD_OK;
+    return S_OK;
   }
 
   DLLEXPORT HRESULT __stdcall DDInternalLock(DWORD arg1, DWORD arg2) {
     dxvk::Logger::warn("!!! DDInternalLock: Stub");
-    return DD_OK;
+    return S_OK;
   }
 
   DLLEXPORT HRESULT __stdcall DDInternalUnlock(DWORD arg) {
     dxvk::Logger::warn("!!! DDInternalUnlock: Stub");
-    return DD_OK;
+    return S_OK;
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawCreate(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuter) {
     return dxvk::CreateDirectDraw(lpGUID, lplpDD, pUnkOuter);
   }
 
-  HRESULT WINAPI DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
-    dxvk::Logger::warn("!!! DirectDrawCreateClipper: Stub");
-    return DD_OK;
+  // Mostly unused, except for Sea Dogs (D3D6)
+  DLLEXPORT HRESULT __stdcall DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
+    return dxvk::CreateDirectDrawClipper(dwFlags, lplpDDClipper, pUnkOuter);
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawCreateEx(GUID *lpGUID, LPVOID *lplpDD, REFIID iid, IUnknown *pUnkOuter) {
@@ -327,12 +368,12 @@ extern "C" {
 
   DLLEXPORT HRESULT __stdcall GetDDSurfaceLocal(DWORD arg1, DWORD arg2, DWORD arg3) {
     dxvk::Logger::warn("!!! GetDDSurfaceLocal: Stub");
-    return DD_OK;
+    return S_OK;
   }
 
   DLLEXPORT HRESULT __stdcall GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS, DWORD arg) {
     dxvk::Logger::warn("!!! GetSurfaceFromDC: Stub");
-    return DD_OK;
+    return S_OK;
   }
 
   DLLEXPORT HRESULT __stdcall RegisterSpecialCase(DWORD arg1, DWORD arg2, DWORD arg3, DWORD arg4) {

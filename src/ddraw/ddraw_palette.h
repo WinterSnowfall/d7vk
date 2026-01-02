@@ -3,17 +3,17 @@
 #include "ddraw_include.h"
 #include "ddraw_wrapped_object.h"
 
-#include "ddraw7/ddraw7_interface.h"
+#include "ddraw_interface.h"
 
 namespace dxvk {
 
-  class DDrawPalette final : public DDrawWrappedObject<DDraw7Interface, IDirectDrawPalette, IUnknown> {
+  class DDrawPalette final : public DDrawWrappedObject<DDrawInterface, IDirectDrawPalette, IUnknown> {
 
   public:
 
     DDrawPalette(
           Com<IDirectDrawPalette>&& paletteProxy,
-          DDraw7Interface* pParent);
+          DDrawInterface* pParent);
 
     ~DDrawPalette();
 

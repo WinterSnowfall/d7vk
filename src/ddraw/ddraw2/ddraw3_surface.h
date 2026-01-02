@@ -2,6 +2,8 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
+#include "../ddraw_clipper.h"
+#include "../ddraw_palette.h"
 
 namespace dxvk {
 
@@ -105,6 +107,9 @@ namespace dxvk {
     uint32_t         m_surfCount = 0;
 
     DDraw7Surface*   m_origin    = nullptr;
+
+    Com<DDrawClipper>                   m_clipper;
+    Com<DDrawPalette>                   m_palette;
 
   };
 
