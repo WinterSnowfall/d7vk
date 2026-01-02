@@ -176,8 +176,16 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetClipper(LPDIRECTDRAWCLIPPER *lplpDDClipper) {
-    Logger::debug("<<< DDraw3Surface::GetClipper: Proxy");
-    return m_proxy->GetClipper(lplpDDClipper);
+    Logger::debug(">>> DDraw3Surface::GetClipper");
+
+    if (unlikely(lplpDDClipper == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDClipper);
+
+    *lplpDDClipper = m_clipper.ref();
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColorKey) {
@@ -206,8 +214,16 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetPalette(LPDIRECTDRAWPALETTE *lplpDDPalette) {
-    Logger::debug("<<< DDraw3Surface::GetPalette: Proxy");
-    return m_proxy->GetPalette(lplpDDPalette);
+    Logger::debug(">>> DDraw3Surface::GetPalette");
+
+    if (unlikely(lplpDDPalette == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDPalette);
+
+    *lplpDDPalette = m_palette.ref();
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat) {
@@ -258,8 +274,31 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper) {
+    if (likely(IsLegacyInterface())) {
+      Logger::debug(">>> DDraw3Surface::SetClipper: Proxy");
+      return m_proxy->SetClipper(lpDDClipper);
+    }
+
     Logger::debug("<<< DDraw3Surface::SetClipper: Proxy");
-    return m_proxy->SetClipper(lpDDClipper);
+
+    // A nullptr lpDDClipper gets the current clipper detached
+    if (lpDDClipper == nullptr) {
+      HRESULT hr = m_proxy->SetClipper(lpDDClipper);
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      m_clipper = nullptr;
+    } else {
+      DDrawClipper* ddrawClipper = static_cast<DDrawClipper*>(lpDDClipper);
+
+      HRESULT hr = m_proxy->SetClipper(ddrawClipper->GetProxied());
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      m_clipper = ddrawClipper;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColorKey) {
@@ -273,8 +312,31 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette) {
+    if (likely(IsLegacyInterface())) {
+      Logger::debug("<<< DDraw3Surface::SetPalette: Proxy");
+      return m_proxy->SetPalette(lpDDPalette);
+    }
+
     Logger::debug("<<< DDraw3Surface::SetPalette: Proxy");
-    return m_proxy->SetPalette(lpDDPalette);
+
+    // A nullptr lpDDPalette gets the current palette detached
+    if (lpDDPalette == nullptr) {
+      HRESULT hr = m_proxy->SetPalette(lpDDPalette);
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      m_palette = nullptr;
+    } else {
+      DDrawPalette* ddrawPalette = static_cast<DDrawPalette*>(lpDDPalette);
+
+      HRESULT hr = m_proxy->SetPalette(ddrawPalette->GetProxied());
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      m_palette = ddrawPalette;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Unlock(LPVOID lpSurfaceData) {
