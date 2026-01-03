@@ -105,6 +105,7 @@ namespace dxvk {
       Com<DDraw4Interface> ddraw4Interface = new DDraw4Interface(std::move(ppvProxyObject), reinterpret_cast<DDrawInterface*>(this), nullptr);
       ddraw4Interface->SetHWND(m_hwnd);
       ddraw4Interface->SetCooperativeLevel(m_cooperativeLevel);
+      m_intf4 = ddraw4Interface.ptr();
       *ppvObject = ddraw4Interface.ref();
 
       return S_OK;
@@ -355,6 +356,11 @@ namespace dxvk {
 
     if (changed)
       m_cooperativeLevel = dwFlags;
+
+    // Atempt to update any child interfaces, because some applications first
+    // call QueryInterface, and only after that call SetCooperativeLevel
+    if (m_intf4 != nullptr)
+      m_intf4->SetCooperativeLevel(hWnd, dwFlags);
 
     return DD_OK;
   }
