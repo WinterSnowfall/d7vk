@@ -79,11 +79,13 @@ None of this would have ever been possible without DXVK and Wine, so remember to
 ## How to use
 Grab the latest release or compile the project manually if you want to be "on the bleeding edge".
 
-To give it a spin in a Wine prefix of choice, copy the `ddraw.dll` file next to the game/application executable, then open `winecfg` and manually add `native, builtin` (explicitly in that order) DLL overrides for `ddraw` under the Libraries tab. There's no need to worry about bitness or anything like that, since D3D7 has always been 32-bit exclusive.
+To give it a spin in a Wine prefix of choice, copy the `ddraw.dll` file next to the game/application executable, then open `winecfg` and manually add `native, builtin` (explicitly in that order) DLL overrides for `ddraw` under the Libraries tab. There's no need to worry about bitness or anything like that, since DDraw (along with its D3D companions) has always been 32-bit exclusive.
 
 On Windows, simply copying `ddraw.dll` next to the game executable should work just fine. Note that Windows use is largely untested and D7VK is primarily aimed at use with Wine/Linux, so your mileage may vary.
 
-Do NOT, I repeat, do NOT copy `ddraw.dll` in your Wine or Windows system directories, as you will need access to an actual DDraw implementation for any of this to work.
+Do NOT, I repeat, do NOT copy `ddraw.dll` in your Windows system directories, as you will need access to an actual DDraw implementation for any of this to work, and that might also break your system.
+
+When using Wine on Linux, there also is an alternate deployment option, required by some games such as _GTA 2_, _StarLancer_, _Midtown Madness 2_ and others, namely renaming the system path Wine `ddraw.dll` file to `ddraw_.dll` and copying `ddraw.dll` in your `system32` or `syswow64` system path directly (DO mind your prefix bitness in this case!). D7VK will prioritize loading the `ddraw_.dll` file from its current path before trying to load `ddraw.dll` from the system path, in order to accommodate both methods of use. Note that you will need to set up proper dll overrides in Wine even in this case, as described above.
 
 Verify that your application uses D7VK instead of wined3d by enabling the HUD (see notes below).
 

@@ -1565,6 +1565,10 @@ namespace dxvk {
     { R"(\\Sacred\.exe$)", {{
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
+    /* StarLancer                                 */
+    { R"(\\Lancer\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
@@ -1623,6 +1627,10 @@ namespace dxvk {
     /* Dungeon Keeper 2                           */
     { R"(\\DKII-DX\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Star Wars: Rogue Squadron 3D               */
+    { R"(\\Rogue Squadron\.exe$)", {{
+      { "d3d9.maxFrameRate",                 "-60" },
     }} },
 
   };

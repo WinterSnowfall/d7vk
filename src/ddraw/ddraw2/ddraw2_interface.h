@@ -10,7 +10,9 @@ namespace dxvk {
   class D3D5Interface;
   class DDrawSurface;
   class DDrawInterface;
+  class DDraw4Interface;
   class DDraw7Interface;
+  class DDrawSurface;
 
   /**
   * \brief DirectDraw2 interface implementation
@@ -98,6 +100,7 @@ namespace dxvk {
     uint32_t                   m_intfCount  = 0;
 
     DDraw7Interface*           m_origin = nullptr;
+    DDraw4Interface*           m_intf4  = nullptr;
 
     Com<D3D5Interface, false>  m_d3d5Intf;
 
