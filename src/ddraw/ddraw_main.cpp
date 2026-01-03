@@ -12,13 +12,23 @@ namespace dxvk {
     static HMODULE hDDraw = nullptr;
 
     if (unlikely(hDDraw == nullptr)) {
-      char loadPath[MAX_PATH] = { };
-      UINT returnLength = ::GetSystemDirectoryA(loadPath, MAX_PATH);
-      if (unlikely(!returnLength))
-        return nullptr;
+      // Try to load ddraw_.dll from the current path first
+      hDDraw = ::LoadLibraryA("ddraw_.dll");
 
-      strcat(loadPath, "\\ddraw.dll");
-      hDDraw = ::LoadLibraryA(loadPath);
+      if (hDDraw == nullptr) {
+        char loadPath[MAX_PATH] = { };
+        UINT returnLength = ::GetSystemDirectoryA(loadPath, MAX_PATH);
+        if (unlikely(!returnLength))
+          return nullptr;
+
+        strcat(loadPath, "\\ddraw.dll");
+        hDDraw = ::LoadLibraryA(loadPath);
+
+        if (likely(hDDraw != nullptr))
+          Logger::debug(">>> GetProxiedDDrawModule: Loaded ddraw.dll from system path");
+      } else {
+        Logger::debug(">>> GetProxiedDDrawModule: Loaded ddraw_.dll");
+      }
     }
 
     return hDDraw;
@@ -362,7 +372,38 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv) {
-    dxvk::Logger::warn("!!! DllGetClassObject: Stub");
+    dxvk::Logger::debug("<<< DllGetClassObject: Proxy");
+
+    typedef HRESULT (__stdcall *DllGetClassObject_t)(REFCLSID rclsid, REFIID riid, LPVOID *ppv);
+    static DllGetClassObject_t ProxiedDllGetClassObject = nullptr;
+
+    dxvk::Logger::debug(dxvk::str::format("DllGetClassObject: Call for rclsid: ", rclsid));
+
+    // TODO: Figure out a way to get Total Annihilation: Kingdoms to like what we return,
+    // because simply calling CreateDirectDraw here does not work for some reason
+
+    if (unlikely(ProxiedDllGetClassObject == nullptr)) {
+      HMODULE hDDraw = dxvk::GetProxiedDDrawModule();
+
+      if (unlikely(hDDraw == nullptr)) {
+        dxvk::Logger::err("DllGetClassObject: Failed to load proxied ddraw.dll");
+        return DDERR_GENERIC;
+      }
+
+      ProxiedDllGetClassObject = reinterpret_cast<DllGetClassObject_t>(GetProcAddress(hDDraw, "DllGetClassObject"));
+
+      if (unlikely(ProxiedDllGetClassObject == nullptr)) {
+        dxvk::Logger::err("DllGetClassObject: Failed GetProcAddress");
+        return DDERR_GENERIC;
+      }
+    }
+
+    HRESULT hr = ProxiedDllGetClassObject(rclsid, riid, ppv);
+
+    if (unlikely(FAILED(hr))) {
+      dxvk::Logger::warn("DllGetClassObject: Failed call to proxied interface");
+    }
+
     return S_OK;
   }
 
