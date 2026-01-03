@@ -1178,6 +1178,10 @@ namespace dxvk {
       return m_recorder != nullptr;
     }
 
+    bool IsD3D5Compatible() const {
+      return m_isD3D5Compatible;
+    }
+
     bool IsD3D6Compatible() const {
       return m_isD3D6Compatible;
     }
@@ -1664,6 +1668,7 @@ namespace dxvk {
     D3D9SpecializationInfo          m_specInfo = D3D9SpecializationInfo();
 
     bool                            m_isSWVP;
+    bool                            m_isD3D5Compatible;
     bool                            m_isD3D6Compatible;
     bool                            m_isD3D7Compatible;
     bool                            m_isD3D8Compatible;

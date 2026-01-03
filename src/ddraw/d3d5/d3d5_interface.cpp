@@ -9,7 +9,15 @@ namespace dxvk {
   uint32_t D3D5Interface::s_intfCount = 0;
 
   D3D5Interface::D3D5Interface(Com<IDirect3D2>&& d3d5IntfProxy, DDraw2Interface* pParent)
-    : DDrawWrappedObject<DDraw2Interface, IDirect3D2, d3d9::IDirect3D9>(pParent, std::move(d3d5IntfProxy), nullptr) {
+    : DDrawWrappedObject<DDraw2Interface, IDirect3D2, d3d9::IDirect3D9>(pParent, std::move(d3d5IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION))) {
+    // Get the bridge interface to D3D9.
+    if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
+      throw DxvkError("D3D5Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+    }
+
+    m_bridge->EnableD3D5CompatibilityMode();
+
+    m_options = D3DOptions(*m_bridge->GetConfig());
 
     m_intfCount = ++s_intfCount;
 

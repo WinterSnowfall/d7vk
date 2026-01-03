@@ -136,7 +136,7 @@ namespace dxvk {
     static uint32_t             s_intfCount;
     uint32_t                    m_intfCount  = 0;
 
-    Com<D3D7Interface,   false> m_d3d7Intf;
+    Com<D3D7Interface, false>   m_d3d7Intf;
 
     HWND                        m_hwnd       = nullptr;
 

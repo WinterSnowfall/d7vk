@@ -71,20 +71,36 @@ namespace dxvk {
 
     void RemoveWrappedSurface(IDirectDrawSurface* surface);
 
+    DWORD GetCooperativeLevel() const {
+      return m_cooperativeLevel;
+    }
+
+    void SetCooperativeLevel(DWORD cooperativeLevel) {
+      m_cooperativeLevel = cooperativeLevel;
+    }
+
+    HWND GetHWND() const {
+      return m_hwnd;
+    }
+
+    void SetHWND(HWND hwnd) {
+      m_hwnd = hwnd;
+    }
+
   private:
 
-    inline bool IsLegacyInterface() {
+    inline bool IsLegacyInterface() const {
       return m_origin != nullptr;
     }
 
     static uint32_t             s_intfCount;
     uint32_t                    m_intfCount  = 0;
 
+    DDraw7Interface*            m_origin = nullptr;
+
     HWND                        m_hwnd       = nullptr;
 
     DWORD                       m_cooperativeLevel = 0;
-
-    DDraw7Interface*            m_origin = nullptr;
 
     std::vector<DDrawSurface*>  m_surfaces;
 

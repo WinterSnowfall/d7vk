@@ -97,7 +97,7 @@ namespace dxvk {
 
   private:
 
-    inline bool IsLegacyInterface() {
+    inline bool IsLegacyInterface() const {
       return m_origin != nullptr;
     }
 
