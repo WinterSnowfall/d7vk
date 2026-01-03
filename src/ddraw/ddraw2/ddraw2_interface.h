@@ -90,20 +90,20 @@ namespace dxvk {
 
   private:
 
-    inline bool IsLegacyInterface() {
+    inline bool IsLegacyInterface() const {
       return m_origin != nullptr;
     }
 
-    static uint32_t             s_intfCount;
-    uint32_t                    m_intfCount  = 0;
+    static uint32_t            s_intfCount;
+    uint32_t                   m_intfCount  = 0;
 
-    DDraw7Interface*            m_origin = nullptr;
+    DDraw7Interface*           m_origin = nullptr;
 
-    Com<D3D5Interface,   false> m_d3d5Intf;
+    Com<D3D5Interface, false>  m_d3d5Intf;
 
-    HWND                        m_hwnd       = nullptr;
+    HWND                       m_hwnd       = nullptr;
 
-    DWORD                       m_cooperativeLevel = 0;
+    DWORD                      m_cooperativeLevel = 0;
 
     std::vector<DDrawSurface*> m_surfaces;
 

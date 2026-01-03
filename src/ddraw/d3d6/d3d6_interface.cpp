@@ -24,7 +24,7 @@ namespace dxvk {
 
     m_bridge->EnableD3D6CompatibilityMode();
 
-    m_d3d6Options = D3DOptions(*m_bridge->GetConfig());
+    m_options = D3DOptions(*m_bridge->GetConfig());
 
     m_intfCount = ++s_intfCount;
 
@@ -108,7 +108,7 @@ namespace dxvk {
 
     // Software emulation, this is expected to be exposed (SWVP)
     GUID guidRGB = IID_IDirect3DRGBDevice;
-    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_options.disableAASupport);
     D3DDEVICEDESC descRGB_HEL = descRGB_HAL;
     descRGB_HAL.dwFlags = 0;
     descRGB_HAL.dcmColorModel = 0;
@@ -127,7 +127,7 @@ namespace dxvk {
 
     // Hardware acceleration (SWVP)
     GUID guidHAL = IID_IDirect3DHALDevice;
-    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_options.disableAASupport);
     D3DDEVICEDESC descHAL_HEL = descHAL_HAL;
     descHAL_HEL.dcmColorModel = 0;
     descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
@@ -202,13 +202,13 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // Software emulation, this is expected to be exposed (SWVP)
-    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_options.disableAASupport);
     D3DDEVICEDESC descRGB_HEL = descRGB_HAL;
     descRGB_HAL.dwFlags = 0;
     descRGB_HAL.dcmColorModel = 0;
 
     // Hardware acceleration (SWVP)
-    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_options.disableAASupport);
     D3DDEVICEDESC descHAL_HEL = descHAL_HAL;
     descRGB_HEL.dcmColorModel = 0;
     descRGB_HEL.dwDevCaps &= ~D3DDEVCAPS_DRAWPRIMITIVES2
@@ -270,7 +270,7 @@ namespace dxvk {
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
     bool  rgbFallback          = false;
 
-    if (likely(m_d3d6Options.deviceTypeOverride == D3DDeviceTypeOverride::None)) {
+    if (likely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::None)) {
       if (rclsid == IID_IDirect3DHALDevice) {
         Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
       } else if (rclsid == IID_IDirect3DMMXDevice) {
@@ -285,11 +285,11 @@ namespace dxvk {
       }
     } else {
       // Will default to SWVP, nothing to do in that case
-      if (m_d3d6Options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed) {
+      if (m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed) {
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
-      } else if (m_d3d6Options.deviceTypeOverride == D3DDeviceTypeOverride::HWVP) {
+      } else if (m_options.deviceTypeOverride == D3DDeviceTypeOverride::HWVP) {
         deviceCreationFlags9 = D3DCREATE_HARDWARE_VERTEXPROCESSING;
-      } else if (m_d3d6Options.deviceTypeOverride == D3DDeviceTypeOverride::HWVPMixed) {
+      } else if (m_options.deviceTypeOverride == D3DDeviceTypeOverride::HWVPMixed) {
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
       }
     }
@@ -304,7 +304,7 @@ namespace dxvk {
 
     Com<DDraw4Surface> rt4;
     if (unlikely(!m_parent->IsWrappedSurface(lpDDS))) {
-      if (unlikely(m_d3d6Options.proxiedQueryInterface)) {
+      if (unlikely(m_options.proxiedQueryInterface)) {
         Logger::debug("D3D6Interface::CreateDevice: Unwrapped surface passed as RT");
         rt4 = new DDraw4Surface(std::move(lpDDS), m_parent, nullptr, nullptr, true);
         // Hack: attach the last created depth stencil to the unwrapped RT
@@ -332,8 +332,8 @@ namespace dxvk {
     DWORD backBufferWidth  = desc.dwWidth;
     DWORD BackBufferHeight = desc.dwHeight;
 
-    if (likely(!m_d3d6Options.forceProxiedPresent &&
-                m_d3d6Options.backBufferResize)) {
+    if (likely(!m_options.forceProxiedPresent &&
+                m_options.backBufferResize)) {
       const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
@@ -354,7 +354,7 @@ namespace dxvk {
 
     // Determine the supported AA sample count by querying the D3D9 interface
     d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
-    if (likely(!m_d3d6Options.disableAASupport)) {
+    if (likely(!m_options.disableAASupport)) {
       HRESULT hr4S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
                                                         TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
       if (unlikely(FAILED(hr4S))) {
@@ -377,7 +377,7 @@ namespace dxvk {
     Logger::info(str::format("D3D6Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
 
     DWORD backBufferCount = 0;
-    if (likely(!m_d3d6Options.forceSingleBackBuffer)) {
+    if (likely(!m_options.forceSingleBackBuffer)) {
       IDirectDrawSurface4* backBuffer = rt4->GetProxied();
       while (backBuffer != nullptr) {
         IDirectDrawSurface4* parentSurface = backBuffer;
@@ -412,7 +412,7 @@ namespace dxvk {
     params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
-    if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_d3d6Options.forceMultiThreaded)
+    if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_options.forceMultiThreaded)
       deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
     if (cooperativeLevel & DDSCL_FPUPRESERVE)
       deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
@@ -434,7 +434,7 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC desc6 = GetD3D6Caps(rclsidOverride, m_d3d6Options.disableAASupport);
+    D3DDEVICEDESC desc6 = GetD3D6Caps(rclsidOverride, m_options.disableAASupport);
 
     try{
       Com<D3D6Device> device = new D3D6Device(std::move(d3d6DeviceProxy), this, desc6,
@@ -445,7 +445,7 @@ namespace dxvk {
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       m_lastUsedDevice->InitializeDS();
       // Enable SWVP in case of mixed SWVP devices
-      if (unlikely(m_d3d6Options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
+      if (unlikely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
         m_lastUsedDevice->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
       *lplpD3DDevice = device.ref();
     } catch (const DxvkError& e) {

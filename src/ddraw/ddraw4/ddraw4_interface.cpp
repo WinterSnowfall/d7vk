@@ -79,8 +79,7 @@ namespace dxvk {
 
       Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw");
       if (m_parent != nullptr) {
-        *ppvObject = ref(m_parent);
-        return S_OK;
+        return m_parent->QueryInterface(riid, ppvObject);
       } else {
         return m_proxy->QueryInterface(riid, ppvObject);
       }
@@ -93,7 +92,11 @@ namespace dxvk {
       }
 
       Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirectDraw2");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      if (m_parent != nullptr) {
+        return m_parent->QueryInterface(riid, ppvObject);
+      } else {
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
     // Standard way of retrieving a D3D3 interface
     if (unlikely(riid == __uuidof(IDirect3D))) {
