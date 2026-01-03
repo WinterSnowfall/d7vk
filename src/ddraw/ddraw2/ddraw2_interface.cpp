@@ -83,8 +83,7 @@ namespace dxvk {
       Logger::warn("DDraw2Interface::QueryInterface: Query for legacy IDirectDraw");
 
       if (m_parent != nullptr) {
-        *ppvObject = ref(m_parent);
-        return S_OK;
+        return m_parent->QueryInterface(riid, ppvObject);
       } else {
         return m_proxy->QueryInterface(riid, ppvObject);
       }
@@ -103,8 +102,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      Com<DDraw4Interface> ddraw4Interface = new DDraw4Interface(std::move(ppvProxyObject), m_parent, nullptr);
-      // Pass on the hWnd and cooperative level to the child interface
+      Com<DDraw4Interface> ddraw4Interface = new DDraw4Interface(std::move(ppvProxyObject), reinterpret_cast<DDrawInterface*>(this), nullptr);
       ddraw4Interface->SetHWND(m_hwnd);
       ddraw4Interface->SetCooperativeLevel(m_cooperativeLevel);
       *ppvObject = ddraw4Interface.ref();
@@ -126,7 +124,6 @@ namespace dxvk {
         return hr;
 
       Com<DDraw7Interface> ddraw7Interface = new DDraw7Interface(std::move(ppvProxyObject));
-      // Pass on the hWnd and cooperative level to the child interface
       ddraw7Interface->SetHWND(m_hwnd);
       ddraw7Interface->SetCooperativeLevel(m_cooperativeLevel);
       *ppvObject = ddraw7Interface.ref();
@@ -241,20 +238,12 @@ namespace dxvk {
       return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
     }
 
+    if (unlikely(m_d3d5Intf->GetOptions()->proxiedLegacySurfaces)) {
+      Logger::debug("<<< DDraw2Interface::CreateSurface: Proxy");
+      return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
+    }
+
     Logger::debug(">>> DDraw2Interface::CreateSurface");
-
-    // The cooperative level is always checked first
-    if (unlikely(!m_cooperativeLevel))
-      return DDERR_NOCOOPERATIVELEVELSET;
-
-    if (unlikely(lpDDSurfaceDesc == nullptr || lplpDDSurface == nullptr))
-      return DDERR_INVALIDPARAMS;
-
-    InitReturnPtr(lplpDDSurface);
-
-    // We need to ensure we can always read from surfaces for upload to
-    // D3D9, so always strip the DDSCAPS_WRITEONLY flag on creation
-    lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_WRITEONLY;
 
     Com<IDirectDrawSurface> ddrawSurfaceProxied;
     HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddrawSurfaceProxied, pUnkOuter);
@@ -395,7 +384,8 @@ namespace dxvk {
     if (likely(it != m_surfaces.end()))
       return true;
 
-    return false;
+    // Also check for wrapped surfaces created with IDirectDraw
+    return m_parent->IsWrappedSurface(ddrawSurface);
   }
 
   void DDraw2Interface::AddWrappedSurface(IDirectDrawSurface* surface) {
