@@ -2,6 +2,9 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
+#include "../ddraw_options.h"
+
+#include "../d3d9/d3d9_bridge.h"
 
 namespace dxvk {
 
@@ -35,10 +38,18 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE lpDDS, LPDIRECT3DDEVICE2 *lplpD3DDevice);
 
+    const D3DOptions* GetOptions() const {
+      return &m_options;
+    }
+
   private:
 
     static uint32_t               s_intfCount;
     uint32_t                      m_intfCount = 0;
+
+    Com<IDxvkD3D8InterfaceBridge> m_bridge;
+
+    D3DOptions                    m_options;
 
   };
 

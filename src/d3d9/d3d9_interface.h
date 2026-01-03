@@ -141,6 +141,10 @@ namespace dxvk {
 
     bool IsExtended() { return m_extended; }
 
+    bool IsD3D5Compatible() const {
+      return m_isD3D5Compatible;
+    }
+
     bool IsD3D6Compatible() const {
       return m_isD3D6Compatible;
     }
@@ -151,6 +155,15 @@ namespace dxvk {
 
     bool IsD3D8Compatible() const {
       return m_isD3D8Compatible;
+    }
+
+    void EnableD3D5CompatibilityMode() {
+      m_isD3D5Compatible = true;
+      m_isD3D6Compatible = true;
+      m_isD3D7Compatible = true;
+      // D3D8 specific limitations and quirks are also very much in effect
+      m_isD3D8Compatible = true;
+      Logger::info("The D3D9 interface is now operating in D3D5 compatibility mode.");
     }
 
     void EnableD3D6CompatibilityMode() {
@@ -191,6 +204,7 @@ namespace dxvk {
 
     bool                          m_extended;
 
+    bool                          m_isD3D5Compatible = false;
     bool                          m_isD3D6Compatible = false;
     bool                          m_isD3D7Compatible = false;
     bool                          m_isD3D8Compatible = false;

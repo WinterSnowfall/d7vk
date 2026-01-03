@@ -1517,9 +1517,11 @@ namespace dxvk {
     { R"(\\Sum\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
     }} },
-    /* Wizardry 8 - Broken input handling         */
+    /* Wizardry 8 - Broken input handling and     *
+     * crashing during intro / cutscene playback  */
     { R"(\\Wiz8\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
+      { "ddraw.proxiedLegacySurfaces",      "True" },
     }} },
     /* Giants: Citizen Kabuto                     *
      * Broken input handling at high framerates   */
