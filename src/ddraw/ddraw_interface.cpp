@@ -127,7 +127,7 @@ namespace dxvk {
 
       return S_OK;
     }
-    // Legacy way of getting a DDraw4 interface
+    // Standard way of getting a DDraw4 interface
     if (riid == __uuidof(IDirectDraw4)) {
       if (likely(IsLegacyInterface())) {
         Logger::debug("DDrawInterface::QueryInterface: Forwarded query for IDirectDraw4");
@@ -142,10 +142,30 @@ namespace dxvk {
         return hr;
 
       Com<DDraw4Interface> ddraw4Interface = new DDraw4Interface(std::move(ppvProxyObject), this, nullptr);
-      // Pass on the hWnd and cooperative level to the child interface
       ddraw4Interface->SetHWND(m_hwnd);
       ddraw4Interface->SetCooperativeLevel(m_cooperativeLevel);
       *ppvObject = ddraw4Interface.ref();
+
+      return S_OK;
+    }
+    // Standard way of getting a DDraw2 interface
+    if (riid == __uuidof(IDirectDraw2)) {
+      if (likely(IsLegacyInterface())) {
+        Logger::debug("DDrawInterface::QueryInterface: Forwarded query for IDirectDraw2");
+        return m_origin->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("DDrawInterface::QueryInterface: Query for IDirectDraw2");
+
+      Com<IDirectDraw2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      Com<DDraw2Interface> ddraw2Interface = new DDraw2Interface(std::move(ppvProxyObject), this, nullptr);
+      ddraw2Interface->SetHWND(m_hwnd);
+      ddraw2Interface->SetCooperativeLevel(m_cooperativeLevel);
+      *ppvObject = ddraw2Interface.ref();
 
       return S_OK;
     }
@@ -164,30 +184,9 @@ namespace dxvk {
         return hr;
 
       Com<DDraw7Interface> ddraw7Interface = new DDraw7Interface(std::move(ppvProxyObject));
-      // Pass on the hWnd and cooperative level to the child interface
       ddraw7Interface->SetHWND(m_hwnd);
       ddraw7Interface->SetCooperativeLevel(m_cooperativeLevel);
       *ppvObject = ddraw7Interface.ref();
-
-      return S_OK;
-    }
-    if (unlikely(riid == __uuidof(IDirectDraw2))) {
-      if (likely(IsLegacyInterface())) {
-        Logger::debug("DDrawInterface::QueryInterface: Forwarded query for IDirectDraw2");
-        return m_origin->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("DDrawInterface::QueryInterface: Query for IDirectDraw2");
-
-      Com<IDirectDraw2> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      Com<DDraw2Interface> ddraw2Interface = new DDraw2Interface(std::move(ppvProxyObject), this, nullptr);
-      ddraw2Interface->SetHWND(m_hwnd);
-      ddraw2Interface->SetCooperativeLevel(m_cooperativeLevel);
-      *ppvObject = ddraw2Interface.ref();
 
       return S_OK;
     }
@@ -272,19 +271,6 @@ namespace dxvk {
     }
 
     Logger::debug(">>> DDrawInterface::CreateSurface");
-
-    // The cooperative level is always checked first
-    if (unlikely(!m_cooperativeLevel))
-      return DDERR_NOCOOPERATIVELEVELSET;
-
-    if (unlikely(lpDDSurfaceDesc == nullptr || lplpDDSurface == nullptr))
-      return DDERR_INVALIDPARAMS;
-
-    InitReturnPtr(lplpDDSurface);
-
-    // We need to ensure we can always read from surfaces for upload to
-    // D3D9, so always strip the DDSCAPS_WRITEONLY flag on creation
-    lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_WRITEONLY;
 
     Com<IDirectDrawSurface> ddrawSurfaceProxied;
     HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddrawSurfaceProxied, pUnkOuter);

@@ -21,7 +21,7 @@ namespace dxvk {
 
     m_bridge->EnableD3D7CompatibilityMode();
 
-    m_d3d7Options = D3DOptions(*m_bridge->GetConfig());
+    m_options = D3DOptions(*m_bridge->GetConfig());
 
     m_intfCount = ++s_intfCount;
 
@@ -108,7 +108,7 @@ namespace dxvk {
     // such as (The) Summoner, so always report RGB first, then HAL, then T&L HAL
 
     // Software emulation, this is expected to be exposed (SWVP)
-    D3DDEVICEDESC7 desc7RGB = GetD3D7Caps(IID_IDirect3DRGBDevice, m_d3d7Options.disableAASupport);
+    D3DDEVICEDESC7 desc7RGB = GetD3D7Caps(IID_IDirect3DRGBDevice, m_options.disableAASupport);
     char deviceDescRGB[100] = "D7VK RGB";
     char deviceNameRGB[100] = "D7VK RGB";
 
@@ -117,7 +117,7 @@ namespace dxvk {
       return D3D_OK;
 
     // Hardware acceleration (no T&L, SWVP)
-    D3DDEVICEDESC7 desc7HAL = GetD3D7Caps(IID_IDirect3DHALDevice, m_d3d7Options.disableAASupport);
+    D3DDEVICEDESC7 desc7HAL = GetD3D7Caps(IID_IDirect3DHALDevice, m_options.disableAASupport);
     char deviceDescHAL[100] = "D7VK HAL";
     char deviceNameHAL[100] = "D7VK HAL";
 
@@ -126,7 +126,7 @@ namespace dxvk {
       return D3D_OK;
 
     // Hardware acceleration with T&L (HWVP)
-    D3DDEVICEDESC7 desc7TNL = GetD3D7Caps(IID_IDirect3DTnLHalDevice, m_d3d7Options.disableAASupport);
+    D3DDEVICEDESC7 desc7TNL = GetD3D7Caps(IID_IDirect3DTnLHalDevice, m_options.disableAASupport);
     char deviceDescTNL[100] = "D7VK T&L HAL";
     char deviceNameTNL[100] = "D7VK T&L HAL";
 
@@ -152,7 +152,7 @@ namespace dxvk {
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 
-    if (likely(m_d3d7Options.deviceTypeOverride == D3DDeviceTypeOverride::None)) {
+    if (likely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::None)) {
       if (rclsid == IID_IDirect3DTnLHalDevice) {
         Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DTnLHalDevice device");
         // Do not use exclusive HWVP, since some games call ProcessVertices
@@ -168,11 +168,11 @@ namespace dxvk {
       }
     } else {
       // Will default to SWVP, nothing to do in that case
-      if (m_d3d7Options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed) {
+      if (m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed) {
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
-      } else if (m_d3d7Options.deviceTypeOverride == D3DDeviceTypeOverride::HWVP) {
+      } else if (m_options.deviceTypeOverride == D3DDeviceTypeOverride::HWVP) {
         deviceCreationFlags9 = D3DCREATE_HARDWARE_VERTEXPROCESSING;
-      } else if (m_d3d7Options.deviceTypeOverride == D3DDeviceTypeOverride::HWVPMixed) {
+      } else if (m_options.deviceTypeOverride == D3DDeviceTypeOverride::HWVPMixed) {
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
       }
     }
@@ -185,7 +185,7 @@ namespace dxvk {
 
     Com<DDraw7Surface> rt7;
     if (unlikely(!m_parent->IsWrappedSurface(surface))) {
-      if (unlikely(m_d3d7Options.proxiedQueryInterface)) {
+      if (unlikely(m_options.proxiedQueryInterface)) {
         Logger::debug("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
         rt7 = new DDraw7Surface(std::move(surface), m_parent, nullptr, true);
         // Hack: attach the last created depth stencil to the unwrapped RT
@@ -213,8 +213,8 @@ namespace dxvk {
     DWORD backBufferWidth  = desc.dwWidth;
     DWORD BackBufferHeight = desc.dwHeight;
 
-    if (likely(!m_d3d7Options.forceProxiedPresent &&
-                m_d3d7Options.backBufferResize)) {
+    if (likely(!m_options.forceProxiedPresent &&
+                m_options.backBufferResize)) {
       const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
@@ -235,7 +235,7 @@ namespace dxvk {
 
     // Determine the supported AA sample count by querying the D3D9 interface
     d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
-    if (likely(!m_d3d7Options.disableAASupport)) {
+    if (likely(!m_options.disableAASupport)) {
       HRESULT hr4S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
                                                         TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
       if (unlikely(FAILED(hr4S))) {
@@ -258,7 +258,7 @@ namespace dxvk {
     Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
 
     DWORD backBufferCount = 0;
-    if (likely(!m_d3d7Options.forceSingleBackBuffer)) {
+    if (likely(!m_options.forceSingleBackBuffer)) {
       IDirectDrawSurface7* backBuffer = rt7->GetProxied();
       while (backBuffer != nullptr) {
         IDirectDrawSurface7* parentSurface = backBuffer;
@@ -293,7 +293,7 @@ namespace dxvk {
     params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
-    if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_d3d7Options.forceMultiThreaded)
+    if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_options.forceMultiThreaded)
       deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
     if (cooperativeLevel & DDSCL_FPUPRESERVE)
       deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
@@ -315,7 +315,7 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC7 desc7 = GetD3D7Caps(rclsid, m_d3d7Options.disableAASupport);
+    D3DDEVICEDESC7 desc7 = GetD3D7Caps(rclsid, m_options.disableAASupport);
 
     try{
       Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7,
@@ -326,7 +326,7 @@ namespace dxvk {
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       m_lastUsedDevice->InitializeDS();
       // Enable SWVP in case of mixed SWVP devices
-      if (unlikely(m_d3d7Options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
+      if (unlikely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
         m_lastUsedDevice->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
       *ppd3dDevice = device.ref();
     } catch (const DxvkError& e) {

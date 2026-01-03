@@ -131,7 +131,7 @@ namespace dxvk {
 
   private:
 
-    inline bool IsLegacyInterface() {
+    inline bool IsLegacyInterface() const {
       return m_origin != nullptr;
     }
 
@@ -140,7 +140,7 @@ namespace dxvk {
 
     DDraw7Interface*            m_origin = nullptr;
 
-    Com<D3D6Interface,   false> m_d3d6Intf;
+    Com<D3D6Interface, false>   m_d3d6Intf;
 
     HWND                        m_hwnd       = nullptr;
 

@@ -48,7 +48,7 @@ namespace dxvk {
     }
 
     const D3DOptions* GetOptions() const {
-      return &m_d3d7Options;
+      return &m_options;
     }
 
   private:
@@ -58,7 +58,7 @@ namespace dxvk {
 
     Com<IDxvkD3D8InterfaceBridge> m_bridge;
 
-    D3DOptions                    m_d3d7Options;
+    D3DOptions                    m_options;
 
     D3D7Device*                   m_lastUsedDevice = nullptr;
 
