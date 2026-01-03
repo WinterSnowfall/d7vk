@@ -3,15 +3,15 @@
 #include "ddraw_include.h"
 #include "ddraw_wrapped_object.h"
 
-#include "ddraw2/ddraw2_interface.h"
-#include "ddraw4/ddraw4_interface.h"
-
 #include <vector>
 
 namespace dxvk {
 
   class D3D6Interface;
+  class DDraw2Interface;
+  class DDraw4Interface;
   class DDraw7Interface;
+  class DDrawSurface;
 
   /**
   * \brief Minimal IDirectDraw interface implementation for IDirectDraw7 QueryInterface calls
@@ -97,6 +97,8 @@ namespace dxvk {
     uint32_t                    m_intfCount  = 0;
 
     DDraw7Interface*            m_origin = nullptr;
+    DDraw4Interface*            m_intf4  = nullptr;
+    DDraw2Interface*            m_intf2  = nullptr;
 
     HWND                        m_hwnd       = nullptr;
 
