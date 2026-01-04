@@ -78,6 +78,13 @@ namespace dxvk {
         return m_proxy->QueryInterface(riid, ppvObject);
       }
 
+      // GTA 2 queries for IDirect3D3 on IDirectDraw, after creating a
+      // IDirectDraw4 interface and a ton of surfaces... so forward the call
+      if (likely(m_intf4 != nullptr)) {
+        Logger::debug("DDrawInterface::QueryInterface: Forwarded query for IDirect3D3");
+        return m_intf4->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("DDrawInterface::QueryInterface: Query for IDirect3D3");
 
       Com<IDirect3D3> ppvProxyObject;
@@ -85,7 +92,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D6Interface(std::move(ppvProxyObject), m_intf4));
+      *ppvObject = ref(new D3D6Interface(std::move(ppvProxyObject), nullptr));
 
       return S_OK;
     }
@@ -212,6 +219,11 @@ namespace dxvk {
     // Quite a lot of games query for this IID during intro playback
     if (unlikely(riid == GUID_IAMMediaStream)) {
       Logger::debug("DDrawInterface::QueryInterface: Query for IAMMediaStream");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    // Also seen queried by some games, such as V-Rally 2: Expert Edition
+    if (unlikely(riid == GUID_IMediaStream)) {
+      Logger::debug("DDrawInterface::QueryInterface: Query for IMediaStream");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
 
