@@ -7,6 +7,7 @@
 #include "ddraw_palette.h"
 
 #include "d3d5/d3d5_device.h"
+#include "d3d5/d3d5_texture.h"
 
 #include <unordered_map>
 
@@ -99,6 +100,14 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE lpDDSReference);
 
+    const D3DOptions* GetOptions() const {
+      return m_parent->GetOptions();
+    }
+
+    d3d9::IDirect3DTexture9* GetD3D9Texture() const {
+      return m_texture.ptr();
+    }
+
     uint8_t GetZBufferBitDepth() const {
       return m_desc.ddpfPixelFormat.dwZBufferBitDepth == 32 ? 24 : m_desc.ddpfPixelFormat.dwZBufferBitDepth;
     }
@@ -142,6 +151,10 @@ namespace dxvk {
 
     void ClearParentSurface() {
       m_parentSurf = nullptr;
+    }
+
+    bool HasDirtyMipMaps() const {
+      return m_dirtyMipMaps;
     }
 
     void DirtyMipMaps() {
@@ -263,6 +276,8 @@ namespace dxvk {
 
     Com<DDrawClipper>                   m_clipper;
     Com<DDrawPalette>                   m_palette;
+
+    Com<D3D5Texture, false>             m_texture5;
 
     Com<d3d9::IDirect3DTexture9>        m_texture;
 
