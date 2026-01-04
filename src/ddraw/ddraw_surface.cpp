@@ -2,6 +2,9 @@
 
 #include "ddraw_interface.h"
 
+#include "ddraw2/ddraw2_surface.h"
+#include "ddraw2/ddraw3_surface.h"
+#include "ddraw4/ddraw4_surface.h"
 #include "ddraw7/ddraw7_surface.h"
 
 namespace dxvk {
@@ -112,12 +115,20 @@ namespace dxvk {
     // Some applications check the supported API level by querying the various newer surface GUIDs...
     if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
       if (likely(IsLegacyInterface())) {
-        Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawSurface2");
-        return m_origin->QueryInterface(riid, ppvObject);
+        Logger::warn("DDrawSurface::QueryInterface: Query for IDirectDrawSurface2");
+        return m_proxy->QueryInterface(riid, ppvObject);
       }
 
-      Logger::warn("DDrawSurface::QueryInterface: Query for IDirectDrawSurface2");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawSurface2");
+
+      Com<IDirectDrawSurface2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new DDraw2Surface(std::move(ppvProxyObject), this, nullptr));
+
+      return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface3))) {
       if (likely(IsLegacyInterface())) {
@@ -125,8 +136,16 @@ namespace dxvk {
         return m_origin->QueryInterface(riid, ppvObject);
       }
 
-      Logger::warn("DDrawSurface::QueryInterface: Query for IDirectDrawSurface3");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawSurface3");
+
+      Com<IDirectDrawSurface3> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new DDraw3Surface(std::move(ppvProxyObject), this, nullptr));
+
+      return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface4))) {
       if (likely(IsLegacyInterface())) {
@@ -134,9 +153,18 @@ namespace dxvk {
         return m_origin->QueryInterface(riid, ppvObject);
       }
 
-      Logger::warn("DDrawSurface::QueryInterface: Query for IDirectDrawSurface4");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawSurface4");
+
+      Com<IDirectDrawSurface4> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new DDraw4Surface(std::move(ppvProxyObject), m_parent->GetDDraw4Interface(), nullptr, nullptr, false));
+
+      return S_OK;
     }
+    // TODO: Check if this is even possible
     if (unlikely(riid == __uuidof(IDirectDrawSurface7))) {
       if (likely(IsLegacyInterface())) {
         Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawSurface7");
@@ -146,8 +174,32 @@ namespace dxvk {
       Logger::warn("DDrawSurface::QueryInterface: Query for IDirectDrawSurface7");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
-    if (unlikely(riid == __uuidof(IDirect3DTexture)
-              || riid == __uuidof(IDirect3DTexture2))) {
+    if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
+      if (unlikely(IsLegacyInterface())) {
+        Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture2");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture2");
+
+      if (unlikely(m_texture5 == nullptr)) {
+        Com<IDirect3DTexture2> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
+        m_texture5 = new D3D5Texture(std::move(ppvProxyObject), this, nextHandle);
+        m_parent->EmplaceTexture(m_texture5.ptr(), nextHandle);
+
+        m_dirtyMipMaps = true;
+      }
+
+      *ppvObject = m_texture5.ref();
+
+      return S_OK;
+    }
+    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
       if (likely(IsLegacyInterface())) {
         Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture");
         return m_origin->QueryInterface(riid, ppvObject);
@@ -446,6 +498,12 @@ namespace dxvk {
       }
 
       m_d3d5Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
+      Logger::debug("*** DDrawSurface::Flip: We have presented, allegedly");
+    // If we don't have a valid D3D5 device, this means a D3D3 application
+    // is trying to flip the surfaces, so allow that for compatibility reasons
+    } else {
+      Logger::warn("<<< DDrawSurface::Flip: Proxy");
+      m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
     }
 
     return DD_OK;

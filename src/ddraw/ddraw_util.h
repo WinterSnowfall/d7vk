@@ -13,6 +13,17 @@ namespace dxvk {
     UINT stride;
   };
 
+  // MS, in their infinite wisdom, decided to have 3 distinct versions
+  // of D3DDEVICEDESC, the first shipped with D3D2/3, the second with D3D5,
+  // and the third (which is what we have in modern headers) with D3D6.
+  // All 3 sizes are valid in D3D6, and the first 2 are in D3D5, but let's
+  // consider them all valid and save ourselves some trouble.
+  inline bool IsValidD3DDeviceDescSize(DWORD size) {
+    return size == sizeof(D3DDEVICEDESC)
+        || size == sizeof(D3DDEVICEDESC2)
+        || size == sizeof(D3DDEVICEDESC3);
+  }
+
   // D3D5 D3DVERTEXTYPE to >D3D6 DWORD vertex codes
   inline DWORD ConvertVertexType(D3DVERTEXTYPE vertexType) {
     switch (vertexType) {
