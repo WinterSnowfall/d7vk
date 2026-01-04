@@ -1,32 +1,31 @@
-#include "d3d6_device.h"
+#include "d3d5_device.h"
 
 #include "../ddraw_util.h"
-#include "../ddraw4/ddraw4_interface.h"
-#include "../ddraw4/ddraw4_surface.h"
+#include "../ddraw2/ddraw2_interface.h"
+#include "../ddraw_surface.h"
 
-#include "d3d6_buffer.h"
-#include "d3d6_texture.h"
+#include "d3d5_texture.h"
 
 #include <algorithm>
 
 namespace dxvk {
 
-  uint32_t D3D6Device::s_deviceCount = 0;
+  uint32_t D3D5Device::s_deviceCount = 0;
 
   // Index buffer sizes of XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb
   static constexpr UINT IndexCount[ddrawCaps::IndexBufferCount] = {256, 1024, 4096, 16384, D3DMAXNUMVERTICES};
 
-  D3D6Device::D3D6Device(
-      Com<IDirect3DDevice3>&& d3d6DeviceProxy,
-      D3D6Interface* pParent,
+  D3D5Device::D3D5Device(
+      Com<IDirect3DDevice2>&& d3d5DeviceProxy,
+      D3D5Interface* pParent,
       D3DDEVICEDESC Desc,
       GUID deviceGUID,
       d3d9::D3DPRESENT_PARAMETERS Params9,
       Com<d3d9::IDirect3DDevice9>&& pDevice9,
-      DDraw4Surface* pSurface,
+      DDrawSurface* pSurface,
       DWORD CreationFlags9)
-    : DDrawWrappedObject<D3D6Interface, IDirect3DDevice3, d3d9::IDirect3DDevice9>(pParent, std::move(d3d6DeviceProxy), std::move(pDevice9))
-    , m_DD4IntfParent ( pParent->GetParent() )
+    : DDrawWrappedObject<D3D5Interface, IDirect3DDevice2, d3d9::IDirect3DDevice9>(pParent, std::move(d3d5DeviceProxy), std::move(pDevice9))
+    , m_DD2IntfParent ( pParent->GetParent() )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
     , m_desc ( Desc )
@@ -34,7 +33,7 @@ namespace dxvk {
     , m_rt ( pSurface ) {
     // Get the bridge interface to D3D9
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8Bridge), reinterpret_cast<void**>(&m_bridge))))) {
-      throw DxvkError("D3D6Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+      throw DxvkError("D3D5Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
     m_parent->AddRef();
@@ -43,7 +42,7 @@ namespace dxvk {
 
     HRESULT hr = EnumerateBackBuffers(m_rt->GetProxied());
     if(unlikely(FAILED(hr)))
-      throw DxvkError("D3D6Device: ERROR! Failed to retrieve D3D9 back buffers!");
+      throw DxvkError("D3D5Device: ERROR! Failed to retrieve D3D9 back buffers!");
 
     // Textures
     m_textures.fill(nullptr);
@@ -52,19 +51,19 @@ namespace dxvk {
 
     if (unlikely(!m_parent->GetOptions()->disableAASupport
                 &&m_parent->GetOptions()->forceEnableAA)) {
-      Logger::warn("D3D6Device: Force enabling AA");
+      Logger::warn("D3D5Device: Force enabling AA");
       m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
     }
 
     m_deviceCount = ++s_deviceCount;
 
-    Logger::debug(str::format("D3D6Device: Created a new device nr. ((3-", m_deviceCount, "))"));
+    Logger::debug(str::format("D3D5Device: Created a new device nr. ((2-", m_deviceCount, "))"));
   }
 
-  D3D6Device::~D3D6Device() {
+  D3D5Device::~D3D5Device() {
     // If at least the smallest index buffer saw any use, then print the stats
     if (m_ib9_uploads[0] > 0) {
-      Logger::info("D3D6Device: Common index buffer upload statistics:");
+      Logger::info("D3D5Device: Common index buffer upload statistics:");
       Logger::info(str::format("   XS: ", m_ib9_uploads[0]));
       Logger::info(str::format("   S : ", m_ib9_uploads[1]));
       Logger::info(str::format("   M : ", m_ib9_uploads[2]));
@@ -83,16 +82,16 @@ namespace dxvk {
 
     m_parent->Release();
 
-    Logger::debug(str::format("D3D6Device: Device nr. ((3-", m_deviceCount, ")) bites the dust"));
+    Logger::debug(str::format("D3D5Device: Device nr. ((2-", m_deviceCount, ")) bites the dust"));
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<D3D6Interface, IDirect3DDevice3, d3d9::IDirect3DDevice9>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<D3D5Interface, IDirect3DDevice2, d3d9::IDirect3DDevice9>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
-    if (riid == __uuidof(IDirect3DDevice3)) {
+    if (riid == __uuidof(IDirect3DDevice2)) {
       if (unlikely(m_forwardToProxy)) {
-        Logger::debug("D3D6Device::QueryInterface: Forwarding interface query to proxied object");
+        Logger::debug("D3D5Device::QueryInterface: Forwarding interface query to proxied object");
         // Hack: Return the proxied interface, as some applications need
         // to use an unwrapped object in relation with external modules
         void* ppvObject = nullptr;
@@ -103,17 +102,16 @@ namespace dxvk {
       return this;
     }
 
-    throw DxvkError("D3D6Device::QueryInterface: Unknown interface query");
+    throw DxvkError("D3D5Device::QueryInterface: Unknown interface query");
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::QueryInterface(REFIID riid, void** ppvObject) {
+  HRESULT STDMETHODCALLTYPE D3D5Device::QueryInterface(REFIID riid, void** ppvObject) {
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
     InitReturnPtr(ppvObject);
 
-    if (unlikely(riid == __uuidof(IDirect3DDevice)
-              || riid == __uuidof(IDirect3DDevice2))) {
+    if (unlikely(riid == __uuidof(IDirect3DDevice))) {
       Logger::debug("D3D6Device::QueryInterface: Query for legacy IDirect3DDevice");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
@@ -128,8 +126,8 @@ namespace dxvk {
     }
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::GetCaps(D3DDEVICEDESC *hal_desc, D3DDEVICEDESC *hel_desc) {
-    Logger::debug(">>> D3D6Device::GetCaps");
+  HRESULT STDMETHODCALLTYPE D3D5Device::GetCaps(D3DDEVICEDESC *hal_desc, D3DDEVICEDESC *hel_desc) {
+    Logger::debug(">>> D3D5Device::GetCaps");
 
     RefreshLastUsedDevice();
 
@@ -159,7 +157,7 @@ namespace dxvk {
                           & ~D3DDEVCAPS_DRAWPRIMITIVES2
                           & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
     } else {
-      Logger::warn("D3D6Device::GetCaps: Unhandled device type");
+      Logger::warn("D3D5Device::GetCaps: Unhandled device type");
     }
 
     *hal_desc = desc_HAL;
@@ -168,28 +166,34 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // Docs state: "The IDirect3DDevice3::GetStats method is obsolete,
-  // and not implemented in the IDirect3DDevice3 interface."
-  HRESULT STDMETHODCALLTYPE D3D6Device::GetStats(D3DSTATS *stats) {
-    Logger::debug(">>> D3D6Device::GetStats");
+  HRESULT STDMETHODCALLTYPE D3D5Device::SwapTextureHandles(IDirect3DTexture2 *tex1, IDirect3DTexture2 *tex2) {
+    Logger::warn("<<< D3D5Device::SwapTextureHandles: Proxy");
 
     RefreshLastUsedDevice();
 
-    return E_NOTIMPL;
+    return m_proxy->SwapTextureHandles(tex1, tex2);
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::AddViewport(IDirect3DViewport3 *viewport) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::GetStats(D3DSTATS *stats) {
+    Logger::debug("<<< D3D5Device::GetStats: Proxy");
 
-    Logger::debug(">>> D3D6Device::AddViewport");
+    RefreshLastUsedDevice();
+
+    return m_proxy->GetStats(stats);
+  }
+
+  HRESULT STDMETHODCALLTYPE D3D5Device::AddViewport(IDirect3DViewport2 *viewport) {
+    D3D5DeviceLock lock = LockDevice();
+
+    Logger::debug(">>> D3D5Device::AddViewport");
 
     RefreshLastUsedDevice();
 
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
-    HRESULT hr = m_proxy->AddViewport(d3d6Viewport->GetProxied());
+    D3D5Viewport* d3d5Viewport = static_cast<D3D5Viewport*>(viewport);
+    HRESULT hr = m_proxy->AddViewport(d3d5Viewport->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
@@ -198,129 +202,134 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::DeleteViewport(IDirect3DViewport3 *viewport) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::DeleteViewport(IDirect3DViewport2 *viewport) {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D6Device::DeleteViewport");
+    Logger::debug(">>> D3D5Device::DeleteViewport");
 
     RefreshLastUsedDevice();
 
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
-    HRESULT hr = m_proxy->DeleteViewport(d3d6Viewport->GetProxied());
+    D3D5Viewport* d3d5Viewport = static_cast<D3D5Viewport*>(viewport);
+    HRESULT hr = m_proxy->DeleteViewport(d3d5Viewport->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
     DeleteViewportInternal(viewport);
 
     // Clear the current viewport if it is deleted from the device
-    if (m_currentViewport.ptr() == d3d6Viewport)
+    if (m_currentViewport.ptr() == d3d5Viewport)
       m_currentViewport = nullptr;
 
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::NextViewport(IDirect3DViewport3 *ref, IDirect3DViewport3 **viewport, DWORD flags) {
-    Logger::warn("!!! D3D6Device::NextViewport: Stub");
+  HRESULT STDMETHODCALLTYPE D3D5Device::NextViewport(IDirect3DViewport2 *ref, IDirect3DViewport2 **viewport, DWORD flags) {
+    Logger::warn("!!! D3D5Device::NextViewport: Stub");
 
     RefreshLastUsedDevice();
 
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx) {
-    Logger::debug(">>> D3D6Device::EnumTextureFormats");
+  HRESULT STDMETHODCALLTYPE D3D5Device::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK cb, void *ctx) {
+    Logger::debug(">>> D3D5Device::EnumTextureFormats");
 
     RefreshLastUsedDevice();
 
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // Note: The list of formats exposed in D3D6 is restricted to the below
+    // This is a DDSURFACEDESC in D3D5, because why not...
+    DDSURFACEDESC textureFormat;
+    textureFormat.dwSize  = sizeof(DDSURFACEDESC);
+    textureFormat.dwFlags = DDSD_PIXELFORMAT;
 
-    DDPIXELFORMAT textureFormat = GetTextureFormat(d3d9::D3DFMT_X1R5G5B5);
+    // Note: The list of formats exposed in D3D5 is restricted to the below
+
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_X1R5G5B5);
     HRESULT hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_A1R5G5B5);
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_A1R5G5B5);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    // D3DFMT_X4R4G4B4 is not supported by D3D6
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_A4R4G4B4);
+    // D3DFMT_X4R4G4B4 is not supported by D3D5
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_A4R4G4B4);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_R5G6B5);
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_R5G6B5);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_X8R8G8B8);
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_X8R8G8B8);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_A8R8G8B8);
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_A8R8G8B8);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
     // Not supported in D3D9, but some games need
     // it to be advertised (for offscreen plain surfaces?)
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
     // Not supported in D3D9, but some games may use it
     // Note: Advertizing P8 support breaks Sacrifice
-    /*textureFormat = GetTextureFormat(d3d9::D3DFMT_P8);
+    /*textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_P8);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;*/
 
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_V8U8);
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_V8U8);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_L6V5U5);
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_L6V5U5);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_X8L8V8U8);
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_X8L8V8U8);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT1);
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_DXT1);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT2);
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_DXT2);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT3);
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_DXT3);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT4);
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_DXT4);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
 
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT5);
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_DXT5);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;
@@ -328,10 +337,10 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::BeginScene() {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::BeginScene() {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D6Device::BeginScene");
+    Logger::debug(">>> D3D5Device::BeginScene");
 
     RefreshLastUsedDevice();
 
@@ -346,10 +355,10 @@ namespace dxvk {
     return hr;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::EndScene() {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::EndScene() {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D6Device::EndScene");
+    Logger::debug(">>> D3D5Device::EndScene");
 
     RefreshLastUsedDevice();
 
@@ -365,7 +374,7 @@ namespace dxvk {
         if (m_hasDrawn) {
           if (unlikely(!m_rt->IsInitialized()))
             m_rt->InitializeD3D9RenderTarget();
-          BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(m_rt->GetProxied(), m_rt->GetD3D9());
+          BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_rt->GetProxied(), m_rt->GetD3D9());
         }
         m_rt->GetProxied()->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
 
@@ -379,8 +388,8 @@ namespace dxvk {
     return hr;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::GetDirect3D(IDirect3D3 **d3d) {
-    Logger::debug(">>> D3D6Device::GetDirect3D");
+  HRESULT STDMETHODCALLTYPE D3D5Device::GetDirect3D(IDirect3D2 **d3d) {
+    Logger::debug(">>> D3D5Device::GetDirect3D");
 
     RefreshLastUsedDevice();
 
@@ -392,25 +401,25 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::SetCurrentViewport(IDirect3DViewport3 *viewport) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::SetCurrentViewport(IDirect3DViewport2 *viewport) {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D6Device::SetCurrentViewport");
+    Logger::debug(">>> D3D5Device::SetCurrentViewport");
 
     RefreshLastUsedDevice();
 
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
-    HRESULT hr = m_proxy->SetCurrentViewport(d3d6Viewport->GetProxied());
+    Com<D3D5Viewport> d3d5Viewport = static_cast<D3D5Viewport*>(viewport);
+    HRESULT hr = m_proxy->SetCurrentViewport(d3d5Viewport->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
     if (likely(m_currentViewport != nullptr))
       m_currentViewport->SetIsCurrentViewport(false);
 
-    m_currentViewport = d3d6Viewport.ptr();
+    m_currentViewport = d3d5Viewport.ptr();
 
     m_currentViewport->SetIsCurrentViewport(true);
     m_currentViewport->ApplyViewport();
@@ -419,10 +428,10 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::GetCurrentViewport(IDirect3DViewport3 **viewport) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::GetCurrentViewport(IDirect3DViewport2 **viewport) {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D6Device::GetCurrentViewport");
+    Logger::debug(">>> D3D5Device::GetCurrentViewport");
 
     RefreshLastUsedDevice();
 
@@ -439,96 +448,96 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::SetRenderTarget(IDirectDrawSurface4 *surface, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::SetRenderTarget(IDirectDrawSurface *surface, DWORD flags) {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D6Device::SetRenderTarget");
+    Logger::debug(">>> D3D5Device::SetRenderTarget");
 
     RefreshLastUsedDevice();
 
     if (unlikely(surface == nullptr)) {
-      Logger::err("D3D6Device::SetRenderTarget: NULL render target");
+      Logger::err("D3D5Device::SetRenderTarget: NULL render target");
       return DDERR_INVALIDPARAMS;
     }
 
-    if (unlikely(!m_DD4IntfParent->IsWrappedSurface(surface))) {
-      Logger::err("D3D6Device::SetRenderTarget: Received an unwrapped RT");
+    if (unlikely(!m_DD2IntfParent->GetParent()->IsWrappedSurface(surface))) {
+      Logger::err("D3D5Device::SetRenderTarget: Received an unwrapped RT");
       return DDERR_GENERIC;
     }
 
-    DDraw4Surface* rt6 = static_cast<DDraw4Surface*>(surface);
+    DDrawSurface* rt5 = static_cast<DDrawSurface*>(surface);
 
     // We could technically allow unwrapped RTs when forcing proxied present,
     // however that doesn't get us anything, so simply don't bother with it
     if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
-      HRESULT hrRT = m_proxy->SetRenderTarget(rt6->GetProxied(), flags);
+      HRESULT hrRT = m_proxy->SetRenderTarget(rt5->GetProxied(), flags);
       if (unlikely(FAILED(hrRT))) {
-        Logger::warn("D3D6Device::SetRenderTarget: Failed to set RT");
+        Logger::warn("D3D5Device::SetRenderTarget: Failed to set RT");
         return hrRT;
       }
     }
 
     // A render target surface needs to have the DDSCAPS_3DDEVICE cap
-    if (unlikely(!rt6->Is3DSurface())) {
-      Logger::err("D3D6Device::SetRenderTarget: Surface is missing DDSCAPS_3DDEVICE");
+    if (unlikely(!rt5->Is3DSurface())) {
+      Logger::err("D3D5Device::SetRenderTarget: Surface is missing DDSCAPS_3DDEVICE");
       return DDERR_INVALIDCAPS;
     }
 
-    HRESULT hr = rt6->InitializeD3D9RenderTarget();
+    HRESULT hr = rt5->InitializeD3D9RenderTarget();
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6Device::SetRenderTarget: Failed to initialize D3D9 RT");
+      Logger::err("D3D5Device::SetRenderTarget: Failed to initialize D3D9 RT");
       return hr;
     }
 
-    hr = m_d3d9->SetRenderTarget(0, rt6->GetD3D9());
+    hr = m_d3d9->SetRenderTarget(0, rt5->GetD3D9());
 
     if (likely(SUCCEEDED(hr))) {
-      Logger::debug("D3D6Device::SetRenderTarget: Set a new D3D9 RT");
+      Logger::debug("D3D5Device::SetRenderTarget: Set a new D3D9 RT");
 
-      m_rt = rt6;
+      m_rt = rt5;
       m_ds = m_rt->GetAttachedDepthStencil();
 
       HRESULT hrDS;
 
       if (m_ds != nullptr) {
-        Logger::debug("D3D6Device::SetRenderTarget: Found an attached DS");
+        Logger::debug("D3D5Device::SetRenderTarget: Found an attached DS");
 
         hrDS = m_ds->InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrDS))) {
-          Logger::err("D3D6Device::SetRenderTarget: Failed to initialize/upload D3D9 DS");
+          Logger::err("D3D5Device::SetRenderTarget: Failed to initialize/upload D3D9 DS");
           return hrDS;
         }
 
         hrDS = m_d3d9->SetDepthStencilSurface(m_ds->GetD3D9());
         if (unlikely(FAILED(hrDS))) {
-          Logger::err("D3D6Device::SetRenderTarget: Failed to set D3D9 DS");
+          Logger::err("D3D5Device::SetRenderTarget: Failed to set D3D9 DS");
           return hrDS;
         }
 
-        Logger::debug("D3D6Device::SetRenderTarget: Set a new D3D9 DS");
+        Logger::debug("D3D5Device::SetRenderTarget: Set a new D3D9 DS");
       } else {
-        Logger::debug("D3D6Device::SetRenderTarget: RT has no depth stencil attached");
+        Logger::debug("D3D5Device::SetRenderTarget: RT has no depth stencil attached");
 
         hrDS = m_d3d9->SetDepthStencilSurface(nullptr);
         if (unlikely(FAILED(hrDS))) {
-          Logger::err("D3D6Device::SetRenderTarget: Failed to clear the D3D9 DS");
+          Logger::err("D3D5Device::SetRenderTarget: Failed to clear the D3D9 DS");
           return hrDS;
         }
 
-        Logger::debug("D3D6Device::SetRenderTarget: Cleared the D3D9 DS");
+        Logger::debug("D3D5Device::SetRenderTarget: Cleared the D3D9 DS");
       }
     } else {
-      Logger::err("D3D6Device::SetRenderTarget: Failed to set D3D9 RT");
+      Logger::err("D3D5Device::SetRenderTarget: Failed to set D3D9 RT");
       return hr;
     }
 
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::GetRenderTarget(IDirectDrawSurface4 **surface) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::GetRenderTarget(IDirectDrawSurface **surface) {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D6Device::GetRenderTarget");
+    Logger::debug(">>> D3D5Device::GetRenderTarget");
 
     RefreshLastUsedDevice();
 
@@ -540,57 +549,57 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::Begin(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, DWORD dwFlags) {
-    Logger::warn("!!! D3D6Device::Begin: Stub");
+  HRESULT STDMETHODCALLTYPE D3D5Device::Begin(D3DPRIMITIVETYPE d3dptPrimitiveType, D3DVERTEXTYPE dwVertexTypeDesc, DWORD dwFlags) {
+    Logger::warn("!!! D3D5Device::Begin: Stub");
 
     RefreshLastUsedDevice();
 
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::BeginIndexed(D3DPRIMITIVETYPE primitive_type, DWORD fvf, void *vertices, DWORD vertex_count, DWORD flags) {
-    Logger::warn("!!! D3D6Device::BeginIndexed: Stub");
+  HRESULT STDMETHODCALLTYPE D3D5Device::BeginIndexed(D3DPRIMITIVETYPE primitive_type, D3DVERTEXTYPE fvf, void *vertices, DWORD vertex_count, DWORD flags) {
+    Logger::warn("!!! D3D5Device::BeginIndexed: Stub");
 
     RefreshLastUsedDevice();
 
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::Vertex(void *vertex) {
-    Logger::warn("!!! D3D6Device::Vertex: Stub");
+  HRESULT STDMETHODCALLTYPE D3D5Device::Vertex(void *vertex) {
+    Logger::warn("!!! D3D5Device::Vertex: Stub");
 
     RefreshLastUsedDevice();
 
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::Index(WORD wVertexIndex) {
-    Logger::warn("!!! D3D6Device::Index: Stub");
+  HRESULT STDMETHODCALLTYPE D3D5Device::Index(WORD wVertexIndex) {
+    Logger::warn("!!! D3D5Device::Index: Stub");
 
     RefreshLastUsedDevice();
 
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::End(DWORD dwFlags) {
-    Logger::warn("!!! D3D6Device::End: Stub");
+  HRESULT STDMETHODCALLTYPE D3D5Device::End(DWORD dwFlags) {
+    Logger::warn("!!! D3D5Device::End: Stub");
 
     RefreshLastUsedDevice();
 
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType, LPDWORD lpdwRenderState) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType, LPDWORD lpdwRenderState) {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(str::format(">>> D3D6Device::GetRenderState: ", dwRenderStateType));
+    Logger::debug(str::format(">>> D3D5Device::GetRenderState: ", dwRenderStateType));
 
     RefreshLastUsedDevice();
 
     if (unlikely(lpdwRenderState == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // As opposed to D3D7, D3D6 does not error out on
+    // As opposed to D3D7, D3D5 does not error out on
     // unknown or invalid render states.
     if (unlikely(!IsValidD3D6RenderStateType(dwRenderStateType))) {
       *lpdwRenderState = 0;
@@ -604,7 +613,7 @@ namespace dxvk {
       default:
         break;
 
-      // "Texture handle for use when rendering with the IDirect3DDevice2 or earlier interfaces."
+      // Replacement for later implemented SetTexture calls
       case D3DRENDERSTATE_TEXTUREHANDLE:
         *lpdwRenderState = 0;
         return D3D_OK;
@@ -764,14 +773,14 @@ namespace dxvk {
     return m_d3d9->GetRenderState(State9, lpdwRenderState);
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(str::format(">>> D3D6Device::SetRenderState: ", dwRenderStateType));
+    Logger::debug(str::format(">>> D3D5Device::SetRenderState: ", dwRenderStateType));
 
     RefreshLastUsedDevice();
 
-    // As opposed to D3D7, D3D6 does not error out on
+    // As opposed to D3D7, D3D5 does not error out on
     // unknown or invalid render states.
     if (unlikely(!IsValidD3D6RenderStateType(dwRenderStateType)))
       return D3D_OK;
@@ -783,7 +792,7 @@ namespace dxvk {
       default:
         break;
 
-      // "Texture handle for use when rendering with the IDirect3DDevice2 or earlier interfaces."
+      // Replacement for later implemented GetTexture calls
       case D3DRENDERSTATE_TEXTUREHANDLE:
         return D3D_OK;
 
@@ -1096,10 +1105,10 @@ namespace dxvk {
     return m_d3d9->SetRenderState(State9, dwRenderState);
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LPDWORD lpdwLightState) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LPDWORD lpdwLightState) {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D6Device::GetLightState");
+    Logger::debug(">>> D3D5Device::GetLightState");
 
     RefreshLastUsedDevice();
 
@@ -1111,7 +1120,7 @@ namespace dxvk {
         m_d3d9->GetRenderState(d3d9::D3DRS_AMBIENT, lpdwLightState);
         break;
       case D3DLIGHTSTATE_COLORMODEL:
-        Logger::warn("D3D6Device::GetLightState: Unsupported D3DLIGHTSTATE_COLORMODEL");
+        Logger::warn("D3D5Device::GetLightState: Unsupported D3DLIGHTSTATE_COLORMODEL");
         *lpdwLightState = D3DCOLOR_RGB;
         break;
       case D3DLIGHTSTATE_FOGMODE:
@@ -1136,10 +1145,10 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DWORD dwLightState) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DWORD dwLightState) {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D6Device::SetLightState");
+    Logger::debug(">>> D3D5Device::SetLightState");
 
     RefreshLastUsedDevice();
 
@@ -1148,13 +1157,13 @@ namespace dxvk {
         if (unlikely(!dwLightState))
           return D3D_OK;
 
-        D3D6Material* material6 = m_parent->GetMaterialFromHandle(dwLightState);
-        if (unlikely(material6 == nullptr))
+        D3D5Material* material5 = m_parent->GetMaterialFromHandle(dwLightState);
+        if (unlikely(material5 == nullptr))
           return DDERR_INVALIDPARAMS;
 
         m_materialHandle = dwLightState;
-        Logger::debug(str::format("D3D6Device::SetLightState: Applying material nr. ", dwLightState, " to D3D9"));
-        m_d3d9->SetMaterial(material6->GetD3D9Material());
+        Logger::debug(str::format("D3D5Device::SetLightState: Applying material nr. ", dwLightState, " to D3D9"));
+        m_d3d9->SetMaterial(material5->GetD3D9Material());
 
         break;
       }
@@ -1187,34 +1196,34 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::SetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
-    Logger::debug(">>> D3D6Device::SetTransform");
+  HRESULT STDMETHODCALLTYPE D3D5Device::SetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
+    Logger::debug(">>> D3D5Device::SetTransform");
 
     RefreshLastUsedDevice();
 
     return m_d3d9->SetTransform(ConvertTransformState(state), matrix);
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::GetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
-    Logger::debug(">>> D3D6Device::GetTransform");
+  HRESULT STDMETHODCALLTYPE D3D5Device::GetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
+    Logger::debug(">>> D3D5Device::GetTransform");
 
     RefreshLastUsedDevice();
 
     return m_d3d9->GetTransform(ConvertTransformState(state), matrix);
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::MultiplyTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
-    Logger::debug(">>> D3D6Device::MultiplyTransform");
+  HRESULT STDMETHODCALLTYPE D3D5Device::MultiplyTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
+    Logger::debug(">>> D3D5Device::MultiplyTransform");
 
     RefreshLastUsedDevice();
 
     return m_d3d9->MultiplyTransform(ConvertTransformState(state), matrix);
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::DrawPrimitive(D3DPRIMITIVETYPE primitive_type, DWORD vertex_type, void *vertices, DWORD vertex_count, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::DrawPrimitive(D3DPRIMITIVETYPE primitive_type, D3DVERTEXTYPE vertex_type, void *vertices, DWORD vertex_count, DWORD flags) {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D6Device::DrawPrimitive");
+    Logger::debug(">>> D3D5Device::DrawPrimitive");
 
     RefreshLastUsedDevice();
 
@@ -1224,19 +1233,21 @@ namespace dxvk {
     if (unlikely(vertices == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    HandlePreDrawFlags(flags, vertex_type);
+    DWORD vertex_type5 = ConvertVertexType(vertex_type);
 
-    m_d3d9->SetFVF(vertex_type);
+    HandlePreDrawFlags(flags, vertex_type5);
+
+    m_d3d9->SetFVF(vertex_type5);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
                      d3d9::D3DPRIMITIVETYPE(primitive_type),
                      GetPrimitiveCount(primitive_type, vertex_count),
                      vertices,
-                     GetFVFSize(vertex_type));
+                     GetFVFSize(vertex_type5));
 
-    HandlePostDrawFlags(flags, vertex_type);
+    HandlePostDrawFlags(flags, vertex_type5);
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6Device::DrawPrimitive: Failed D3D9 call to DrawPrimitiveUP");
+      Logger::err("D3D5Device::DrawPrimitive: Failed D3D9 call to DrawPrimitiveUP");
       return hr;
     }
 
@@ -1246,10 +1257,10 @@ namespace dxvk {
     return hr;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE primitive_type, DWORD fvf, void *vertices, DWORD vertex_count, WORD *indices, DWORD index_count, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE primitive_type, D3DVERTEXTYPE fvf, void *vertices, DWORD vertex_count, WORD *indices, DWORD index_count, DWORD flags) {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D6Device::DrawIndexedPrimitive");
+    Logger::debug(">>> D3D5Device::DrawIndexedPrimitive");
 
     RefreshLastUsedDevice();
 
@@ -1260,11 +1271,13 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     if (unlikely(primitive_type == D3DPT_POINTLIST))
-      Logger::warn("D3D6Device::DrawIndexedPrimitive: D3DPT_POINTLIST primitive type");
+      Logger::warn("D3D5Device::DrawIndexedPrimitive: D3DPT_POINTLIST primitive type");
 
-    HandlePreDrawFlags(flags, fvf);
+    DWORD fvf5 = ConvertVertexType(fvf);
 
-    m_d3d9->SetFVF(fvf);
+    HandlePreDrawFlags(flags, fvf5);
+
+    m_d3d9->SetFVF(fvf5);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
                       d3d9::D3DPRIMITIVETYPE(primitive_type),
                       0,
@@ -1273,12 +1286,12 @@ namespace dxvk {
                       indices,
                       d3d9::D3DFMT_INDEX16,
                       vertices,
-                      GetFVFSize(fvf));
+                      GetFVFSize(fvf5));
 
-    HandlePostDrawFlags(flags, fvf);
+    HandlePostDrawFlags(flags, fvf5);
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
+      Logger::err("D3D5Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
       return hr;
     }
 
@@ -1288,10 +1301,10 @@ namespace dxvk {
     return hr;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::SetClipStatus(D3DCLIPSTATUS *clip_status) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::SetClipStatus(D3DCLIPSTATUS *clip_status) {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D6Device::SetClipStatus");
+    Logger::debug(">>> D3D5Device::SetClipStatus");
 
     RefreshLastUsedDevice();
 
@@ -1306,10 +1319,10 @@ namespace dxvk {
     return m_d3d9->SetClipStatus(&clipStatus9);
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::GetClipStatus(D3DCLIPSTATUS *clip_status) {
-    D3D6DeviceLock lock = LockDevice();
+  HRESULT STDMETHODCALLTYPE D3D5Device::GetClipStatus(D3DCLIPSTATUS *clip_status) {
+    D3D5DeviceLock lock = LockDevice();
 
-    Logger::debug(">>> D3D6Device::GetClipStatus");
+    Logger::debug(">>> D3D5Device::GetClipStatus");
 
     RefreshLastUsedDevice();
 
@@ -1331,207 +1344,8 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::DrawPrimitiveStrided(D3DPRIMITIVETYPE primitive_type, DWORD fvf, D3DDRAWPRIMITIVESTRIDEDDATA *strided_data, DWORD vertex_count, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
-
-    Logger::debug(">>> D3D6Device::DrawPrimitiveStrided");
-
-    RefreshLastUsedDevice();
-
-    if (unlikely(!vertex_count))
-      return D3D_OK;
-
-    if (unlikely(strided_data == nullptr))
-      return DDERR_INVALIDPARAMS;
-
-    // Transform strided vertex data to a standard vertex buffer stream
-    PackedVertexBuffer pvb = TransformStridedtoUP(fvf, strided_data, vertex_count);
-
-    HandlePreDrawFlags(flags, fvf);
-
-    m_d3d9->SetFVF(fvf);
-    HRESULT hr = m_d3d9->DrawPrimitiveUP(
-                     d3d9::D3DPRIMITIVETYPE(primitive_type),
-                     GetPrimitiveCount(primitive_type, vertex_count),
-                     pvb.vertexData.data(),
-                     pvb.stride);
-
-    HandlePostDrawFlags(flags, fvf);
-
-    if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6Device::DrawPrimitiveStrided: Failed D3D9 call to DrawPrimitiveUP");
-      return hr;
-    }
-
-    if (unlikely(!m_hasDrawn))
-      m_hasDrawn = true;
-
-    return hr;
-  }
-
-  HRESULT STDMETHODCALLTYPE D3D6Device::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE primitive_type, DWORD fvf, D3DDRAWPRIMITIVESTRIDEDDATA *strided_data, DWORD vertex_count, WORD *indices, DWORD index_count, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
-
-    Logger::debug(">>> D3D6Device::DrawIndexedPrimitiveStrided");
-
-    RefreshLastUsedDevice();
-
-    if (unlikely(!vertex_count || !index_count))
-      return D3D_OK;
-
-    if (unlikely(strided_data == nullptr || indices == nullptr))
-      return DDERR_INVALIDPARAMS;
-
-    // Transform strided vertex data to a standard vertex buffer stream
-    PackedVertexBuffer pvb = TransformStridedtoUP(fvf, strided_data, vertex_count);
-
-    HandlePreDrawFlags(flags, fvf);
-
-    m_d3d9->SetFVF(fvf);
-    HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
-                      d3d9::D3DPRIMITIVETYPE(primitive_type),
-                      0,
-                      vertex_count,
-                      GetPrimitiveCount(primitive_type, index_count),
-                      indices,
-                      d3d9::D3DFMT_INDEX16,
-                      pvb.vertexData.data(),
-                      pvb.stride);
-
-    HandlePostDrawFlags(flags, fvf);
-
-    if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6Device::DrawIndexedPrimitiveStrided: Failed D3D9 call to DrawIndexedPrimitiveUP");
-      return hr;
-    }
-
-    if (unlikely(!m_hasDrawn))
-      m_hasDrawn = true;
-
-    return hr;
-  }
-
-  HRESULT STDMETHODCALLTYPE D3D6Device::DrawPrimitiveVB(D3DPRIMITIVETYPE primitive_type, IDirect3DVertexBuffer *vb, DWORD start_vertex, DWORD vertex_count, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
-
-    Logger::debug(">>> D3D6Device::DrawPrimitiveVB");
-
-    RefreshLastUsedDevice();
-
-    if (unlikely(!vertex_count))
-      return D3D_OK;
-
-    if (unlikely(vb == nullptr))
-      return DDERR_INVALIDPARAMS;
-
-    Com<D3D6VertexBuffer> vb6 = static_cast<D3D6VertexBuffer*>(vb);
-
-    if (unlikely(vb6->IsLocked())) {
-      Logger::err("D3D6Device::DrawPrimitiveVB: Buffer is locked");
-      return D3DERR_VERTEXBUFFERLOCKED;
-    }
-
-    HandlePreDrawFlags(flags, vb6->GetFVF());
-
-    m_d3d9->SetFVF(vb6->GetFVF());
-    m_d3d9->SetStreamSource(0, vb6->GetD3D9(), 0, vb6->GetStride());
-    HRESULT hr = m_d3d9->DrawPrimitive(
-                           d3d9::D3DPRIMITIVETYPE(primitive_type),
-                           start_vertex,
-                           GetPrimitiveCount(primitive_type, vertex_count));
-
-    HandlePostDrawFlags(flags, vb6->GetFVF());
-
-    if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6Device::DrawPrimitiveVB: Failed D3D9 call to DrawPrimitive");
-      return hr;
-    }
-
-    if (unlikely(!m_hasDrawn))
-      m_hasDrawn = true;
-
-    return hr;
-  }
-
-  HRESULT STDMETHODCALLTYPE D3D6Device::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE primitive_type, IDirect3DVertexBuffer *vb, WORD *indices, DWORD index_count, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
-
-    Logger::debug(">>> D3D6Device::DrawIndexedPrimitiveVB");
-
-    RefreshLastUsedDevice();
-
-    if (unlikely(!index_count))
-      return D3D_OK;
-
-    if (unlikely(vb == nullptr || indices == nullptr))
-      return DDERR_INVALIDPARAMS;
-
-    if (unlikely(primitive_type == D3DPT_POINTLIST))
-      Logger::warn("D3D6Device::DrawIndexedPrimitiveVB: D3DPT_POINTLIST primitive type");
-
-    Com<D3D6VertexBuffer> vb6 = static_cast<D3D6VertexBuffer*>(vb);
-
-    if (unlikely(vb6->IsLocked())) {
-      Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Buffer is locked");
-      return D3DERR_VERTEXBUFFERLOCKED;
-    }
-
-    // Initialize here, since not all application use indexed draws
-    if (unlikely(!AreIndexBuffersInitialized()))
-      InitializeIndexBuffers();
-
-    uint32_t ibIndex = 0;
-    // Try to fit index buffer uploads into the smallest buffer size possible,
-    // out of the five available: XS, S, M, L and XL (XL being the theoretical max)
-    while (index_count > IndexCount[ibIndex]) {
-      if (unlikely(ibIndex > ddrawCaps::IndexBufferCount - 1)) {
-        Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Exceeded size of largest index buffer");
-        return DDERR_GENERIC;
-      }
-      ibIndex++;
-    }
-
-    HandlePreDrawFlags(flags, vb6->GetFVF());
-
-    d3d9::IDirect3DIndexBuffer9* ib9 = m_ib9[ibIndex].ptr();
-
-    UploadIndices(ib9, indices, index_count);
-    m_ib9_uploads[ibIndex]++;
-    m_d3d9->SetIndices(ib9);
-    m_d3d9->SetFVF(vb6->GetFVF());
-    m_d3d9->SetStreamSource(0, vb6->GetD3D9(), 0, vb6->GetStride());
-    HRESULT hr = m_d3d9->DrawIndexedPrimitive(
-                    d3d9::D3DPRIMITIVETYPE(primitive_type),
-                    0,
-                    0,
-                    vb6->GetNumVertices(),
-                    0,
-                    GetPrimitiveCount(primitive_type, index_count));
-
-    HandlePostDrawFlags(flags, vb6->GetFVF());
-
-    if(unlikely(FAILED(hr))) {
-      Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Failed D3D9 call to DrawIndexedPrimitive");
-      return hr;
-    }
-
-    if (unlikely(!m_hasDrawn))
-      m_hasDrawn = true;
-
-    return hr;
-  }
-
-  // No actual use of it seen in the wild yet
-  HRESULT STDMETHODCALLTYPE D3D6Device::ComputeSphereVisibility(D3DVECTOR *centers, D3DVALUE *radii, DWORD sphere_count, DWORD flags, DWORD *ret) {
-    Logger::warn("!!! D3D6Device::ComputeSphereVisibility: Stub");
-
-    RefreshLastUsedDevice();
-
-    return D3D_OK;
-  }
-
-  HRESULT STDMETHODCALLTYPE D3D6Device::GetTexture(DWORD stage, IDirect3DTexture2 **texture) {
-    D3D6DeviceLock lock = LockDevice();
+  /*HRESULT STDMETHODCALLTYPE D3D6Device::GetTexture(DWORD stage, IDirect3DTexture2 **texture) {
+    D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::GetTexture");
 
@@ -1551,7 +1365,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::SetTexture(DWORD stage, IDirect3DTexture2 *texture) {
-    D3D6DeviceLock lock = LockDevice();
+    D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::SetTexture");
 
@@ -1623,96 +1437,50 @@ namespace dxvk {
     m_textures[stage] = texture6;
 
     return D3D_OK;
-  }
+  }*/
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGESTATETYPE d3dTexStageStateType, LPDWORD lpdwState) {
-    Logger::debug(">>> D3D6Device::GetTextureStageState");
-
-    RefreshLastUsedDevice();
-
-    if (unlikely(lpdwState == nullptr))
-      return DDERR_INVALIDPARAMS;
-
-    // In the case of D3DTSS_ADDRESS, which is D3D7 specific,
-    // simply return based on D3DTSS_ADDRESSU
-    if (d3dTexStageStateType == D3DTSS_ADDRESS) {
-      return m_d3d9->GetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSU, lpdwState);
-    }
-
-    d3d9::D3DSAMPLERSTATETYPE stateType = ConvertSamplerStateType(d3dTexStageStateType);
-
-    if (stateType != -1u) {
-      // If the type has been remapped to a sampler state type
-      return m_d3d9->GetSamplerState(dwStage, stateType, lpdwState);
-    } else {
-      return m_d3d9->GetTextureStageState(dwStage, d3d9::D3DTEXTURESTAGESTATETYPE(d3dTexStageStateType), lpdwState);
-    }
-  }
-
-  HRESULT STDMETHODCALLTYPE D3D6Device::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGESTATETYPE d3dTexStageStateType, DWORD dwState) {
-    Logger::debug(">>> D3D6Device::SetTextureStageState");
-
-    RefreshLastUsedDevice();
-
-    // In the case of D3DTSS_ADDRESS, which is D3D7 specific,
-    // we need to set up both D3DTSS_ADDRESSU and D3DTSS_ADDRESSV
-    if (d3dTexStageStateType == D3DTSS_ADDRESS) {
-      m_d3d9->SetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSU, dwState);
-      return m_d3d9->SetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSV, dwState);
-    }
-
-    d3d9::D3DSAMPLERSTATETYPE stateType = ConvertSamplerStateType(d3dTexStageStateType);
-
-    if (stateType != -1u) {
-      // If the type has been remapped to a sampler state type
-      return m_d3d9->SetSamplerState(dwStage, stateType, dwState);
-    } else {
-      return m_d3d9->SetTextureStageState(dwStage, d3d9::D3DTEXTURESTAGESTATETYPE(d3dTexStageStateType), dwState);
-    }
-  }
-
-  HRESULT STDMETHODCALLTYPE D3D6Device::ValidateDevice(LPDWORD lpdwPasses) {
-    Logger::debug(">>> D3D6Device::ValidateDevice");
+  HRESULT STDMETHODCALLTYPE D3D5Device::ValidateDevice(LPDWORD lpdwPasses) {
+    Logger::debug(">>> D3D5Device::ValidateDevice");
 
     RefreshLastUsedDevice();
 
     return m_d3d9->ValidateDevice(lpdwPasses);
   }
 
-  void D3D6Device::InitializeDS() {
+  void D3D5Device::InitializeDS() {
     m_ds = m_rt->GetAttachedDepthStencil();
 
     if (m_ds != nullptr) {
-      Logger::debug("D3D6Device::InitializeDS: Found an attached DS");
+      Logger::debug("D3D5Device::InitializeDS: Found an attached DS");
 
       HRESULT hrDS = m_ds->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hrDS))) {
-        Logger::err("D3D6Device::InitializeDS: Failed to initialize D3D9 DS");
+        Logger::err("D3D5Device::InitializeDS: Failed to initialize D3D9 DS");
       } else {
-        Logger::info("D3D6Device::InitializeDS: Got depth stencil from RT");
+        Logger::info("D3D5Device::InitializeDS: Got depth stencil from RT");
 
-        DDSURFACEDESC2 descDS;
-        descDS.dwSize = sizeof(DDSURFACEDESC2);
+        DDSURFACEDESC descDS;
+        descDS.dwSize = sizeof(DDSURFACEDESC);
         m_ds->GetProxied()->GetSurfaceDesc(&descDS);
-        Logger::debug(str::format("D3D6Device::InitializeDS: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
+        Logger::debug(str::format("D3D5Device::InitializeDS: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
 
         HRESULT hrDS9 = m_d3d9->SetDepthStencilSurface(m_ds->GetD3D9());
         if(unlikely(FAILED(hrDS9))) {
-          Logger::err("D3D6Device::InitializeDS: Failed to set D3D9 depth stencil");
+          Logger::err("D3D5Device::InitializeDS: Failed to set D3D9 depth stencil");
         } else {
           // This needs to act like an auto depth stencil of sorts, so manually enable z-buffering
           m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_TRUE);
         }
       }
     } else {
-      Logger::info("D3D6Device::InitializeDS: RT has no depth stencil attached");
+      Logger::info("D3D5Device::InitializeDS: RT has no depth stencil attached");
       m_d3d9->SetDepthStencilSurface(nullptr);
       // Should be superfluous, but play it safe
       m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_FALSE);
     }
   }
 
-  d3d9::IDirect3DSurface9* D3D6Device::GetD3D9BackBuffer(IDirectDrawSurface4* surface) const {
+  d3d9::IDirect3DSurface9* D3D5Device::GetD3D9BackBuffer(IDirectDrawSurface* surface) const {
     if (unlikely(surface == nullptr))
       return nullptr;
 
@@ -1724,11 +1492,11 @@ namespace dxvk {
     return m_fallBackBuffer.ptr();
   }
 
-  HRESULT D3D6Device::Reset(d3d9::D3DPRESENT_PARAMETERS* params) {
-    Logger::info("D3D6Device::Reset: Resetting the D3D9 swapchain");
+  HRESULT D3D5Device::Reset(d3d9::D3DPRESENT_PARAMETERS* params) {
+    Logger::info("D3D5Device::Reset: Resetting the D3D9 swapchain");
     HRESULT hr = m_bridge->ResetSwapChain(params);
     if (unlikely(FAILED(hr)))
-      Logger::err("D3D6Device::Reset: Failed to reset the D3D9 swapchain");
+      Logger::err("D3D5Device::Reset: Failed to reset the D3D9 swapchain");
     // Reset the current render target, so that it gets
     // re-associated with the regenerated back buffers
     m_rt->SetD3D9(nullptr);
@@ -1736,18 +1504,18 @@ namespace dxvk {
     return hr;
   }
 
-  inline HRESULT D3D6Device::InitializeIndexBuffers() {
+  inline HRESULT D3D5Device::InitializeIndexBuffers() {
     static constexpr DWORD Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 
     for (uint32_t ibIndex = 0; ibIndex < ddrawCaps::IndexBufferCount ; ibIndex++) {
       const UINT ibSize = IndexCount[ibIndex] * sizeof(WORD);
 
-      Logger::debug(str::format("D3D6Device::InitializeIndexBuffer: Creating index buffer, size: ", ibSize));
+      Logger::debug(str::format("D3D5Device::InitializeIndexBuffer: Creating index buffer, size: ", ibSize));
 
       HRESULT hr = m_d3d9->CreateIndexBuffer(ibSize, Usage, d3d9::D3DFMT_INDEX16,
                                              d3d9::D3DPOOL_DEFAULT, &m_ib9[ibIndex], nullptr);
       if (FAILED(hr)) {
-        Logger::err("D3D6Device::InitializeIndexBuffer: Failed to initialize D3D9 index buffer");
+        Logger::err("D3D5Device::InitializeIndexBuffer: Failed to initialize D3D9 index buffer");
         return hr;
       }
     }
@@ -1755,14 +1523,14 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  inline HRESULT D3D6Device::EnumerateBackBuffers(IDirectDrawSurface4* origin) {
+  inline HRESULT D3D5Device::EnumerateBackBuffers(IDirectDrawSurface* origin) {
     m_fallBackBuffer = nullptr;
     m_backBuffers.clear();
 
     Logger::debug("EnumerateBackBuffers: Enumerating back buffers");
 
     uint32_t backBufferCount = 0;
-    IDirectDrawSurface4* parentSurface = origin;
+    IDirectDrawSurface* parentSurface = origin;
 
     // Always retrieve a fallback back buffer for use with
     // plain offscreen surfaces and overlays (even when no front buffer exists)
@@ -1773,8 +1541,8 @@ namespace dxvk {
     while (parentSurface != nullptr) {
       Com<d3d9::IDirect3DSurface9> surf9;
 
-      DDSURFACEDESC2 desc;
-      desc.dwSize = sizeof(DDSURFACEDESC2);
+      DDSURFACEDESC desc;
+      desc.dwSize = sizeof(DDSURFACEDESC);
       parentSurface->GetSurfaceDesc(&desc);
 
       if (desc.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER) {
@@ -1797,8 +1565,8 @@ namespace dxvk {
                             std::forward_as_tuple(parentSurface),
                             std::forward_as_tuple(std::move(surf9)));
 
-      IDirectDrawSurface4* nextBackBuffer = nullptr;
-      parentSurface->EnumAttachedSurfaces(&nextBackBuffer, ListBackBufferSurfaces6Callback);
+      IDirectDrawSurface* nextBackBuffer = nullptr;
+      parentSurface->EnumAttachedSurfaces(&nextBackBuffer, ListBackBufferSurfaces5Callback);
 
       // the swapchain will eventually return to its origin
       if (nextBackBuffer == origin)
@@ -1810,32 +1578,32 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  inline void D3D6Device::AddViewportInternal(IDirect3DViewport3* viewport) {
-    D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
+  inline void D3D5Device::AddViewportInternal(IDirect3DViewport2* viewport) {
+    D3D5Viewport* d3d5Viewport = static_cast<D3D5Viewport*>(viewport);
 
-    auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d6Viewport);
+    auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d5Viewport);
     if (unlikely(it != m_viewports.end())) {
-      Logger::warn("D3D6Device::AddViewportInternal: Pre-existing viewport found");
+      Logger::warn("D3D5Device::AddViewportInternal: Pre-existing viewport found");
     } else {
-      m_viewports.push_back(d3d6Viewport);
-      d3d6Viewport->SetDevice(this);
+      m_viewports.push_back(d3d5Viewport);
+      d3d5Viewport->SetDevice(this);
     }
   }
 
-  inline void D3D6Device::DeleteViewportInternal(IDirect3DViewport3* viewport) {
-    D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
+  inline void D3D5Device::DeleteViewportInternal(IDirect3DViewport2* viewport) {
+    D3D5Viewport* d3d5Viewport = static_cast<D3D5Viewport*>(viewport);
 
-    auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d6Viewport);
+    auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d5Viewport);
     if (likely(it != m_viewports.end())) {
       m_viewports.erase(it);
-      d3d6Viewport->SetDevice(nullptr);
+      d3d5Viewport->SetDevice(nullptr);
     } else {
-      Logger::warn("D3D6Device::DeleteViewportInternal: Viewport not found");
+      Logger::warn("D3D5Device::DeleteViewportInternal: Viewport not found");
     }
   }
 
-  inline void D3D6Device::UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount) {
-    Logger::debug(str::format("D3D6Device::UploadIndices: Uploading ", indexCount, " indices"));
+  inline void D3D5Device::UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount) {
+    Logger::debug(str::format("D3D5Device::UploadIndices: Uploading ", indexCount, " indices"));
 
     const size_t size = indexCount * sizeof(WORD);
     void* pData = nullptr;
@@ -1846,7 +1614,7 @@ namespace dxvk {
     ib9->Unlock();
   }
 
-  inline float D3D6Device::GetZBiasFactor() {
+  inline float D3D5Device::GetZBiasFactor() {
     static constexpr float ZBIAS_SCALE_D16 = -1.0f / ((1 << 16) - 1); // Consider D16 precision
     static constexpr float ZBIAS_SCALE_D24 = -1.0f / ((1 << 24) - 1); // Consider D24 precision
 

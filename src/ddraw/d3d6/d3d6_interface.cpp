@@ -263,7 +263,7 @@ namespace dxvk {
     InitReturnPtr(lplpD3DDevice);
 
     if (unlikely(lpDDS == nullptr)) {
-      Logger::err("D3D7Interface::CreateDevice: Null surface provided");
+      Logger::err("D3D6Interface::CreateDevice: Null surface provided");
       return DDERR_INVALIDPARAMS;
     }
 
@@ -273,11 +273,11 @@ namespace dxvk {
     if (likely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::None)) {
       if (rclsid == IID_IDirect3DHALDevice) {
         Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
-      } else if (rclsid == IID_IDirect3DMMXDevice) {
-        Logger::warn("D3D6Interface::CreateDevice: Unsupported MMMX device, falling back to RGB");
-        rgbFallback = true;
       } else if (rclsid == IID_IDirect3DRGBDevice) {
         Logger::info("D3D6Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
+      } else if (rclsid == IID_IDirect3DMMXDevice) {
+        Logger::warn("D3D6Interface::CreateDevice: Unsupported MMX device, falling back to RGB");
+        rgbFallback = true;
       } else {
         // Revenant uses a rclsid of 7a31a548-0000-0007-26ed-780000000000...
         Logger::warn("D3D6Interface::CreateDevice: Unsupported device type, falling back to RGB");

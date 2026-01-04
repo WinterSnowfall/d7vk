@@ -269,7 +269,7 @@ namespace dxvk {
         if (m_hasDrawn) {
           if (unlikely(!m_rt->IsInitialized()))
             m_rt->InitializeD3D9RenderTarget();
-          BlitToDDrawSurface(m_rt->GetProxied(), m_rt->GetD3D9());
+          BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(m_rt->GetProxied(), m_rt->GetD3D9());
         }
         m_rt->GetProxied()->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
 
@@ -981,11 +981,11 @@ namespace dxvk {
     if (FAILED(hr))
       return hr;
 
-    D3DCLIPSTATUS clipStatus7 = { };
-    clipStatus7.dwFlags  = D3DCLIPSTATUS_STATUS;
-    clipStatus7.dwStatus = D3DSTATUS_DEFAULT | clipStatus9.ClipUnion | clipStatus9.ClipIntersection;
+    D3DCLIPSTATUS clipStatus = { };
+    clipStatus.dwFlags  = D3DCLIPSTATUS_STATUS;
+    clipStatus.dwStatus = D3DSTATUS_DEFAULT | clipStatus9.ClipUnion | clipStatus9.ClipIntersection;
 
-    *clip_status = clipStatus7;
+    *clip_status = clipStatus;
 
     return D3D_OK;
   }
