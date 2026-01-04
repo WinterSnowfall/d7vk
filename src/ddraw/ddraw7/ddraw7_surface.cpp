@@ -380,7 +380,7 @@ namespace dxvk {
         if (unlikely(!IsInitialized()))
           IntializeD3D9(m_d3d7Device->GetRenderTarget() == this);
 
-        BlitToDDrawSurface(m_proxy.ptr(), m_d3d7Device->GetRenderTarget()->GetD3D9());
+        BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(m_proxy.ptr(), m_d3d7Device->GetRenderTarget()->GetD3D9());
 
         if (unlikely(!m_parent->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
           if (unlikely(lpDDSurfaceTargetOverride != nullptr))
@@ -912,7 +912,7 @@ namespace dxvk {
   }
 
   HRESULT DDraw7Surface::InitializeOrUploadD3D9() {
-    HRESULT hr = DDERR_GENERIC;
+    HRESULT hr = DD_OK;
 
     RefreshD3D7Device();
 
@@ -1385,13 +1385,13 @@ namespace dxvk {
       }
     // Blit all the mips for textures
     } else if (IsTexture()) {
-      BlitToD3D9Texture(m_texture.ptr(), m_format, m_proxy.ptr(), m_mipCount);
+      BlitToD3D9Texture<IDirectDrawSurface7, DDSURFACEDESC2>(m_texture.ptr(), m_format, m_proxy.ptr(), m_mipCount);
     // Depth stencil do not need uploads (nor are they possible in D3D9)
     } else if (unlikely(IsDepthStencil())) {
       Logger::debug("DDraw7Surface::UploadSurfaceData: Skipping upload of depth stencil");
     // Blit surfaces directly
     } else {
-      BlitToD3D9Surface(m_d3d9.ptr(), m_format, m_proxy.ptr());
+      BlitToD3D9Surface<IDirectDrawSurface7, DDSURFACEDESC2>(m_d3d9.ptr(), m_format, m_proxy.ptr());
     }
 
     return DD_OK;

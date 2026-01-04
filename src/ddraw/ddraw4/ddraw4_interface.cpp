@@ -1,7 +1,10 @@
 #include "ddraw4_interface.h"
 
 #include "../ddraw_interface.h"
+
 #include "../ddraw7/ddraw7_interface.h"
+#include "../d3d3/d3d3_interface.h"
+#include "../d3d5/d3d5_interface.h"
 
 #include "ddraw4_surface.h"
 
@@ -29,6 +32,9 @@ namespace dxvk {
   }
 
   DDraw4Interface::~DDraw4Interface() {
+    if (m_parent != nullptr && m_parent->GetDDraw4Interface() == this)
+      m_parent->ClearDDraw4Interface();
+
     Logger::debug(str::format("DDraw4Interface: Interface nr. <<4-", m_intfCount, ">> bites the dust"));
   }
 
@@ -100,23 +106,43 @@ namespace dxvk {
     }
     // Standard way of retrieving a D3D3 interface
     if (unlikely(riid == __uuidof(IDirect3D))) {
-      if (unlikely(IsLegacyInterface())) {
-        Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirect3D");
+      if (likely(IsLegacyInterface())) {
+        Logger::warn("DDraw4Interface::QueryInterface: Query for IDirect3D");
         return m_proxy->QueryInterface(riid, ppvObject);
       }
 
-      Logger::err("DDraw4Interface::QueryInterface: Unsupported IDirect3D interface");
-      return E_NOINTERFACE;
+      Logger::debug("DDraw4Interface::QueryInterface: Query for IDirect3D");
+
+      if (m_parent != nullptr) {
+        return m_parent->QueryInterface(riid, ppvObject);
+      } else {
+        Com<IDirect3D> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        *ppvObject = ref(new D3D3Interface(std::move(ppvProxyObject), m_parent));
+
+        return S_OK;
+      }
     }
     // Standard way of retrieving a D3D5 interface
     if (unlikely(riid == __uuidof(IDirect3D2))) {
-      if (unlikely(IsLegacyInterface())) {
-        Logger::warn("DDraw4Interface::QueryInterface: Query for legacy IDirect3D2");
+      if (likely(IsLegacyInterface())) {
+        Logger::warn("DDraw4Interface::QueryInterface: Query for IDirect3D2");
         return m_proxy->QueryInterface(riid, ppvObject);
       }
 
-      Logger::err("DDraw4Interface::QueryInterface: Unsupported IDirect3D2 interface");
-      return E_NOINTERFACE;
+      Logger::debug("DDraw4Interface::QueryInterface: Query for IDirect3D2");
+
+      Com<IDirect3D2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D5Interface(std::move(ppvProxyObject), nullptr));
+
+      return S_OK;
     }
     // Quite a lot of games query for this IID during intro playback
     if (unlikely(riid == GUID_IAMMediaStream)) {
@@ -441,6 +467,13 @@ namespace dxvk {
 
     if (changed)
       m_cooperativeLevel = dwFlags;
+
+    // Atempt to update any parent and child interfaces, because some applications
+    // first call QueryInterface, and only after that call SetCooperativeLevel
+    if (m_parent != nullptr) {
+      m_parent->SetCooperativeLevel(dwFlags);
+      m_parent->SetHWND(hWnd);
+    }
 
     return hr;
   }

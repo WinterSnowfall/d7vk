@@ -387,10 +387,14 @@ namespace dxvk {
 
     // Atempt to update any child interfaces, because some applications first
     // call QueryInterface, and only after that call SetCooperativeLevel
-    if (m_intf2 != nullptr)
-      m_intf2->SetCooperativeLevel(hWnd, dwFlags);
-    if (m_intf4 != nullptr)
-      m_intf4->SetCooperativeLevel(hWnd, dwFlags);
+    if (m_intf2 != nullptr) {
+      m_intf2->SetCooperativeLevel(dwFlags);
+      m_intf2->SetHWND(m_hwnd);
+    }
+    if (m_intf4 != nullptr) {
+      m_intf4->SetCooperativeLevel(dwFlags);
+      m_intf4->SetHWND(m_hwnd);
+    }
 
     return DD_OK;
   }

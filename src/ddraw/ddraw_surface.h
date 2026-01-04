@@ -6,6 +6,8 @@
 #include "ddraw_clipper.h"
 #include "ddraw_palette.h"
 
+#include "d3d5/d3d5_device.h"
+
 #include <unordered_map>
 
 namespace dxvk {
@@ -97,8 +99,24 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE lpDDSReference);
 
+    uint8_t GetZBufferBitDepth() const {
+      return m_desc.ddpfPixelFormat.dwZBufferBitDepth == 32 ? 24 : m_desc.ddpfPixelFormat.dwZBufferBitDepth;
+    }
+
     bool IsChildObject() const {
       return m_isChildObject;
+    }
+
+    bool IsRenderTarget() const {
+      return IsFrontBuffer() || IsBackBufferOrFlippable() || Is3DSurface();
+    }
+
+    bool IsForwardableSurface() const {
+      return IsFrontBuffer() || IsBackBufferOrFlippable() || IsDepthStencil() || IsOffScreenPlainSurface();
+    }
+
+    bool IsBackBufferOrFlippable() const {
+      return !IsFrontBuffer() && (m_desc.ddsCaps.dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP));
     }
 
     bool IsDepthStencil() const {
@@ -125,6 +143,18 @@ namespace dxvk {
     void ClearParentSurface() {
       m_parentSurf = nullptr;
     }
+
+    void DirtyMipMaps() {
+      m_dirtyMipMaps = true;
+    }
+
+    void UnDirtyMipMaps() {
+      m_dirtyMipMaps = false;
+    }
+
+    HRESULT InitializeD3D9RenderTarget();
+
+    HRESULT InitializeOrUploadD3D9();
 
   private:
 
@@ -172,6 +202,23 @@ namespace dxvk {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_OVERLAY;
     }
 
+    inline HRESULT IntializeD3D9(const bool initRT);
+
+    inline HRESULT UploadSurfaceData();
+
+    inline void RefreshD3D5Device() {
+      D3D5Device* d3d5Device = m_parent->GetD3D5Device();
+      if (unlikely(m_d3d5Device != d3d5Device)) {
+        // Check if the device has been recreated and reset all D3D9 resources
+        if (unlikely(m_d3d5Device != nullptr)) {
+          Logger::debug("DDrawSurface: Device context has changed, clearing all D3D9 resources");
+          m_texture = nullptr;
+          m_d3d9 = nullptr;
+        }
+        m_d3d5Device = d3d5Device;
+      }
+    }
+
     inline void ListSurfaceDetails() const {
       const char* type = "generic surface";
 
@@ -199,6 +246,8 @@ namespace dxvk {
     }
 
     bool             m_isChildObject = true;
+    bool             m_dirtyMipMaps  = false;
+    uint32_t         m_mipCount      = 0;
 
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
@@ -207,11 +256,15 @@ namespace dxvk {
 
     DDraw7Surface*   m_origin    = nullptr;
 
+    D3D5Device*      m_d3d5Device = nullptr;
+
     DDSURFACEDESC                       m_desc;
     d3d9::D3DFORMAT                     m_format;
 
     Com<DDrawClipper>                   m_clipper;
     Com<DDrawPalette>                   m_palette;
+
+    Com<d3d9::IDirect3DTexture9>        m_texture;
 
     // Back buffers will have depth stencil surfaces as attachments (in practice
     // I have never seen more than one depth stencil being attached at a time)
