@@ -1,7 +1,6 @@
 #include "ddraw2_surface.h"
 
-#include "ddraw2_interface.h"
-
+#include "../ddraw_surface.h"
 #include "../ddraw7/ddraw7_surface.h"
 
 namespace dxvk {
@@ -10,9 +9,9 @@ namespace dxvk {
 
   DDraw2Surface::DDraw2Surface(
         Com<IDirectDrawSurface2>&& surfProxy,
-        DDrawInterface* pParent,
+        DDrawSurface* pParent,
         DDraw7Surface* origin)
-    : DDrawWrappedObject<DDrawInterface, IDirectDrawSurface2, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
+    : DDrawWrappedObject<DDrawSurface, IDirectDrawSurface2, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
     , m_origin ( origin ) {
     m_surfCount = ++s_surfCount;
 
@@ -24,7 +23,7 @@ namespace dxvk {
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<DDrawInterface, IDirectDrawSurface2, d3d9::IDirect3DSurface9>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<DDrawSurface, IDirectDrawSurface2, d3d9::IDirect3DSurface9>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
     if (riid == __uuidof(IDirectDrawSurface2)) {
@@ -56,7 +55,7 @@ namespace dxvk {
         return m_origin->QueryInterface(riid, ppvObject);
       }
 
-      return m_proxy->QueryInterface(riid, ppvObject);
+      return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
       return m_proxy->QueryInterface(riid, ppvObject);
@@ -69,7 +68,7 @@ namespace dxvk {
       }
 
       Logger::warn("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface3))) {
       if (likely(IsLegacyInterface())) {
@@ -78,7 +77,7 @@ namespace dxvk {
       }
 
       Logger::warn("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface3");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface4))) {
       if (likely(IsLegacyInterface())) {
@@ -87,7 +86,7 @@ namespace dxvk {
       }
 
       Logger::warn("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface4");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface7))) {
       if (likely(IsLegacyInterface())) {
@@ -96,12 +95,12 @@ namespace dxvk {
       }
 
       Logger::warn("DDraw2Surface::QueryInterface: Query for IDirectDrawSurface7");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirect3DTexture)
               || riid == __uuidof(IDirect3DTexture2))) {
       Logger::debug("DDraw2Surface::QueryInterface: Query for IDirect3DTexture");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      return m_parent->QueryInterface(riid, ppvObject);
     }
 
     try {

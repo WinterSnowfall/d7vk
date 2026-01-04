@@ -11,17 +11,17 @@
 
 namespace dxvk {
 
-  class DDraw2Interface;
+  class DDrawInterface;
   class D3D5Device;
   class D3D5Material;
 
   /**
   * \brief D3D5 interface implementation
   */
-  class D3D5Interface final : public DDrawWrappedObject<DDraw2Interface, IDirect3D2, d3d9::IDirect3D9> {
+  class D3D5Interface final : public DDrawWrappedObject<DDrawInterface, IDirect3D2, d3d9::IDirect3D9> {
 
   public:
-    D3D5Interface(Com<IDirect3D2>&& d3d5Intf, DDraw2Interface* pParent);
+    D3D5Interface(Com<IDirect3D2>&& d3d5Intf, DDrawInterface* pParent);
 
     ~D3D5Interface();
 

@@ -2,14 +2,19 @@
 
 #include "ddraw_include.h"
 #include "ddraw_wrapped_object.h"
+#include "ddraw_options.h"
 
 #include "ddraw2/ddraw2_interface.h"
 
+#include "d3d5/d3d5_interface.h"
+
 #include <vector>
+#include <unordered_map>
 
 namespace dxvk {
 
   class D3D5Device;
+  class D3D5Texture;
   class DDraw4Interface;
   class DDraw7Interface;
   class DDrawSurface;
@@ -72,13 +77,30 @@ namespace dxvk {
 
     void RemoveWrappedSurface(IDirectDrawSurface* surface);
 
-    // Assume an IDirectDraw2 object has been queried
+    D3D5Texture* GetTextureFromHandle(D3DTEXTUREHANDLE handle);
+
     D3D5Device* GetD3D5Device() const {
-      return m_intf2 != nullptr ? m_intf2->GetD3D5Device() : nullptr;
+      return m_d3d5Intf != nullptr ? m_d3d5Intf->GetLastUsedDevice() : nullptr;
     }
 
+    // As an exception, DDrawInterface has its standalone options and
+    // its own D3D9 interface and interface bridge to get them
     const D3DOptions* GetOptions() const {
-      return m_intf2 != nullptr ? m_intf2->GetOptions() : nullptr;
+      return &m_options;
+    }
+
+    D3DTEXTUREHANDLE GetNextTextureHandle() {
+      return ++m_textureHandle;
+    }
+
+    void EmplaceTexture(D3D5Texture* texture, D3DTEXTUREHANDLE handle) {
+      m_textures.emplace(std::piecewise_construct,
+                         std::forward_as_tuple(handle),
+                         std::forward_as_tuple(texture));
+    }
+
+    DDrawSurface* GetLastDepthStencil() const {
+      return m_lastDepthStencil;
     }
 
     DDraw2Interface* GetDDraw2Interface() const {
@@ -105,6 +127,10 @@ namespace dxvk {
       m_cooperativeLevel = cooperativeLevel;
     }
 
+    DDrawModeSize GetModeSize() const {
+      return m_modeSize;
+    }
+
     HWND GetHWND() const {
       return m_hwnd;
     }
@@ -127,20 +153,30 @@ namespace dxvk {
       return m_origin != nullptr;
     }
 
-    static uint32_t             s_intfCount;
-    uint32_t                    m_intfCount  = 0;
+    static uint32_t               s_intfCount;
+    uint32_t                      m_intfCount  = 0;
 
-    DDraw7Interface*            m_origin = nullptr;
-    DDraw4Interface*            m_intf4  = nullptr;
-    DDraw2Interface*            m_intf2  = nullptr;
+    D3DOptions                    m_options;
 
-    HWND                        m_hwnd       = nullptr;
+    DDraw7Interface*              m_origin = nullptr;
+    DDraw4Interface*              m_intf4  = nullptr;
+    DDraw2Interface*              m_intf2  = nullptr;
 
-    bool                        m_waitForVBlank = true;
+    Com<D3D5Interface, false>     m_d3d5Intf;
 
-    DWORD                       m_cooperativeLevel = 0;
+    HWND                          m_hwnd       = nullptr;
 
-    std::vector<DDrawSurface*>  m_surfaces;
+    bool                          m_waitForVBlank = true;
+
+    DWORD                         m_cooperativeLevel = 0;
+    DDrawModeSize                 m_modeSize = { };
+
+    DDrawSurface*                 m_lastDepthStencil = nullptr;
+
+    std::vector<DDrawSurface*>    m_surfaces;
+
+    D3DTEXTUREHANDLE              m_textureHandle = 0;
+    std::unordered_map<D3DTEXTUREHANDLE, D3D5Texture*> m_textures;
 
   };
 

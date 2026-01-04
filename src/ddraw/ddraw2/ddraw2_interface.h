@@ -6,8 +6,6 @@
 
 #include "../d3d9/d3d9_bridge.h"
 
-#include "../d3d5/d3d5_interface.h"
-
 #include <vector>
 
 namespace dxvk {
@@ -72,14 +70,6 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetAvailableVidMem(LPDDSCAPS lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree);
 
-    D3D5Device* GetD3D5Device() const {
-      return m_d3d5Intf->GetLastUsedDevice();
-    }
-
-    const D3DOptions* GetOptions() const {
-      return m_d3d5Intf->GetOptions();
-    }
-
     DDrawSurface* GetLastDepthStencil() const {
       return m_lastDepthStencil;
     }
@@ -123,8 +113,6 @@ namespace dxvk {
 
     DDraw7Interface*           m_origin = nullptr;
     DDraw4Interface*           m_intf4  = nullptr;
-
-    Com<D3D5Interface, false>  m_d3d5Intf;
 
     HWND                       m_hwnd       = nullptr;
 
