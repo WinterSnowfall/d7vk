@@ -178,6 +178,7 @@ namespace dxvk {
         rgbFallback = true;
       } else {
         Logger::warn("D3D5Interface::CreateDevice: Unsupported device type, falling back to RGB");
+        Logger::warn(str::format(rclsid));
         rgbFallback = true;
       }
     } else {
