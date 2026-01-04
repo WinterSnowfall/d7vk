@@ -457,6 +457,18 @@ namespace dxvk {
     return DD_OK;
   }
 
+  // D3D5 Callback function used to navigate a flipable surface swapchain
+  inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfaces5Callback(IDirectDrawSurface* subsurf, DDSURFACEDESC* desc, void* ctx) {
+    IDirectDrawSurface** nextBackBuffer = static_cast<IDirectDrawSurface**>(ctx);
+
+    if (desc->ddsCaps.dwCaps & DDSCAPS_FLIP) {
+      *nextBackBuffer = subsurf;
+      return DDENUMRET_CANCEL;
+    }
+
+    return DDENUMRET_OK;
+  }
+
   // D3D6 Callback function used to navigate a flipable surface swapchain
   inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfaces6Callback(IDirectDrawSurface4* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     IDirectDrawSurface4** nextBackBuffer = static_cast<IDirectDrawSurface4**>(ctx);
@@ -475,6 +487,18 @@ namespace dxvk {
 
     if (desc->ddsCaps.dwCaps & DDSCAPS_FLIP) {
       *nextBackBuffer = subsurf;
+      return DDENUMRET_CANCEL;
+    }
+
+    return DDENUMRET_OK;
+  }
+
+  // D3D5 callback function used to navigate the linked mip map chain
+  inline HRESULT STDMETHODCALLTYPE ListMipChainSurfacesCallback(IDirectDrawSurface* subsurf, DDSURFACEDESC* desc, void* ctx) {
+    IDirectDrawSurface** nextMip = static_cast<IDirectDrawSurface**>(ctx);
+
+    if (desc->ddsCaps.dwCaps  & DDSCAPS_MIPMAP) {
+      *nextMip = subsurf;
       return DDENUMRET_CANCEL;
     }
 
@@ -613,7 +637,7 @@ namespace dxvk {
     }
   }
 
-  template <typename SurfaceType>
+  template <typename SurfaceType, typename DescType>
   inline void BlitToD3D9Texture(
       d3d9::IDirect3DTexture9* texture9,
       d3d9::D3DFORMAT format9,
@@ -637,8 +661,8 @@ namespace dxvk {
       // D3DLOCK_DISCARD will get ignored for MANAGED/SYSTEMMEM, but will work on DEFAULT
       HRESULT hr9 = texture9->LockRect(i, &rect9mip, 0, D3DLOCK_DISCARD);
       if (likely(SUCCEEDED(hr9))) {
-        DDSURFACEDESC2 descMip;
-        descMip.dwSize = sizeof(DDSURFACEDESC2);
+        DescType descMip;
+        descMip.dwSize = sizeof(DescType);
         HRESULT hr = mipMap->Lock(0, &descMip, DDLOCK_READONLY, 0);
         if (likely(SUCCEEDED(hr))) {
           Logger::debug(str::format("descMip.dwWidth:  ", descMip.dwWidth));
@@ -687,7 +711,7 @@ namespace dxvk {
     }
   }
 
-  template <typename SurfaceType>
+  template <typename SurfaceType, typename DescType>
   inline void BlitToD3D9Surface(
       d3d9::IDirect3DSurface9* surface9,
       d3d9::D3DFORMAT format9,
@@ -696,8 +720,8 @@ namespace dxvk {
     // D3DLOCK_DISCARD will get ignored for MANAGED/SYSTEMMEM, but will work on DEFAULT
     HRESULT hr9 = surface9->LockRect(&rect9, 0, D3DLOCK_DISCARD);
     if (SUCCEEDED(hr9)) {
-      DDSURFACEDESC2 desc;
-      desc.dwSize = sizeof(DDSURFACEDESC2);
+      DescType desc;
+      desc.dwSize = sizeof(DescType);
       HRESULT hr = surface->Lock(0, &desc, DDLOCK_READONLY, 0);
       if (SUCCEEDED(hr)) {
         Logger::debug(str::format("desc.dwWidth:  ", desc.dwWidth));
@@ -736,12 +760,12 @@ namespace dxvk {
   }
 
   // reverse blitter, used in the forceProxiedPresent logic
-  template <typename SurfaceType>
+  template <typename SurfaceType, typename DescType>
   inline void BlitToDDrawSurface(
       SurfaceType* surface,
       d3d9::IDirect3DSurface9* surface9) {
-    DDSURFACEDESC2 desc;
-    desc.dwSize = sizeof(DDSURFACEDESC2);
+    DescType desc;
+    desc.dwSize = sizeof(DescType);
     HRESULT hr = surface->Lock(0, &desc, DDLOCK_WRITEONLY, 0);
     if (SUCCEEDED(hr)) {
       d3d9::D3DLOCKED_RECT rect9;

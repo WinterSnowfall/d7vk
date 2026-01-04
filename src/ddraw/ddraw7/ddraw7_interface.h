@@ -87,10 +87,6 @@ namespace dxvk {
 
     void RemoveWrappedSurface(IDirectDrawSurface7* surface);
 
-    D3D7Interface* GetD3D7Interface() const {
-      return m_d3d7Intf.ptr();
-    }
-
     D3D7Device* GetD3D7Device() const {
       return m_d3d7Intf->GetLastUsedDevice();
     }

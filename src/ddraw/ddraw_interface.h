@@ -3,12 +3,13 @@
 #include "ddraw_include.h"
 #include "ddraw_wrapped_object.h"
 
+#include "ddraw2/ddraw2_interface.h"
+
 #include <vector>
 
 namespace dxvk {
 
-  class D3D6Interface;
-  class DDraw2Interface;
+  class D3D5Device;
   class DDraw4Interface;
   class DDraw7Interface;
   class DDrawSurface;
@@ -71,6 +72,31 @@ namespace dxvk {
 
     void RemoveWrappedSurface(IDirectDrawSurface* surface);
 
+    // Assume an IDirectDraw2 object has been queried
+    D3D5Device* GetD3D5Device() const {
+      return m_intf2 != nullptr ? m_intf2->GetD3D5Device() : nullptr;
+    }
+
+    const D3DOptions* GetOptions() const {
+      return m_intf2 != nullptr ? m_intf2->GetOptions() : nullptr;
+    }
+
+    DDraw2Interface* GetDDraw2Interface() const {
+      return m_intf2;
+    }
+
+    void ClearDDraw2Interface() {
+      m_intf2 = nullptr;
+    }
+
+    DDraw4Interface* GetDDraw4Interface() const {
+      return m_intf4;
+    }
+
+    void ClearDDraw4Interface() {
+      m_intf4 = nullptr;
+    }
+
     DWORD GetCooperativeLevel() const {
       return m_cooperativeLevel;
     }
@@ -87,6 +113,14 @@ namespace dxvk {
       m_hwnd = hwnd;
     }
 
+    void SetWaitForVBlank(bool waitForVBlank) {
+      m_waitForVBlank = waitForVBlank;
+    }
+
+    bool GetWaitForVBlank() const {
+      return m_waitForVBlank;
+    }
+
   private:
 
     inline bool IsLegacyInterface() const {
@@ -101,6 +135,8 @@ namespace dxvk {
     DDraw2Interface*            m_intf2  = nullptr;
 
     HWND                        m_hwnd       = nullptr;
+
+    bool                        m_waitForVBlank = true;
 
     DWORD                       m_cooperativeLevel = 0;
 

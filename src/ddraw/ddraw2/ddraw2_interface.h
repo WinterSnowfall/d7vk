@@ -2,13 +2,17 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
+#include "../ddraw_format.h"
+
+#include "../d3d9/d3d9_bridge.h"
+
+#include "../d3d5/d3d5_interface.h"
 
 #include <vector>
 
 namespace dxvk {
 
-  class D3D5Interface;
-  class DDrawSurface;
+  class D3D5Device;
   class DDrawInterface;
   class DDraw4Interface;
   class DDraw7Interface;
@@ -68,11 +72,17 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetAvailableVidMem(LPDDSCAPS lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree);
 
-    bool IsWrappedSurface(IDirectDrawSurface* surface) const;
+    D3D5Device* GetD3D5Device() const {
+      return m_d3d5Intf->GetLastUsedDevice();
+    }
 
-    void AddWrappedSurface(IDirectDrawSurface* surface);
+    const D3DOptions* GetOptions() const {
+      return m_d3d5Intf->GetOptions();
+    }
 
-    void RemoveWrappedSurface(IDirectDrawSurface* surface);
+    DDrawSurface* GetLastDepthStencil() const {
+      return m_lastDepthStencil;
+    }
 
     DWORD GetCooperativeLevel() const {
       return m_cooperativeLevel;
@@ -82,12 +92,24 @@ namespace dxvk {
       m_cooperativeLevel = cooperativeLevel;
     }
 
+    DDrawModeSize GetModeSize() const {
+      return m_modeSize;
+    }
+
     HWND GetHWND() const {
       return m_hwnd;
     }
 
     void SetHWND(HWND hwnd) {
       m_hwnd = hwnd;
+    }
+
+    void SetWaitForVBlank(bool waitForVBlank) {
+      m_waitForVBlank = waitForVBlank;
+    }
+
+    bool GetWaitForVBlank() const {
+      return m_waitForVBlank;
     }
 
   private:
@@ -106,9 +128,12 @@ namespace dxvk {
 
     HWND                       m_hwnd       = nullptr;
 
-    DWORD                      m_cooperativeLevel = 0;
+    bool                       m_waitForVBlank = true;
 
-    std::vector<DDrawSurface*> m_surfaces;
+    DWORD                      m_cooperativeLevel = 0;
+    DDrawModeSize              m_modeSize = { };
+
+    DDrawSurface*              m_lastDepthStencil = nullptr;
 
   };
 
