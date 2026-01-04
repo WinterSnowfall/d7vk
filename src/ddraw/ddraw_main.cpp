@@ -195,13 +195,7 @@ extern "C" {
       }
     }
 
-    HRESULT hr = ProxiedAcquireDDThreadLock();
-
-    if (unlikely(FAILED(hr))) {
-      dxvk::Logger::warn("AcquireDDThreadLock: Failed call to proxied interface");
-    }
-
-    return hr;
+    return ProxiedAcquireDDThreadLock();
   }
 
   DLLEXPORT HRESULT __stdcall CompleteCreateSysmemSurface(DWORD arg) {
@@ -264,13 +258,7 @@ extern "C" {
       }
     }
 
-    HRESULT hr = ProxiedDirectDrawEnumerateA(lpCallback, lpContext);
-
-    if (unlikely(FAILED(hr))) {
-      dxvk::Logger::warn("DirectDrawEnumerateA: Failed call to proxied interface");
-    }
-
-    return hr;
+    return ProxiedDirectDrawEnumerateA(lpCallback, lpContext);
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID lpContext, DWORD dwFlags) {
@@ -295,13 +283,7 @@ extern "C" {
       }
     }
 
-    HRESULT hr = ProxiedDirectDrawEnumerateExA(lpCallback, lpContext, dwFlags);
-
-    if (unlikely(FAILED(hr))) {
-      dxvk::Logger::warn("DirectDrawEnumerateExA: Failed call to proxied interface");
-    }
-
-    return hr;
+    return ProxiedDirectDrawEnumerateExA(lpCallback, lpContext, dwFlags);
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID lpContext, DWORD dwFlags) {
@@ -326,13 +308,7 @@ extern "C" {
       }
     }
 
-    HRESULT hr = ProxiedDirectDrawEnumerateExW(lpCallback, lpContext, dwFlags);
-
-    if (unlikely(FAILED(hr))) {
-      dxvk::Logger::warn("DirectDrawEnumerateExW: Failed call to proxied interface");
-    }
-
-    return hr;
+    return ProxiedDirectDrawEnumerateExW(lpCallback, lpContext, dwFlags);
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext) {
@@ -357,13 +333,7 @@ extern "C" {
       }
     }
 
-    HRESULT hr = ProxiedDirectDrawEnumerateW(lpCallback, lpContext);
-
-    if (unlikely(FAILED(hr))) {
-      dxvk::Logger::warn("DirectDrawEnumerateW: Failed call to proxied interface");
-    }
-
-    return hr;
+    return ProxiedDirectDrawEnumerateW(lpCallback, lpContext);
   }
 
   DLLEXPORT HRESULT __stdcall DllCanUnloadNow() {
@@ -398,13 +368,7 @@ extern "C" {
       }
     }
 
-    HRESULT hr = ProxiedDllGetClassObject(rclsid, riid, ppv);
-
-    if (unlikely(FAILED(hr))) {
-      dxvk::Logger::warn("DllGetClassObject: Failed call to proxied interface");
-    }
-
-    return S_OK;
+    return ProxiedDllGetClassObject(rclsid, riid, ppv);
   }
 
   DLLEXPORT HRESULT __stdcall GetDDSurfaceLocal(DWORD arg1, DWORD arg2, DWORD arg3) {
@@ -444,13 +408,7 @@ extern "C" {
       }
     }
 
-    HRESULT hr = ProxiedReleaseDDThreadLock();
-
-    if (unlikely(FAILED(hr))) {
-      dxvk::Logger::warn("ReleaseDDThreadLock: Failed call to proxied interface");
-    }
-
-    return hr;
+    return ProxiedReleaseDDThreadLock();
   }
 
 }
