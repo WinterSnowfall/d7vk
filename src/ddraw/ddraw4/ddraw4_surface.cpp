@@ -413,11 +413,11 @@ namespace dxvk {
         if (unlikely(!IsInitialized()))
           IntializeD3D9(m_d3d6Device->GetRenderTarget() == this);
 
-        BlitToDDrawSurface(m_proxy.ptr(), m_d3d6Device->GetRenderTarget()->GetD3D9());
+        BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(m_proxy.ptr(), m_d3d6Device->GetRenderTarget()->GetD3D9());
 
         if (unlikely(!m_parent->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
           if (unlikely(lpDDSurfaceTargetOverride != nullptr))
-            Logger::debug("DDraw7Surface::Flip: Received unwrapped surface");
+            Logger::debug("DDraw4Surface::Flip: Received unwrapped surface");
           if (likely(m_d3d6Device->GetRenderTarget() == this))
             m_d3d6Device->SetFlipRTFlags(lpDDSurfaceTargetOverride, dwFlags);
           return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
@@ -431,13 +431,13 @@ namespace dxvk {
       // If the interface is waiting for VBlank and we get a no VSync flip, switch
       // to doing immediate presents by resetting the swapchain appropriately
       if (unlikely(m_parent->GetWaitForVBlank() && (dwFlags & DDFLIP_NOVSYNC))) {
-        Logger::info("DDraw7Surface::Flip: Switching to D3DPRESENT_INTERVAL_IMMEDIATE for presentation");
+        Logger::info("DDraw4Surface::Flip: Switching to D3DPRESENT_INTERVAL_IMMEDIATE for presentation");
 
         d3d9::D3DPRESENT_PARAMETERS resetParams = m_d3d6Device->GetPresentParameters();
         resetParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
         HRESULT hrReset = m_d3d6Device->Reset(&resetParams);
         if (unlikely(FAILED(hrReset))) {
-          Logger::warn("DDraw7Surface::Flip: Failed D3D9 swapchain reset");
+          Logger::warn("DDraw4Surface::Flip: Failed D3D9 swapchain reset");
         } else {
           m_parent->SetWaitForVBlank(false);
         }
@@ -977,7 +977,7 @@ namespace dxvk {
   }
 
   HRESULT DDraw4Surface::InitializeOrUploadD3D9() {
-    HRESULT hr = DDERR_GENERIC;
+    HRESULT hr = DD_OK;
 
     RefreshD3D6Device();
 
@@ -1318,13 +1318,13 @@ namespace dxvk {
     }
 
     if (IsTexture()) {
-      BlitToD3D9Texture(m_texture.ptr(), m_format, m_proxy.ptr(), m_mipCount);
+      BlitToD3D9Texture<IDirectDrawSurface4, DDSURFACEDESC2>(m_texture.ptr(), m_format, m_proxy.ptr(), m_mipCount);
     // Depth stencil do not need uploads (nor are they possible in D3D9)
     } else if (unlikely(IsDepthStencil())) {
       Logger::debug("DDraw4Surface::UploadSurfaceData: Skipping upload of depth stencil");
     // Blit surfaces directly
     } else {
-      BlitToD3D9Surface(m_d3d9.ptr(), m_format, m_proxy.ptr());
+      BlitToD3D9Surface<IDirectDrawSurface4, DDSURFACEDESC2>(m_d3d9.ptr(), m_format, m_proxy.ptr());
     }
 
     return DD_OK;
