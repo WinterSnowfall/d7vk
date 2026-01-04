@@ -13,6 +13,16 @@ namespace dxvk {
     UINT stride;
   };
 
+  // D3D5 D3DVERTEXTYPE to >D3D6 DWORD vertex codes
+  inline DWORD ConvertVertexType(D3DVERTEXTYPE vertexType) {
+    switch (vertexType) {
+      default:
+      case D3DVT_VERTEX:   return D3DFVF_VERTEX;
+      case D3DVT_LVERTEX:  return D3DFVF_LVERTEX;
+      case D3DVT_TLVERTEX: return D3DFVF_TLVERTEX;
+    }
+  }
+
   inline d3d9::D3DTRANSFORMSTATETYPE ConvertTransformState(D3DTRANSFORMSTATETYPE tst) {
     switch (tst) {
       case D3DTRANSFORMSTATE_WORLD:  return d3d9::D3DTRANSFORMSTATETYPE(D3DTS_WORLD);
