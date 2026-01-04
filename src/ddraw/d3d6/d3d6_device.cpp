@@ -136,10 +136,8 @@ namespace dxvk {
     if (unlikely(hal_desc == nullptr || hel_desc == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(hal_desc->dwSize != sizeof(D3DDEVICEDESC)))
-      return DDERR_INVALIDPARAMS;
-
-    if (unlikely(hel_desc->dwSize != sizeof(D3DDEVICEDESC)))
+    if (unlikely(!IsValidD3DDeviceDescSize(hal_desc->dwSize)
+              || !IsValidD3DDeviceDescSize(hel_desc->dwSize)))
       return DDERR_INVALIDPARAMS;
 
     D3DDEVICEDESC desc_HAL = m_desc;

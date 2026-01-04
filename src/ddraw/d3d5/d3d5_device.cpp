@@ -25,7 +25,7 @@ namespace dxvk {
       DDrawSurface* pSurface,
       DWORD CreationFlags9)
     : DDrawWrappedObject<D3D5Interface, IDirect3DDevice2, d3d9::IDirect3DDevice9>(pParent, std::move(d3d5DeviceProxy), std::move(pDevice9))
-    , m_DD2IntfParent ( pParent->GetParent() )
+    , m_DDIntfParent ( pParent->GetParent() )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
     , m_desc ( Desc )
@@ -134,10 +134,8 @@ namespace dxvk {
     if (unlikely(hal_desc == nullptr || hel_desc == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(hal_desc->dwSize != sizeof(D3DDEVICEDESC)))
-      return DDERR_INVALIDPARAMS;
-
-    if (unlikely(hel_desc->dwSize != sizeof(D3DDEVICEDESC)))
+    if (unlikely(!IsValidD3DDeviceDescSize(hal_desc->dwSize)
+              || !IsValidD3DDeviceDescSize(hel_desc->dwSize)))
       return DDERR_INVALIDPARAMS;
 
     D3DDEVICEDESC desc_HAL = m_desc;
@@ -460,7 +458,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    if (unlikely(!m_DD2IntfParent->GetParent()->IsWrappedSurface(surface))) {
+    if (unlikely(!m_DDIntfParent->IsWrappedSurface(surface))) {
       Logger::err("D3D5Device::SetRenderTarget: Received an unwrapped RT");
       return DDERR_GENERIC;
     }
@@ -613,10 +611,16 @@ namespace dxvk {
       default:
         break;
 
-      // Replacement for later implemented SetTexture calls
-      case D3DRENDERSTATE_TEXTUREHANDLE:
-        *lpdwRenderState = 0;
+      // Replacement for later implemented GetTexture calls
+      case D3DRENDERSTATE_TEXTUREHANDLE: {
+        if (unlikely(m_parent->GetOptions()->proxySetTexture)) {
+          Logger::debug("<<< D3D5Device::GetRenderState: Proxy");
+          return m_proxy->GetRenderState(dwRenderStateType, lpdwRenderState);
+        }
+
+        *lpdwRenderState = m_textureHandle;
         return D3D_OK;
+      }
 
       case D3DRENDERSTATE_ANTIALIAS:
         *lpdwRenderState = m_antialias;
@@ -792,9 +796,27 @@ namespace dxvk {
       default:
         break;
 
-      // Replacement for later implemented GetTexture calls
-      case D3DRENDERSTATE_TEXTUREHANDLE:
-        return D3D_OK;
+      // Replacement for later implemented SetTexture calls
+      case D3DRENDERSTATE_TEXTUREHANDLE: {
+        if (unlikely(m_parent->GetOptions()->proxySetTexture)) {
+          Logger::debug("<<< D3D5Device::SetRenderState: Proxy");
+          return m_proxy->SetRenderState(dwRenderStateType, dwRenderState);
+        }
+
+        D3D5Texture* texture5 = nullptr;
+
+        if (likely(dwRenderState != 0)) {
+          texture5 = m_DDIntfParent->GetTextureFromHandle(dwRenderState);
+          if (unlikely(texture5 == nullptr))
+            return DDERR_INVALIDPARAMS;
+        }
+
+        HRESULT hr = SetTextureInternal(texture5);
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        break;
+      }
 
       case D3DRENDERSTATE_ANTIALIAS:
         State9        = d3d9::D3DRS_MULTISAMPLEANTIALIAS;
@@ -1344,101 +1366,6 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  /*HRESULT STDMETHODCALLTYPE D3D6Device::GetTexture(DWORD stage, IDirect3DTexture2 **texture) {
-    D3D5DeviceLock lock = LockDevice();
-
-    Logger::debug(">>> D3D6Device::GetTexture");
-
-    RefreshLastUsedDevice();
-
-    if (unlikely(texture == nullptr))
-      return DDERR_INVALIDPARAMS;
-
-    if (unlikely(stage >= ddrawCaps::TextureStageCount)) {
-      Logger::err(str::format("D3D6Device::GetTexture: Invalid texture stage: ", stage));
-      return DDERR_INVALIDPARAMS;
-    }
-
-    *texture = m_textures[stage].ref();
-
-    return D3D_OK;
-  }
-
-  HRESULT STDMETHODCALLTYPE D3D6Device::SetTexture(DWORD stage, IDirect3DTexture2 *texture) {
-    D3D5DeviceLock lock = LockDevice();
-
-    Logger::debug(">>> D3D6Device::SetTexture");
-
-    RefreshLastUsedDevice();
-
-    if (unlikely(stage >= ddrawCaps::TextureStageCount)) {
-      Logger::err(str::format("D3D6Device::SetTexture: Invalid texture stage: ", stage));
-      return DDERR_INVALIDPARAMS;
-    }
-
-    HRESULT hr;
-
-    // Unbinding texture stages
-    if (texture == nullptr) {
-      Logger::debug("D3D6Device::SetTexture: Unbiding D3D9 texture");
-
-      hr = m_d3d9->SetTexture(stage, nullptr);
-
-      if (likely(SUCCEEDED(hr))) {
-        if (m_textures[stage] != nullptr) {
-          Logger::debug("D3D6Device::SetTexture: Unbinding local texture");
-          m_textures[stage] = nullptr;
-        }
-      } else {
-        Logger::err("D3D6Device::SetTexture: Failed to unbind D3D9 texture");
-      }
-
-      return hr;
-    }
-
-    Logger::debug("D3D6Device::SetTexture: Binding D3D9 texture");
-
-    D3D6Texture* texture6 = static_cast<D3D6Texture*>(texture);
-    DDraw4Surface* surface6 = texture6->GetParent();
-
-    if (unlikely(m_parent->GetOptions()->proxySetTexture)) {
-      HRESULT hrProxy = m_proxy->SetTexture(stage, texture6->GetProxied());
-      if (unlikely(FAILED(hrProxy)))
-        Logger::warn("D3D6Device::SetTexture: Failed proxied call");
-    }
-
-    // Only upload textures if any sort of blit/lock operation
-    // has been performed on them since the last SetTexture call
-    if (surface6->HasDirtyMipMaps() || m_parent->GetOptions()->alwaysDirtyMipMaps) {
-      hr = surface6->InitializeOrUploadD3D9();
-      if (unlikely(FAILED(hr))) {
-        Logger::err("D3D6Device::SetTexture: Failed to initialize/upload D3D9 texture");
-        return hr;
-      }
-
-      surface6->UnDirtyMipMaps();
-    } else {
-      Logger::debug("D3D6Device::SetTexture: Skipping upload of texture and mip maps");
-    }
-
-    if (unlikely(m_textures[stage] == texture6))
-      return D3D_OK;
-
-    d3d9::IDirect3DTexture9* tex9 = surface6->GetD3D9Texture();
-
-    if (likely(tex9 != nullptr)) {
-      hr = m_d3d9->SetTexture(stage, tex9);
-      if (unlikely(FAILED(hr))) {
-        Logger::warn("D3D6Device::SetTexture: Failed to bind D3D9 texture");
-        return hr;
-      }
-    }
-
-    m_textures[stage] = texture6;
-
-    return D3D_OK;
-  }*/
-
   HRESULT STDMETHODCALLTYPE D3D5Device::ValidateDevice(LPDWORD lpdwPasses) {
     Logger::debug(">>> D3D5Device::ValidateDevice");
 
@@ -1622,6 +1549,65 @@ namespace dxvk {
       return ZBIAS_SCALE_D16;
 
     return m_ds->GetZBufferBitDepth() == 24 ? ZBIAS_SCALE_D24 : ZBIAS_SCALE_D16;
+  }
+
+  inline HRESULT D3D5Device::SetTextureInternal(D3D5Texture* texture5) {
+    Logger::debug(">>> D3D5Device::SetTextureInternal");
+
+    HRESULT hr;
+
+    // Unbinding texture stages
+    if (texture5 == nullptr) {
+      Logger::debug("D3D5Device::SetTextureInternal: Unbiding D3D9 texture");
+
+      hr = m_d3d9->SetTexture(0, nullptr);
+
+      if (likely(SUCCEEDED(hr))) {
+        if (m_textureHandle != 0) {
+          Logger::debug("D3D5Device::SetTextureInternal: Unbinding local texture");
+          m_textureHandle = 0;
+        }
+      } else {
+        Logger::err("D3D5Device::SetTextureInternal: Failed to unbind D3D9 texture");
+      }
+
+      return hr;
+    }
+
+    Logger::debug("D3D5Device::SetTextureInternal: Binding D3D9 texture");
+
+    DDrawSurface* surface5 = texture5->GetParent();
+
+    // Only upload textures if any sort of blit/lock operation
+    // has been performed on them since the last SetTexture call
+    if (surface5->HasDirtyMipMaps() || m_parent->GetOptions()->alwaysDirtyMipMaps) {
+      hr = surface5->InitializeOrUploadD3D9();
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D5Device::SetTextureInternal: Failed to initialize/upload D3D9 texture");
+        return hr;
+      }
+
+      surface5->UnDirtyMipMaps();
+    } else {
+      Logger::debug("D3D5Device::SetTextureInternal: Skipping upload of texture and mip maps");
+    }
+
+    if (unlikely(m_textureHandle == texture5->GetHandle()))
+      return D3D_OK;
+
+    d3d9::IDirect3DTexture9* tex9 = surface5->GetD3D9Texture();
+
+    if (likely(tex9 != nullptr)) {
+      hr = m_d3d9->SetTexture(0, tex9);
+      if (unlikely(FAILED(hr))) {
+        Logger::warn("D3D6Device::SetTextureInternal: Failed to bind D3D9 texture");
+        return hr;
+      }
+    }
+
+    m_textureHandle = texture5->GetHandle();
+
+    return D3D_OK;
   }
 
 }

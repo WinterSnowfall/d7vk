@@ -175,6 +175,51 @@ __CRT_UUID_DECL(d3d9::IDirect3DDevice9Ex,          0xB18B10CE, 0x2649, 0x405A, 0
 #define D3DLIGHTCAPS_PARALLELPOINT 0x00000008
 #endif
 
+// D3DDEVICEDESC actually has 3 versions, one used in D3D2/3,
+// another in D3D5, and the last in D3D6. Headers only typically
+// contain the last, which is a problem because this struct
+// has a size that needs to be validated... and all versions are
+// expected to be valid options.
+
+// This is the D3DDEVICEDESC shipped with D3D5
+typedef struct _D3DDeviceDesc2 {
+        DWORD            dwSize;
+        DWORD            dwFlags;
+        D3DCOLORMODEL    dcmColorModel;
+        DWORD            dwDevCaps;
+        D3DTRANSFORMCAPS dtcTransformCaps;
+        BOOL             bClipping;
+        D3DLIGHTINGCAPS  dlcLightingCaps;
+        D3DPRIMCAPS      dpcLineCaps;
+        D3DPRIMCAPS      dpcTriCaps;
+        DWORD            dwDeviceRenderBitDepth;
+        DWORD            dwDeviceZBufferBitDepth;
+        DWORD            dwMaxBufferSize;
+        DWORD            dwMaxVertexCount;
+
+        DWORD            dwMinTextureWidth,dwMinTextureHeight;
+        DWORD            dwMaxTextureWidth,dwMaxTextureHeight;
+        DWORD            dwMinStippleWidth,dwMaxStippleWidth;
+        DWORD            dwMinStippleHeight,dwMaxStippleHeight;
+} D3DDEVICEDESC2;
+
+// This is the D3DDEVICEDESC shipped with D3D2/3
+typedef struct _D3DDeviceDesc3 {
+        DWORD            dwSize;
+        DWORD            dwFlags;
+        D3DCOLORMODEL    dcmColorModel;
+        DWORD            dwDevCaps;
+        D3DTRANSFORMCAPS dtcTransformCaps;
+        BOOL             bClipping;
+        D3DLIGHTINGCAPS  dlcLightingCaps;
+        D3DPRIMCAPS      dpcLineCaps;
+        D3DPRIMCAPS      dpcTriCaps;
+        DWORD            dwDeviceRenderBitDepth;
+        DWORD            dwDeviceZBufferBitDepth;
+        DWORD            dwMaxBufferSize;
+        DWORD            dwMaxVertexCount;
+} D3DDEVICEDESC3;
+
 namespace dxvk {
   // Some applications use it as an CLSID entry point with DllGetClassObject
   static constexpr IID IID_IDirectDrawInterface  = { 0xD7B70EE0, 0x4340, 0x11CF, {0xB0, 0x63, 0x00, 0x20, 0xAF, 0xC2, 0xCD, 0x35} };

@@ -4,8 +4,9 @@ namespace dxvk {
 
   uint32_t D3D5Texture::s_texCount = 0;
 
-  D3D5Texture::D3D5Texture(Com<IDirect3DTexture2>&& proxyTexture, DDrawSurface* pParent)
-    : DDrawWrappedObject<DDrawSurface, IDirect3DTexture2, IUnknown>(pParent, std::move(proxyTexture), nullptr) {
+  D3D5Texture::D3D5Texture(Com<IDirect3DTexture2>&& proxyTexture, DDrawSurface* pParent, D3DTEXTUREHANDLE handle)
+    : DDrawWrappedObject<DDrawSurface, IDirect3DTexture2, IUnknown>(pParent, std::move(proxyTexture), nullptr)
+    , m_textureHandle ( handle ) {
     m_texCount = ++s_texCount;
 
     Logger::debug(str::format("D3D5Texture: Created a new texture nr. [[2-", m_texCount, "]]"));
@@ -86,8 +87,19 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Texture::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3DTEXTUREHANDLE lpHandle) {
-    Logger::warn("<<< D3D5Texture::GetHandle: Proxy");
-    return m_proxy->GetHandle(lpDirect3DDevice2, lpHandle);
+    if (unlikely(m_parent->GetOptions()->proxySetTexture)) {
+      Logger::debug("<<< D3D5Texture::GetHandle: Proxy");
+      return m_proxy->GetHandle(lpDirect3DDevice2, lpHandle);
+    }
+
+    Logger::debug(">>> D3D5Texture::GetHandle");
+
+    if(unlikely(lpDirect3DDevice2 == nullptr || lpHandle == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    *lpHandle = m_textureHandle;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Texture::PaletteChanged(DWORD dwStart, DWORD dwCount) {

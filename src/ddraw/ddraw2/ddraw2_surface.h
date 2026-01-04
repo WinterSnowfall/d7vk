@@ -7,17 +7,17 @@
 
 namespace dxvk {
 
-  class DDrawInterface;
+  class DDrawSurface;
   class DDraw7Surface;
 
   /**
-  * \brief Minimal IDirectDrawSurface2 interface implementation for IDirectDrawSurface7 QueryInterface calls
+  * \brief IDirectDrawSurface2 interface implementation
   */
-  class DDraw2Surface final : public DDrawWrappedObject<DDrawInterface, IDirectDrawSurface2, d3d9::IDirect3DSurface9> {
+  class DDraw2Surface final : public DDrawWrappedObject<DDrawSurface, IDirectDrawSurface2, d3d9::IDirect3DSurface9> {
 
   public:
 
-    DDraw2Surface(Com<IDirectDrawSurface2>&& surfProxy, DDrawInterface* pParent, DDraw7Surface* origin);
+    DDraw2Surface(Com<IDirectDrawSurface2>&& surfProxy, DDrawSurface* pParent, DDraw7Surface* origin);
 
     ~DDraw2Surface();
 

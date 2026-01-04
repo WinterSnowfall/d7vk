@@ -24,7 +24,7 @@ namespace dxvk {
   };
 
   class DDrawSurface;
-  class DDraw2Interface;
+  class DDrawInterface;
   class D3D5Texture;
 
   /**
@@ -178,6 +178,8 @@ namespace dxvk {
 
     inline float GetZBiasFactor();
 
+    inline HRESULT SetTextureInternal(D3D5Texture* texture);
+
     // If the last index buffer is initalized, then all are initialized
     inline bool AreIndexBuffersInitialized() const {
       return m_ib9[ddrawCaps::IndexBufferCount - 1] != nullptr;
@@ -215,7 +217,7 @@ namespace dxvk {
 
     DWORD                         m_lighting      = FALSE;
 
-    DDraw2Interface*              m_DD2IntfParent = nullptr;
+    DDrawInterface*               m_DDIntfParent = nullptr;
 
     Com<DxvkD3D8Bridge>           m_bridge;
 
@@ -227,6 +229,7 @@ namespace dxvk {
     d3d9::D3DPRESENT_PARAMETERS   m_params9;
 
     D3DMATERIALHANDLE             m_materialHandle = 0;
+    D3DTEXTUREHANDLE              m_textureHandle = 0;
 
     D3DDEVICEDESC                 m_desc;
     GUID                          m_deviceGUID;

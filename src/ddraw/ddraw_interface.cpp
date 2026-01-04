@@ -8,6 +8,9 @@
 #include "d3d3/d3d3_interface.h"
 #include "d3d5/d3d5_interface.h"
 #include "d3d6/d3d6_interface.h"
+#include "d3d5/d3d5_texture.h"
+
+#include "../d3d9/d3d9_bridge.h"
 
 #include <algorithm>
 
@@ -18,6 +21,19 @@ namespace dxvk {
   DDrawInterface::DDrawInterface(Com<IDirectDraw>&& proxyIntf, DDraw7Interface* origin)
     : DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
     , m_origin ( origin ) {
+    if (likely(!IsLegacyInterface())) {
+      // We need a temporary D3D9 interface at this point to retrieve the options,
+      // even if we're only proxying and we don't yet have any child D3D interfaces
+      Com<d3d9::IDirect3D9> d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
+      Com<IDxvkD3D8InterfaceBridge> d3d9Bridge;
+
+      if (unlikely(FAILED(d3d9Intf->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&d3d9Bridge))))) {
+        throw DxvkError("DDrawInterface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+      }
+
+      m_options = D3DOptions(*d3d9Bridge->GetConfig());
+    }
+
     m_intfCount = ++s_intfCount;
 
     Logger::debug(str::format("DDrawInterface: Created a new interface nr. <<1-", m_intfCount, ">>"));
@@ -69,7 +85,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D6Interface(std::move(ppvProxyObject), reinterpret_cast<DDraw4Interface*>(this)));
+      *ppvObject = ref(new D3D6Interface(std::move(ppvProxyObject), m_intf4));
 
       return S_OK;
     }
@@ -87,7 +103,8 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D5Interface(std::move(ppvProxyObject), reinterpret_cast<DDraw2Interface*>(this)));
+      m_d3d5Intf = new D3D5Interface(std::move(ppvProxyObject), this);
+      *ppvObject = m_d3d5Intf.ref();
 
       return S_OK;
     }
@@ -272,6 +289,11 @@ namespace dxvk {
       return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
     }
 
+    if (unlikely(m_options.proxiedLegacySurfaces)) {
+      Logger::debug("<<< DDrawInterface::CreateSurface: Proxy");
+      return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
+    }
+
     Logger::debug(">>> DDrawInterface::CreateSurface");
 
     Com<IDirectDrawSurface> ddrawSurfaceProxied;
@@ -451,6 +473,17 @@ namespace dxvk {
         Logger::warn("DDrawInterface::RemoveWrappedSurface: Surface not found");
       }
     }
+  }
+
+  D3D5Texture* DDrawInterface::GetTextureFromHandle(D3DTEXTUREHANDLE handle) {
+    auto texturesIter = m_textures.find(handle);
+
+    if (unlikely(texturesIter == m_textures.end())) {
+      Logger::warn(str::format("DDrawInterface::GetTextureFromHandle: Invalid handle: ", handle));
+      return nullptr;
+    }
+
+    return texturesIter->second;
   }
 
 }
