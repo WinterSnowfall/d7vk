@@ -18,15 +18,6 @@ namespace dxvk {
   DDraw2Interface::DDraw2Interface(Com<IDirectDraw2>&& proxyIntf, DDrawInterface* pParent, DDraw7Interface* origin)
     : DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown>(pParent, std::move(proxyIntf), nullptr)
     , m_origin ( origin ) {
-    if (unlikely(!IsLegacyInterface())) {
-      // Initialize the IDirect3D5 interlocked object
-      void* d3d5IntfProxiedVoid = nullptr;
-      // This can never reasonably fail
-      m_proxy->QueryInterface(__uuidof(IDirect3D2), &d3d5IntfProxiedVoid);
-      Com<IDirect3D2> d3d5IntfProxied = static_cast<IDirect3D2*>(d3d5IntfProxiedVoid);
-      m_d3d5Intf = new D3D5Interface(std::move(d3d5IntfProxied), this);
-    }
-
     m_intfCount = ++s_intfCount;
 
     Logger::debug(str::format("DDraw2Interface: Created a new interface nr. <<2-", m_intfCount, ">>"));
@@ -74,8 +65,13 @@ namespace dxvk {
         return m_proxy->QueryInterface(riid, ppvObject);
       }
 
-      *ppvObject = m_d3d5Intf.ref();
-      return S_OK;
+      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D2");
+
+      if (m_parent != nullptr) {
+        return m_parent->QueryInterface(riid, ppvObject);
+      } else {
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
     }
     // Some games query for legacy ddraw interfaces
     if (unlikely(riid == __uuidof(IDirectDraw))) {
@@ -255,7 +251,7 @@ namespace dxvk {
       return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
     }
 
-    if (unlikely(m_d3d5Intf->GetOptions()->proxiedLegacySurfaces)) {
+    if (unlikely(m_parent->GetOptions()->proxiedLegacySurfaces)) {
       Logger::debug("<<< DDraw2Interface::CreateSurface: Proxy");
       return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
     }

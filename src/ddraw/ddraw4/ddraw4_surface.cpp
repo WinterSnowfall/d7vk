@@ -20,7 +20,8 @@ namespace dxvk {
     , m_parentSurf ( pParentSurf )
     , m_origin ( origin ) {
     if (likely(!IsLegacyInterface())) {
-      m_parent->AddWrappedSurface(this);
+      if (m_parent != nullptr)
+        m_parent->AddWrappedSurface(this);
 
       // Retrieve and cache the proxy surface desc
       m_desc.dwSize = sizeof(DDSURFACEDESC2);
@@ -44,8 +45,10 @@ namespace dxvk {
   }
 
   DDraw4Surface::~DDraw4Surface() {
-    if (likely(!IsLegacyInterface()))
-      m_parent->RemoveWrappedSurface(this);
+    if (likely(!IsLegacyInterface())) {
+      if (m_parent != nullptr)
+        m_parent->RemoveWrappedSurface(this);
+    }
 
     Logger::debug(str::format("DDraw4Surface: Surface nr. [[4-", m_surfCount, "]] bites the dust"));
   }
