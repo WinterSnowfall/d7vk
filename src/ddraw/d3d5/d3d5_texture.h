@@ -1,0 +1,37 @@
+#pragma once
+
+#include "../ddraw_include.h"
+#include "../ddraw_wrapped_object.h"
+
+#include "../ddraw_surface.h"
+
+namespace dxvk {
+
+  class D3D5Texture final : public DDrawWrappedObject<DDrawSurface, IDirect3DTexture2, IUnknown> {
+
+  public:
+
+    D3D5Texture(Com<IDirect3DTexture2>&& proxyTexture, DDrawSurface* pParent);
+
+    ~D3D5Texture();
+
+    ULONG STDMETHODCALLTYPE AddRef();
+
+    ULONG STDMETHODCALLTYPE Release();
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+
+    HRESULT STDMETHODCALLTYPE GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3DTEXTUREHANDLE lpHandle);
+
+    HRESULT STDMETHODCALLTYPE PaletteChanged(DWORD dwStart, DWORD dwCount);
+
+    HRESULT STDMETHODCALLTYPE Load(LPDIRECT3DTEXTURE2 lpD3DTexture2);
+
+  private:
+
+    static uint32_t  s_texCount;
+    uint32_t         m_texCount = 0;
+
+  };
+
+}
