@@ -35,14 +35,26 @@ namespace dxvk {
     Logger::debug(str::format("D3D6Interface: Interface nr. ((3-", m_intfCount, ")) bites the dust"));
   }
 
-  // Interlocked refcount with the parent IDirectDraw
+  // Interlocked refcount with the parent IDirectDraw4
   ULONG STDMETHODCALLTYPE D3D6Interface::AddRef() {
-    return m_parent->AddRef();
+    // We sometimes get this instantiated from IDirectDraw
+    // by applications doing simple API support checks...
+    if (likely(m_parent != nullptr)) {
+      return m_parent->AddRef();
+    } else {
+      return ComObjectClamp::AddRef();
+    }
   }
 
-  // Interlocked refcount with the parent IDirectDraw
+  // Interlocked refcount with the parent IDirectDraw4
   ULONG STDMETHODCALLTYPE D3D6Interface::Release() {
-    return m_parent->Release();
+    // We sometimes get this instantiated from IDirectDraw
+    // by applications doing simple API support checks...
+    if (likely(m_parent != nullptr)) {
+      return m_parent->Release();
+    } else {
+      return ComObjectClamp::Release();
+    }
   }
 
   template<>
@@ -281,6 +293,7 @@ namespace dxvk {
       } else {
         // Revenant uses a rclsid of 7a31a548-0000-0007-26ed-780000000000...
         Logger::warn("D3D6Interface::CreateDevice: Unsupported device type, falling back to RGB");
+        Logger::warn(str::format(rclsid));
         rgbFallback = true;
       }
     } else {
