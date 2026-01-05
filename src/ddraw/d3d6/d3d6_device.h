@@ -3,9 +3,10 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_options.h"
+#include "../ddraw_util.h"
 #include "../ddraw_caps.h"
 
-#include "../d3d9/d3d9_bridge.h"
+#include "../../d3d9/d3d9_bridge.h"
 
 #include "d3d6_interface.h"
 #include "d3d6_material.h"

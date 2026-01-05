@@ -1,6 +1,6 @@
 #include "ddraw2_surface.h"
 
-#include "../ddraw_surface.h"
+#include "../ddraw/ddraw_surface.h"
 #include "../ddraw7/ddraw7_surface.h"
 
 namespace dxvk {
@@ -8,11 +8,15 @@ namespace dxvk {
   uint32_t DDraw2Surface::s_surfCount = 0;
 
   DDraw2Surface::DDraw2Surface(
+        DDrawCommonSurface* commonSurf,
         Com<IDirectDrawSurface2>&& surfProxy,
         DDrawSurface* pParent,
         DDraw7Surface* origin)
     : DDrawWrappedObject<DDrawSurface, IDirectDrawSurface2, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
+    , m_commonSurf ( commonSurf )
     , m_origin ( origin ) {
+    // m_commonSurf can never be null for IDirectDrawSurface2
+
     m_surfCount = ++s_surfCount;
 
     Logger::debug(str::format("DDraw2Surface: Created a new surface nr. [[2-", m_surfCount, "]]"));
@@ -182,7 +186,12 @@ namespace dxvk {
 
     InitReturnPtr(lplpDDClipper);
 
-    *lplpDDClipper = m_clipper.ref();
+    DDrawClipper* clipper = m_commonSurf->GetClipper();
+
+    if (unlikely(clipper == nullptr))
+      return DDERR_NOCLIPPERATTACHED;
+
+    *lplpDDClipper = ref(clipper);
 
     return D3D_OK;
   }
@@ -220,7 +229,12 @@ namespace dxvk {
 
     InitReturnPtr(lplpDDPalette);
 
-    *lplpDDPalette = m_palette.ref();
+    DDrawPalette* palette = m_commonSurf->GetPalette();
+
+    if (unlikely(palette == nullptr))
+      return DDERR_NOPALETTEATTACHED;
+
+    *lplpDDPalette = ref(palette);
 
     return DD_OK;
   }
@@ -273,11 +287,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper) {
-    if (likely(IsLegacyInterface())) {
-      Logger::debug(">>> DDraw2Surface::SetClipper: Proxy");
-      return m_proxy->SetClipper(lpDDClipper);
-    }
-
     Logger::debug("<<< DDraw2Surface::SetClipper: Proxy");
 
     // A nullptr lpDDClipper gets the current clipper detached
@@ -286,7 +295,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      m_clipper = nullptr;
+      m_commonSurf->SetClipper(nullptr);
     } else {
       DDrawClipper* ddrawClipper = static_cast<DDrawClipper*>(lpDDClipper);
 
@@ -294,7 +303,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      m_clipper = ddrawClipper;
+      m_commonSurf->SetClipper(ddrawClipper);
     }
 
     return DD_OK;
@@ -311,11 +320,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette) {
-    if (likely(IsLegacyInterface())) {
-      Logger::debug("<<< DDraw2Surface::SetPalette: Proxy");
-      return m_proxy->SetPalette(lpDDPalette);
-    }
-
     Logger::debug("<<< DDraw2Surface::SetPalette: Proxy");
 
     // A nullptr lpDDPalette gets the current palette detached
@@ -324,7 +328,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      m_palette = nullptr;
+      m_commonSurf->SetPalette(nullptr);
     } else {
       DDrawPalette* ddrawPalette = static_cast<DDrawPalette*>(lpDDPalette);
 
@@ -332,7 +336,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      m_palette = ddrawPalette;
+      m_commonSurf->SetPalette(ddrawPalette);
     }
 
     return DD_OK;
