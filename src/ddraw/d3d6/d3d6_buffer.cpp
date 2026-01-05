@@ -1,9 +1,10 @@
 #include "d3d6_buffer.h"
 
 #include "../ddraw_util.h"
-#include "../ddraw4/ddraw4_interface.h"
 
 #include "d3d6_multithread.h"
+
+#include "../ddraw4/ddraw4_interface.h"
 
 namespace dxvk {
 

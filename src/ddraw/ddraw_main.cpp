@@ -1,7 +1,7 @@
 #include "ddraw_include.h"
 
-#include "ddraw_clipper.h"
-#include "ddraw_interface.h"
+#include "ddraw/ddraw_clipper.h"
+#include "ddraw/ddraw_interface.h"
 #include "ddraw7/ddraw7_interface.h"
 
 namespace dxvk {
@@ -74,7 +74,7 @@ namespace dxvk {
       }
 
       Com<IDirectDraw7> DDraw7IntfProxied = static_cast<IDirectDraw7*>(lplpDDProxied);
-      *lplpDD = ref(new DDraw7Interface(std::move(DDraw7IntfProxied)));
+      *lplpDD = ref(new DDraw7Interface(nullptr, std::move(DDraw7IntfProxied)));
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;
@@ -120,7 +120,7 @@ namespace dxvk {
       }
 
       Com<IDirectDraw> DDrawIntfProxied = static_cast<IDirectDraw*>(lplpDDProxied);
-      *lplpDD = ref(new DDrawInterface(std::move(DDrawIntfProxied), nullptr));
+      *lplpDD = ref(new DDrawInterface(nullptr, std::move(DDrawIntfProxied), nullptr));
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;

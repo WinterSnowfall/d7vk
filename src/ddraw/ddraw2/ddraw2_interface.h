@@ -4,7 +4,9 @@
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_format.h"
 
-#include "../d3d9/d3d9_bridge.h"
+#include "../ddraw_common_interface.h"
+
+#include "../../d3d9/d3d9_bridge.h"
 
 #include <vector>
 
@@ -22,7 +24,7 @@ namespace dxvk {
   class DDraw2Interface final : public DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown> {
 
   public:
-    DDraw2Interface(Com<IDirectDraw2>&& proxyIntf, DDrawInterface* pParent, DDraw7Interface* origin);
+    DDraw2Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw2>&& proxyIntf, DDrawInterface* pParent, DDraw7Interface* origin);
 
     ~DDraw2Interface();
 
@@ -75,23 +77,15 @@ namespace dxvk {
     }
 
     DWORD GetCooperativeLevel() const {
-      return m_cooperativeLevel;
+      return m_commonIntf->GetCooperativeLevel();
     }
 
-    void SetCooperativeLevel(DWORD cooperativeLevel) {
-      m_cooperativeLevel = cooperativeLevel;
+    HWND GetHWND() const {
+      return m_commonIntf->GetHWND();
     }
 
     DDrawModeSize GetModeSize() const {
       return m_modeSize;
-    }
-
-    HWND GetHWND() const {
-      return m_hwnd;
-    }
-
-    void SetHWND(HWND hwnd) {
-      m_hwnd = hwnd;
     }
 
     void SetWaitForVBlank(bool waitForVBlank) {
@@ -108,20 +102,18 @@ namespace dxvk {
       return m_origin != nullptr;
     }
 
-    static uint32_t            s_intfCount;
-    uint32_t                   m_intfCount  = 0;
+    static uint32_t           s_intfCount;
+    uint32_t                  m_intfCount  = 0;
 
-    DDraw7Interface*           m_origin = nullptr;
-    DDraw4Interface*           m_intf4  = nullptr;
+    Com<DDrawCommonInterface> m_commonIntf;
 
-    HWND                       m_hwnd       = nullptr;
+    DDraw7Interface*          m_origin = nullptr;
+    DDraw4Interface*          m_intf4  = nullptr;
 
-    bool                       m_waitForVBlank = true;
+    bool                      m_waitForVBlank = true;
+    DDrawModeSize             m_modeSize = { };
 
-    DWORD                      m_cooperativeLevel = 0;
-    DDrawModeSize              m_modeSize = { };
-
-    DDrawSurface*              m_lastDepthStencil = nullptr;
+    DDrawSurface*             m_lastDepthStencil = nullptr;
 
   };
 

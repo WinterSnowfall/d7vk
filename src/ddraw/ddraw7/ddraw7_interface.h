@@ -4,7 +4,9 @@
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_format.h"
 
-#include "../d3d9/d3d9_bridge.h"
+#include "../ddraw_common_interface.h"
+
+#include "../../d3d9/d3d9_bridge.h"
 
 #include "../d3d7/d3d7_interface.h"
 
@@ -21,7 +23,7 @@ namespace dxvk {
   class DDraw7Interface final : public DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown> {
 
   public:
-    DDraw7Interface(Com<IDirectDraw7>&& proxyIntf);
+    DDraw7Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw7>&& proxyIntf);
 
     ~DDraw7Interface();
 
@@ -100,23 +102,15 @@ namespace dxvk {
     }
 
     DWORD GetCooperativeLevel() const {
-      return m_cooperativeLevel;
+      return m_commonIntf->GetCooperativeLevel();
     }
 
-    void SetCooperativeLevel(DWORD cooperativeLevel) {
-      m_cooperativeLevel = cooperativeLevel;
+    HWND GetHWND() const {
+      return m_commonIntf->GetHWND();
     }
 
     DDrawModeSize GetModeSize() const {
       return m_modeSize;
-    }
-
-    HWND GetHWND() const {
-      return m_hwnd;
-    }
-
-    void SetHWND(HWND hwnd) {
-      m_hwnd = hwnd;
     }
 
     void SetWaitForVBlank(bool waitForVBlank) {
@@ -132,13 +126,11 @@ namespace dxvk {
     static uint32_t             s_intfCount;
     uint32_t                    m_intfCount  = 0;
 
+    Com<DDrawCommonInterface>   m_commonIntf;
+
     Com<D3D7Interface, false>   m_d3d7Intf;
 
-    HWND                        m_hwnd       = nullptr;
-
     bool                        m_waitForVBlank = true;
-
-    DWORD                       m_cooperativeLevel = 0;
     DDrawModeSize               m_modeSize = { };
 
     DDraw7Surface*              m_lastDepthStencil = nullptr;

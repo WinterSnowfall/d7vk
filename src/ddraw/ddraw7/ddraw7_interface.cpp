@@ -1,12 +1,12 @@
 #include "ddraw7_interface.h"
 
-#include "../d3d7/d3d7_device.h"
+#include "ddraw7_surface.h"
 
-#include "../ddraw_interface.h"
+#include "../ddraw/ddraw_interface.h"
 #include "../ddraw2/ddraw2_interface.h"
 #include "../ddraw4/ddraw4_interface.h"
 
-#include "ddraw7_surface.h"
+#include "../d3d7/d3d7_device.h"
 
 #include <algorithm>
 
@@ -14,8 +14,12 @@ namespace dxvk {
 
   uint32_t DDraw7Interface::s_intfCount = 0;
 
-  DDraw7Interface::DDraw7Interface(Com<IDirectDraw7>&& proxyIntf)
-    : DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown>(nullptr, std::move(proxyIntf), nullptr) {
+  DDraw7Interface::DDraw7Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw7>&& proxyIntf)
+    : DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
+    , m_commonIntf ( commonIntf ) {
+    if (m_commonIntf == nullptr)
+      m_commonIntf = new DDrawCommonInterface();
+
     // Initialize the IDirect3D7 interlocked object
     void* d3d7IntfProxiedVoid = nullptr;
     // This can never reasonably fail
@@ -74,7 +78,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawInterface(std::move(ppvProxyObject), this));
+      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject), this));
 
       return S_OK;
     }
@@ -86,7 +90,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Interface(std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), nullptr, this));
 
       return S_OK;
     }
@@ -98,7 +102,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Interface(std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), nullptr, this));
 
       return S_OK;
     }
@@ -170,7 +174,7 @@ namespace dxvk {
     Logger::debug(">>> DDraw7Interface::CreateSurface");
 
     // The cooperative level is always checked first
-    if (unlikely(!m_cooperativeLevel))
+    if (unlikely(!m_commonIntf->GetCooperativeLevel()))
       return DDERR_NOCOOPERATIVELEVELSET;
 
     if (unlikely(lpDDSurfaceDesc == nullptr || lplpDDSurface == nullptr))
@@ -211,7 +215,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       try{
-        Com<DDraw7Surface> surface7 = new DDraw7Surface(std::move(ddraw7SurfaceProxied), this, nullptr, true);
+        Com<DDraw7Surface> surface7 = new DDraw7Surface(nullptr, std::move(ddraw7SurfaceProxied), this, nullptr, true);
 
         if (unlikely(m_d3d7Intf->GetOptions()->proxiedQueryInterface)) {
           // Hack: Gothic / Gothic 2 and other games attach the depth stencil to an externally created
@@ -248,7 +252,7 @@ namespace dxvk {
       HRESULT hr = m_proxy->DuplicateSurface(ddraw7Surface->GetProxied(), &dupSurface7);
       if (likely(SUCCEEDED(hr))) {
         try {
-          *lplpDupDDSurface = ref(new DDraw7Surface(std::move(dupSurface7), this, nullptr, false));
+          *lplpDupDDSurface = ref(new DDraw7Surface(nullptr, std::move(dupSurface7), this, nullptr, false));
         } catch (const DxvkError& e) {
           Logger::err(e.message());
           return DDERR_GENERIC;
@@ -339,7 +343,7 @@ namespace dxvk {
     } else {
       Logger::debug("DDraw7Interface::GetGDISurface: Received a non-wrapped GDI surface");
       try {
-        *lplpGDIDDSurface = ref(new DDraw7Surface(std::move(gdiSurface), this, nullptr, false));
+        *lplpGDIDDSurface = ref(new DDraw7Surface(nullptr, std::move(gdiSurface), this, nullptr, false));
       } catch (const DxvkError& e) {
         Logger::err(e.message());
         return DDERR_GENERIC;
@@ -381,15 +385,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    const bool changed = m_cooperativeLevel != dwFlags;
-
-    // This needs to be called on interface init, so is a reliable
-    // way of getting the needed hWnd for d3d7 device creation
-    if (likely((dwFlags & DDSCL_NORMAL) || (dwFlags & DDSCL_EXCLUSIVE)))
-      m_hwnd = hWnd;
-
-    if (changed)
-      m_cooperativeLevel = dwFlags;
+    m_commonIntf->SetCooperativeLevel(hWnd, dwFlags);
 
     return hr;
   }
@@ -403,7 +399,7 @@ namespace dxvk {
 
     if (likely(!m_d3d7Intf->GetOptions()->forceProxiedPresent &&
                 m_d3d7Intf->GetOptions()->backBufferResize)) {
-      const bool exclusiveMode = m_cooperativeLevel & DDSCL_EXCLUSIVE;
+      const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
       if (exclusiveMode) {
@@ -521,7 +517,7 @@ namespace dxvk {
     }
 
     try {
-      *pSurf = ref(new DDraw7Surface(std::move(surface), this, nullptr, false));
+      *pSurf = ref(new DDraw7Surface(nullptr, std::move(surface), this, nullptr, false));
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;

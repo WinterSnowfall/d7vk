@@ -1633,6 +1633,14 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                 "-60" },
     }} },
 
+    /**********************************************/
+    /* D3D5 GAMES                                 */
+    /**********************************************/
+    /* FreeSpace 2 - Fixes main menu animations   */
+    { R"(\\FS2\.exe$)", {{
+      { "ddraw.alwaysDirtyMipMaps",         "True" },
+    }} },
+
   };
 
 

@@ -2,15 +2,14 @@
 
 #include "ddraw_surface.h"
 
-#include "ddraw7/ddraw7_interface.h"
-#include "ddraw4/ddraw4_interface.h"
-#include "ddraw2/ddraw2_interface.h"
-#include "d3d3/d3d3_interface.h"
-#include "d3d5/d3d5_interface.h"
-#include "d3d6/d3d6_interface.h"
-#include "d3d5/d3d5_texture.h"
+#include "../ddraw7/ddraw7_interface.h"
+#include "../ddraw4/ddraw4_interface.h"
+#include "../ddraw2/ddraw2_interface.h"
 
-#include "../d3d9/d3d9_bridge.h"
+#include "../d3d3/d3d3_interface.h"
+#include "../d3d5/d3d5_interface.h"
+#include "../d3d6/d3d6_interface.h"
+#include "../d3d5/d3d5_texture.h"
 
 #include <algorithm>
 
@@ -18,9 +17,13 @@ namespace dxvk {
 
   uint32_t DDrawInterface::s_intfCount = 0;
 
-  DDrawInterface::DDrawInterface(Com<IDirectDraw>&& proxyIntf, DDraw7Interface* origin)
+  DDrawInterface::DDrawInterface(DDrawCommonInterface* commonIntf, Com<IDirectDraw>&& proxyIntf, DDraw7Interface* origin)
     : DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
+    , m_commonIntf ( commonIntf )
     , m_origin ( origin ) {
+    if (m_commonIntf == nullptr)
+      m_commonIntf = new DDrawCommonInterface();
+
     if (likely(!IsLegacyInterface())) {
       // We need a temporary D3D9 interface at this point to retrieve the options,
       // even if we're only proxying and we don't yet have any child D3D interfaces
@@ -165,9 +168,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      Com<DDraw4Interface> ddraw4Interface = new DDraw4Interface(std::move(ppvProxyObject), this, nullptr);
-      ddraw4Interface->SetHWND(m_hwnd);
-      ddraw4Interface->SetCooperativeLevel(m_cooperativeLevel);
+      Com<DDraw4Interface> ddraw4Interface = new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), this, nullptr);
       m_intf4 = ddraw4Interface.ptr();
       *ppvObject = ddraw4Interface.ref();
 
@@ -187,9 +188,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      Com<DDraw2Interface> ddraw2Interface = new DDraw2Interface(std::move(ppvProxyObject), this, nullptr);
-      ddraw2Interface->SetHWND(m_hwnd);
-      ddraw2Interface->SetCooperativeLevel(m_cooperativeLevel);
+      Com<DDraw2Interface> ddraw2Interface = new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), this, nullptr);
       m_intf2 = ddraw2Interface.ptr();
       *ppvObject = ddraw2Interface.ref();
 
@@ -209,9 +208,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      Com<DDraw7Interface> ddraw7Interface = new DDraw7Interface(std::move(ppvProxyObject));
-      ddraw7Interface->SetHWND(m_hwnd);
-      ddraw7Interface->SetCooperativeLevel(m_cooperativeLevel);
+      Com<DDraw7Interface> ddraw7Interface = new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject));
       *ppvObject = ddraw7Interface.ref();
 
       return S_OK;
@@ -244,11 +241,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
-    if (likely(IsLegacyInterface())) {
-      Logger::debug(">>> DDrawInterface::CreateClipper: Forwarded");
-      return m_origin->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
-    }
-
     Logger::debug(">>> DDrawInterface::CreateClipper");
 
     if (unlikely(lplpDDClipper == nullptr))
@@ -270,11 +262,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpColorTable, LPDIRECTDRAWPALETTE *lplpDDPalette, IUnknown *pUnkOuter) {
-    if (likely(IsLegacyInterface())) {
-      Logger::debug(">>> DDrawInterface::CreatePalette: Forwarded");
-      return m_origin->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
-    }
-
     Logger::debug(">>> DDrawInterface::CreatePalette");
 
     if (unlikely(lplpDDPalette == nullptr))
@@ -313,7 +300,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       try{
-        Com<DDrawSurface> surface = new DDrawSurface(std::move(ddrawSurfaceProxied), this, nullptr, nullptr, true);
+        Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied), this, nullptr, nullptr, true);
         *lplpDDSurface = surface.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());
@@ -398,37 +385,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
-    if (likely(IsLegacyInterface())) {
-      Logger::debug(">>> DDrawInterface::SetCooperativeLevel: Forwarded");
-      return m_origin->SetCooperativeLevel(hWnd, dwFlags);
-    }
-
     Logger::debug("<<< DDrawInterface::SetCooperativeLevel: Proxy");
 
     HRESULT hr = m_proxy->SetCooperativeLevel(hWnd, dwFlags);
     if (unlikely(FAILED(hr)))
       return hr;
 
-    const bool changed = m_cooperativeLevel != dwFlags;
-
-    // This needs to be called on interface init, so is a reliable
-    // way of getting the needed hWnd for d3d7 device creation
-    if (likely((dwFlags & DDSCL_NORMAL) || (dwFlags & DDSCL_EXCLUSIVE)))
-      m_hwnd = hWnd;
-
-    if (changed)
-      m_cooperativeLevel = dwFlags;
-
-    // Atempt to update any child interfaces, because some applications first
-    // call QueryInterface, and only after that call SetCooperativeLevel
-    if (m_intf2 != nullptr) {
-      m_intf2->SetCooperativeLevel(dwFlags);
-      m_intf2->SetHWND(m_hwnd);
-    }
-    if (m_intf4 != nullptr) {
-      m_intf4->SetCooperativeLevel(dwFlags);
-      m_intf4->SetHWND(m_hwnd);
-    }
+    m_commonIntf->SetCooperativeLevel(hWnd, dwFlags);
 
     return DD_OK;
   }

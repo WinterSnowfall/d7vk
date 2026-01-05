@@ -1,13 +1,12 @@
 #include "d3d5_interface.h"
 
-#include "../ddraw_surface.h"
-
-#include "../ddraw2/ddraw2_interface.h"
-
 #include "d3d5_device.h"
 #include "d3d5_light.h"
 #include "d3d5_material.h"
 #include "d3d5_viewport.h"
+
+#include "../ddraw/ddraw_surface.h"
+#include "../ddraw2/ddraw2_interface.h"
 
 namespace dxvk {
 
@@ -204,7 +203,7 @@ namespace dxvk {
     if (unlikely(!m_parent->IsWrappedSurface(lpDDS))) {
       if (unlikely(m_options.proxiedQueryInterface)) {
         Logger::debug("D3D5Interface::CreateDevice: Unwrapped surface passed as RT");
-        rt = new DDrawSurface(std::move(lpDDS), m_parent, nullptr, nullptr, true);
+        rt = new DDrawSurface(nullptr, std::move(lpDDS), m_parent, nullptr, nullptr, true);
         // Hack: attach the last created depth stencil to the unwrapped RT
         // We can not do this the usual way because the RT is not known to ddraw
         rt->SetAttachedDepthStencil(m_parent->GetLastDepthStencil());

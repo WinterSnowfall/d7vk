@@ -1,12 +1,11 @@
 #include "d3d7_interface.h"
 
-#include "../ddraw_util.h"
-#include "../ddraw7/ddraw7_interface.h"
-#include "../ddraw7/ddraw7_surface.h"
-
 #include "d3d7_device.h"
 #include "d3d7_buffer.h"
 #include "d3d7_multithread.h"
+
+#include "../ddraw7/ddraw7_interface.h"
+#include "../ddraw7/ddraw7_surface.h"
 
 namespace dxvk {
 
@@ -187,7 +186,7 @@ namespace dxvk {
     if (unlikely(!m_parent->IsWrappedSurface(surface))) {
       if (unlikely(m_options.proxiedQueryInterface)) {
         Logger::debug("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
-        rt7 = new DDraw7Surface(std::move(surface), m_parent, nullptr, true);
+        rt7 = new DDraw7Surface(nullptr, std::move(surface), m_parent, nullptr, true);
         // Hack: attach the last created depth stencil to the unwrapped RT
         // We can not do this the usual way because the RT is not known to ddraw
         rt7->SetAttachedDepthStencil(m_parent->GetLastDepthStencil());

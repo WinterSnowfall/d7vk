@@ -2,11 +2,13 @@ ddraw_res = wrc_generator.process('version.rc')
 
 ddraw_src = [
   'ddraw_main.cpp',
-  'ddraw_clipper.cpp',
-  'ddraw_gamma.cpp',
-  'ddraw_interface.cpp',
-  'ddraw_palette.cpp',
-  'ddraw_surface.cpp',
+  'ddraw_common_interface.cpp',
+  'ddraw_common_surface.cpp',
+  'ddraw/ddraw_clipper.cpp',
+  'ddraw/ddraw_gamma.cpp',
+  'ddraw/ddraw_interface.cpp',
+  'ddraw/ddraw_palette.cpp',
+  'ddraw/ddraw_surface.cpp',
   'ddraw2/ddraw2_interface.cpp',
   'ddraw2/ddraw2_surface.cpp',
   'ddraw2/ddraw3_surface.cpp',

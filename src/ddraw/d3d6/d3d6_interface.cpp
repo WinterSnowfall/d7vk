@@ -1,15 +1,14 @@
 #include "d3d6_interface.h"
 
-#include "../ddraw_util.h"
-#include "../ddraw4/ddraw4_interface.h"
-#include "../ddraw4/ddraw4_surface.h"
-
 #include "d3d6_device.h"
 #include "d3d6_buffer.h"
 #include "d3d6_light.h"
 #include "d3d6_material.h"
 #include "d3d6_multithread.h"
 #include "d3d6_viewport.h"
+
+#include "../ddraw4/ddraw4_interface.h"
+#include "../ddraw4/ddraw4_surface.h"
 
 namespace dxvk {
 
@@ -319,7 +318,7 @@ namespace dxvk {
     if (unlikely(!m_parent->IsWrappedSurface(lpDDS))) {
       if (unlikely(m_options.proxiedQueryInterface)) {
         Logger::debug("D3D6Interface::CreateDevice: Unwrapped surface passed as RT");
-        rt4 = new DDraw4Surface(std::move(lpDDS), m_parent, nullptr, nullptr, true);
+        rt4 = new DDraw4Surface(nullptr, std::move(lpDDS), m_parent, nullptr, nullptr, true);
         // Hack: attach the last created depth stencil to the unwrapped RT
         // We can not do this the usual way because the RT is not known to ddraw
         rt4->SetAttachedDepthStencil(m_parent->GetLastDepthStencil());

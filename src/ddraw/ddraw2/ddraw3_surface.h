@@ -2,8 +2,8 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
-#include "../ddraw_clipper.h"
-#include "../ddraw_palette.h"
+
+#include "../ddraw_common_surface.h"
 
 namespace dxvk {
 
@@ -17,7 +17,11 @@ namespace dxvk {
 
   public:
 
-    DDraw3Surface(Com<IDirectDrawSurface3>&& surfProxy, DDrawSurface* pParent, DDraw7Surface* origin);
+    DDraw3Surface(
+        DDrawCommonSurface* commonSurf,
+        Com<IDirectDrawSurface3>&& surfProxy,
+        DDrawSurface* pParent,
+        DDraw7Surface* origin);
 
     ~DDraw3Surface();
 
@@ -106,10 +110,9 @@ namespace dxvk {
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
 
-    DDraw7Surface*   m_origin    = nullptr;
+    Com<DDrawCommonSurface> m_commonSurf;
 
-    Com<DDrawClipper>                   m_clipper;
-    Com<DDrawPalette>                   m_palette;
+    DDraw7Surface*   m_origin    = nullptr;
 
   };
 

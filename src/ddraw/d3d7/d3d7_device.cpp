@@ -1,10 +1,9 @@
 #include "d3d7_device.h"
 
-#include "../ddraw_util.h"
-#include "../ddraw7/ddraw7_surface.h"
-
 #include "d3d7_buffer.h"
 #include "d3d7_state_block.h"
+
+#include "../ddraw7/ddraw7_surface.h"
 
 namespace dxvk {
 

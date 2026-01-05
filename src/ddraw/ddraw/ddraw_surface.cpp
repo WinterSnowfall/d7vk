@@ -2,16 +2,17 @@
 
 #include "ddraw_interface.h"
 
-#include "ddraw2/ddraw2_surface.h"
-#include "ddraw2/ddraw3_surface.h"
-#include "ddraw4/ddraw4_surface.h"
-#include "ddraw7/ddraw7_surface.h"
+#include "../ddraw2/ddraw2_surface.h"
+#include "../ddraw2/ddraw3_surface.h"
+#include "../ddraw4/ddraw4_surface.h"
+#include "../ddraw7/ddraw7_surface.h"
 
 namespace dxvk {
 
   uint32_t DDrawSurface::s_surfCount = 0;
 
   DDrawSurface::DDrawSurface(
+        DDrawCommonSurface* commonSurf,
         Com<IDirectDrawSurface>&& surfProxy,
         DDrawInterface* pParent,
         DDrawSurface* pParentSurf,
@@ -19,8 +20,12 @@ namespace dxvk {
         bool isChildObject)
     : DDrawWrappedObject<DDrawInterface, IDirectDrawSurface, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
     , m_isChildObject ( isChildObject )
+    , m_commonSurf ( commonSurf )
     , m_parentSurf ( pParentSurf )
     , m_origin ( origin ) {
+    if (m_commonSurf == nullptr)
+      m_commonSurf = new DDrawCommonSurface();
+
     if (likely(!IsLegacyInterface())) {
       m_parent->AddWrappedSurface(this);
 
@@ -126,7 +131,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Surface(std::move(ppvProxyObject), this, nullptr));
+      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nullptr));
 
       return S_OK;
     }
@@ -143,7 +148,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw3Surface(std::move(ppvProxyObject), this, nullptr));
+      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nullptr));
 
       return S_OK;
     }
@@ -160,19 +165,26 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Surface(std::move(ppvProxyObject), m_parent->GetDDraw4Interface(), nullptr, nullptr, false));
+      *ppvObject = ref(new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_parent->GetDDraw4Interface(), nullptr, nullptr, false));
 
       return S_OK;
     }
-    // TODO: Check if this is even possible
     if (unlikely(riid == __uuidof(IDirectDrawSurface7))) {
       if (likely(IsLegacyInterface())) {
         Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawSurface7");
         return m_origin->QueryInterface(riid, ppvObject);
       }
 
-      Logger::warn("DDrawSurface::QueryInterface: Query for IDirectDrawSurface7");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawSurface7");
+
+      Com<IDirectDrawSurface7> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new DDraw7Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), nullptr, nullptr, false));
+
+      return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
       if (unlikely(IsLegacyInterface())) {
@@ -192,7 +204,7 @@ namespace dxvk {
         m_texture5 = new D3D5Texture(std::move(ppvProxyObject), this, nextHandle);
         m_parent->EmplaceTexture(m_texture5.ptr(), nextHandle);
 
-        m_dirtyMipMaps = true;
+        m_commonSurf->DirtyMipMaps();
       }
 
       *ppvObject = m_texture5.ref();
@@ -207,6 +219,12 @@ namespace dxvk {
 
       Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture");
       return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    // Some games are known to query for the clipper
+    // from the surface, for some reason, though that won't work
+    // and GetClipper exists anyway...
+    if (unlikely(riid == __uuidof(IDirectDrawClipper))) {
+      return E_NOINTERFACE;
     }
 
     try {
@@ -303,7 +321,7 @@ namespace dxvk {
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDrawSurface::Blt: Failed upload to d3d9 surface");
       } else {
-        m_dirtyMipMaps = true;
+        m_commonSurf->DirtyMipMaps();
       }
     }
 
@@ -361,7 +379,7 @@ namespace dxvk {
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDrawSurface::BltFast: Failed upload to d3d9 surface");
       } else {
-        m_dirtyMipMaps = true;
+        m_commonSurf->DirtyMipMaps();
       }
     }
 
@@ -500,9 +518,9 @@ namespace dxvk {
       m_d3d5Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
       Logger::debug("*** DDrawSurface::Flip: We have presented, allegedly");
     // If we don't have a valid D3D5 device, this means a D3D3 application
-    // is trying to flip the surfaces, so allow that for compatibility reasons
+    // is trying to flip the surface. Allow that for compatibility reasons.
     } else {
-      Logger::warn("<<< DDrawSurface::Flip: Proxy");
+      Logger::debug("<<< DDrawSurface::Flip: Proxy");
       m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
     }
 
@@ -551,7 +569,7 @@ namespace dxvk {
       try {
         auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
         if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
-          Com<DDrawSurface> ddrawSurface = new DDrawSurface(std::move(surface), m_parent, this, nullptr, false);
+          Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), m_parent, this, nullptr, false);
           m_attachedSurfaces.emplace(std::piecewise_construct,
                                      std::forward_as_tuple(ddrawSurface->GetProxied()),
                                      std::forward_as_tuple(ddrawSurface.ptr()));
@@ -594,7 +612,12 @@ namespace dxvk {
 
     InitReturnPtr(lplpDDClipper);
 
-    *lplpDDClipper = m_clipper.ref();
+    DDrawClipper* clipper = m_commonSurf->GetClipper();
+
+    if (unlikely(clipper == nullptr))
+      return DDERR_NOCLIPPERATTACHED;
+
+    *lplpDDClipper = ref(clipper);
 
     return D3D_OK;
   }
@@ -632,7 +655,12 @@ namespace dxvk {
 
     InitReturnPtr(lplpDDPalette);
 
-    *lplpDDPalette = m_palette.ref();
+    DDrawPalette* palette = m_commonSurf->GetPalette();
+
+    if (unlikely(palette == nullptr))
+      return DDERR_NOPALETTEATTACHED;
+
+    *lplpDDPalette = ref(palette);
 
     return DD_OK;
   }
@@ -685,11 +713,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper) {
-    if (likely(IsLegacyInterface())) {
-      Logger::debug("<<< DDrawSurface::SetClipper: Proxy");
-      return m_proxy->SetClipper(lpDDClipper);
-    }
-
     Logger::debug("<<< DDrawSurface::SetClipper: Proxy");
 
     // A nullptr lpDDClipper gets the current clipper detached
@@ -698,7 +721,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      m_clipper = nullptr;
+      m_commonSurf->SetClipper(nullptr);
     } else {
       DDrawClipper* ddrawClipper = static_cast<DDrawClipper*>(lpDDClipper);
 
@@ -706,7 +729,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      m_clipper = ddrawClipper;
+      m_commonSurf->SetClipper(ddrawClipper);
     }
 
     return DD_OK;
@@ -723,11 +746,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette) {
-    if (likely(IsLegacyInterface())) {
-      Logger::debug("<<< DDrawSurface::SetPalette: Proxy");
-      return m_proxy->SetPalette(lpDDPalette);
-    }
-
     Logger::debug("<<< DDrawSurface::SetPalette: Proxy");
 
     // A nullptr lpDDPalette gets the current palette detached
@@ -736,7 +754,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      m_palette = nullptr;
+      m_commonSurf->SetPalette(nullptr);
     } else {
       DDrawPalette* ddrawPalette = static_cast<DDrawPalette*>(lpDDPalette);
 
@@ -744,7 +762,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      m_palette = ddrawPalette;
+      m_commonSurf->SetPalette(ddrawPalette);
     }
 
     return DD_OK;
@@ -764,7 +782,7 @@ namespace dxvk {
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDrawSurface::Unlock: Failed upload to d3d9 surface");
       } else {
-        m_dirtyMipMaps = true;
+        m_commonSurf->DirtyMipMaps();
       }
     }
 
@@ -873,31 +891,34 @@ namespace dxvk {
     // We need to count the number of actual mips on initialization by going through
     // the mip chain, since the dwMipMapCount number may or may not be accurate. I am
     // guessing it was intended more as a hint, not neceesarily a set number.
+    if (IsTexture()) {
+      IDirectDrawSurface* mipMap = m_proxy.ptr();
 
-    IDirectDrawSurface* mipMap = m_proxy.ptr();
-
-    m_mipCount = 1;
-    while (mipMap != nullptr) {
-      IDirectDrawSurface* parentSurface = mipMap;
-      mipMap = nullptr;
-      parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
-      if (mipMap != nullptr) {
-        m_mipCount++;
+      uint8_t mipCount = 1;
+      while (mipMap != nullptr) {
+        IDirectDrawSurface* parentSurface = mipMap;
+        mipMap = nullptr;
+        parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
+        if (mipMap != nullptr) {
+          mipCount++;
+        }
       }
-    }
 
-    // Do not worry about maximum supported mip map levels validation,
-    // because D3D9 will hanlde this for us and cap them appropriately
-    if (m_mipCount > 1) {
-      Logger::debug(str::format("DDrawSurface::IntializeD3D9: Found ", m_mipCount, " mip levels"));
+      // Do not worry about maximum supported mip map levels validation,
+      // because D3D9 will handle this for us and cap them appropriately
+      if (mipCount > 1) {
+        Logger::debug(str::format("DDrawSurface::IntializeD3D9: Found ", mipCount, " mip levels"));
 
-      if (unlikely(m_mipCount != m_desc.dwMipMapCount))
-        Logger::debug(str::format("DDrawSurface::IntializeD3D9: Mismatch with declared ", m_desc.dwMipMapCount, " mip levels"));
-    }
+        if (unlikely(mipCount != m_desc.dwMipMapCount))
+          Logger::debug(str::format("DDrawSurface::IntializeD3D9: Mismatch with declared ", m_desc.dwMipMapCount, " mip levels"));
+      }
 
-    if (unlikely(m_parent->GetOptions()->autoGenMipMaps)) {
-      Logger::debug("DDrawSurface::IntializeD3D9: Using auto mip map generation");
-      m_mipCount = 0;
+      if (unlikely(m_parent->GetOptions()->autoGenMipMaps)) {
+        Logger::debug("DDrawSurface::IntializeD3D9: Using auto mip map generation");
+        mipCount = 0;
+      }
+
+      m_commonSurf->SetMipCount(mipCount);
     }
 
     d3d9::D3DPOOL pool  = d3d9::D3DPOOL_DEFAULT;
@@ -992,7 +1013,7 @@ namespace dxvk {
       Com<d3d9::IDirect3DTexture9> tex;
 
       hr = m_d3d5Device->GetD3D9()->CreateTexture(
-        m_desc.dwWidth, m_desc.dwHeight, m_mipCount, usage,
+        m_desc.dwWidth, m_desc.dwHeight, m_commonSurf->GetMipCount(), usage,
         m_format, pool, &tex, nullptr);
 
       if (unlikely(FAILED(hr))) {
@@ -1139,7 +1160,8 @@ namespace dxvk {
     }
 
     if (IsTexture()) {
-      BlitToD3D9Texture<IDirectDrawSurface, DDSURFACEDESC>(m_texture.ptr(), m_format, m_proxy.ptr(), m_mipCount);
+      BlitToD3D9Texture<IDirectDrawSurface, DDSURFACEDESC>(m_texture.ptr(), m_format,
+                                                           m_proxy.ptr(), m_commonSurf->GetMipCount());
     // Depth stencil do not need uploads (nor are they possible in D3D9)
     } else if (unlikely(IsDepthStencil())) {
       Logger::debug("DDrawSurface::UploadSurfaceData: Skipping upload of depth stencil");
