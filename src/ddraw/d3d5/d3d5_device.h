@@ -5,7 +5,7 @@
 #include "../ddraw_options.h"
 #include "../ddraw_caps.h"
 
-#include "../d3d9/d3d9_bridge.h"
+#include "../../d3d9/d3d9_bridge.h"
 
 #include "d3d5_interface.h"
 #include "d3d5_material.h"

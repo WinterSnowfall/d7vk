@@ -1,7 +1,5 @@
 #pragma once
 
-#include <type_traits>
-
 #include "ddraw_include.h"
 
 namespace dxvk {

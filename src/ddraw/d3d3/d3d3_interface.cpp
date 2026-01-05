@@ -1,6 +1,6 @@
 #include "d3d3_interface.h"
 
-#include "../ddraw_interface.h"
+#include "../ddraw/ddraw_interface.h"
 
 namespace dxvk {
 

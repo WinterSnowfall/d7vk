@@ -1,10 +1,11 @@
 #include "d3d5_device.h"
 
 #include "../ddraw_util.h"
-#include "../ddraw2/ddraw2_interface.h"
-#include "../ddraw_surface.h"
 
 #include "d3d5_texture.h"
+
+#include "../ddraw/ddraw_surface.h"
+#include "../ddraw2/ddraw2_interface.h"
 
 #include <algorithm>
 

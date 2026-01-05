@@ -1,10 +1,10 @@
 #include "d3d6_viewport.h"
 
-#include "../ddraw4/ddraw4_surface.h"
-
 #include "d3d6_light.h"
 #include "d3d6_device.h"
 #include "d3d6_material.h"
+
+#include "../ddraw4/ddraw4_surface.h"
 
 #include <algorithm>
 
