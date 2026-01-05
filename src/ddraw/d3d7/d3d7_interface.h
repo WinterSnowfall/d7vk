@@ -3,8 +3,9 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_options.h"
+#include "../ddraw_util.h"
 
-#include "../d3d9/d3d9_bridge.h"
+#include "../../d3d9/d3d9_bridge.h"
 
 #include <vector>
 
