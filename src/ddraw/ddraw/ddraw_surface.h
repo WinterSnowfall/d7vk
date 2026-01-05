@@ -1,13 +1,13 @@
 #pragma once
 
-#include "ddraw_include.h"
-#include "ddraw_wrapped_object.h"
-#include "ddraw_format.h"
-#include "ddraw_clipper.h"
-#include "ddraw_palette.h"
+#include "../ddraw_include.h"
+#include "../ddraw_wrapped_object.h"
+#include "../ddraw_format.h"
 
-#include "d3d5/d3d5_device.h"
-#include "d3d5/d3d5_texture.h"
+#include "../ddraw_common_surface.h"
+
+#include "../d3d5/d3d5_device.h"
+#include "../d3d5/d3d5_texture.h"
 
 #include <unordered_map>
 
@@ -24,6 +24,7 @@ namespace dxvk {
   public:
 
     DDrawSurface(
+        DDrawCommonSurface* commonSurf,
         Com<IDirectDrawSurface>&& surfProxy,
         DDrawInterface* pParent,
         DDrawSurface* pParentSurf,
@@ -154,15 +155,15 @@ namespace dxvk {
     }
 
     bool HasDirtyMipMaps() const {
-      return m_dirtyMipMaps;
+      return m_commonSurf->HasDirtyMipMaps();
     }
 
     void DirtyMipMaps() {
-      m_dirtyMipMaps = true;
+      m_commonSurf->DirtyMipMaps();
     }
 
     void UnDirtyMipMaps() {
-      m_dirtyMipMaps = false;
+      m_commonSurf->UnDirtyMipMaps();
     }
 
     HRESULT InitializeD3D9RenderTarget();
@@ -259,23 +260,20 @@ namespace dxvk {
     }
 
     bool             m_isChildObject = true;
-    bool             m_dirtyMipMaps  = false;
-    uint32_t         m_mipCount      = 0;
 
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
 
-    DDrawSurface*    m_parentSurf = nullptr;
+    Com<DDrawCommonSurface> m_commonSurf;
 
-    DDraw7Surface*   m_origin    = nullptr;
+    DDrawSurface*           m_parentSurf = nullptr;
 
-    D3D5Device*      m_d3d5Device = nullptr;
+    DDraw7Surface*          m_origin    = nullptr;
+
+    D3D5Device*             m_d3d5Device = nullptr;
 
     DDSURFACEDESC                       m_desc;
     d3d9::D3DFORMAT                     m_format;
-
-    Com<DDrawClipper>                   m_clipper;
-    Com<DDrawPalette>                   m_palette;
 
     Com<D3D5Texture, false>             m_texture5;
 

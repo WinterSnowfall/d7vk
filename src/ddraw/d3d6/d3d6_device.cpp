@@ -1,11 +1,10 @@
 #include "d3d6_device.h"
 
-#include "../ddraw_util.h"
-#include "../ddraw4/ddraw4_interface.h"
-#include "../ddraw4/ddraw4_surface.h"
-
 #include "d3d6_buffer.h"
 #include "d3d6_texture.h"
+
+#include "../ddraw4/ddraw4_interface.h"
+#include "../ddraw4/ddraw4_surface.h"
 
 #include <algorithm>
 
