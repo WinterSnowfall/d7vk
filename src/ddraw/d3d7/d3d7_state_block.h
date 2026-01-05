@@ -3,10 +3,10 @@
 #include "../ddraw_include.h"
 #include "../ddraw_caps.h"
 
-#include "../ddraw7/ddraw7_surface.h"
-
 #include "../util/util_bit.h"
 #include "../util/util_flags.h"
+
+#include "../ddraw7/ddraw7_surface.h"
 
 #include <array>
 
