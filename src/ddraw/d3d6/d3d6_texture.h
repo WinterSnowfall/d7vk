@@ -3,7 +3,7 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
-#include "ddraw4/ddraw4_surface.h"
+#include "../ddraw4/ddraw4_surface.h"
 
 namespace dxvk {
 

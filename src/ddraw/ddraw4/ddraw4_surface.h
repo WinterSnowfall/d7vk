@@ -3,12 +3,12 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_format.h"
-#include "../ddraw_clipper.h"
-#include "../ddraw_palette.h"
 
-#include "../d3d6/d3d6_device.h"
+#include "../ddraw_common_surface.h"
 
 #include "ddraw4_interface.h"
+
+#include "../d3d6/d3d6_device.h"
 
 #include <unordered_map>
 
@@ -24,6 +24,7 @@ namespace dxvk {
   public:
 
     DDraw4Surface(
+        DDrawCommonSurface* commonSurf,
         Com<IDirectDrawSurface4>&& surfProxy,
         DDraw4Interface* pParent,
         DDraw4Surface* pParentSurf,
@@ -181,15 +182,15 @@ namespace dxvk {
     }
 
     bool HasDirtyMipMaps() const {
-      return m_dirtyMipMaps;
+      return m_commonSurf->HasDirtyMipMaps();
     }
 
     void DirtyMipMaps() {
-      m_dirtyMipMaps = true;
+      m_commonSurf->DirtyMipMaps();
     }
 
     void UnDirtyMipMaps() {
-      m_dirtyMipMaps = false;
+      m_commonSurf->UnDirtyMipMaps();
     }
 
     HRESULT InitializeD3D9RenderTarget();
@@ -287,11 +288,11 @@ namespace dxvk {
     }
 
     bool             m_isChildObject = true;
-    bool             m_dirtyMipMaps  = false;
-    uint32_t         m_mipCount      = 0;
 
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
+
+    Com<DDrawCommonSurface>             m_commonSurf;
 
     DDraw4Surface*                      m_parentSurf = nullptr;
 
@@ -301,9 +302,6 @@ namespace dxvk {
 
     DDSURFACEDESC2                      m_desc;
     d3d9::D3DFORMAT                     m_format;
-
-    Com<DDrawClipper>                   m_clipper;
-    Com<DDrawPalette>                   m_palette;
 
     Com<D3D6Texture, false>             m_texture6;
 

@@ -5,7 +5,7 @@
 #include "../ddraw_options.h"
 #include "../ddraw_format.h"
 
-#include "../d3d9/d3d9_bridge.h"
+#include "../../d3d9/d3d9_bridge.h"
 
 #include <unordered_map>
 

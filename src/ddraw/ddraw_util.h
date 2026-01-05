@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ddraw_include.h"
-
 #include "ddraw_caps.h"
 
 #include <vector>
