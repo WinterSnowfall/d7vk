@@ -1,10 +1,10 @@
 #include "d3d5_viewport.h"
 
-#include "../ddraw_surface.h"
-
 #include "d3d5_light.h"
 #include "d3d5_device.h"
 #include "d3d5_material.h"
+
+#include "../ddraw/ddraw_surface.h"
 
 #include <algorithm>
 

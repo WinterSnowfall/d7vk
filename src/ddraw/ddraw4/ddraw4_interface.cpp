@@ -1,12 +1,12 @@
 #include "ddraw4_interface.h"
 
-#include "../ddraw_interface.h"
+#include "ddraw4_surface.h"
 
+#include "../ddraw/ddraw_interface.h"
 #include "../ddraw7/ddraw7_interface.h"
+
 #include "../d3d3/d3d3_interface.h"
 #include "../d3d5/d3d5_interface.h"
-
-#include "ddraw4_surface.h"
 
 #include <algorithm>
 
@@ -14,9 +14,13 @@ namespace dxvk {
 
   uint32_t DDraw4Interface::s_intfCount = 0;
 
-  DDraw4Interface::DDraw4Interface(Com<IDirectDraw4>&& proxyIntf, DDrawInterface* pParent, DDraw7Interface* origin)
+  DDraw4Interface::DDraw4Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw4>&& proxyIntf, DDrawInterface* pParent, DDraw7Interface* origin)
     : DDrawWrappedObject<DDrawInterface, IDirectDraw4, IUnknown>(pParent, std::move(proxyIntf), nullptr)
+    , m_commonIntf ( commonIntf )
     , m_origin ( origin ) {
+    if (m_commonIntf == nullptr)
+      m_commonIntf = new DDrawCommonInterface();
+
     if (likely(!IsLegacyInterface())) {
       // Initialize the IDirect3D6 interlocked object
       void* d3d6IntfProxiedVoid = nullptr;
@@ -167,11 +171,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
-    if (unlikely(IsLegacyInterface())) {
-      Logger::debug(">>> DDraw4Interface::CreateClipper: Forwarded");
-      return m_origin->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
-    }
-
     Logger::debug(">>> DDraw4Interface::CreateClipper");
 
     if (unlikely(lplpDDClipper == nullptr))
@@ -193,11 +192,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpColorTable, LPDIRECTDRAWPALETTE *lplpDDPalette, IUnknown *pUnkOuter) {
-    if (unlikely(IsLegacyInterface())) {
-      Logger::debug(">>> DDraw4Interface::CreatePalette: Forwarded");
-      return m_origin->CreatePalette(dwFlags, lpColorTable, lplpDDPalette, pUnkOuter);
-    }
-
     Logger::debug(">>> DDraw4Interface::CreatePalette");
 
     if (unlikely(lplpDDPalette == nullptr))
@@ -227,7 +221,7 @@ namespace dxvk {
     Logger::debug(">>> DDraw4Interface::CreateSurface");
 
     // The cooperative level is always checked first
-    if (unlikely(!m_cooperativeLevel))
+    if (unlikely(!m_commonIntf->GetCooperativeLevel()))
       return DDERR_NOCOOPERATIVELEVELSET;
 
     if (unlikely(lpDDSurfaceDesc == nullptr || lplpDDSurface == nullptr))
@@ -268,7 +262,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       try{
-        Com<DDraw4Surface> surface4 = new DDraw4Surface(std::move(ddrawSurface4Proxied), this, nullptr, nullptr, true);
+        Com<DDraw4Surface> surface4 = new DDraw4Surface(nullptr, std::move(ddrawSurface4Proxied), this, nullptr, nullptr, true);
 
         if (unlikely(m_d3d6Intf->GetOptions()->proxiedQueryInterface)) {
           // Hack: Gothic / Gothic 2 and other games attach the depth stencil to an externally created
@@ -310,7 +304,7 @@ namespace dxvk {
       HRESULT hr = m_proxy->DuplicateSurface(ddraw4Surface->GetProxied(), &dupSurface4);
       if (likely(SUCCEEDED(hr))) {
         try {
-          *lplpDupDDSurface = ref(new DDraw4Surface(std::move(dupSurface4), this, nullptr, nullptr, false));
+          *lplpDupDDSurface = ref(new DDraw4Surface(nullptr, std::move(dupSurface4), this, nullptr, nullptr, false));
         } catch (const DxvkError& e) {
           Logger::err(e.message());
           return DDERR_GENERIC;
@@ -411,7 +405,7 @@ namespace dxvk {
     } else {
       Logger::debug("DDraw4Interface::GetGDISurface: Received a non-wrapped GDI surface");
       try {
-        *lplpGDIDDSurface = ref(new DDraw4Surface(std::move(gdiSurface), this, nullptr, nullptr, false));
+        *lplpGDIDDSurface = ref(new DDraw4Surface(nullptr, std::move(gdiSurface), this, nullptr, nullptr, false));
       } catch (const DxvkError& e) {
         Logger::err(e.message());
         return DDERR_GENERIC;
@@ -447,33 +441,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
-    if (unlikely(IsLegacyInterface())) {
-      Logger::debug(">>> DDraw4Interface::SetCooperativeLevel: Forwarded");
-      return m_origin->SetCooperativeLevel(hWnd, dwFlags);
-    }
-
     Logger::debug("<<< DDraw4Interface::SetCooperativeLevel: Proxy");
 
     HRESULT hr = m_proxy->SetCooperativeLevel(hWnd, dwFlags);
     if (unlikely(FAILED(hr)))
       return hr;
 
-    const bool changed = m_cooperativeLevel != dwFlags;
-
-    // This needs to be called on interface init, so is a reliable
-    // way of getting the needed hWnd for d3d7 device creation
-    if (likely((dwFlags & DDSCL_NORMAL) || (dwFlags & DDSCL_EXCLUSIVE)))
-      m_hwnd = hWnd;
-
-    if (changed)
-      m_cooperativeLevel = dwFlags;
-
-    // Atempt to update any parent and child interfaces, because some applications
-    // first call QueryInterface, and only after that call SetCooperativeLevel
-    if (m_parent != nullptr) {
-      m_parent->SetCooperativeLevel(dwFlags);
-      m_parent->SetHWND(hWnd);
-    }
+    m_commonIntf->SetCooperativeLevel(hWnd, dwFlags);
 
     return hr;
   }
@@ -492,7 +466,7 @@ namespace dxvk {
 
     if (likely(!m_d3d6Intf->GetOptions()->forceProxiedPresent &&
                 m_d3d6Intf->GetOptions()->backBufferResize)) {
-      const bool exclusiveMode = m_cooperativeLevel & DDSCL_EXCLUSIVE;
+      const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
       if (exclusiveMode) {
@@ -623,7 +597,7 @@ namespace dxvk {
     }
 
     try {
-      *pSurf = ref(new DDraw4Surface(std::move(surface), this, nullptr, nullptr, false));
+      *pSurf = ref(new DDraw4Surface(nullptr, std::move(surface), this, nullptr, nullptr, false));
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;
