@@ -3,17 +3,17 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
-#include "../ddraw7/ddraw7_surface.h"
+#include "ddraw_surface.h"
 
-#include "../d3d7/d3d7_device.h"
+#include "../d3d5/d3d5_device.h"
 
 namespace dxvk {
 
-  class DDrawGammaControl final : public DDrawWrappedObject<DDraw7Surface, IDirectDrawGammaControl, IUnknown> {
+  class DDrawGammaControl final : public DDrawWrappedObject<DDrawSurface, IDirectDrawGammaControl, IUnknown> {
 
   public:
 
-    DDrawGammaControl(Com<IDirectDrawGammaControl>&& proxyGamma, DDraw7Surface* pParent);
+    DDrawGammaControl(Com<IDirectDrawGammaControl>&& proxyGamma, DDrawSurface* pParent);
 
     ~DDrawGammaControl();
 
@@ -25,13 +25,13 @@ namespace dxvk {
 
   private:
 
-    inline void RefreshD3D7Device() {
-      D3D7Device* d3d7Device = m_parent->GetD3D7Device();
-      if (unlikely(m_d3d7Device != d3d7Device))
-        m_d3d7Device = d3d7Device;
+    inline void RefreshD3D5Device() {
+      D3D5Device* d3d5Device = m_parent->GetD3D5Device();
+      if (unlikely(m_d3d5Device != d3d5Device))
+        m_d3d5Device = d3d5Device;
     }
 
-    D3D7Device* m_d3d7Device = nullptr;
+    D3D5Device* m_d3d5Device = nullptr;
 
   };
 

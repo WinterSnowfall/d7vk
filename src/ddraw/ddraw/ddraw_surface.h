@@ -6,6 +6,8 @@
 
 #include "../ddraw_common_surface.h"
 
+#include "ddraw_interface.h"
+
 #include "../d3d5/d3d5_device.h"
 #include "../d3d5/d3d5_texture.h"
 
@@ -105,12 +107,13 @@ namespace dxvk {
       return m_parent->GetOptions();
     }
 
-    d3d9::IDirect3DTexture9* GetD3D9Texture() const {
-      return m_texture.ptr();
+    D3D5Device* GetD3D5Device() {
+      RefreshD3D5Device();
+      return m_d3d5Device;
     }
 
-    uint8_t GetZBufferBitDepth() const {
-      return m_desc.ddpfPixelFormat.dwZBufferBitDepth == 32 ? 24 : m_desc.ddpfPixelFormat.dwZBufferBitDepth;
+    d3d9::IDirect3DTexture9* GetD3D9Texture() const {
+      return m_texture.ptr();
     }
 
     bool IsChildObject() const {

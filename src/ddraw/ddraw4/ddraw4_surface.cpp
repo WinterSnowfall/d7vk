@@ -1,5 +1,6 @@
 #include "ddraw4_surface.h"
 
+#include "ddraw4_gamma.h"
 #include "ddraw4_interface.h"
 
 #include "../ddraw/ddraw_surface.h"
@@ -88,14 +89,18 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
+    // Wrap IDirectDrawGammaControl, to potentially ignore application set gamma ramps
     if (riid == __uuidof(IDirectDrawGammaControl)) {
-      if (unlikely(IsLegacyInterface())) {
-        return m_origin->QueryInterface(riid, ppvObject);
-      }
-
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::debug("DDraw4Surface::QueryInterface: Query for IDirectDrawGammaControl");
+      void* gammaControlProxiedVoid = nullptr;
+      // This can never reasonably fail
+      m_proxy->QueryInterface(__uuidof(IDirectDrawGammaControl), &gammaControlProxiedVoid);
+      Com<IDirectDrawGammaControl> gammaControlProxied = static_cast<IDirectDrawGammaControl*>(gammaControlProxiedVoid);
+      *ppvObject = ref(new DDraw4GammaControl(std::move(gammaControlProxied), this));
+      return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
+      Logger::debug("DDraw4Surface::QueryInterface: Query for IDirectDrawColorControl");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IUnknown)
@@ -996,12 +1001,12 @@ namespace dxvk {
   }
 
   inline HRESULT DDraw4Surface::IntializeD3D9(const bool initRT) {
-    Logger::debug(str::format("DDraw4Surface::IntializeD3D9: Initializing nr. [[4-", m_surfCount, "]]"));
-
     if (unlikely(m_d3d6Device == nullptr)) {
       Logger::debug("DDraw4Surface::IntializeD3D9: Null device, can't initalize right now");
       return DD_OK;
     }
+
+    Logger::debug(str::format("DDraw4Surface::IntializeD3D9: Initializing nr. [[4-", m_surfCount, "]]"));
 
     if (unlikely(m_desc.dwHeight == 0 || m_desc.dwWidth == 0)) {
       Logger::warn("DDraw4Surface::IntializeD3D9: Surface has 0 height or width");
