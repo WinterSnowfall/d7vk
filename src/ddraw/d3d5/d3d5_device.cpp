@@ -9,6 +9,12 @@
 
 #include <algorithm>
 
+// Supress warnings about D3DRENDERSTATE_ALPHABLENDENABLE_OLD
+// not being in the shipped D3D6 enum (thanks a lot, MS)
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wswitch"
+#endif
+
 namespace dxvk {
 
   uint32_t D3D5Device::s_deviceCount = 0;
@@ -45,11 +51,6 @@ namespace dxvk {
     if(unlikely(FAILED(hr)))
       throw DxvkError("D3D5Device: ERROR! Failed to retrieve D3D9 back buffers!");
 
-    // Textures
-    m_textures.fill(nullptr);
-    // Common D3D9 index buffers
-    m_ib9.fill(nullptr);
-
     if (unlikely(!m_parent->GetOptions()->disableAASupport
                 &&m_parent->GetOptions()->forceEnableAA)) {
       Logger::warn("D3D5Device: Force enabling AA");
@@ -62,16 +63,6 @@ namespace dxvk {
   }
 
   D3D5Device::~D3D5Device() {
-    // If at least the smallest index buffer saw any use, then print the stats
-    if (m_ib9_uploads[0] > 0) {
-      Logger::info("D3D5Device: Common index buffer upload statistics:");
-      Logger::info(str::format("   XS: ", m_ib9_uploads[0]));
-      Logger::info(str::format("   S : ", m_ib9_uploads[1]));
-      Logger::info(str::format("   M : ", m_ib9_uploads[2]));
-      Logger::info(str::format("   L : ", m_ib9_uploads[3]));
-      Logger::info(str::format("   XL: ", m_ib9_uploads[4]));
-    }
-
     // Dissasociate every bound viewport from this device
     for (auto viewport : m_viewports) {
       viewport->SetDevice(nullptr);
@@ -242,9 +233,10 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // This is a DDSURFACEDESC in D3D5, because why not...
-    DDSURFACEDESC textureFormat;
+    DDSURFACEDESC textureFormat = { };
     textureFormat.dwSize  = sizeof(DDSURFACEDESC);
-    textureFormat.dwFlags = DDSD_PIXELFORMAT;
+    textureFormat.dwFlags = DDSD_CAPS | DDSD_PIXELFORMAT;
+    textureFormat.ddsCaps.dwCaps = DDSCAPS_TEXTURE;
 
     // Note: The list of formats exposed in D3D5 is restricted to the below
 
@@ -287,51 +279,10 @@ namespace dxvk {
       return D3D_OK;
 
     // Not supported in D3D9, but some games may use it
-    // Note: Advertizing P8 support breaks Sacrifice
     /*textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_P8);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
       return D3D_OK;*/
-
-    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_V8U8);
-    hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
-      return D3D_OK;
-
-    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_L6V5U5);
-    hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
-      return D3D_OK;
-
-    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_X8L8V8U8);
-    hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
-      return D3D_OK;
-
-    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_DXT1);
-    hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
-      return D3D_OK;
-
-    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_DXT2);
-    hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
-      return D3D_OK;
-
-    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_DXT3);
-    hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
-      return D3D_OK;
-
-    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_DXT4);
-    hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
-      return D3D_OK;
-
-    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_DXT5);
-    hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
-      return D3D_OK;
 
     return D3D_OK;
   }
@@ -600,7 +551,7 @@ namespace dxvk {
 
     // As opposed to D3D7, D3D5 does not error out on
     // unknown or invalid render states.
-    if (unlikely(!IsValidD3D6RenderStateType(dwRenderStateType))) {
+    if (unlikely(!IsValidD3D5RenderStateType(dwRenderStateType))) {
       *lpdwRenderState = 0;
       return D3D_OK;
     }
@@ -647,11 +598,11 @@ namespace dxvk {
         return D3D_OK;
 
       case D3DRENDERSTATE_MONOENABLE:
-        *lpdwRenderState = R2_COPYPEN;
+        *lpdwRenderState = FALSE;
         return D3D_OK;
 
       case D3DRENDERSTATE_ROP2:
-        *lpdwRenderState = FALSE;
+        *lpdwRenderState = R2_COPYPEN;
         return D3D_OK;
 
       case D3DRENDERSTATE_PLANEMASK:
@@ -670,9 +621,13 @@ namespace dxvk {
         *lpdwRenderState = m_textureMapBlend;
         return D3D_OK;
 
-      // Not supported by D3D7 either, but its value is stored.
+      // Replaced by D3DRENDERSTATE_ALPHABLENDENABLE
+      case D3DRENDERSTATE_BLENDENABLE:
+        State9 = d3d9::D3DRS_ALPHABLENDENABLE;
+        break;
+
       case D3DRENDERSTATE_ZVISIBLE:
-        *lpdwRenderState = m_zVisible;
+        *lpdwRenderState = FALSE;
         return D3D_OK;
 
       case D3DRENDERSTATE_SUBPIXEL:
@@ -699,6 +654,10 @@ namespace dxvk {
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
+      case D3DRENDERSTATE_ALPHABLENDENABLE_OLD:
+        State9 = d3d9::D3DRS_ALPHABLENDENABLE;
+        break;
+
       case D3DRENDERSTATE_BORDERCOLOR:
         m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_BORDERCOLOR, lpdwRenderState);
         return D3D_OK;
@@ -718,23 +677,12 @@ namespace dxvk {
       case D3DRENDERSTATE_ZBIAS: {
         DWORD bias  = 0;
         HRESULT res = m_d3d9->GetRenderState(d3d9::D3DRS_DEPTHBIAS, &bias);
-        *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(bias) * (1 / GetZBiasFactor()));
+        *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(bias) * ddrawCaps::ZBIAS_SCALE_INV);
         return res;
       } break;
 
       case D3DRENDERSTATE_ANISOTROPY:
         m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MAXANISOTROPY, lpdwRenderState);
-        return D3D_OK;
-
-      // "Batched primitives are implicitly flushed when rendering with the
-      // IDirect3DDevice3 interface, as well as when rendering with execute buffers."
-      case D3DRENDERSTATE_FLUSHBATCH:
-        *lpdwRenderState = TRUE;
-        return D3D_OK;
-
-      // TODO:
-      case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:
-        *lpdwRenderState = FALSE;
         return D3D_OK;
 
       // TODO:
@@ -787,7 +735,7 @@ namespace dxvk {
 
     // As opposed to D3D7, D3D5 does not error out on
     // unknown or invalid render states.
-    if (unlikely(!IsValidD3D6RenderStateType(dwRenderStateType)))
+    if (unlikely(!IsValidD3D5RenderStateType(dwRenderStateType)))
       return D3D_OK;
 
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
@@ -1000,9 +948,18 @@ namespace dxvk {
 
         return D3D_OK;
 
-      // Not supported by D3D7 either, but its value is stored.
+      // Replaced by D3DRENDERSTATE_ALPHABLENDENABLE
+      case D3DRENDERSTATE_BLENDENABLE:
+        State9 = d3d9::D3DRS_ALPHABLENDENABLE;
+        break;
+
+      // TODO:
       case D3DRENDERSTATE_ZVISIBLE:
-        m_zVisible = dwRenderState;
+        static bool s_zVisibleErrorShown;
+
+        if (dwRenderState && !std::exchange(s_zVisibleErrorShown, true))
+          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_ZVISIBLE");
+
         return D3D_OK;
 
       // Docs state: "Most hardware either doesn't support it (always off) or
@@ -1044,6 +1001,10 @@ namespace dxvk {
 
         return D3D_OK;
 
+      case D3DRENDERSTATE_ALPHABLENDENABLE_OLD:
+        State9 = d3d9::D3DRS_ALPHABLENDENABLE;
+        break;
+
       case D3DRENDERSTATE_BORDERCOLOR:
         m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_BORDERCOLOR, dwRenderState);
         return D3D_OK;
@@ -1062,25 +1023,11 @@ namespace dxvk {
 
       case D3DRENDERSTATE_ZBIAS:
         State9         = d3d9::D3DRS_DEPTHBIAS;
-        dwRenderState  = bit::cast<DWORD>(static_cast<float>(dwRenderState) * GetZBiasFactor());
+        dwRenderState  = bit::cast<DWORD>(static_cast<float>(dwRenderState) * ddrawCaps::ZBIAS_SCALE);
         break;
 
       case D3DRENDERSTATE_ANISOTROPY:
         m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MAXANISOTROPY, dwRenderState);
-        return D3D_OK;
-
-      // "Batched primitives are implicitly flushed when rendering with the
-      // IDirect3DDevice3 interface, as well as when rendering with execute buffers."
-      case D3DRENDERSTATE_FLUSHBATCH:
-        return D3D_OK;
-
-      // TODO:
-      case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:
-        static bool s_translucentErrorShown;
-
-        if (dwRenderState && !std::exchange(s_translucentErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT");
-
         return D3D_OK;
 
       // TODO:
@@ -1158,9 +1105,6 @@ namespace dxvk {
       case D3DLIGHTSTATE_FOGDENSITY:
         m_d3d9->GetRenderState(d3d9::D3DRS_FOGDENSITY, lpdwLightState);
         break;
-      case D3DLIGHTSTATE_COLORVERTEX:
-        m_d3d9->GetRenderState(d3d9::D3DRS_COLORVERTEX, lpdwLightState);
-        break;
       default:
         return DDERR_INVALIDPARAMS;
     }
@@ -1208,9 +1152,6 @@ namespace dxvk {
         break;
       case D3DLIGHTSTATE_FOGDENSITY:
         m_d3d9->SetRenderState(d3d9::D3DRS_FOGDENSITY, dwLightState);
-        break;
-      case D3DLIGHTSTATE_COLORVERTEX:
-        m_d3d9->SetRenderState(d3d9::D3DRS_COLORVERTEX, dwLightState);
         break;
       default:
         return DDERR_INVALIDPARAMS;
@@ -1432,25 +1373,6 @@ namespace dxvk {
     return hr;
   }
 
-  inline HRESULT D3D5Device::InitializeIndexBuffers() {
-    static constexpr DWORD Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
-
-    for (uint32_t ibIndex = 0; ibIndex < ddrawCaps::IndexBufferCount ; ibIndex++) {
-      const UINT ibSize = IndexCount[ibIndex] * sizeof(WORD);
-
-      Logger::debug(str::format("D3D5Device::InitializeIndexBuffer: Creating index buffer, size: ", ibSize));
-
-      HRESULT hr = m_d3d9->CreateIndexBuffer(ibSize, Usage, d3d9::D3DFMT_INDEX16,
-                                             d3d9::D3DPOOL_DEFAULT, &m_ib9[ibIndex], nullptr);
-      if (FAILED(hr)) {
-        Logger::err("D3D5Device::InitializeIndexBuffer: Failed to initialize D3D9 index buffer");
-        return hr;
-      }
-    }
-
-    return D3D_OK;
-  }
-
   inline HRESULT D3D5Device::EnumerateBackBuffers(IDirectDrawSurface* origin) {
     m_fallBackBuffer = nullptr;
     m_backBuffers.clear();
@@ -1540,16 +1462,6 @@ namespace dxvk {
     ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
     memcpy(pData, static_cast<void*>(indices), size);
     ib9->Unlock();
-  }
-
-  inline float D3D5Device::GetZBiasFactor() {
-    static constexpr float ZBIAS_SCALE_D16 = -1.0f / ((1 << 16) - 1); // Consider D16 precision
-    static constexpr float ZBIAS_SCALE_D24 = -1.0f / ((1 << 24) - 1); // Consider D24 precision
-
-    if (m_ds == nullptr)
-      return ZBIAS_SCALE_D16;
-
-    return m_ds->GetZBufferBitDepth() == 24 ? ZBIAS_SCALE_D24 : ZBIAS_SCALE_D16;
   }
 
   inline HRESULT D3D5Device::SetTextureInternal(D3D5Texture* texture5) {
