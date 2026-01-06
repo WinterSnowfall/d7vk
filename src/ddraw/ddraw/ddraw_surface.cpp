@@ -1,6 +1,6 @@
 #include "ddraw_surface.h"
 
-#include "ddraw_interface.h"
+#include "ddraw_gamma.h"
 
 #include "../ddraw2/ddraw2_surface.h"
 #include "../ddraw2/ddraw3_surface.h"
@@ -107,14 +107,18 @@ namespace dxvk {
       Logger::warn("DDrawSurface::QueryInterface: Use of unsupported D3D3 device");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
+    // Wrap IDirectDrawGammaControl, to potentially ignore application set gamma ramps
     if (riid == __uuidof(IDirectDrawGammaControl)) {
-      if (likely(IsLegacyInterface())) {
-        return m_origin->QueryInterface(riid, ppvObject);
-      }
-
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawGammaControl");
+      void* gammaControlProxiedVoid = nullptr;
+      // This can never reasonably fail
+      m_proxy->QueryInterface(__uuidof(IDirectDrawGammaControl), &gammaControlProxiedVoid);
+      Com<IDirectDrawGammaControl> gammaControlProxied = static_cast<IDirectDrawGammaControl*>(gammaControlProxiedVoid);
+      *ppvObject = ref(new DDrawGammaControl(std::move(gammaControlProxied), this));
+      return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
+      Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawColorControl");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
     // Some applications check the supported API level by querying the various newer surface GUIDs...
@@ -830,12 +834,12 @@ namespace dxvk {
   }
 
   inline HRESULT DDrawSurface::IntializeD3D9(const bool initRT) {
-    Logger::debug(str::format("DDrawSurface::IntializeD3D9: Initializing nr. [[1-", m_surfCount, "]]"));
-
     if (unlikely(m_d3d5Device == nullptr)) {
       Logger::debug("DDrawSurface::IntializeD3D9: Null device, can't initalize right now");
       return DD_OK;
     }
+
+    Logger::debug(str::format("DDrawSurface::IntializeD3D9: Initializing nr. [[1-", m_surfCount, "]]"));
 
     if (unlikely(m_desc.dwHeight == 0 || m_desc.dwWidth == 0)) {
       Logger::warn("DDrawSurface::IntializeD3D9: Surface has 0 height or width");
