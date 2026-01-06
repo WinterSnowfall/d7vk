@@ -276,7 +276,6 @@ namespace dxvk {
       return D3D_OK;
 
     // Not supported in D3D9, but some games may use it
-    // Note: Advertizing P8 support breaks Sacrifice
     /*textureFormat = GetTextureFormat(d3d9::D3DFMT_P8);
     hr = cb(&textureFormat, ctx);
     if (unlikely(hr == D3DENUMRET_CANCEL))
@@ -630,11 +629,11 @@ namespace dxvk {
         return D3D_OK;
 
       case D3DRENDERSTATE_MONOENABLE:
-        *lpdwRenderState = R2_COPYPEN;
+        *lpdwRenderState = FALSE;
         return D3D_OK;
 
       case D3DRENDERSTATE_ROP2:
-        *lpdwRenderState = FALSE;
+        *lpdwRenderState = R2_COPYPEN;
         return D3D_OK;
 
       case D3DRENDERSTATE_PLANEMASK:
@@ -701,7 +700,7 @@ namespace dxvk {
       case D3DRENDERSTATE_ZBIAS: {
         DWORD bias  = 0;
         HRESULT res = m_d3d9->GetRenderState(d3d9::D3DRS_DEPTHBIAS, &bias);
-        *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(bias) * (1 / GetZBiasFactor()));
+        *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(bias) * ddrawCaps::ZBIAS_SCALE_INV);
         return res;
       } break;
 
@@ -1027,7 +1026,7 @@ namespace dxvk {
 
       case D3DRENDERSTATE_ZBIAS:
         State9         = d3d9::D3DRS_DEPTHBIAS;
-        dwRenderState  = bit::cast<DWORD>(static_cast<float>(dwRenderState) * GetZBiasFactor());
+        dwRenderState  = bit::cast<DWORD>(static_cast<float>(dwRenderState) * ddrawCaps::ZBIAS_SCALE);
         break;
 
       case D3DRENDERSTATE_ANISOTROPY:
@@ -1477,15 +1476,15 @@ namespace dxvk {
     if (unlikely(!AreIndexBuffersInitialized()))
       InitializeIndexBuffers();
 
-    uint32_t ibIndex = 0;
+    uint8_t ibIndex = 0;
     // Try to fit index buffer uploads into the smallest buffer size possible,
     // out of the five available: XS, S, M, L and XL (XL being the theoretical max)
     while (index_count > IndexCount[ibIndex]) {
+      ibIndex++;
       if (unlikely(ibIndex > ddrawCaps::IndexBufferCount - 1)) {
         Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Exceeded size of largest index buffer");
         return DDERR_GENERIC;
       }
-      ibIndex++;
     }
 
     HandlePreDrawFlags(flags, vb6->GetFVF());
@@ -1736,7 +1735,7 @@ namespace dxvk {
   inline HRESULT D3D6Device::InitializeIndexBuffers() {
     static constexpr DWORD Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 
-    for (uint32_t ibIndex = 0; ibIndex < ddrawCaps::IndexBufferCount ; ibIndex++) {
+    for (uint8_t ibIndex = 0; ibIndex < ddrawCaps::IndexBufferCount ; ibIndex++) {
       const UINT ibSize = IndexCount[ibIndex] * sizeof(WORD);
 
       Logger::debug(str::format("D3D6Device::InitializeIndexBuffer: Creating index buffer, size: ", ibSize));
@@ -1841,16 +1840,6 @@ namespace dxvk {
     ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
     memcpy(pData, static_cast<void*>(indices), size);
     ib9->Unlock();
-  }
-
-  inline float D3D6Device::GetZBiasFactor() {
-    static constexpr float ZBIAS_SCALE_D16 = -1.0f / ((1 << 16) - 1); // Consider D16 precision
-    static constexpr float ZBIAS_SCALE_D24 = -1.0f / ((1 << 24) - 1); // Consider D24 precision
-
-    if (m_ds == nullptr)
-      return ZBIAS_SCALE_D16;
-
-    return m_ds->GetZBufferBitDepth() == 24 ? ZBIAS_SCALE_D24 : ZBIAS_SCALE_D16;
   }
 
 }
