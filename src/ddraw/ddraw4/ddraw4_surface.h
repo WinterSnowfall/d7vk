@@ -132,10 +132,6 @@ namespace dxvk {
       return m_texture.ptr();
     }
 
-    uint8_t GetZBufferBitDepth() const {
-      return m_desc.ddpfPixelFormat.dwZBufferBitDepth == 32 ? 24 : m_desc.ddpfPixelFormat.dwZBufferBitDepth;
-    }
-
     bool IsChildObject() const {
       return m_isChildObject;
     }

@@ -495,7 +495,7 @@ namespace dxvk {
   inline HRESULT STDMETHODCALLTYPE ListMipChainSurfacesCallback(IDirectDrawSurface* subsurf, DDSURFACEDESC* desc, void* ctx) {
     IDirectDrawSurface** nextMip = static_cast<IDirectDrawSurface**>(ctx);
 
-    if (desc->ddsCaps.dwCaps  & DDSCAPS_MIPMAP) {
+    if (desc->ddsCaps.dwCaps & DDSCAPS_MIPMAP) {
       *nextMip = subsurf;
       return DDENUMRET_CANCEL;
     }
@@ -564,9 +564,9 @@ namespace dxvk {
       d3d9::IDirect3DCubeTexture9* cubeTex9,
       d3d9::D3DFORMAT format9,
       IDirectDrawSurface7* surface,
-      uint32_t mipLevels) {
+      uint8_t mipLevels) {
     // Properly handle cube textures with auto-generated mip maps
-    const uint32_t actualMipLevels = std::max(1u, mipLevels);
+    const uint8_t actualMipLevels = std::max<uint8_t>(1u, mipLevels);
 
     DDSURFACEDESC2 desc = { };
     desc.dwSize = sizeof(DDSURFACEDESC2);
@@ -579,7 +579,7 @@ namespace dxvk {
 
     Logger::debug(str::format("BlitToD3D9CubeMap: Blitting ", actualMipLevels, " mip map(s)"));
 
-    for (uint32_t i = 0; i < actualMipLevels; i++) {
+    for (uint8_t i = 0; i < actualMipLevels; i++) {
       // Should never occur normally, but acts as a last ditch safety check
       if (unlikely(mipMap == nullptr)) {
         Logger::warn(str::format("BlitToD3D9CubeMap: Last found source mip ", i - 1));
@@ -640,15 +640,15 @@ namespace dxvk {
       d3d9::IDirect3DTexture9* texture9,
       d3d9::D3DFORMAT format9,
       SurfaceType* surface,
-      uint32_t mipLevels) {
+      uint8_t mipLevels) {
     // Properly handle textures with auto-generated mip maps
-    const uint32_t actualMipLevels = std::max(1u, mipLevels);
+    const uint8_t actualMipLevels = std::max<uint8_t>(1u, mipLevels);
 
     SurfaceType* mipMap = surface;
 
     Logger::debug(str::format("BlitToD3D9Texture: Blitting ", actualMipLevels, " mip map(s)"));
 
-    for (uint32_t i = 0; i < actualMipLevels; i++) {
+    for (uint8_t i = 0; i < actualMipLevels; i++) {
       // Should never occur normally, but acts as a last ditch safety check
       if (unlikely(mipMap == nullptr)) {
         Logger::warn(str::format("BlitToD3D9Texture: Last found source mip ", i - 1));
