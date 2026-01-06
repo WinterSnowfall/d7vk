@@ -1,7 +1,6 @@
 {
   global:
   	AcquireDDThreadLock;
-    CompleteCreateSysmemSurface;
     D3DParseUnknownCommand;
     DDGetAttachedSurfaceLcl;
     DDInternalLock;
@@ -17,6 +16,8 @@
     DllGetClassObject;
     GetDDSurfaceLocal;
     GetSurfaceFromDC;
+    InternalLock;
+    InternalUnlock;
     RegisterSpecialCase;
     ReleaseDDThreadLock;
 

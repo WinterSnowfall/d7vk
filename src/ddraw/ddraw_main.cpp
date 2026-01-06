@@ -198,11 +198,6 @@ extern "C" {
     return ProxiedAcquireDDThreadLock();
   }
 
-  DLLEXPORT HRESULT __stdcall CompleteCreateSysmemSurface(DWORD arg) {
-    dxvk::Logger::warn("!!! CompleteCreateSysmemSurface: Stub");
-    return S_OK;
-  }
-
   DLLEXPORT HRESULT __stdcall D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd) {
     dxvk::Logger::warn("!!! D3DParseUnknownCommand: Stub");
     return S_OK;
@@ -337,38 +332,44 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall DllCanUnloadNow() {
-    dxvk::Logger::warn("!!! DllCanUnloadNow: Stub");
-    return S_OK;
-  }
+    dxvk::Logger::debug("<<< DllCanUnloadNow: Proxy");
 
-  DLLEXPORT HRESULT __stdcall DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv) {
-    dxvk::Logger::debug("<<< DllGetClassObject: Proxy");
+    typedef HRESULT (__stdcall *DllCanUnloadNow_t)();
+    static DllCanUnloadNow_t ProxiedDllCanUnloadNow = nullptr;
 
-    typedef HRESULT (__stdcall *DllGetClassObject_t)(REFCLSID rclsid, REFIID riid, LPVOID *ppv);
-    static DllGetClassObject_t ProxiedDllGetClassObject = nullptr;
-
-    dxvk::Logger::debug(dxvk::str::format("DllGetClassObject: Call for rclsid: ", rclsid));
-
-    // TODO: Figure out a way to get Total Annihilation: Kingdoms to like what we return,
-    // because simply calling CreateDirectDraw here does not work for some reason
-
-    if (unlikely(ProxiedDllGetClassObject == nullptr)) {
+    if (unlikely(ProxiedDllCanUnloadNow == nullptr)) {
       HMODULE hDDraw = dxvk::GetProxiedDDrawModule();
 
       if (unlikely(hDDraw == nullptr)) {
-        dxvk::Logger::err("DllGetClassObject: Failed to load proxied ddraw.dll");
+        dxvk::Logger::err("DllCanUnloadNow: Failed to load proxied ddraw.dll");
         return DDERR_GENERIC;
       }
 
-      ProxiedDllGetClassObject = reinterpret_cast<DllGetClassObject_t>(GetProcAddress(hDDraw, "DllGetClassObject"));
+      ProxiedDllCanUnloadNow = reinterpret_cast<DllCanUnloadNow_t>(GetProcAddress(hDDraw, "DllCanUnloadNow"));
 
-      if (unlikely(ProxiedDllGetClassObject == nullptr)) {
-        dxvk::Logger::err("DllGetClassObject: Failed GetProcAddress");
+      if (unlikely(ProxiedDllCanUnloadNow == nullptr)) {
+        dxvk::Logger::err("DllCanUnloadNow: Failed GetProcAddress");
         return DDERR_GENERIC;
       }
     }
 
-    return ProxiedDllGetClassObject(rclsid, riid, ppv);
+    return ProxiedDllCanUnloadNow();
+  }
+
+  DLLEXPORT HRESULT __stdcall DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv) {
+    dxvk::Logger::debug(">>> DllGetClassObject");
+
+    dxvk::Logger::debug(dxvk::str::format("DllGetClassObject: Call for rclsid: ", rclsid));
+
+    if (riid != __uuidof(IClassFactory) && riid != __uuidof(IUnknown))
+      return E_NOINTERFACE;
+
+    if (rclsid == dxvk::CLSID_DirectDraw) {
+      GUID intfGUID = __uuidof(IDirectDraw);
+      return dxvk::CreateDirectDraw(&intfGUID, reinterpret_cast<IDirectDraw**>(ppv), NULL);
+    }
+
+    return CLASS_E_CLASSNOTAVAILABLE;
   }
 
   DLLEXPORT HRESULT __stdcall GetDDSurfaceLocal(DWORD arg1, DWORD arg2, DWORD arg3) {
@@ -378,6 +379,16 @@ extern "C" {
 
   DLLEXPORT HRESULT __stdcall GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS, DWORD arg) {
     dxvk::Logger::warn("!!! GetSurfaceFromDC: Stub");
+    return S_OK;
+  }
+
+  DLLEXPORT HRESULT __stdcall InternalLock(DWORD arg1, DWORD arg2) {
+    dxvk::Logger::warn("!!! InternalLock: Stub");
+    return S_OK;
+  }
+
+  DLLEXPORT HRESULT __stdcall InternalUnlock(DWORD arg) {
+    dxvk::Logger::warn("!!! InternalUnlock: Stub");
     return S_OK;
   }
 
@@ -409,6 +420,31 @@ extern "C" {
     }
 
     return ProxiedReleaseDDThreadLock();
+  }
+
+  BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
+    switch (fdwReason) {
+      case DLL_THREAD_ATTACH:
+        break;
+      case DLL_THREAD_DETACH:
+        break;
+      case DLL_PROCESS_ATTACH:
+        dxvk::Logger::info(">>>>>>> LOADING D7VK >>>>>>>");
+        break;
+      case DLL_PROCESS_DETACH: {
+        // Calling FreeLibrary on DLL_PROCESS_DETACH is technically discouraged,
+        // however apitrace appears to do it with no ill effect, and I have no
+        // other ideas on how to properly free up the proxied ddraw.dll.
+        HMODULE hDDraw = dxvk::GetProxiedDDrawModule();
+        if (likely(hDDraw != nullptr))
+          FreeLibrary(hDDraw);
+        dxvk::Logger::info("<<<<<<< UNLOADING D7VK <<<<<<<");
+        break;
+      }
+      default:
+        break;
+    }
+    return TRUE;
   }
 
 }

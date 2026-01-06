@@ -12,7 +12,6 @@
 #include "d3d5_multithread.h"
 #include "d3d5_viewport.h"
 
-#include <array>
 #include <vector>
 #include <unordered_map>
 
@@ -180,11 +179,6 @@ namespace dxvk {
 
     inline HRESULT SetTextureInternal(D3D5Texture* texture);
 
-    // If the last index buffer is initalized, then all are initialized
-    inline bool AreIndexBuffersInitialized() const {
-      return m_ib9[ddrawCaps::IndexBufferCount - 1] != nullptr;
-    }
-
     inline void RefreshLastUsedDevice() {
       if (unlikely(m_parent->GetLastUsedDevice() != this))
         m_parent->SetLastUsedDevice(this);
@@ -241,8 +235,6 @@ namespace dxvk {
     Com<d3d9::IDirect3DSurface9>  m_fallBackBuffer;
     std::unordered_map<IDirectDrawSurface*, Com<d3d9::IDirect3DSurface9>> m_backBuffers;
 
-    std::array<Com<D3D5Texture, false>, ddrawCaps::TextureStageCount> m_textures;
-
     Com<D3D5Viewport>               m_currentViewport;
     std::vector<Com<D3D5Viewport>>  m_viewports;
 
@@ -250,17 +242,10 @@ namespace dxvk {
     DWORD           m_antialias       = D3DANTIALIAS_NONE;
     // Value of D3DRENDERSTATE_LINEPATTERN
     D3DLINEPATTERN  m_linePattern     = {};
-    // Value of D3DRENDERSTATE_ZVISIBLE (although the RS is not supported, its value is stored)
-    DWORD           m_zVisible        = 0;
     // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
     DWORD           m_textureMapBlend = D3DTBLEND_MODULATE;
 
     FilpRT5Flags    m_flipRTFlags;
-
-    // Common index buffers used for indexed draws, split up into five sizes:
-    // XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb
-    std::array<Com<d3d9::IDirect3DIndexBuffer9>, ddrawCaps::IndexBufferCount> m_ib9;
-    uint32_t m_ib9_uploads[ddrawCaps::IndexBufferCount] = {};
 
   };
 
