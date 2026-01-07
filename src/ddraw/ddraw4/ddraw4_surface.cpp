@@ -41,6 +41,11 @@ namespace dxvk {
         // Determine the d3d9 surface format
         m_format = ConvertFormat(m_desc.ddpfPixelFormat);
       }
+
+      if (m_parent != nullptr)
+        m_commonIntf = m_parent->GetCommonInterface();
+    } else {
+      m_commonIntf = origin->GetCommonInterface();
     }
 
     m_surfCount = ++s_surfCount;
@@ -236,8 +241,8 @@ namespace dxvk {
 
     Logger::debug("<<< DDraw4Surface::Blt: Proxy");
 
-    const bool exclusiveMode = (m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
-                            && !m_parent->GetOptions()->ignoreExclusiveMode;
+    const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
+                            && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
 
     RefreshD3D6Device();
     if (likely(m_d3d6Device != nullptr)) {
@@ -245,7 +250,7 @@ namespace dxvk {
       // Eclusive mode back buffer guard
       if (exclusiveMode && m_d3d6Device->HasDrawn() &&
          (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()) &&
-          m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
+          m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
         return DD_OK;
       // Windowed mode presentation path
       } else if (!exclusiveMode && m_d3d6Device->HasDrawn() && IsPrimarySurface()) {
@@ -259,7 +264,7 @@ namespace dxvk {
 
     if (unlikely(!m_parent->IsWrappedSurface(lpDDSrcSurface))) {
       if (unlikely(lpDDSrcSurface != nullptr)) {
-        if (likely(!m_parent->GetOptions()->proxiedQueryInterface)) {
+        if (likely(!m_commonIntf->GetOptions()->proxiedQueryInterface)) {
           Logger::warn("DDraw4Surface::Blt: Received an unwrapped source surface");
         } else {
           Logger::debug("DDraw4Surface::Blt: Received an unwrapped source surface");
@@ -299,8 +304,8 @@ namespace dxvk {
 
     Logger::debug("<<< DDraw4Surface::BltFast: Proxy");
 
-    const bool exclusiveMode = (m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
-                            && !m_parent->GetOptions()->ignoreExclusiveMode;
+    const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
+                            && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
 
     RefreshD3D6Device();
     if (likely(m_d3d6Device != nullptr)) {
@@ -308,7 +313,7 @@ namespace dxvk {
       // Eclusive mode back buffer guard
       if (exclusiveMode && m_d3d6Device->HasDrawn() &&
          (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()) &&
-          m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
+          m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
         return DD_OK;
       // Windowed mode presentation path
       } else if (!exclusiveMode && m_d3d6Device->HasDrawn() && IsPrimarySurface()) {
@@ -409,7 +414,7 @@ namespace dxvk {
       return DDERR_NOTFLIPPABLE;
     }
 
-    const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+    const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
     // Non-exclusive mode validations
     if (unlikely(IsPrimarySurface() && !exclusiveMode)) {
@@ -439,7 +444,7 @@ namespace dxvk {
 
       m_d3d6Device->ResetDrawTracking();
 
-      if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
+      if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
         if (unlikely(!IsInitialized()))
           IntializeD3D9(m_d3d6Device->GetRenderTarget() == this);
 
@@ -460,7 +465,7 @@ namespace dxvk {
 
       // If the interface is waiting for VBlank and we get a no VSync flip, switch
       // to doing immediate presents by resetting the swapchain appropriately
-      if (unlikely(m_parent->GetWaitForVBlank() && (dwFlags & DDFLIP_NOVSYNC))) {
+      if (unlikely(m_commonIntf->GetWaitForVBlank() && (dwFlags & DDFLIP_NOVSYNC))) {
         Logger::info("DDraw4Surface::Flip: Switching to D3DPRESENT_INTERVAL_IMMEDIATE for presentation");
 
         d3d9::D3DPRESENT_PARAMETERS resetParams = m_d3d6Device->GetPresentParameters();
@@ -469,7 +474,7 @@ namespace dxvk {
         if (unlikely(FAILED(hrReset))) {
           Logger::warn("DDraw4Surface::Flip: Failed D3D9 swapchain reset");
         } else {
-          m_parent->SetWaitForVBlank(false);
+          m_commonIntf->SetWaitForVBlank(false);
         }
       }
 
@@ -598,7 +603,7 @@ namespace dxvk {
 
     Logger::debug(">>> DDraw4Surface::GetDC");
 
-    if (unlikely(m_parent->GetOptions()->forceProxiedPresent))
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent))
       return m_proxy->GetDC(lphDC);
 
     if (unlikely(!IsInitialized())) {
@@ -721,7 +726,7 @@ namespace dxvk {
 
     Logger::debug(">>> DDraw7Surface::ReleaseDC");
 
-    if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
       if (IsTexture())
         m_commonSurf->DirtyMipMaps();
       return m_proxy->ReleaseDC(hDC);
@@ -765,7 +770,7 @@ namespace dxvk {
     if (!IsTexture()) {
       InitializeOrUploadD3D9();
     } else {
-      DirtyMipMaps();
+      m_commonSurf->DirtyMipMaps();
     }
 
     return hr;
@@ -944,7 +949,7 @@ namespace dxvk {
     if (!IsTexture()) {
       InitializeOrUploadD3D9();
     } else {
-      DirtyMipMaps();
+      m_commonSurf->DirtyMipMaps();
     }
 
     return hr;
@@ -1084,7 +1089,7 @@ namespace dxvk {
           Logger::debug(str::format("DDraw4Surface::IntializeD3D9: Mismatch with declared ", m_desc.dwMipMapCount, " mip levels"));
       }
 
-      if (unlikely(m_parent->GetOptions()->autoGenMipMaps)) {
+      if (unlikely(m_commonIntf->GetOptions()->autoGenMipMaps)) {
         Logger::debug("DDraw4Surface::IntializeD3D9: Using auto mip map generation");
         mipCount = 0;
       }
@@ -1133,7 +1138,7 @@ namespace dxvk {
         Logger::debug("DDraw4Surface::IntializeD3D9: Usage: D3DUSAGE_DYNAMIC");
         usage |= D3DUSAGE_DYNAMIC;
       }
-      if (unlikely(m_parent->GetOptions()->autoGenMipMaps)) {
+      if (unlikely(m_commonIntf->GetOptions()->autoGenMipMaps)) {
         Logger::debug("DDraw4Surface::IntializeD3D9: Usage: D3DUSAGE_AUTOGENMIPMAP");
         usage |= D3DUSAGE_AUTOGENMIPMAP;
       }
@@ -1193,7 +1198,7 @@ namespace dxvk {
         return hr;
       }
 
-      if (unlikely(m_parent->GetOptions()->autoGenMipMaps))
+      if (unlikely(m_commonIntf->GetOptions()->autoGenMipMaps))
         tex->SetAutoGenFilterType(d3d9::D3DTEXF_ANISOTROPIC);
 
       // Attach level 0 to this surface

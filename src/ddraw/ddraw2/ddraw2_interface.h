@@ -8,6 +8,8 @@
 
 #include "../../d3d9/d3d9_bridge.h"
 
+#include "../d3d5/d3d5_interface.h"
+
 #include <vector>
 
 namespace dxvk {
@@ -72,28 +74,12 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetAvailableVidMem(LPDDSCAPS lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree);
 
+    DDrawCommonInterface* GetCommonInterface() const {
+      return m_commonIntf.ptr();
+    }
+
     DDrawSurface* GetLastDepthStencil() const {
       return m_lastDepthStencil;
-    }
-
-    DWORD GetCooperativeLevel() const {
-      return m_commonIntf->GetCooperativeLevel();
-    }
-
-    HWND GetHWND() const {
-      return m_commonIntf->GetHWND();
-    }
-
-    DDrawModeSize GetModeSize() const {
-      return m_modeSize;
-    }
-
-    void SetWaitForVBlank(bool waitForVBlank) {
-      m_waitForVBlank = waitForVBlank;
-    }
-
-    bool GetWaitForVBlank() const {
-      return m_waitForVBlank;
     }
 
   private:
@@ -110,8 +96,7 @@ namespace dxvk {
     DDraw7Interface*          m_origin = nullptr;
     DDraw4Interface*          m_intf4  = nullptr;
 
-    bool                      m_waitForVBlank = true;
-    DDrawModeSize             m_modeSize = { };
+    Com<D3D5Interface, false> m_d3d5Intf;
 
     DDrawSurface*             m_lastDepthStencil = nullptr;
 

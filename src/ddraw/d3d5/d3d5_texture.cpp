@@ -116,7 +116,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    d3d5Texture->GetParent()->DirtyMipMaps();
+    d3d5Texture->GetParent()->GetCommonSurface()->DirtyMipMaps();
 
     return hr;
   }

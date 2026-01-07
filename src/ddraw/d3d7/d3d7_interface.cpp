@@ -4,6 +4,8 @@
 #include "d3d7_buffer.h"
 #include "d3d7_multithread.h"
 
+#include "ddraw_common_interface.h"
+
 #include "../ddraw7/ddraw7_interface.h"
 #include "../ddraw7/ddraw7_surface.h"
 
@@ -176,7 +178,9 @@ namespace dxvk {
       }
     }
 
-    HWND hwnd = m_parent->GetHWND();
+    DDrawCommonInterface* commonIntf = m_parent->GetCommonInterface();
+
+    HWND hwnd = commonIntf->GetHWND();
     // Needed to sometimes safely skip intro playback on legacy devices
     if (unlikely(hwnd == nullptr)) {
       Logger::debug("D3D7Interface::CreateDevice: HWND is NULL");
@@ -214,18 +218,18 @@ namespace dxvk {
 
     if (likely(!m_options.forceProxiedPresent &&
                 m_options.backBufferResize)) {
-      const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+      const bool exclusiveMode = commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
       if (exclusiveMode) {
-        DDrawModeSize modeSize = m_parent->GetModeSize();
+        DDrawModeSize* modeSize = commonIntf->GetModeSize();
         // Wayland apparently needs this for somewhat proper back buffer sizing
-        if ((modeSize.width  && modeSize.width  < desc.dwWidth)
-         || (modeSize.height && modeSize.height < desc.dwHeight)) {
+        if ((modeSize->width  && modeSize->width  < desc.dwWidth)
+         || (modeSize->height && modeSize->height < desc.dwHeight)) {
           Logger::info("D3D7Interface::CreateDevice: Enforcing mode dimensions");
 
-          backBufferWidth  = modeSize.width;
-          BackBufferHeight = modeSize.height;
+          backBufferWidth  = modeSize->width;
+          BackBufferHeight = modeSize->height;
         }
       }
     }
@@ -272,9 +276,9 @@ namespace dxvk {
     // Consider the front buffer as well when reporting the overall count
     Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer count: ", backBufferCount + 1));
 
-    const DWORD cooperativeLevel = m_parent->GetCooperativeLevel();
+    const DWORD cooperativeLevel = commonIntf->GetCooperativeLevel();
     // Always appears to be enabled when running in non-exclusive mode
-    const bool vBlankStatus = m_parent->GetWaitForVBlank();
+    const bool vBlankStatus = commonIntf->GetWaitForVBlank();
 
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = backBufferWidth;

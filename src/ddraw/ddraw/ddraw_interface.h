@@ -2,7 +2,6 @@
 
 #include "ddraw_include.h"
 #include "ddraw_wrapped_object.h"
-#include "ddraw_options.h"
 
 #include "../ddraw_common_interface.h"
 
@@ -83,14 +82,16 @@ namespace dxvk {
 
     D3D5Texture* GetTextureFromHandle(D3DTEXTUREHANDLE handle);
 
-    D3D5Device* GetD3D5Device() const {
-      return m_d3d5Intf != nullptr ? m_d3d5Intf->GetLastUsedDevice() : nullptr;
+    DDrawCommonInterface* GetCommonInterface() const {
+      return m_commonIntf.ptr();
     }
 
-    // As an exception, DDrawInterface has its standalone options and
-    // its own D3D9 interface and interface bridge to get them
-    const D3DOptions* GetOptions() const {
-      return &m_options;
+    D3D5Interface* GetD3D5Interface() const {
+      return m_d3d5Intf.ptr();
+    }
+
+    D3D5Device* GetD3D5Device() const {
+      return m_d3d5Intf != nullptr ? m_d3d5Intf->GetLastUsedDevice() : nullptr;
     }
 
     D3DTEXTUREHANDLE GetNextTextureHandle() {
@@ -123,26 +124,6 @@ namespace dxvk {
       m_intf4 = nullptr;
     }
 
-    DWORD GetCooperativeLevel() const {
-      return m_commonIntf->GetCooperativeLevel();
-    }
-
-    HWND GetHWND() const {
-      return m_commonIntf->GetHWND();
-    }
-
-    DDrawModeSize GetModeSize() const {
-      return m_modeSize;
-    }
-
-    void SetWaitForVBlank(bool waitForVBlank) {
-      m_waitForVBlank = waitForVBlank;
-    }
-
-    bool GetWaitForVBlank() const {
-      return m_waitForVBlank;
-    }
-
   private:
 
     inline bool IsLegacyInterface() const {
@@ -154,16 +135,11 @@ namespace dxvk {
 
     Com<DDrawCommonInterface>  m_commonIntf;
 
-    D3DOptions                 m_options;
-
     DDraw7Interface*           m_origin = nullptr;
     DDraw4Interface*           m_intf4  = nullptr;
     DDraw2Interface*           m_intf2  = nullptr;
 
     Com<D3D5Interface, false>  m_d3d5Intf;
-
-    bool                       m_waitForVBlank = true;
-    DDrawModeSize              m_modeSize = { };
 
     DDrawSurface*              m_lastDepthStencil = nullptr;
 

@@ -1,13 +1,15 @@
 {
   global:
-  	AcquireDDThreadLock;
+    AcquireDDThreadLock;
+    CompleteCreateSysmemSurface;
     D3DParseUnknownCommand;
     DDGetAttachedSurfaceLcl;
     DDInternalLock;
     DDInternalUnlock;
+    DSoundHelp;
     DirectDrawCreate;
     DirectDrawCreateClipper;
-  	DirectDrawCreateEx;
+    DirectDrawCreateEx;
   	DirectDrawEnumerateA;
     DirectDrawEnumerateExA;
     DirectDrawEnumerateExW;
@@ -15,9 +17,8 @@
     DllCanUnloadNow;
     DllGetClassObject;
     GetDDSurfaceLocal;
+    GetOLEThunkData;
     GetSurfaceFromDC;
-    InternalLock;
-    InternalUnlock;
     RegisterSpecialCase;
     ReleaseDDThreadLock;
 

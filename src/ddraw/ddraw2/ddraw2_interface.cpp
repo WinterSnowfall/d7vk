@@ -6,6 +6,7 @@
 #include "../ddraw4/ddraw4_interface.h"
 
 #include "../d3d3/d3d3_interface.h"
+#include "../d3d5/d3d5_device.h"
 #include "../d3d5/d3d5_interface.h"
 #include "../d3d6/d3d6_interface.h"
 
@@ -19,8 +20,11 @@ namespace dxvk {
     : DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown>(pParent, std::move(proxyIntf), nullptr)
     , m_commonIntf ( commonIntf )
     , m_origin ( origin ) {
-    if (m_commonIntf == nullptr)
-      m_commonIntf = new DDrawCommonInterface();
+    // m_commonIntf can never be null for IDirectDraw2
+    if (!IsLegacyInterface()) {
+      if (m_parent != nullptr)
+        m_d3d5Intf = m_parent->GetD3D5Interface();
+    }
 
     m_intfCount = ++s_intfCount;
 
@@ -241,7 +245,7 @@ namespace dxvk {
       return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
     }
 
-    if (unlikely(m_parent->GetOptions()->proxiedLegacySurfaces)) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedLegacySurfaces)) {
       Logger::debug("<<< DDraw2Interface::CreateSurface: Proxy");
       return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
     }
@@ -268,8 +272,33 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::DuplicateSurface(LPDIRECTDRAWSURFACE lpDDSurface, LPDIRECTDRAWSURFACE *lplpDupDDSurface) {
-    Logger::warn("<<< DDraw2Interface::DuplicateSurface: Proxy");
-    return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
+    if (unlikely(IsLegacyInterface())) {
+      Logger::warn("<<< DDraw2Interface::DuplicateSurface: Proxy");
+      return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
+    }
+
+    Logger::debug("<<< DDraw2Interface::DuplicateSurface: Proxy");
+
+    if (m_parent != nullptr && m_parent->IsWrappedSurface(lpDDSurface)) {
+      InitReturnPtr(lplpDupDDSurface);
+
+      DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSurface);
+      Com<IDirectDrawSurface> dupSurface;
+      HRESULT hr = m_proxy->DuplicateSurface(ddrawSurface->GetProxied(), &dupSurface);
+      if (likely(SUCCEEDED(hr))) {
+        try {
+          *lplpDupDDSurface = ref(new DDrawSurface(nullptr, std::move(dupSurface), m_parent, nullptr, nullptr, false));
+        } catch (const DxvkError& e) {
+          Logger::err(e.message());
+          return DDERR_GENERIC;
+        }
+      }
+      return hr;
+    } else {
+      if (unlikely(lpDDSurface != nullptr))
+        Logger::warn("DDraw2Interface::DuplicateSurface: Received an unwrapped source surface");
+      return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
+    }
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK lpEnumModesCallback) {
@@ -350,19 +379,129 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags) {
+    if (unlikely(IsLegacyInterface())) {
+      Logger::debug("<<< DDraw2Interface::SetDisplayMode: Proxy");
+      return m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
+    }
+
     Logger::debug("<<< DDraw2Interface::SetDisplayMode: Proxy");
-    return m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
+
+    HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent &&
+                m_commonIntf->GetOptions()->backBufferResize)) {
+      const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+
+      // Ignore any mode size dimensions when in windowed present mode
+      if (exclusiveMode) {
+        Logger::debug("DDraw2Interface::SetDisplayMode: Exclusive full-screen present mode in use");
+        DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
+        if (modeSize->width != dwWidth || modeSize->height != dwHeight) {
+          modeSize->width  = dwWidth;
+          modeSize->height = dwHeight;
+        }
+      }
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
+    if (unlikely(IsLegacyInterface())) {
+      Logger::debug("<<< DDraw2Interface::WaitForVerticalBlank: Proxy");
+      return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+    }
+
     Logger::debug("<<< DDraw2Interface::WaitForVerticalBlank: Proxy");
-    return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+
+    HRESULT hr = m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      // Switch to a default presentation interval when an application
+      // tries to wait for vertical blank, if we're not already doing so
+      D3D5Device* d3d5Device = m_d3d5Intf->GetLastUsedDevice();
+      if (unlikely(d3d5Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
+        Logger::info("DDraw2Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
+
+        d3d9::D3DPRESENT_PARAMETERS resetParams = d3d5Device->GetPresentParameters();
+        resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+        HRESULT hrReset = d3d5Device->Reset(&resetParams);
+        if (unlikely(FAILED(hrReset))) {
+          Logger::warn("DDraw2Interface::WaitForVerticalBlank: Failed D3D9 swapchain reset");
+        } else {
+          m_commonIntf->SetWaitForVBlank(true);
+        }
+      }
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetAvailableVidMem(LPDDSCAPS lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree) {
-    Logger::debug("<<< DDraw2Interface::GetAvailableVidMem: Proxy");
-    //TODO: Convert between LPDDSCAPS <-> LPDDSCAPS2
-    return m_proxy->GetAvailableVidMem(lpDDCaps, lpdwTotal, lpdwFree);
+    if (unlikely(IsLegacyInterface())) {
+      Logger::debug("<<< DDraw2Interface::GetAvailableVidMem: Proxy");
+      return m_proxy->GetAvailableVidMem(lpDDCaps, lpdwTotal, lpdwFree);
+    }
+
+    Logger::debug(">>> DDraw2Interface::GetAvailableVidMem");
+
+    if (unlikely(lpdwTotal == nullptr && lpdwFree == nullptr))
+      return DD_OK;
+
+    constexpr DWORD Megabytes = 1024 * 1024;
+
+    D3D5Device* d3d5Device = m_d3d5Intf->GetLastUsedDevice();
+    if (likely(d3d5Device != nullptr)) {
+      Logger::debug("DDraw2Interface::GetAvailableVidMem: Getting memory stats from D3D9");
+
+      const DWORD total9 = static_cast<DWORD>(m_commonIntf->GetOptions()->maxAvailableMemory) * Megabytes;
+      const DWORD free9  = static_cast<DWORD>(d3d5Device->GetD3D9()->GetAvailableTextureMem());
+
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Total: ", total9));
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Free : ", free9));
+
+      if (lpdwTotal != nullptr)
+        *lpdwTotal = total9;
+      if (lpdwFree != nullptr)
+        *lpdwFree  = free9;
+
+    } else {
+      Logger::debug("DDraw2Interface::GetAvailableVidMem: Getting memory stats from DDraw");
+
+      DWORD total6 = 0;
+      DWORD free6  = 0;
+
+      HRESULT hr = m_proxy->GetAvailableVidMem(lpDDCaps, &total6, &free6);
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw2Interface::GetAvailableVidMem: Failed proxied call");
+        if (lpdwTotal != nullptr)
+          *lpdwTotal = 0;
+        if (lpdwFree != nullptr)
+          *lpdwFree  = 0;
+        return hr;
+      }
+
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: DDraw Total: ", total6));
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: DDraw Free : ", free6));
+
+      const DWORD total9 = static_cast<DWORD>(m_commonIntf->GetOptions()->maxAvailableMemory) * Megabytes;
+      const DWORD delta  = total6 > total9 ? total6 - total9 : 0;
+      const DWORD free9  = free6 > delta ? free6 - delta : 0;
+
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Total: ", total9));
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Free : ", free9));
+
+      if (lpdwTotal != nullptr)
+        *lpdwTotal = total9;
+      if (lpdwFree != nullptr)
+        *lpdwFree  = free9;
+    }
+
+    return DD_OK;
   }
 
 }

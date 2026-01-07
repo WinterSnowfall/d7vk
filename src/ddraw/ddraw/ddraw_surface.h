@@ -4,6 +4,7 @@
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_format.h"
 
+#include "../ddraw_common_interface.h"
 #include "../ddraw_common_surface.h"
 
 #include "ddraw_interface.h"
@@ -103,8 +104,12 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE lpDDSReference);
 
+    DDrawCommonSurface* GetCommonSurface() const {
+      return m_commonSurf.ptr();
+    }
+
     const D3DOptions* GetOptions() const {
-      return m_parent->GetOptions();
+      return m_commonIntf->GetOptions();
     }
 
     D3D5Device* GetD3D5Device() {
@@ -155,18 +160,6 @@ namespace dxvk {
 
     void ClearParentSurface() {
       m_parentSurf = nullptr;
-    }
-
-    bool HasDirtyMipMaps() const {
-      return m_commonSurf->HasDirtyMipMaps();
-    }
-
-    void DirtyMipMaps() {
-      m_commonSurf->DirtyMipMaps();
-    }
-
-    void UnDirtyMipMaps() {
-      m_commonSurf->UnDirtyMipMaps();
     }
 
     HRESULT InitializeD3D9RenderTarget();
@@ -267,13 +260,14 @@ namespace dxvk {
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
 
-    Com<DDrawCommonSurface> m_commonSurf;
+    Com<DDrawCommonSurface>             m_commonSurf;
+    DDrawCommonInterface*               m_commonIntf;
 
-    DDrawSurface*           m_parentSurf = nullptr;
+    DDrawSurface*                       m_parentSurf = nullptr;
 
-    DDraw7Surface*          m_origin    = nullptr;
+    DDraw7Surface*                      m_origin    = nullptr;
 
-    D3D5Device*             m_d3d5Device = nullptr;
+    D3D5Device*                         m_d3d5Device = nullptr;
 
     DDSURFACEDESC                       m_desc;
     d3d9::D3DFORMAT                     m_format;
