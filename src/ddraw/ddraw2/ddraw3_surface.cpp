@@ -3,6 +3,8 @@
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw7/ddraw7_surface.h"
 
+#include "../d3d5/d3d5_device.h"
+
 namespace dxvk {
 
   uint32_t DDraw3Surface::s_surfCount = 0;
@@ -16,6 +18,7 @@ namespace dxvk {
     , m_commonSurf ( commonSurf )
     , m_origin ( origin ) {
     // m_commonSurf can never be null for IDirectDrawSurface3
+    m_commonIntf = m_parent != nullptr ? m_parent->GetCommonInterface() : m_origin->GetCommonInterface();
 
     m_surfCount = ++s_surfCount;
 
@@ -118,7 +121,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::AddAttachedSurface(LPDIRECTDRAWSURFACE3 lpDDSAttachedSurface) {
-    Logger::debug("<<< DDraw3Surface::AddAttachedSurface: Proxy");
+    Logger::warn("<<< DDraw3Surface::AddAttachedSurface: Proxy");
     return m_proxy->AddAttachedSurface(lpDDSAttachedSurface);
   }
 
@@ -128,22 +131,114 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE3 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
+    if (unlikely(IsLegacyInterface())) {
+      Logger::warn("<<< DDraw3Surface::Blt: Proxy");
+      return m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
+    }
+
+    if (unlikely(m_parent == nullptr)) {
+      Logger::warn("<<< DDraw3Surface::Blt: Proxy");
+      return m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
+    }
+
     Logger::debug("<<< DDraw3Surface::Blt: Proxy");
-    return m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
+
+    D3D5Device* device5 = m_parent->GetD3D5Device();
+    if (likely(device5 != nullptr)) {
+      D3D5DeviceLock lock = device5->LockDevice();
+
+      const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
+                              && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
+
+      // Eclusive mode back buffer guard
+      if (exclusiveMode && device5->HasDrawn() &&
+         (m_parent->IsPrimarySurface() || m_parent->IsFrontBuffer() || m_parent->IsBackBufferOrFlippable()) &&
+          m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
+        return DD_OK;
+      // Windowed mode presentation path
+      } else if (!exclusiveMode && device5->HasDrawn() && m_parent->IsPrimarySurface()) {
+        device5->ResetDrawTracking();
+        device5->GetD3D9()->Present(NULL, NULL, NULL, NULL);
+        return DD_OK;
+      }
+    }
+
+    // We are pretty much guaranteed to get wrapped surfaces with IDirectDrawSurface3
+    DDraw3Surface* ddraw3Surface = static_cast<DDraw3Surface*>(lpDDSrcSurface);
+    HRESULT hr = m_proxy->Blt(lpDestRect, ddraw3Surface->GetProxied(), lpSrcRect, dwFlags, lpDDBltFx);
+
+    if (likely(SUCCEEDED(hr))) {
+      // Textures get uploaded during SetTexture calls
+      if (!m_parent->IsTexture()) {
+        HRESULT hrUpload = m_parent->InitializeOrUploadD3D9();
+        if (unlikely(FAILED(hrUpload)))
+          Logger::warn("DDraw3Surface::Blt: Failed upload to d3d9 surface");
+      } else {
+        m_commonSurf->DirtyMipMaps();
+      }
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags) {
     Logger::debug(">>> DDraw3Surface::BltBatch");
-    return m_proxy->BltBatch(lpDDBltBatch, dwCount, dwFlags);
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE3 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
+    if (unlikely(IsLegacyInterface())) {
+      Logger::warn("<<< DDraw3Surface::BltFast: Proxy");
+      return m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
+    }
+
+    if (unlikely(m_parent == nullptr)) {
+      Logger::warn("<<< DDraw3Surface::BltFast: Proxy");
+      return m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
+    }
+
     Logger::debug("<<< DDraw3Surface::BltFast: Proxy");
-    return m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
+
+    D3D5Device* device5 = m_parent->GetD3D5Device();
+    if (likely(device5 != nullptr)) {
+      D3D5DeviceLock lock = device5->LockDevice();
+
+      const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
+                              && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
+
+      // Eclusive mode back buffer guard
+      if (exclusiveMode && device5->HasDrawn() &&
+         (m_parent->IsPrimarySurface() || m_parent->IsFrontBuffer() || m_parent->IsBackBufferOrFlippable()) &&
+          m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
+        return DD_OK;
+      // Windowed mode presentation path
+      } else if (!exclusiveMode && device5->HasDrawn() && m_parent->IsPrimarySurface()) {
+        device5->ResetDrawTracking();
+        device5->GetD3D9()->Present(NULL, NULL, NULL, NULL);
+        return DD_OK;
+      }
+    }
+
+    // We are pretty much guaranteed to get wrapped surfaces with IDirectDrawSurface3
+    DDraw3Surface* ddraw3Surface = static_cast<DDraw3Surface*>(lpDDSrcSurface);
+    HRESULT hr = m_proxy->BltFast(dwX, dwY, ddraw3Surface->GetProxied(), lpSrcRect, dwTrans);
+
+    if (likely(SUCCEEDED(hr))) {
+      // Textures get uploaded during SetTexture calls
+      if (!m_parent->IsTexture()) {
+        HRESULT hrUpload = m_parent->InitializeOrUploadD3D9();
+        if (unlikely(FAILED(hrUpload)))
+          Logger::warn("DDraw3Surface::BltFast: Failed upload to d3d9 surface");
+      } else {
+        m_commonSurf->DirtyMipMaps();
+      }
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE3 lpDDSAttachedSurface) {
-    Logger::debug("<<< DDraw3Surface::DeleteAttachedSurface: Proxy");
+    Logger::warn("<<< DDraw3Surface::DeleteAttachedSurface: Proxy");
     return m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
   }
 
@@ -158,12 +253,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Flip(LPDIRECTDRAWSURFACE3 lpDDSurfaceTargetOverride, DWORD dwFlags) {
-    Logger::debug("*** DDraw3Surface::Flip: Ignoring");
+    Logger::warn("*** DDraw3Surface::Flip: Ignoring");
     return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTDRAWSURFACE3 *lplpDDAttachedSurface) {
-    Logger::debug("<<< DDraw3Surface::GetAttachedSurface: Proxy");
+    Logger::warn("<<< DDraw3Surface::GetAttachedSurface: Proxy");
     return m_proxy->GetAttachedSurface(lpDDSCaps, lplpDDAttachedSurface);
   }
 
@@ -202,13 +297,46 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetDC(HDC *lphDC) {
-    if (likely(IsLegacyInterface())) {
+    if (unlikely(IsLegacyInterface())) {
       Logger::debug(">>> DDraw3Surface::GetDC: Forwarded");
       return m_origin->GetDC(lphDC);
     }
 
-    Logger::debug("<<< DDraw3Surface::GetDC: Proxy");
-    return m_proxy->GetDC(lphDC);
+    if (unlikely(m_parent == nullptr)) {
+      Logger::warn("<<< DDraw3Surface::GetDC: Proxy");
+      return m_proxy->GetDC(lphDC);
+    }
+
+    Logger::debug(">>> DDraw3Surface::GetDC");
+
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent))
+      return m_proxy->GetDC(lphDC);
+
+    if (unlikely(!m_parent->IsInitialized())) {
+      Logger::debug("DDraw3Surface::GetDC: Not yet initialized");
+      return m_proxy->GetDC(lphDC);
+    }
+
+    // Proxy GetDC calls if we haven't yet drawn and the surface is flippable
+    D3D5Device* device5 = m_parent->GetD3D5Device();
+    if (device5 != nullptr && !(device5->HasDrawn() &&
+        (m_parent->IsPrimarySurface() || m_parent->IsFrontBuffer() ||
+         m_parent->IsBackBufferOrFlippable()))) {
+      Logger::debug("DDraw3Surface::GetDC: Not yet drawn flippable surface");
+      return m_proxy->GetDC(lphDC);
+    }
+
+    if (unlikely(lphDC == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lphDC);
+
+    HRESULT hr = m_parent->GetD3D9()->GetDC(lphDC);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("DDraw3Surface::GetDC: Failed to get D3D9 DC");
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetFlipStatus(DWORD dwFlags) {
@@ -272,18 +400,72 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::ReleaseDC(HDC hDC) {
-    if (likely(IsLegacyInterface())) {
+    if (unlikely(IsLegacyInterface())) {
       Logger::debug(">>> DDraw3Surface::ReleaseDC: Forwarded");
       return m_origin->ReleaseDC(hDC);
     }
 
-    Logger::debug("<<< DDraw3Surface::ReleaseDC: Proxy");
-    return m_proxy->ReleaseDC(hDC);
+    if (unlikely(m_parent == nullptr)) {
+      Logger::warn("<<< DDraw3Surface::ReleaseDC: Proxy");
+      return m_proxy->ReleaseDC(hDC);
+    }
+
+    Logger::debug(">>> DDraw3Surface::ReleaseDC");
+
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      if (m_parent->IsTexture())
+        m_commonSurf->DirtyMipMaps();
+      return m_proxy->ReleaseDC(hDC);
+    }
+
+    if (unlikely(!m_parent->IsInitialized())) {
+      Logger::debug("DDraw3Surface::ReleaseDC: Not yet initialized");
+      return m_proxy->ReleaseDC(hDC);
+    }
+
+    // Proxy ReleaseDC calls if we haven't yet drawn and the surface is flippable
+    D3D5Device* device5 = m_parent->GetD3D5Device();
+    if (device5 != nullptr && !(device5->HasDrawn() &&
+       (m_parent->IsPrimarySurface() || m_parent->IsFrontBuffer() ||
+        m_parent->IsBackBufferOrFlippable()))) {
+      Logger::debug("DDraw3Surface::ReleaseDC: Not yet drawn flippable surface");
+      if (m_parent->IsTexture())
+        m_commonSurf->DirtyMipMaps();
+      return m_proxy->ReleaseDC(hDC);
+    }
+
+    HRESULT hr = m_parent->GetD3D9()->ReleaseDC(hDC);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("DDraw3Surface::ReleaseDC: Failed to release d3d9 DC");
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Restore() {
+    if (unlikely(IsLegacyInterface())) {
+      Logger::debug("<<< DDraw3Surface::Restore: Proxy");
+      return m_proxy->Restore();
+    }
+
+    if (unlikely(m_parent == nullptr)) {
+      Logger::warn("<<< DDraw3Surface::ReleaseDC: Proxy");
+      return m_proxy->Restore();
+    }
+
     Logger::debug("<<< DDraw3Surface::Restore: Proxy");
-    return m_proxy->Restore();
+
+    HRESULT hr = m_proxy->Restore();
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (!m_parent->IsTexture()) {
+      m_parent->InitializeOrUploadD3D9();
+    } else {
+      m_commonSurf->DirtyMipMaps();
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper) {
@@ -343,8 +525,29 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Unlock(LPVOID lpSurfaceData) {
+    if (unlikely(m_parent == nullptr)) {
+      Logger::warn("<<< DDraw3Surface::GetDC: Proxy");
+      return m_proxy->Unlock(lpSurfaceData);
+    }
+
     Logger::debug("<<< DDraw3Surface::Unlock: Proxy");
-    return m_proxy->Unlock(lpSurfaceData);
+
+    // Note: Unfortunately, some applications write outside of locks too,
+    // so we will always need to upload texture and mip map data on SetTexture
+    HRESULT hr = m_proxy->Unlock(lpSurfaceData);
+
+    if (likely(SUCCEEDED(hr))) {
+      // Textures and cubemaps get uploaded during SetTexture calls
+      if (!m_parent->IsTexture()) {
+        HRESULT hrUpload = m_parent->InitializeOrUploadD3D9();
+        if (unlikely(FAILED(hrUpload)))
+          Logger::warn("DDraw3Surface::Unlock: Failed upload to d3d9 surface");
+      } else {
+        m_commonSurf->DirtyMipMaps();
+      }
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFACE3 lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx) {
@@ -363,8 +566,25 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetDDInterface(LPVOID *lplpDD) {
-    Logger::warn("<<< DDraw3Surface::GetDDInterface: Proxy");
-    return m_proxy->GetDDInterface(lplpDD);
+    if (unlikely(IsLegacyInterface())) {
+      Logger::warn("<<< DDraw3Surface::GetDDInterface: Proxy");
+      return m_proxy->GetDDInterface(lplpDD);
+    }
+
+    if (unlikely(m_parent == nullptr)) {
+      Logger::warn("<<< DDraw3Surface::GetDDInterface: Proxy");
+      return m_proxy->GetDDInterface(lplpDD);
+    }
+
+    Logger::debug(">>> DDraw3Surface::GetDDInterface");
+
+    if (unlikely(lplpDD == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    // Was an easy footgun to return a proxied interface
+    *lplpDD = ref(m_parent);
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::PageLock(DWORD dwFlags) {
@@ -378,7 +598,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::SetSurfaceDesc(LPDDSURFACEDESC lpDDSD, DWORD dwFlags) {
-    Logger::debug("<<< DDraw3Surface::SetSurfaceDesc: Proxy");
+    Logger::warn("<<< DDraw3Surface::SetSurfaceDesc: Proxy");
     return m_proxy->SetSurfaceDesc(lpDDSD, dwFlags);
   }
 
