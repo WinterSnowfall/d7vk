@@ -7,6 +7,8 @@
 #include "d3d6_multithread.h"
 #include "d3d6_viewport.h"
 
+#include "ddraw_common_interface.h"
+
 #include "../ddraw4/ddraw4_interface.h"
 #include "../ddraw4/ddraw4_surface.h"
 
@@ -217,49 +219,58 @@ namespace dxvk {
     D3DDEVICEDESC descRGB_HEL = descRGB_HAL;
     descRGB_HAL.dwFlags = 0;
     descRGB_HAL.dcmColorModel = 0;
+    // Some applications apparently care about RGB texture caps
+    descRGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE;
+    descRGB_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE;
+    descRGB_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
+    descRGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
 
     // Hardware acceleration (SWVP)
     D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_options.disableAASupport);
     D3DDEVICEDESC descHAL_HEL = descHAL_HAL;
-    descRGB_HEL.dcmColorModel = 0;
-    descRGB_HEL.dwDevCaps &= ~D3DDEVCAPS_DRAWPRIMITIVES2
+    descHAL_HEL.dcmColorModel = 0;
+    descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                           & ~D3DDEVCAPS_DRAWPRIMITIVES2
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
 
     lpD3DFDR->dwSize = sizeof(D3DFINDDEVICERESULT);
 
-    if (likely(lpD3DFDS->dwFlags & D3DFDS_GUID)) {
+    if (lpD3DFDS->dwFlags & D3DFDS_GUID) {
       Logger::debug("D3D6Interface::FindDevice: Matching by device GUID");
 
-      lpD3DFDR->guid = lpD3DFDS->guid;
-      if (lpD3DFDS->guid == IID_IDirect3DRGBDevice) {
+      if (lpD3DFDS->guid == IID_IDirect3DRGBDevice ||
+          lpD3DFDS->guid == IID_IDirect3DMMXDevice ||
+          lpD3DFDS->guid == IID_IDirect3DRampDevice) {
+        Logger::debug("D3D6Interface::FindDevice: Matched IID_IDirect3DRGBDevice");
+        lpD3DFDR->guid = IID_IDirect3DRGBDevice;
         lpD3DFDR->ddHwDesc = descRGB_HAL;
         lpD3DFDR->ddSwDesc = descRGB_HEL;
       } else if (lpD3DFDS->guid == IID_IDirect3DHALDevice) {
+        Logger::debug("D3D6Interface::FindDevice: Matched IID_IDirect3DHALDevice");
+        lpD3DFDR->guid = IID_IDirect3DHALDevice;
         lpD3DFDR->ddHwDesc = descHAL_HAL;
         lpD3DFDR->ddSwDesc = descHAL_HEL;
       } else {
-        Logger::warn("D3D6Interface::FindDevice: Unknown device type, matching RGB");
-        lpD3DFDR->ddHwDesc = descRGB_HAL;
-        lpD3DFDR->ddSwDesc = descRGB_HEL;
+        Logger::err(str::format("D3D6Interface::FindDevice: Unknown device type: ", lpD3DFDS->guid));
+        return DDERR_NOTFOUND;
       }
     } else if (lpD3DFDS->dwFlags & D3DFDS_HARDWARE) {
       Logger::debug("D3D6Interface::FindDevice: Matching by hardware flag");
 
       if (likely(lpD3DFDS->bHardware == TRUE)) {
+        Logger::debug("D3D6Interface::FindDevice: Matched IID_IDirect3DHALDevice");
         lpD3DFDR->guid = IID_IDirect3DHALDevice;
         lpD3DFDR->ddHwDesc = descHAL_HAL;
         lpD3DFDR->ddSwDesc = descHAL_HEL;
       } else {
+        Logger::debug("D3D6Interface::FindDevice: Matched IID_IDirect3DRGBDevice");
         lpD3DFDR->guid = IID_IDirect3DRGBDevice;
         lpD3DFDR->ddHwDesc = descRGB_HAL;
         lpD3DFDR->ddSwDesc = descRGB_HEL;
       }
     } else {
-      Logger::warn("D3D6Interface::FindDevice: Unhandled matching, using HAL");
-
-      lpD3DFDR->guid = IID_IDirect3DHALDevice;
-      lpD3DFDR->ddHwDesc = descHAL_HAL;
-      lpD3DFDR->ddSwDesc = descHAL_HEL;
+      Logger::err("D3D6Interface::FindDevice: Unhandled matching type");
+      return DDERR_NOTFOUND;
     }
 
     return D3D_OK;
@@ -308,7 +319,9 @@ namespace dxvk {
 
     const IID rclsidOverride = rgbFallback ? IID_IDirect3DRGBDevice : rclsid;
 
-    HWND hwnd = m_parent->GetHWND();
+    DDrawCommonInterface* commonIntf = m_parent->GetCommonInterface();
+
+    HWND hwnd = commonIntf->GetHWND();
     // Needed to sometimes safely skip intro playback on legacy devices
     if (unlikely(hwnd == nullptr)) {
       Logger::debug("D3D6Interface::CreateDevice: HWND is NULL");
@@ -346,18 +359,18 @@ namespace dxvk {
 
     if (likely(!m_options.forceProxiedPresent &&
                 m_options.backBufferResize)) {
-      const bool exclusiveMode = m_parent->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+      const bool exclusiveMode = commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
       if (exclusiveMode) {
-        DDrawModeSize modeSize = m_parent->GetModeSize();
+        DDrawModeSize* modeSize = commonIntf->GetModeSize();
         // Wayland apparently needs this for somewhat proper back buffer sizing
-        if ((modeSize.width  && modeSize.width  < desc.dwWidth)
-         || (modeSize.height && modeSize.height < desc.dwHeight)) {
+        if ((modeSize->width  && modeSize->width  < desc.dwWidth)
+         || (modeSize->height && modeSize->height < desc.dwHeight)) {
           Logger::info("D3D6Interface::CreateDevice: Enforcing mode dimensions");
 
-          backBufferWidth  = modeSize.width;
-          BackBufferHeight = modeSize.height;
+          backBufferWidth  = modeSize->width;
+          BackBufferHeight = modeSize->height;
         }
       }
     }
@@ -404,9 +417,9 @@ namespace dxvk {
     // Consider the front buffer as well when reporting the overall count
     Logger::info(str::format("D3D6Interface::CreateDevice: Back buffer count: ", backBufferCount + 1));
 
-    const DWORD cooperativeLevel = m_parent->GetCooperativeLevel();
+    const DWORD cooperativeLevel = commonIntf->GetCooperativeLevel();
     // Always appears to be enabled when running in non-exclusive mode
-    const bool vBlankStatus = m_parent->GetWaitForVBlank();
+    const bool vBlankStatus = commonIntf->GetWaitForVBlank();
 
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = backBufferWidth;

@@ -8,6 +8,7 @@
 
 #include "../d3d3/d3d3_interface.h"
 #include "../d3d5/d3d5_interface.h"
+#include "../d3d5/d3d5_device.h"
 #include "../d3d6/d3d6_interface.h"
 #include "../d3d5/d3d5_texture.h"
 
@@ -21,9 +22,6 @@ namespace dxvk {
     : DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
     , m_commonIntf ( commonIntf )
     , m_origin ( origin ) {
-    if (m_commonIntf == nullptr)
-      m_commonIntf = new DDrawCommonInterface();
-
     if (likely(!IsLegacyInterface())) {
       // We need a temporary D3D9 interface at this point to retrieve the options,
       // even if we're only proxying and we don't yet have any child D3D interfaces
@@ -34,7 +32,8 @@ namespace dxvk {
         throw DxvkError("DDrawInterface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
       }
 
-      m_options = D3DOptions(*d3d9Bridge->GetConfig());
+      if (m_commonIntf == nullptr)
+        m_commonIntf = new DDrawCommonInterface(D3DOptions(*d3d9Bridge->GetConfig()));
     }
 
     m_intfCount = ++s_intfCount;
@@ -288,7 +287,7 @@ namespace dxvk {
       return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
     }
 
-    if (unlikely(m_options.proxiedLegacySurfaces)) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedLegacySurfaces)) {
       Logger::debug("<<< DDrawInterface::CreateSurface: Proxy");
       return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
     }
@@ -315,8 +314,33 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::DuplicateSurface(LPDIRECTDRAWSURFACE lpDDSurface, LPDIRECTDRAWSURFACE *lplpDupDDSurface) {
-    Logger::warn("<<< DDrawInterface::DuplicateSurface: Proxy");
-    return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
+    if (unlikely(IsLegacyInterface())) {
+      Logger::warn("<<< DDrawInterface::DuplicateSurface: Proxy");
+      return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
+    }
+
+    Logger::debug("<<< DDrawInterface::DuplicateSurface: Proxy");
+
+    if (IsWrappedSurface(lpDDSurface)) {
+      InitReturnPtr(lplpDupDDSurface);
+
+      DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSurface);
+      Com<IDirectDrawSurface> dupSurface;
+      HRESULT hr = m_proxy->DuplicateSurface(ddrawSurface->GetProxied(), &dupSurface);
+      if (likely(SUCCEEDED(hr))) {
+        try {
+          *lplpDupDDSurface = ref(new DDrawSurface(nullptr, std::move(dupSurface), this, nullptr, nullptr, false));
+        } catch (const DxvkError& e) {
+          Logger::err(e.message());
+          return DDERR_GENERIC;
+        }
+      }
+      return hr;
+    } else {
+      if (unlikely(lpDDSurface != nullptr))
+        Logger::warn("DDrawInterface::DuplicateSurface: Received an unwrapped source surface");
+      return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
+    }
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK lpEnumModesCallback) {
@@ -397,13 +421,66 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP) {
+    if (unlikely(IsLegacyInterface())) {
+      Logger::debug("<<< DDrawInterface::SetDisplayMode: Proxy");
+      return m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP);
+    }
+
     Logger::debug("<<< DDrawInterface::SetDisplayMode: Proxy");
-    return m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP);
+
+    HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent &&
+                m_commonIntf->GetOptions()->backBufferResize)) {
+      const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+
+      // Ignore any mode size dimensions when in windowed present mode
+      if (exclusiveMode) {
+        Logger::debug("DDrawInterface::SetDisplayMode: Exclusive full-screen present mode in use");
+        DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
+        if (modeSize->width != dwWidth || modeSize->height != dwHeight) {
+          modeSize->width  = dwWidth;
+          modeSize->height = dwHeight;
+        }
+      }
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
+    if (unlikely(IsLegacyInterface())) {
+      Logger::debug("<<< DDrawInterface::WaitForVerticalBlank: Proxy");
+      return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+    }
+
     Logger::debug("<<< DDrawInterface::WaitForVerticalBlank: Proxy");
-    return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+
+    HRESULT hr = m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      // Switch to a default presentation interval when an application
+      // tries to wait for vertical blank, if we're not already doing so
+      D3D5Device* d3d5Device = m_d3d5Intf->GetLastUsedDevice();
+      if (unlikely(d3d5Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
+        Logger::info("DDrawInterface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
+
+        d3d9::D3DPRESENT_PARAMETERS resetParams = d3d5Device->GetPresentParameters();
+        resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+        HRESULT hrReset = d3d5Device->Reset(&resetParams);
+        if (unlikely(FAILED(hrReset))) {
+          Logger::warn("DDrawInterface::WaitForVerticalBlank: Failed D3D9 swapchain reset");
+        } else {
+          m_commonIntf->SetWaitForVBlank(true);
+        }
+      }
+    }
+
+    return hr;
   }
 
   bool DDrawInterface::IsWrappedSurface(IDirectDrawSurface* surface) const {
