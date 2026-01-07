@@ -724,7 +724,7 @@ namespace dxvk {
       return m_origin->ReleaseDC(hDC);
     }
 
-    Logger::debug(">>> DDraw7Surface::ReleaseDC");
+    Logger::debug(">>> DDraw4Surface::ReleaseDC");
 
     if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
       if (IsTexture())
@@ -733,7 +733,7 @@ namespace dxvk {
     }
 
     if (unlikely(!IsInitialized())) {
-      Logger::debug("DDraw7Surface::ReleaseDC: Not yet initialized");
+      Logger::debug("DDraw4Surface::ReleaseDC: Not yet initialized");
       return m_proxy->ReleaseDC(hDC);
     }
 
@@ -741,7 +741,7 @@ namespace dxvk {
     RefreshD3D6Device();
     if (m_d3d6Device != nullptr && !(m_d3d6Device->HasDrawn() &&
        (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()))) {
-      Logger::debug("DDraw7Surface::ReleaseDC: Not yet drawn flippable surface");
+      Logger::debug("DDraw4Surface::ReleaseDC: Not yet drawn flippable surface");
       if (IsTexture())
         m_commonSurf->DirtyMipMaps();
       return m_proxy->ReleaseDC(hDC);
@@ -749,7 +749,7 @@ namespace dxvk {
 
     HRESULT hr = m_d3d9->ReleaseDC(hDC);
     if (unlikely(FAILED(hr))) {
-      Logger::err("DDraw7Surface::ReleaseDC: Failed to release d3d9 DC");
+      Logger::err("DDraw4Surface::ReleaseDC: Failed to release d3d9 DC");
     }
 
     return hr;
