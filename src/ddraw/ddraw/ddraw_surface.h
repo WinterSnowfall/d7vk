@@ -108,6 +108,11 @@ namespace dxvk {
       return m_commonSurf.ptr();
     }
 
+    // Needed for use with IDirectDrawSurface2/3 surfaces
+    DDrawCommonInterface* GetCommonInterface() const {
+      return m_commonIntf;
+    }
+
     const D3DOptions* GetOptions() const {
       return m_commonIntf->GetOptions();
     }
@@ -133,6 +138,14 @@ namespace dxvk {
       return IsFrontBuffer() || IsBackBufferOrFlippable() || IsDepthStencil() || IsOffScreenPlainSurface();
     }
 
+    bool IsPrimarySurface() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE;
+    }
+
+    bool IsFrontBuffer() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER;
+    }
+
     bool IsBackBufferOrFlippable() const {
       return !IsFrontBuffer() && (m_desc.ddsCaps.dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP));
     }
@@ -143,6 +156,10 @@ namespace dxvk {
 
     bool Is3DSurface() const {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_3DDEVICE;
+    }
+
+    bool IsTexture() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_TEXTURE;
     }
 
     DDrawSurface* GetAttachedDepthStencil() const {
@@ -184,13 +201,7 @@ namespace dxvk {
       return !(m_desc.dwFlags & DDSD_CAPS);
     }
 
-    inline bool IsPrimarySurface() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE;
-    }
 
-    inline bool IsFrontBuffer() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER;
-    }
 
     inline bool IsBackBuffer() const {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER;
@@ -198,10 +209,6 @@ namespace dxvk {
 
     inline bool IsOffScreenPlainSurface() const {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN;
-    }
-
-    inline bool IsTexture() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_TEXTURE;
     }
 
     inline bool IsTextureMip() const {
