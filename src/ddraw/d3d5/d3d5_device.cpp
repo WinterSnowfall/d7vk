@@ -25,7 +25,7 @@ namespace dxvk {
   D3D5Device::D3D5Device(
       Com<IDirect3DDevice2>&& d3d5DeviceProxy,
       D3D5Interface* pParent,
-      D3DDEVICEDESC Desc,
+      D3DDEVICEDESC2 Desc,
       GUID deviceGUID,
       d3d9::D3DPRESENT_PARAMETERS Params9,
       Com<d3d9::IDirect3DDevice9>&& pDevice9,
@@ -130,8 +130,8 @@ namespace dxvk {
               || !IsValidD3DDeviceDescSize(hel_desc->dwSize)))
       return DDERR_INVALIDPARAMS;
 
-    D3DDEVICEDESC desc_HAL = m_desc;
-    D3DDEVICEDESC desc_HEL = m_desc;
+    D3DDEVICEDESC2 desc_HAL = m_desc;
+    D3DDEVICEDESC2 desc_HEL = m_desc;
 
     if (m_deviceGUID == IID_IDirect3DRGBDevice) {
       desc_HAL.dwFlags = 0;
@@ -150,18 +150,18 @@ namespace dxvk {
       Logger::warn("D3D5Device::GetCaps: Unhandled device type");
     }
 
-    *hal_desc = desc_HAL;
-    *hel_desc = desc_HEL;
+    memcpy(hal_desc, &desc_HAL, sizeof(D3DDEVICEDESC2));
+    memcpy(hel_desc, &desc_HEL, sizeof(D3DDEVICEDESC2));
 
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SwapTextureHandles(IDirect3DTexture2 *tex1, IDirect3DTexture2 *tex2) {
-    Logger::warn("<<< D3D5Device::SwapTextureHandles: Proxy");
+    Logger::warn("!!! D3D5Device::SwapTextureHandles: Stub");
 
     RefreshLastUsedDevice();
 
-    return m_proxy->SwapTextureHandles(tex1, tex2);
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetStats(D3DSTATS *stats) {
@@ -1308,14 +1308,6 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D5Device::ValidateDevice(LPDWORD lpdwPasses) {
-    Logger::debug(">>> D3D5Device::ValidateDevice");
-
-    RefreshLastUsedDevice();
-
-    return m_d3d9->ValidateDevice(lpdwPasses);
-  }
-
   void D3D5Device::InitializeDS() {
     m_ds = m_rt->GetAttachedDepthStencil();
 
@@ -1493,14 +1485,14 @@ namespace dxvk {
 
     // Only upload textures if any sort of blit/lock operation
     // has been performed on them since the last SetTexture call
-    if (surface5->HasDirtyMipMaps() || m_parent->GetOptions()->alwaysDirtyMipMaps) {
+    if (surface5->GetCommonSurface()->HasDirtyMipMaps() || m_parent->GetOptions()->alwaysDirtyMipMaps) {
       hr = surface5->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D5Device::SetTextureInternal: Failed to initialize/upload D3D9 texture");
         return hr;
       }
 
-      surface5->UnDirtyMipMaps();
+      surface5->GetCommonSurface()->UnDirtyMipMaps();
     } else {
       Logger::debug("D3D5Device::SetTextureInternal: Skipping upload of texture and mip maps");
     }
