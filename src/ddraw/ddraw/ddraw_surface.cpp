@@ -777,6 +777,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::Unlock(LPVOID lpSurfaceData) {
+    if (likely(IsLegacyInterface())) {
+      Logger::debug("<<< DDrawSurface::Unlock: Proxy");
+      return m_proxy->Unlock(lpSurfaceData);
+    }
+
     Logger::debug("<<< DDrawSurface::Unlock: Proxy");
 
     // Note: Unfortunately, some applications write outside of locks too,
