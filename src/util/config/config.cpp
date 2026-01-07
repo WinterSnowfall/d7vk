@@ -1661,6 +1661,7 @@ namespace dxvk {
     /* Redline - Fixes missing weapon mip maps    */
     { R"(\\Redline\.exe$)", {{
       { "ddraw.autoGenMipMaps",             "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* 3DMark 99 (Max) - Enables VSync by default *
      * (probably due to hardware and/or driver    *
@@ -1691,6 +1692,10 @@ namespace dxvk {
     /* FreeSpace 2 - Fixes main menu animations   */
     { R"(\\FS2\.exe$)", {{
       { "ddraw.alwaysDirtyMipMaps",         "True" },
+    }} },
+    /* Descent: FreeSpace - The Great War         */
+    { R"(\\FS\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
 
   };
