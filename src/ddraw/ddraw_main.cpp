@@ -198,6 +198,11 @@ extern "C" {
     return ProxiedAcquireDDThreadLock();
   }
 
+  DLLEXPORT HRESULT __stdcall CompleteCreateSysmemSurface(DWORD arg) {
+    dxvk::Logger::warn("!!! CompleteCreateSysmemSurface: Stub");
+    return S_OK;
+  }
+
   DLLEXPORT HRESULT __stdcall D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd) {
     dxvk::Logger::warn("!!! D3DParseUnknownCommand: Stub");
     return S_OK;
@@ -215,6 +220,11 @@ extern "C" {
 
   DLLEXPORT HRESULT __stdcall DDInternalUnlock(DWORD arg) {
     dxvk::Logger::warn("!!! DDInternalUnlock: Stub");
+    return S_OK;
+  }
+
+  DLLEXPORT HRESULT __stdcall DSoundHelp(DWORD arg1, DWORD arg2, DWORD arg3) {
+    dxvk::Logger::warn("!!! DSoundHelp: Stub");
     return S_OK;
   }
 
@@ -375,6 +385,11 @@ extern "C" {
   DLLEXPORT HRESULT __stdcall GetDDSurfaceLocal(DWORD arg1, DWORD arg2, DWORD arg3) {
     dxvk::Logger::warn("!!! GetDDSurfaceLocal: Stub");
     return S_OK;
+  }
+
+  DLLEXPORT HANDLE __stdcall GetOLEThunkData(DWORD index) {
+    dxvk::Logger::warn("!!! GetOLEThunkData: Stub");
+    return 0;
   }
 
   DLLEXPORT HRESULT __stdcall GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS, DWORD arg) {

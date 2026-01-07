@@ -89,36 +89,16 @@ namespace dxvk {
 
     void RemoveWrappedSurface(IDirectDrawSurface7* surface);
 
+    DDrawCommonInterface* GetCommonInterface() const {
+      return m_commonIntf.ptr();
+    }
+
     D3D7Device* GetD3D7Device() const {
       return m_d3d7Intf->GetLastUsedDevice();
     }
 
-    const D3DOptions* GetOptions() const {
-      return m_d3d7Intf->GetOptions();
-    }
-
     DDraw7Surface* GetLastDepthStencil() const {
       return m_lastDepthStencil;
-    }
-
-    DWORD GetCooperativeLevel() const {
-      return m_commonIntf->GetCooperativeLevel();
-    }
-
-    HWND GetHWND() const {
-      return m_commonIntf->GetHWND();
-    }
-
-    DDrawModeSize GetModeSize() const {
-      return m_modeSize;
-    }
-
-    void SetWaitForVBlank(bool waitForVBlank) {
-      m_waitForVBlank = waitForVBlank;
-    }
-
-    bool GetWaitForVBlank() const {
-      return m_waitForVBlank;
     }
 
   private:
@@ -129,9 +109,6 @@ namespace dxvk {
     Com<DDrawCommonInterface>   m_commonIntf;
 
     Com<D3D7Interface, false>   m_d3d7Intf;
-
-    bool                        m_waitForVBlank = true;
-    DDrawModeSize               m_modeSize = { };
 
     DDraw7Surface*              m_lastDepthStencil = nullptr;
 

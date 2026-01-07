@@ -18,8 +18,7 @@ namespace dxvk {
     : DDrawWrappedObject<DDrawInterface, IDirectDraw4, IUnknown>(pParent, std::move(proxyIntf), nullptr)
     , m_commonIntf ( commonIntf )
     , m_origin ( origin ) {
-    if (m_commonIntf == nullptr)
-      m_commonIntf = new DDrawCommonInterface();
+    // m_commonIntf can never be null for IDirectDraw4
 
     if (likely(!IsLegacyInterface())) {
       // Initialize the IDirect3D6 interlocked object
@@ -245,8 +244,8 @@ namespace dxvk {
 
     if (unlikely((lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)
               && (lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF))) {
-      if (!m_d3d6Intf->GetOptions()->proxiedQueryInterface
-        && m_d3d6Intf->GetOptions()->useD24X8forD32) {
+      if (!m_commonIntf->GetOptions()->proxiedQueryInterface
+        && m_commonIntf->GetOptions()->useD24X8forD32) {
         // In case of up-front unsupported and unadvertised D32 depth stencil use,
         // replace it with D24X8, as some games, such as Sacrifice, rely on it
         // to properly enable 32-bit display modes (and revert to 16-bit otherwise)
@@ -264,7 +263,7 @@ namespace dxvk {
       try{
         Com<DDraw4Surface> surface4 = new DDraw4Surface(nullptr, std::move(ddrawSurface4Proxied), this, nullptr, nullptr, true);
 
-        if (unlikely(m_d3d6Intf->GetOptions()->proxiedQueryInterface)) {
+        if (unlikely(m_commonIntf->GetOptions()->proxiedQueryInterface)) {
           // Hack: Gothic / Gothic 2 and other games attach the depth stencil to an externally created
           // back buffer, so we need to re-attach the depth stencil to the back buffer on device creation
           if (unlikely(surface4->IsForwardableSurface())) {
@@ -331,7 +330,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw4Interface::FlipToGDISurface() {
     Logger::debug("*** DDraw4Interface::FlipToGDISurface: Ignoring");
 
-    if (unlikely(m_d3d6Intf->GetOptions()->forceProxiedPresent))
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent))
       return m_proxy->FlipToGDISurface();
 
     return DD_OK;
@@ -464,16 +463,17 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (likely(!m_d3d6Intf->GetOptions()->forceProxiedPresent &&
-                m_d3d6Intf->GetOptions()->backBufferResize)) {
+    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent &&
+                m_commonIntf->GetOptions()->backBufferResize)) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
       if (exclusiveMode) {
         Logger::debug("DDraw4Interface::SetDisplayMode: Exclusive full-screen present mode in use");
-        if (m_modeSize.width != dwWidth || m_modeSize.height != dwHeight) {
-          m_modeSize.width  = dwWidth;
-          m_modeSize.height = dwHeight;
+        DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
+        if (modeSize->width != dwWidth || modeSize->height != dwHeight) {
+          modeSize->width  = dwWidth;
+          modeSize->height = dwHeight;
         }
       }
     }
@@ -493,11 +493,11 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (likely(!m_d3d6Intf->GetOptions()->forceProxiedPresent)) {
+    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
       // Switch to a default presentation interval when an application
       // tries to wait for vertical blank, if we're not already doing so
       D3D6Device* d3d6Device = m_d3d6Intf->GetLastUsedDevice();
-      if (unlikely(d3d6Device != nullptr && !m_waitForVBlank)) {
+      if (unlikely(d3d6Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
         Logger::info("DDraw4Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
 
         d3d9::D3DPRESENT_PARAMETERS resetParams = d3d6Device->GetPresentParameters();
@@ -506,7 +506,7 @@ namespace dxvk {
         if (unlikely(FAILED(hrReset))) {
           Logger::warn("DDraw4Interface::WaitForVerticalBlank: Failed D3D9 swapchain reset");
         } else {
-          m_waitForVBlank = true;
+          m_commonIntf->SetWaitForVBlank(true);
         }
       }
     }
@@ -531,7 +531,7 @@ namespace dxvk {
     if (likely(d3d6Device != nullptr)) {
       Logger::debug("DDraw4Interface::GetAvailableVidMem: Getting memory stats from D3D9");
 
-      const DWORD total9 = static_cast<DWORD>(m_d3d6Intf->GetOptions()->maxAvailableMemory) * Megabytes;
+      const DWORD total9 = static_cast<DWORD>(m_commonIntf->GetOptions()->maxAvailableMemory) * Megabytes;
       const DWORD free9  = static_cast<DWORD>(d3d6Device->GetD3D9()->GetAvailableTextureMem());
 
       Logger::debug(str::format("DDraw4Interface::GetAvailableVidMem: Total: ", total9));
@@ -561,7 +561,7 @@ namespace dxvk {
       Logger::debug(str::format("DDraw4Interface::GetAvailableVidMem: DDraw Total: ", total6));
       Logger::debug(str::format("DDraw4Interface::GetAvailableVidMem: DDraw Free : ", free6));
 
-      const DWORD total9 = static_cast<DWORD>(m_d3d6Intf->GetOptions()->maxAvailableMemory) * Megabytes;
+      const DWORD total9 = static_cast<DWORD>(m_commonIntf->GetOptions()->maxAvailableMemory) * Megabytes;
       const DWORD delta  = total6 > total9 ? total6 - total9 : 0;
       const DWORD free9  = free6 > delta ? free6 - delta : 0;
 
@@ -622,7 +622,7 @@ namespace dxvk {
       if (!surface->IsTexture()) {
         surface->InitializeOrUploadD3D9();
       } else {
-        surface->DirtyMipMaps();
+        surface->GetCommonSurface()->DirtyMipMaps();
       }
     }
 
