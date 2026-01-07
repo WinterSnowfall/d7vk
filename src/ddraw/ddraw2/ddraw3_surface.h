@@ -111,6 +111,7 @@ namespace dxvk {
     uint32_t         m_surfCount = 0;
 
     Com<DDrawCommonSurface> m_commonSurf;
+    DDrawCommonInterface*   m_commonIntf;
 
     DDraw7Surface*   m_origin    = nullptr;
 
