@@ -4,6 +4,7 @@
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_format.h"
 
+#include "../ddraw_common_interface.h"
 #include "../ddraw_common_surface.h"
 
 #include "ddraw4_interface.h"
@@ -119,8 +120,12 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE ChangeUniquenessValue();
 
+    DDrawCommonSurface* GetCommonSurface() const {
+      return m_commonSurf.ptr();
+    }
+
     const D3DOptions* GetOptions() const {
-      return m_parent->GetOptions();
+      return m_commonIntf->GetOptions();
     }
 
     D3D6Device* GetD3D6Device() {
@@ -175,18 +180,6 @@ namespace dxvk {
 
     void ClearParentSurface() {
       m_parentSurf = nullptr;
-    }
-
-    bool HasDirtyMipMaps() const {
-      return m_commonSurf->HasDirtyMipMaps();
-    }
-
-    void DirtyMipMaps() {
-      m_commonSurf->DirtyMipMaps();
-    }
-
-    void UnDirtyMipMaps() {
-      m_commonSurf->UnDirtyMipMaps();
     }
 
     HRESULT InitializeD3D9RenderTarget();
@@ -289,6 +282,7 @@ namespace dxvk {
     uint32_t         m_surfCount = 0;
 
     Com<DDrawCommonSurface>             m_commonSurf;
+    DDrawCommonInterface*               m_commonIntf;
 
     DDraw4Surface*                      m_parentSurf = nullptr;
 

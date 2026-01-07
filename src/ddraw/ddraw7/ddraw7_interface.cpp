@@ -17,15 +17,15 @@ namespace dxvk {
   DDraw7Interface::DDraw7Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw7>&& proxyIntf)
     : DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
     , m_commonIntf ( commonIntf ) {
-    if (m_commonIntf == nullptr)
-      m_commonIntf = new DDrawCommonInterface();
-
     // Initialize the IDirect3D7 interlocked object
     void* d3d7IntfProxiedVoid = nullptr;
     // This can never reasonably fail
     m_proxy->QueryInterface(__uuidof(IDirect3D7), &d3d7IntfProxiedVoid);
     Com<IDirect3D7> d3d7IntfProxied = static_cast<IDirect3D7*>(d3d7IntfProxiedVoid);
     m_d3d7Intf = new D3D7Interface(std::move(d3d7IntfProxied), this);
+
+    if (m_commonIntf == nullptr)
+      m_commonIntf = new DDrawCommonInterface(*m_d3d7Intf->GetOptions());
 
     m_intfCount = ++s_intfCount;
 
@@ -198,8 +198,8 @@ namespace dxvk {
 
     if (unlikely((lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)
               && (lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF))) {
-      if (!m_d3d7Intf->GetOptions()->proxiedQueryInterface
-        && m_d3d7Intf->GetOptions()->useD24X8forD32) {
+      if (!m_commonIntf->GetOptions()->proxiedQueryInterface
+        && m_commonIntf->GetOptions()->useD24X8forD32) {
         // In case of up-front unsupported and unadvertised D32 depth stencil use,
         // replace it with D24X8, as some games, such as Sacrifice, rely on it
         // to properly enable 32-bit display modes (and revert to 16-bit otherwise)
@@ -217,7 +217,7 @@ namespace dxvk {
       try{
         Com<DDraw7Surface> surface7 = new DDraw7Surface(nullptr, std::move(ddraw7SurfaceProxied), this, nullptr, true);
 
-        if (unlikely(m_d3d7Intf->GetOptions()->proxiedQueryInterface)) {
+        if (unlikely(m_commonIntf->GetOptions()->proxiedQueryInterface)) {
           // Hack: Gothic / Gothic 2 and other games attach the depth stencil to an externally created
           // back buffer, so we need to re-attach the depth stencil to the back buffer on device creation
           if (unlikely(surface7->IsForwardableSurface())) {
@@ -279,7 +279,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::FlipToGDISurface() {
     Logger::debug("*** DDraw7Interface::FlipToGDISurface: Ignoring");
 
-    if (unlikely(m_d3d7Intf->GetOptions()->forceProxiedPresent))
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent))
       return m_proxy->FlipToGDISurface();
 
     return DD_OK;
@@ -397,16 +397,17 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (likely(!m_d3d7Intf->GetOptions()->forceProxiedPresent &&
-                m_d3d7Intf->GetOptions()->backBufferResize)) {
+    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent &&
+                m_commonIntf->GetOptions()->backBufferResize)) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
       if (exclusiveMode) {
         Logger::debug("DDraw7Interface::SetDisplayMode: Exclusive full-screen present mode in use");
-        if (m_modeSize.width != dwWidth || m_modeSize.height != dwHeight) {
-          m_modeSize.width = dwWidth;
-          m_modeSize.height = dwHeight;
+        DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
+        if (modeSize->width != dwWidth || modeSize->height != dwHeight) {
+          modeSize->width  = dwWidth;
+          modeSize->height = dwHeight;
         }
       }
     }
@@ -421,11 +422,11 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (likely(!m_d3d7Intf->GetOptions()->forceProxiedPresent)) {
+    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
       // Switch to a default presentation interval when an application
       // tries to wait for vertical blank, if we're not already doing so
       D3D7Device* d3d7Device = m_d3d7Intf->GetLastUsedDevice();
-      if (unlikely(d3d7Device != nullptr && !m_waitForVBlank)) {
+      if (unlikely(d3d7Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
         Logger::info("DDraw7Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
 
         d3d9::D3DPRESENT_PARAMETERS resetParams = d3d7Device->GetPresentParameters();
@@ -434,7 +435,7 @@ namespace dxvk {
         if (unlikely(FAILED(hrReset))) {
           Logger::warn("DDraw7Interface::WaitForVerticalBlank: Failed D3D9 swapchain reset");
         } else {
-          m_waitForVBlank = true;
+          m_commonIntf->SetWaitForVBlank(true);
         }
       }
     }
@@ -454,7 +455,7 @@ namespace dxvk {
     if (likely(d3d7Device != nullptr)) {
       Logger::debug("DDraw7Interface::GetAvailableVidMem: Getting memory stats from D3D9");
 
-      const DWORD total9 = static_cast<DWORD>(m_d3d7Intf->GetOptions()->maxAvailableMemory) * Megabytes;
+      const DWORD total9 = static_cast<DWORD>(m_commonIntf->GetOptions()->maxAvailableMemory) * Megabytes;
       const DWORD free9  = static_cast<DWORD>(d3d7Device->GetD3D9()->GetAvailableTextureMem());
 
       Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: Total: ", total9));
@@ -484,7 +485,7 @@ namespace dxvk {
       Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: DDraw Total: ", total7));
       Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: DDraw Free : ", free7));
 
-      const DWORD total9 = static_cast<DWORD>(m_d3d7Intf->GetOptions()->maxAvailableMemory) * Megabytes;
+      const DWORD total9 = static_cast<DWORD>(m_commonIntf->GetOptions()->maxAvailableMemory) * Megabytes;
       const DWORD delta  = total7 > total9 ? total7 - total9 : 0;
       const DWORD free9  = free7 > delta ? free7 - delta : 0;
 
@@ -537,7 +538,7 @@ namespace dxvk {
       if (!surface->IsTextureOrCubeMap()) {
         surface->InitializeOrUploadD3D9();
       } else {
-        surface->DirtyMipMaps();
+        surface->GetCommonSurface()->DirtyMipMaps();
       }
     }
 

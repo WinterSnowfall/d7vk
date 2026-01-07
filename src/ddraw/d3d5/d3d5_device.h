@@ -35,7 +35,7 @@ namespace dxvk {
     D3D5Device(
         Com<IDirect3DDevice2>&& d3d6DeviceProxy,
         D3D5Interface* pParent,
-        D3DDEVICEDESC Desc,
+        D3DDEVICEDESC2 Desc,
         GUID deviceGUID,
         d3d9::D3DPRESENT_PARAMETERS Params9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
@@ -105,12 +105,6 @@ namespace dxvk {
     HRESULT STDMETHODCALLTYPE SetClipStatus(D3DCLIPSTATUS *clip_status);
 
     HRESULT STDMETHODCALLTYPE GetClipStatus(D3DCLIPSTATUS *clip_status);
-
-    HRESULT STDMETHODCALLTYPE GetTexture(DWORD stage, IDirect3DTexture2 **texture);
-
-    HRESULT STDMETHODCALLTYPE SetTexture(DWORD stage, IDirect3DTexture2 *texture);
-
-    HRESULT STDMETHODCALLTYPE ValidateDevice(LPDWORD lpdwPasses);
 
     void InitializeDS();
 
@@ -225,7 +219,7 @@ namespace dxvk {
     D3DMATERIALHANDLE             m_materialHandle = 0;
     D3DTEXTUREHANDLE              m_textureHandle = 0;
 
-    D3DDEVICEDESC                 m_desc;
+    D3DDEVICEDESC2                m_desc;
     GUID                          m_deviceGUID;
 
     Com<DDrawSurface>             m_rt;

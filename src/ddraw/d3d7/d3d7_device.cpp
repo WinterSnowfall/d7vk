@@ -1245,14 +1245,14 @@ namespace dxvk {
 
     // Only upload textures if any sort of blit/lock operation
     // has been performed on them since the last SetTexture call
-    if (surface7->HasDirtyMipMaps() || m_parent->GetOptions()->alwaysDirtyMipMaps) {
+    if (surface7->GetCommonSurface()->HasDirtyMipMaps() || m_parent->GetOptions()->alwaysDirtyMipMaps) {
       hr = surface7->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Device::SetTexture: Failed to initialize/upload D3D9 texture");
         return hr;
       }
 
-      surface7->UnDirtyMipMaps();
+      surface7->GetCommonSurface()->UnDirtyMipMaps();
     } else {
       Logger::debug("D3D7Device::SetTexture: Skipping upload of texture and mip maps");
     }
@@ -1384,7 +1384,7 @@ namespace dxvk {
           Logger::err("D3D7Device::Load: Failed to upload D3D9 destination surface data");
         }
       } else {
-        ddraw7SurfaceDst->DirtyMipMaps();
+        ddraw7SurfaceDst->GetCommonSurface()->DirtyMipMaps();
       }
     }
 
