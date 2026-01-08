@@ -187,10 +187,10 @@ namespace dxvk {
     }
 
     Com<DDraw7Surface> rt7;
-    if (unlikely(!m_parent->IsWrappedSurface(surface))) {
+    if (unlikely(!m_parent->GetCommonInterface()->IsWrappedSurface(surface))) {
       if (unlikely(m_options.proxiedQueryInterface)) {
         Logger::debug("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
-        rt7 = new DDraw7Surface(nullptr, std::move(surface), m_parent, nullptr, true);
+        rt7 = new DDraw7Surface(nullptr, std::move(surface), m_parent, nullptr, nullptr, true);
         // Hack: attach the last created depth stencil to the unwrapped RT
         // We can not do this the usual way because the RT is not known to ddraw
         rt7->SetAttachedDepthStencil(m_parent->GetLastDepthStencil());
@@ -396,17 +396,21 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Interface::EvictManagedTextures() {
     Logger::debug(">>> D3D7Interface::EvictManagedTextures");
 
+    HRESULT hr = m_proxy->EvictManagedTextures();
+    if (unlikely(FAILED(hr)))
+      return hr;
+
     if (likely(m_lastUsedDevice != nullptr)) {
       D3D7DeviceLock lock = m_lastUsedDevice->LockDevice();
 
-      HRESULT hr = m_lastUsedDevice->GetD3D9()->EvictManagedResources();
-      if (unlikely(FAILED(hr))) {
+      HRESULT hr9 = m_lastUsedDevice->GetD3D9()->EvictManagedResources();
+      if (unlikely(FAILED(hr9))) {
         Logger::err("D3D7Interface::EvictManagedTextures: Failed D3D9 managed resource eviction");
-        return hr;
+        return hr9;
       }
     }
 
-    return m_proxy->EvictManagedTextures();
+    return D3D_OK;
   }
 
 }

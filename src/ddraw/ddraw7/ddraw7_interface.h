@@ -10,7 +10,6 @@
 
 #include "../d3d7/d3d7_interface.h"
 
-#include <vector>
 
 namespace dxvk {
 
@@ -23,7 +22,7 @@ namespace dxvk {
   class DDraw7Interface final : public DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown> {
 
   public:
-    DDraw7Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw7>&& proxyIntf);
+    DDraw7Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw7>&& proxyIntf, IUnknown* origin);
 
     ~DDraw7Interface();
 
@@ -83,12 +82,6 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE EvaluateMode(DWORD dwFlags, DWORD* pTimeout);
 
-    bool IsWrappedSurface(IDirectDrawSurface7* surface) const;
-
-    void AddWrappedSurface(IDirectDrawSurface7* surface);
-
-    void RemoveWrappedSurface(IDirectDrawSurface7* surface);
-
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf.ptr();
     }
@@ -108,11 +101,11 @@ namespace dxvk {
 
     Com<DDrawCommonInterface>   m_commonIntf;
 
+    IUnknown*                   m_origin = nullptr;
+
     Com<D3D7Interface, false>   m_d3d7Intf;
 
     DDraw7Surface*              m_lastDepthStencil = nullptr;
-
-    std::vector<DDraw7Surface*> m_surfaces;
 
   };
 
