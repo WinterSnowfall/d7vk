@@ -21,9 +21,9 @@ namespace dxvk {
     DWORD                flags = 0;
   };
 
-  class D3D7StateBlock;
+  class DDrawCommonInterface;
   class DDraw7Surface;
-  class DDraw7Interface;
+  class D3D7StateBlock;
 
   /**
   * \brief D3D7 device implementation
@@ -207,11 +207,11 @@ namespace dxvk {
         m_parent->SetLastUsedDevice(this);
     }
 
-    bool                          m_isMixedHWVP   = false;
-    bool                          m_hasDrawn      = false;
-    bool                          m_inScene       = false;
+    bool                          m_isMixedHWVP = false;
+    bool                          m_hasDrawn    = false;
+    bool                          m_inScene     = false;
 
-    DDraw7Interface*              m_DD7IntfParent = nullptr;
+    DDrawCommonInterface*         m_commonIntf  = nullptr;
 
     Com<DxvkD3D8Bridge>           m_bridge;
 
