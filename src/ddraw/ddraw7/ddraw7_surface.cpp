@@ -16,19 +16,26 @@ namespace dxvk {
         Com<IDirectDrawSurface7>&& surfProxy,
         DDraw7Interface* pParent,
         DDraw7Surface* pParentSurf,
+        IUnknown* origin,
         bool isChildObject)
     : DDrawWrappedObject<DDraw7Interface, IDirectDrawSurface7, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
     , m_isChildObject ( isChildObject )
     , m_commonSurf ( commonSurf )
-    , m_parentSurf ( pParentSurf ) {
-    if (m_commonSurf == nullptr)
-      m_commonSurf = new DDrawCommonSurface();
-
+    , m_parentSurf ( pParentSurf )
+    , m_origin ( origin ) {
     // IDirectDrawSurface7 will always have a parent but we need to be careful
-    // about legacy interfaces, which will not (and get the interface from the origin)
+    // about legacy interfaces, which will get it from the common surface
     m_commonIntf = m_parent->GetCommonInterface();
 
-    m_parent->AddWrappedSurface(this);
+    m_commonIntf->AddWrappedSurface(this);
+
+    if (m_commonSurf == nullptr)
+      m_commonSurf = new DDrawCommonSurface(m_commonIntf);
+
+    m_commonSurf->SetDD7Surface(this);
+
+    if (likely(m_isChildObject))
+      m_parent->AddRef();
 
     // Retrieve and cache the proxy surface desc
     m_desc.dwSize = sizeof(DDSURFACEDESC2);
@@ -50,7 +57,12 @@ namespace dxvk {
   }
 
   DDraw7Surface::~DDraw7Surface() {
-    m_parent->RemoveWrappedSurface(this);
+    m_commonIntf->RemoveWrappedSurface(this);
+
+    if (likely(m_isChildObject))
+      m_parent->Release();
+
+    m_commonSurf->SetDD7Surface(nullptr);
 
     Logger::debug(str::format("DDraw7Surface: Surface nr. [[7-", m_surfCount, "]] bites the dust"));
   }
@@ -100,6 +112,11 @@ namespace dxvk {
     // Some games query for legacy ddraw surfaces
     if (unlikely(riid == __uuidof(IUnknown)
               || riid == __uuidof(IDirectDrawSurface))) {
+      if (m_commonSurf->GetDDSurface() != nullptr) {
+        Logger::warn("DDraw7Surface::QueryInterface: Query for existing IDirectDrawSurface");
+        return m_commonSurf->GetDDSurface()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("DDraw7Surface::QueryInterface: Query for legacy IDirectDrawSurface");
 
       Com<IDirectDrawSurface> ppvProxyObject;
@@ -111,6 +128,11 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
+      if (m_commonSurf->GetDD2Surface() != nullptr) {
+        Logger::warn("DDraw7Surface::QueryInterface: Query for existing IDirectDrawSurface2");
+        return m_commonSurf->GetDD2Surface()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("DDraw7Surface::QueryInterface: Query for legacy IDirectDrawSurface2");
 
       Com<IDirectDrawSurface2> ppvProxyObject;
@@ -123,6 +145,11 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface3))) {
+      if (m_commonSurf->GetDD3Surface() != nullptr) {
+        Logger::warn("DDraw7Surface::QueryInterface: Query for existing IDirectDrawSurface3");
+        return m_commonSurf->GetDD3Surface()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("DDraw7Surface::QueryInterface: Query for legacy IDirectDrawSurface3");
 
       Com<IDirectDrawSurface3> ppvProxyObject;
@@ -135,6 +162,11 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface4))) {
+      if (m_commonSurf->GetDD4Surface() != nullptr) {
+        Logger::warn("DDraw7Surface::QueryInterface: Query for existing IDirectDrawSurface4");
+        return m_commonSurf->GetDD4Surface()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("DDraw7Surface::QueryInterface: Query for legacy IDirectDrawSurface4");
 
       Com<IDirectDrawSurface4> ppvProxyObject;
@@ -173,7 +205,7 @@ namespace dxvk {
     if (unlikely(lpDDSAttachedSurface == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(!m_parent->IsWrappedSurface(lpDDSAttachedSurface))) {
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
       Logger::warn("DDraw7Surface::AddAttachedSurface: Attaching unwrapped surface");
       return m_proxy->AddAttachedSurface(lpDDSAttachedSurface);
     }
@@ -219,7 +251,7 @@ namespace dxvk {
 
     HRESULT hr;
 
-    if (unlikely(!m_parent->IsWrappedSurface(lpDDSrcSurface))) {
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
       if (unlikely(lpDDSrcSurface != nullptr)) {
         // Gothic 1/2 spams this warning, but with proxiedQueryInterface it is expected behavior
         if (likely(!m_commonIntf->GetOptions()->proxiedQueryInterface)) {
@@ -278,7 +310,7 @@ namespace dxvk {
 
     HRESULT hr;
 
-    if (unlikely(!m_parent->IsWrappedSurface(lpDDSrcSurface))) {
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
       if (unlikely(lpDDSrcSurface != nullptr))
         Logger::warn("DDraw7Surface::BltFast: Received an unwrapped source surface");
       hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
@@ -305,7 +337,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE7 lpDDSAttachedSurface) {
     Logger::debug("<<< DDraw7Surface::DeleteAttachedSurface: Proxy");
 
-    if (unlikely(!m_parent->IsWrappedSurface(lpDDSAttachedSurface))) {
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
       if (unlikely(lpDDSAttachedSurface != nullptr))
         Logger::warn("DDraw7Surface::DeleteAttachedSurface: Deleting unwrapped surface");
 
@@ -372,7 +404,7 @@ namespace dxvk {
     }
 
     Com<DDraw7Surface> surf7;
-    if (m_parent->IsWrappedSurface(lpDDSurfaceTargetOverride)) {
+    if (m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride)) {
       surf7 = static_cast<DDraw7Surface*>(lpDDSurfaceTargetOverride);
 
       if (unlikely(!surf7->IsBackBufferOrFlippable())) {
@@ -393,7 +425,7 @@ namespace dxvk {
 
         BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(m_proxy.ptr(), m_d3d7Device->GetRenderTarget()->GetD3D9());
 
-        if (unlikely(!m_parent->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
+        if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
           if (unlikely(lpDDSurfaceTargetOverride != nullptr))
             Logger::debug("DDraw7Surface::Flip: Received unwrapped surface");
           if (likely(m_d3d7Device->GetRenderTarget() == this))
@@ -462,19 +494,18 @@ namespace dxvk {
       return hr;
     }
 
-    if (likely(!m_parent->IsWrappedSurface(surface.ptr()))) {
+    if (likely(!m_commonIntf->IsWrappedSurface(surface.ptr()))) {
       Logger::debug("DDraw7Surface::GetAttachedSurface: Got a new unwrapped surface");
       try {
         auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
         if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
-          Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface), m_parent, this, false);
+          Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface), m_parent, this, nullptr, false);
           m_attachedSurfaces.emplace(std::piecewise_construct,
                                      std::forward_as_tuple(ddraw7Surface->GetProxied()),
                                      std::forward_as_tuple(ddraw7Surface.ptr()));
-          // Do NOT ref here since we're managing the attached object lifecycle
-          *lplpDDAttachedSurface = ddraw7Surface.ptr();
+          *lplpDDAttachedSurface = ddraw7Surface.ref();
         } else {
-          *lplpDDAttachedSurface = attachedSurfaceIter->second.ptr();
+          *lplpDDAttachedSurface = attachedSurfaceIter->second.ref();
         }
       } catch (const DxvkError& e) {
         Logger::err(e.message());
@@ -668,18 +699,7 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Restore() {
     Logger::debug("<<< DDraw7Surface::Restore: Proxy");
-
-    HRESULT hr = m_proxy->Restore();
-    if (unlikely(FAILED(hr)))
-      return hr;
-
-    if (!IsTextureOrCubeMap()) {
-      InitializeOrUploadD3D9();
-    } else {
-      m_commonSurf->DirtyMipMaps();
-    }
-
-    return hr;
+    return m_proxy->Restore();
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper) {
@@ -762,7 +782,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFACE7 lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx) {
     Logger::debug("<<< DDraw7Surface::UpdateOverlay: Proxy");
 
-    if (unlikely(!m_parent->IsWrappedSurface(lpDDDestSurface))) {
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDDestSurface))) {
       Logger::warn("DDraw7Surface::UpdateOverlay: Called with an unwrapped surface");
       return m_proxy->UpdateOverlay(lpSrcRect, lpDDDestSurface, lpDestRect, dwFlags, lpDDOverlayFx);
     }
@@ -779,7 +799,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE7 lpDDSReference) {
     Logger::debug("<<< DDraw7Surface::UpdateOverlayZOrder: Proxy");
 
-    if (unlikely(!m_parent->IsWrappedSurface(lpDDSReference))) {
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSReference))) {
       Logger::warn("DDraw7Surface::UpdateOverlayZOrder: Called with an unwrapped surface");
       return m_proxy->UpdateOverlayZOrder(dwFlags, lpDDSReference);
     }
@@ -941,10 +961,10 @@ namespace dxvk {
         d3d9::IDirect3DCubeTexture9* cubeTex9,
         d3d9::D3DCUBEMAP_FACES face) {
     Com<DDraw7Surface> face7;
-    if (likely(!m_parent->IsWrappedSurface(surf))) {
+    if (likely(!m_commonIntf->IsWrappedSurface(surf))) {
       Com<IDirectDrawSurface7> wrappedFace = surf;
       try {
-        face7 = new DDraw7Surface(nullptr, std::move(wrappedFace), m_parent, this, false);
+        face7 = new DDraw7Surface(nullptr, std::move(wrappedFace), m_parent, this, nullptr, false);
       } catch (const DxvkError& e) {
         Logger::err("InitializeAndAttachCubeFace: Failed to create wrapped cube face surface");
         Logger::err(e.message());
