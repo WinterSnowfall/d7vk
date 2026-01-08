@@ -33,6 +33,7 @@ namespace dxvk {
       DWORD CreationFlags9)
     : DDrawWrappedObject<D3D5Interface, IDirect3DDevice2, d3d9::IDirect3DDevice9>(pParent, std::move(d3d5DeviceProxy), std::move(pDevice9))
     , m_DDIntfParent ( pParent->GetParent() )
+    , m_commonIntf ( pParent->GetParent()->GetCommonInterface() )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
     , m_desc ( Desc )
@@ -410,7 +411,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    if (unlikely(!m_DDIntfParent->IsWrappedSurface(surface))) {
+    if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
       Logger::err("D3D5Device::SetRenderTarget: Received an unwrapped RT");
       return DDERR_GENERIC;
     }

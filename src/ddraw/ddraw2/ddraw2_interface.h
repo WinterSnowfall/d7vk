@@ -10,8 +10,6 @@
 
 #include "../d3d5/d3d5_interface.h"
 
-#include <vector>
-
 namespace dxvk {
 
   class D3D5Device;
@@ -26,7 +24,7 @@ namespace dxvk {
   class DDraw2Interface final : public DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown> {
 
   public:
-    DDraw2Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw2>&& proxyIntf, DDrawInterface* pParent, DDraw7Interface* origin);
+    DDraw2Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw2>&& proxyIntf, DDrawInterface* pParent, IUnknown* origin);
 
     ~DDraw2Interface();
 
@@ -84,17 +82,12 @@ namespace dxvk {
 
   private:
 
-    inline bool IsLegacyInterface() const {
-      return m_origin != nullptr;
-    }
-
     static uint32_t           s_intfCount;
     uint32_t                  m_intfCount  = 0;
 
     Com<DDrawCommonInterface> m_commonIntf;
 
-    DDraw7Interface*          m_origin = nullptr;
-    DDraw4Interface*          m_intf4  = nullptr;
+    IUnknown*                 m_origin = nullptr;
 
     Com<D3D5Interface, false> m_d3d5Intf;
 

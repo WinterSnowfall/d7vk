@@ -328,7 +328,7 @@ namespace dxvk {
     }
 
     Com<DDraw4Surface> rt4;
-    if (unlikely(!m_parent->IsWrappedSurface(lpDDS))) {
+    if (unlikely(!m_parent->GetCommonInterface()->IsWrappedSurface(lpDDS))) {
       if (unlikely(m_options.proxiedQueryInterface)) {
         Logger::debug("D3D6Interface::CreateDevice: Unwrapped surface passed as RT");
         rt4 = new DDraw4Surface(nullptr, std::move(lpDDS), m_parent, nullptr, nullptr, true);
@@ -539,17 +539,21 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Interface::EvictManagedTextures() {
     Logger::debug(">>> D3D6Interface::EvictManagedTextures");
 
+    HRESULT hr = m_proxy->EvictManagedTextures();
+    if (unlikely(FAILED(hr)))
+      return hr;
+
     if (likely(m_lastUsedDevice != nullptr)) {
       D3D6DeviceLock lock = m_lastUsedDevice->LockDevice();
 
-      HRESULT hr = m_lastUsedDevice->GetD3D9()->EvictManagedResources();
-      if (unlikely(FAILED(hr))) {
+      HRESULT hr9 = m_lastUsedDevice->GetD3D9()->EvictManagedResources();
+      if (unlikely(FAILED(hr9))) {
         Logger::err("D3D6Interface::EvictManagedTextures: Failed D3D9 managed resource eviction");
-        return hr;
+        return hr9;
       }
     }
 
-    return m_proxy->EvictManagedTextures();
+    return D3D_OK;
   }
 
   D3D6Material* D3D6Interface::GetMaterialFromHandle(D3DMATERIALHANDLE handle) {

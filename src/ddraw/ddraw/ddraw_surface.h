@@ -4,7 +4,6 @@
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_format.h"
 
-#include "../ddraw_common_interface.h"
 #include "../ddraw_common_surface.h"
 
 #include "ddraw_interface.h"
@@ -31,7 +30,7 @@ namespace dxvk {
         Com<IDirectDrawSurface>&& surfProxy,
         DDrawInterface* pParent,
         DDrawSurface* pParentSurf,
-        DDraw7Surface* origin,
+        IUnknown* origin,
         bool isChildObject);
 
     ~DDrawSurface();
@@ -108,7 +107,6 @@ namespace dxvk {
       return m_commonSurf.ptr();
     }
 
-    // Needed for use with IDirectDrawSurface2/3 surfaces
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf;
     }
@@ -183,6 +181,8 @@ namespace dxvk {
 
     HRESULT InitializeOrUploadD3D9();
 
+    HRESULT IntializeD3D9(const bool initRT);
+
   private:
 
     inline bool IsLegacyInterface() const {
@@ -201,8 +201,6 @@ namespace dxvk {
       return !(m_desc.dwFlags & DDSD_CAPS);
     }
 
-
-
     inline bool IsBackBuffer() const {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER;
     }
@@ -219,20 +217,20 @@ namespace dxvk {
       return m_desc.ddsCaps.dwCaps & DDSCAPS_OVERLAY;
     }
 
-    inline HRESULT IntializeD3D9(const bool initRT);
-
     inline HRESULT UploadSurfaceData();
 
     inline void RefreshD3D5Device() {
-      D3D5Device* d3d5Device = m_parent->GetD3D5Device();
-      if (unlikely(m_d3d5Device != d3d5Device)) {
-        // Check if the device has been recreated and reset all D3D9 resources
-        if (unlikely(m_d3d5Device != nullptr)) {
-          Logger::debug("DDrawSurface: Device context has changed, clearing all D3D9 resources");
-          m_texture = nullptr;
-          m_d3d9 = nullptr;
+      if (likely(m_parent != nullptr)) {
+        D3D5Device* d3d5Device = m_parent->GetD3D5Device();
+        if (unlikely(m_d3d5Device != d3d5Device)) {
+          // Check if the device has been recreated and reset all D3D9 resources
+          if (unlikely(m_d3d5Device != nullptr)) {
+            Logger::debug("DDrawSurface: Device context has changed, clearing all D3D9 resources");
+            m_texture = nullptr;
+            m_d3d9 = nullptr;
+          }
+          m_d3d5Device = d3d5Device;
         }
-        m_d3d5Device = d3d5Device;
       }
     }
 
@@ -268,11 +266,11 @@ namespace dxvk {
     uint32_t         m_surfCount = 0;
 
     Com<DDrawCommonSurface>             m_commonSurf;
-    DDrawCommonInterface*               m_commonIntf;
+    DDrawCommonInterface*               m_commonIntf = nullptr;
 
     DDrawSurface*                       m_parentSurf = nullptr;
 
-    DDraw7Surface*                      m_origin    = nullptr;
+    IUnknown*                           m_origin     = nullptr;
 
     D3D5Device*                         m_d3d5Device = nullptr;
 

@@ -10,8 +10,6 @@
 
 #include "../d3d6/d3d6_interface.h"
 
-#include <vector>
-
 namespace dxvk {
 
   class D3D6Device;
@@ -25,7 +23,7 @@ namespace dxvk {
   class DDraw4Interface final : public DDrawWrappedObject<DDrawInterface, IDirectDraw4, IUnknown> {
 
   public:
-    DDraw4Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw4>&& proxyIntf, DDrawInterface* pParent, DDraw7Interface* origin);
+    DDraw4Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw4>&& proxyIntf, DDrawInterface* pParent, IUnknown* origin);
 
     ~DDraw4Interface();
 
@@ -81,18 +79,12 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetDeviceIdentifier(LPDDDEVICEIDENTIFIER pDDDI, DWORD dwFlags);
 
-    bool IsWrappedSurface(IDirectDrawSurface4* surface) const;
-
-    void AddWrappedSurface(IDirectDrawSurface4* surface);
-
-    void RemoveWrappedSurface(IDirectDrawSurface4* surface);
-
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf.ptr();
     }
 
     D3D6Device* GetD3D6Device() const {
-      return m_d3d6Intf->GetLastUsedDevice();
+      return m_d3d6Intf != nullptr ? m_d3d6Intf->GetLastUsedDevice() : nullptr;
     }
 
     DDraw4Surface* GetLastDepthStencil() const {
@@ -101,22 +93,16 @@ namespace dxvk {
 
   private:
 
-    inline bool IsLegacyInterface() const {
-      return m_origin != nullptr;
-    }
-
     static uint32_t             s_intfCount;
     uint32_t                    m_intfCount  = 0;
 
     Com<DDrawCommonInterface>   m_commonIntf;
 
-    DDraw7Interface*            m_origin = nullptr;
+    IUnknown*                   m_origin = nullptr;
 
     Com<D3D6Interface, false>   m_d3d6Intf;
 
     DDraw4Surface*              m_lastDepthStencil = nullptr;
-
-    std::vector<DDraw4Surface*> m_surfaces;
 
   };
 
