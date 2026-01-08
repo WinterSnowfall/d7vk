@@ -5,9 +5,12 @@
 
 #include "../ddraw_common_surface.h"
 
+#include "../ddraw/ddraw_surface.h"
+
+#include "../d3d5/d3d5_device.h"
+
 namespace dxvk {
 
-  class DDrawSurface;
   class DDraw7Surface;
 
   /**
@@ -21,7 +24,7 @@ namespace dxvk {
         DDrawCommonSurface* commonSurf,
         Com<IDirectDrawSurface2>&& surfProxy,
         DDrawSurface* pParent,
-        DDraw7Surface* origin);
+        IUnknown* origin);
 
     ~DDraw2Surface();
 
@@ -99,19 +102,65 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE PageUnlock(DWORD dwFlags);
 
+    HRESULT InitializeOrUploadD3D9() {
+      if (m_parent != nullptr)
+        return m_parent->InitializeOrUploadD3D9();
+      return D3D_OK;
+    }
+
+    bool IsInitialized() {
+      if (m_parent != nullptr)
+        return m_parent->IsInitialized();
+      return false;
+    }
+
   private:
 
-    inline bool IsLegacyInterface() const {
-      return m_origin != nullptr;
+    DDrawCommonInterface* GetCommonInterface() const {
+      return m_commonIntf;
+    }
+
+    bool IsPrimarySurface() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE;
+    }
+
+    bool IsFrontBuffer() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER;
+    }
+
+    bool IsBackBufferOrFlippable() const {
+      return !IsFrontBuffer() && (m_desc.ddsCaps.dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP));
+    }
+
+    bool IsTexture() const {
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_TEXTURE;
+    }
+
+    inline void RefreshD3D5Device() {
+      if (likely(m_parent != nullptr)) {
+        D3D5Device* d3d5Device = m_parent->GetD3D5Device();
+        if (unlikely(m_d3d5Device != d3d5Device)) {
+          // Check if the device has been recreated and reset all D3D9 resources
+          if (unlikely(m_d3d5Device != nullptr)) {
+            Logger::debug("DDrawSurface: Device context has changed, clearing all D3D9 resources");
+            m_d3d9 = nullptr;
+          }
+          m_d3d5Device = d3d5Device;
+        }
+      }
     }
 
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
 
     Com<DDrawCommonSurface> m_commonSurf;
-    DDrawCommonInterface*   m_commonIntf;
+    DDrawCommonInterface*   m_commonIntf = nullptr;
 
-    DDraw7Surface*   m_origin    = nullptr;
+    IUnknown*               m_origin     = nullptr;
+
+    D3D5Device*             m_d3d5Device = nullptr;
+
+    DDSURFACEDESC           m_desc;
 
   };
 

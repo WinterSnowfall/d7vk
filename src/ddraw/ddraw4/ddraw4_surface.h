@@ -29,7 +29,7 @@ namespace dxvk {
         Com<IDirectDrawSurface4>&& surfProxy,
         DDraw4Interface* pParent,
         DDraw4Surface* pParentSurf,
-        DDraw7Surface* origin,
+        IUnknown* origin,
         bool isChildObject);
 
     ~DDraw4Surface();
@@ -124,6 +124,10 @@ namespace dxvk {
       return m_commonSurf.ptr();
     }
 
+    DDrawCommonInterface* GetCommonInterface() const {
+      return m_commonIntf;
+    }
+
     const D3DOptions* GetOptions() const {
       return m_commonIntf->GetOptions();
     }
@@ -135,10 +139,6 @@ namespace dxvk {
 
     d3d9::IDirect3DTexture9* GetD3D9Texture() const {
       return m_texture.ptr();
-    }
-
-    bool IsChildObject() const {
-      return m_isChildObject;
     }
 
     bool IsTexture() const {
@@ -188,10 +188,6 @@ namespace dxvk {
 
   private:
 
-    inline bool IsLegacyInterface() const {
-      return m_origin != nullptr;
-    }
-
     inline bool IsAttached() const {
       return m_parentSurf != nullptr;
     }
@@ -238,15 +234,17 @@ namespace dxvk {
     inline HRESULT UploadSurfaceData();
 
     inline void RefreshD3D6Device() {
-      D3D6Device* d3d6Device = m_parent->GetD3D6Device();
-      if (unlikely(m_d3d6Device != d3d6Device)) {
-        // Check if the device has been recreated and reset all D3D9 resources
-        if (unlikely(m_d3d6Device != nullptr)) {
-          Logger::debug("DDraw4Surface: Device context has changed, clearing all D3D9 resources");
-          m_texture = nullptr;
-          m_d3d9 = nullptr;
+      if (likely(m_parent != nullptr)) {
+        D3D6Device* d3d6Device = m_parent->GetD3D6Device();
+        if (unlikely(m_d3d6Device != d3d6Device)) {
+          // Check if the device has been recreated and reset all D3D9 resources
+          if (unlikely(m_d3d6Device != nullptr)) {
+            Logger::debug("DDraw4Surface: Device context has changed, clearing all D3D9 resources");
+            m_texture = nullptr;
+            m_d3d9 = nullptr;
+          }
+          m_d3d6Device = d3d6Device;
         }
-        m_d3d6Device = d3d6Device;
       }
     }
 
@@ -282,11 +280,11 @@ namespace dxvk {
     uint32_t         m_surfCount = 0;
 
     Com<DDrawCommonSurface>             m_commonSurf;
-    DDrawCommonInterface*               m_commonIntf;
+    DDrawCommonInterface*               m_commonIntf = nullptr;
 
     DDraw4Surface*                      m_parentSurf = nullptr;
 
-    DDraw7Surface*                      m_origin     = nullptr;
+    IUnknown*                           m_origin     = nullptr;
 
     D3D6Device*                         m_d3d6Device = nullptr;
 

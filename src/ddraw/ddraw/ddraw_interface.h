@@ -11,7 +11,6 @@
 
 #include "../d3d5/d3d5_interface.h"
 
-#include <vector>
 #include <unordered_map>
 
 namespace dxvk {
@@ -28,7 +27,7 @@ namespace dxvk {
   class DDrawInterface final : public DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown> {
 
   public:
-    DDrawInterface(DDrawCommonInterface* commonIntf, Com<IDirectDraw>&& proxyIntf, DDraw7Interface* origin);
+    DDrawInterface(DDrawCommonInterface* commonIntf, Com<IDirectDraw>&& proxyIntf, IUnknown* origin);
 
     ~DDrawInterface();
 
@@ -74,12 +73,6 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent);
 
-    bool IsWrappedSurface(IDirectDrawSurface* surface) const;
-
-    void AddWrappedSurface(IDirectDrawSurface* surface);
-
-    void RemoveWrappedSurface(IDirectDrawSurface* surface);
-
     D3D5Texture* GetTextureFromHandle(D3DTEXTUREHANDLE handle);
 
     DDrawCommonInterface* GetCommonInterface() const {
@@ -108,42 +101,18 @@ namespace dxvk {
       return m_lastDepthStencil;
     }
 
-    DDraw2Interface* GetDDraw2Interface() const {
-      return m_intf2;
-    }
-
-    void ClearDDraw2Interface() {
-      m_intf2 = nullptr;
-    }
-
-    DDraw4Interface* GetDDraw4Interface() const {
-      return m_intf4;
-    }
-
-    void ClearDDraw4Interface() {
-      m_intf4 = nullptr;
-    }
-
   private:
-
-    inline bool IsLegacyInterface() const {
-      return m_origin != nullptr;
-    }
 
     static uint32_t            s_intfCount;
     uint32_t                   m_intfCount  = 0;
 
     Com<DDrawCommonInterface>  m_commonIntf;
 
-    DDraw7Interface*           m_origin = nullptr;
-    DDraw4Interface*           m_intf4  = nullptr;
-    DDraw2Interface*           m_intf2  = nullptr;
+    IUnknown*                  m_origin = nullptr;
 
     Com<D3D5Interface, false>  m_d3d5Intf;
 
     DDrawSurface*              m_lastDepthStencil = nullptr;
-
-    std::vector<DDrawSurface*> m_surfaces;
 
     D3DTEXTUREHANDLE           m_textureHandle = 0;
     std::unordered_map<D3DTEXTUREHANDLE, D3D5Texture*> m_textures;
