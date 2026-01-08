@@ -2,7 +2,8 @@
 
 namespace dxvk {
 
-  DDrawCommonSurface::DDrawCommonSurface() {
+  DDrawCommonSurface::DDrawCommonSurface(DDrawCommonInterface* commonIntf)
+    : m_commonIntf ( commonIntf ) {
   }
 
   DDrawCommonSurface::~DDrawCommonSurface() {

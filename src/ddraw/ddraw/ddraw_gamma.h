@@ -26,9 +26,11 @@ namespace dxvk {
   private:
 
     inline void RefreshD3D5Device() {
-      D3D5Device* d3d5Device = m_parent->GetD3D5Device();
-      if (unlikely(m_d3d5Device != d3d5Device))
-        m_d3d5Device = d3d5Device;
+      if (m_parent != nullptr) {
+        D3D5Device* d3d5Device = m_parent->GetD3D5Device();
+        if (unlikely(m_d3d5Device != d3d5Device))
+          m_d3d5Device = d3d5Device;
+      }
     }
 
     D3D5Device* m_d3d5Device = nullptr;

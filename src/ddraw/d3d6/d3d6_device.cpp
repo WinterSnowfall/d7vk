@@ -3,6 +3,8 @@
 #include "d3d6_buffer.h"
 #include "d3d6_texture.h"
 
+#include "../ddraw_common_interface.h"
+
 #include "../ddraw4/ddraw4_interface.h"
 #include "../ddraw4/ddraw4_surface.h"
 
@@ -25,7 +27,7 @@ namespace dxvk {
       DDraw4Surface* pSurface,
       DWORD CreationFlags9)
     : DDrawWrappedObject<D3D6Interface, IDirect3DDevice3, d3d9::IDirect3DDevice9>(pParent, std::move(d3d6DeviceProxy), std::move(pDevice9))
-    , m_DD4IntfParent ( pParent->GetParent() )
+    , m_commonIntf ( pParent->GetParent()->GetCommonInterface() )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
     , m_desc ( Desc )
@@ -447,7 +449,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    if (unlikely(!m_DD4IntfParent->IsWrappedSurface(surface))) {
+    if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
       Logger::err("D3D6Device::SetRenderTarget: Received an unwrapped RT");
       return DDERR_GENERIC;
     }

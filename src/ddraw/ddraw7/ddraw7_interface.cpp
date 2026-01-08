@@ -8,15 +8,14 @@
 
 #include "../d3d7/d3d7_device.h"
 
-#include <algorithm>
-
 namespace dxvk {
 
   uint32_t DDraw7Interface::s_intfCount = 0;
 
-  DDraw7Interface::DDraw7Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw7>&& proxyIntf)
+  DDraw7Interface::DDraw7Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw7>&& proxyIntf, IUnknown* origin)
     : DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
-    , m_commonIntf ( commonIntf ) {
+    , m_commonIntf ( commonIntf )
+    , m_origin ( origin ) {
     // Initialize the IDirect3D7 interlocked object
     void* d3d7IntfProxiedVoid = nullptr;
     // This can never reasonably fail
@@ -27,12 +26,16 @@ namespace dxvk {
     if (m_commonIntf == nullptr)
       m_commonIntf = new DDrawCommonInterface(*m_d3d7Intf->GetOptions());
 
+    m_commonIntf->SetDD7Interface(this);
+
     m_intfCount = ++s_intfCount;
 
     Logger::debug(str::format("DDraw7Interface: Created a new interface nr. <<7-", m_intfCount, ">>"));
   }
 
   DDraw7Interface::~DDraw7Interface() {
+    m_commonIntf->SetDD7Interface(nullptr);
+
     Logger::debug(str::format("DDraw7Interface: Interface nr. <<7-", m_intfCount, ">> bites the dust"));
   }
 
@@ -71,6 +74,11 @@ namespace dxvk {
     }
     // Some games query for legacy ddraw interfaces
     if (unlikely(riid == __uuidof(IDirectDraw))) {
+      if (m_commonIntf->GetDDInterface() != nullptr) {
+        Logger::debug("DDraw7Interface::QueryInterface: Query for existing IDirectDraw");
+        return m_commonIntf->GetDDInterface()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw");
 
       Com<IDirectDraw> ppvProxyObject;
@@ -83,6 +91,11 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDraw2))) {
+      if (m_commonIntf->GetDD2Interface() != nullptr) {
+        Logger::debug("DDraw7Interface::QueryInterface: Query for existing IDirectDraw2");
+        return m_commonIntf->GetDD2Interface()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::warn("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw2");
 
       Com<IDirectDraw2> ppvProxyObject;
@@ -90,11 +103,16 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDDInterface(), this));
 
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDraw4))) {
+      if (m_commonIntf->GetDD4Interface() != nullptr) {
+        Logger::debug("DDraw7Interface::QueryInterface: Query for existing IDirectDraw4");
+        return m_commonIntf->GetDD4Interface()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("DDraw7Interface::QueryInterface: Query for legacy IDirectDraw4");
 
       Com<IDirectDraw4> ppvProxyObject;
@@ -102,7 +120,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDDInterface(), this));
 
       return S_OK;
     }
@@ -215,7 +233,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       try{
-        Com<DDraw7Surface> surface7 = new DDraw7Surface(nullptr, std::move(ddraw7SurfaceProxied), this, nullptr, true);
+        Com<DDraw7Surface> surface7 = new DDraw7Surface(nullptr, std::move(ddraw7SurfaceProxied), this, nullptr, nullptr, true);
 
         if (unlikely(m_commonIntf->GetOptions()->proxiedQueryInterface)) {
           // Hack: Gothic / Gothic 2 and other games attach the depth stencil to an externally created
@@ -244,7 +262,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIRECTDRAWSURFACE7 *lplpDupDDSurface) {
     Logger::debug("<<< DDraw7Interface::DuplicateSurface: Proxy");
 
-    if (IsWrappedSurface(lpDDSurface)) {
+    if (m_commonIntf->IsWrappedSurface(lpDDSurface)) {
       InitReturnPtr(lplpDupDDSurface);
 
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSurface);
@@ -252,7 +270,7 @@ namespace dxvk {
       HRESULT hr = m_proxy->DuplicateSurface(ddraw7Surface->GetProxied(), &dupSurface7);
       if (likely(SUCCEEDED(hr))) {
         try {
-          *lplpDupDDSurface = ref(new DDraw7Surface(nullptr, std::move(dupSurface7), this, nullptr, false));
+          *lplpDupDDSurface = ref(new DDraw7Surface(nullptr, std::move(dupSurface7), this, nullptr, nullptr, false));
         } catch (const DxvkError& e) {
           Logger::err(e.message());
           return DDERR_GENERIC;
@@ -264,6 +282,8 @@ namespace dxvk {
         Logger::warn("DDraw7Interface::DuplicateSurface: Received an unwrapped source surface");
       return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
     }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback) {
@@ -307,17 +327,16 @@ namespace dxvk {
         MAKEFOURCC('D', 'X', 'T', '5'),
     };
 
-    const size_t returnNum = lpNumCodes != nullptr && *lpNumCodes < 5 ? *lpNumCodes : 5;
-
-    // Only report DXT1-5 as supported FOURCCs
-    if (lpNumCodes != nullptr && *lpNumCodes < 5)
-      *lpNumCodes = 5;
-
-    if (likely(lpCodes != nullptr)) {
-      for (uint32_t i = 0; i < returnNum; i++) {
-        lpCodes[returnNum] = supportedFourCCs[returnNum];
+    // TODO: Check passed lpNumCodes size is larger than 5
+    if (likely(lpNumCodes != nullptr && lpCodes != nullptr)) {
+      for (uint8_t i = 0; i < 5; i++) {
+        lpCodes[i] = supportedFourCCs[i];
       }
     }
+
+    // Only report DXT1-5 as supported FOURCCs
+    if (lpNumCodes != nullptr)
+      *lpNumCodes = 5;
 
     return DD_OK;
   }
@@ -338,12 +357,12 @@ namespace dxvk {
       return hr;
     }
 
-    if (unlikely(IsWrappedSurface(gdiSurface.ptr()))) {
+    if (unlikely(m_commonIntf->IsWrappedSurface(gdiSurface.ptr()))) {
       *lplpGDIDDSurface = gdiSurface.ref();
     } else {
       Logger::debug("DDraw7Interface::GetGDISurface: Received a non-wrapped GDI surface");
       try {
-        *lplpGDIDDSurface = ref(new DDraw7Surface(nullptr, std::move(gdiSurface), this, nullptr, false));
+        *lplpGDIDDSurface = ref(new DDraw7Surface(nullptr, std::move(gdiSurface), this, nullptr, nullptr, false));
       } catch (const DxvkError& e) {
         Logger::err(e.message());
         return DDERR_GENERIC;
@@ -518,7 +537,7 @@ namespace dxvk {
     }
 
     try {
-      *pSurf = ref(new DDraw7Surface(nullptr, std::move(surface), this, nullptr, false));
+      *pSurf = ref(new DDraw7Surface(nullptr, std::move(surface), this, nullptr, nullptr, false));
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;
@@ -529,20 +548,7 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::RestoreAllSurfaces() {
     Logger::debug("<<< DDraw7Interface::RestoreAllSurfaces: Proxy");
-
-    HRESULT hr = m_proxy->RestoreAllSurfaces();
-    if (unlikely(FAILED(hr)))
-      return hr;
-
-    for (auto* surface : m_surfaces) {
-      if (!surface->IsTextureOrCubeMap()) {
-        surface->InitializeOrUploadD3D9();
-      } else {
-        surface->GetCommonSurface()->DirtyMipMaps();
-      }
-    }
-
-    return hr;
+    return m_proxy->RestoreAllSurfaces();
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::TestCooperativeLevel() {
@@ -565,47 +571,4 @@ namespace dxvk {
     return m_proxy->EvaluateMode(dwFlags, pTimeout);
   }
 
-  bool DDraw7Interface::IsWrappedSurface(IDirectDrawSurface7* surface) const {
-    if (unlikely(surface == nullptr))
-      return false;
-
-    DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(surface);
-    auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddraw7Surface);
-    if (likely(it != m_surfaces.end()))
-      return true;
-
-    return false;
-  }
-
-  void DDraw7Interface::AddWrappedSurface(IDirectDrawSurface7* surface) {
-    if (likely(surface != nullptr)) {
-      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(surface);
-
-      auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddraw7Surface);
-      if (unlikely(it != m_surfaces.end())) {
-        Logger::warn("DDraw7Interface::AddWrappedSurface: Pre-existing wrapped surface found");
-      } else {
-        m_surfaces.push_back(ddraw7Surface);
-
-        if (likely(ddraw7Surface->IsChildObject()))
-          this->AddRef();
-      }
-    }
-  }
-
-  void DDraw7Interface::RemoveWrappedSurface(IDirectDrawSurface7* surface) {
-    if (likely(surface != nullptr)) {
-      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(surface);
-
-      auto it = std::find(m_surfaces.begin(), m_surfaces.end(), ddraw7Surface);
-      if (likely(it != m_surfaces.end())) {
-        m_surfaces.erase(it);
-
-        if (likely(ddraw7Surface->IsChildObject()))
-          this->Release();
-      } else {
-        Logger::warn("DDraw7Interface::RemoveWrappedSurface: Surface not found");
-      }
-    }
-  }
 }
