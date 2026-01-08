@@ -24,6 +24,7 @@ namespace dxvk {
     DWORD                flags = 0;
   };
 
+  class DDrawCommonInterface;
   class DDraw4Surface;
   class DDraw4Interface;
   class D3D6Texture;
@@ -223,12 +224,12 @@ namespace dxvk {
       }
     }
 
-    bool                          m_hasDrawn      = false;
-    bool                          m_inScene       = false;
+    bool                          m_hasDrawn   = false;
+    bool                          m_inScene    = false;
 
-    DWORD                         m_lighting      = FALSE;
+    DWORD                         m_lighting   = FALSE;
 
-    DDraw4Interface*              m_DD4IntfParent = nullptr;
+    DDrawCommonInterface*         m_commonIntf = nullptr;
 
     Com<DxvkD3D8Bridge>           m_bridge;
 
