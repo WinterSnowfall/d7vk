@@ -3,6 +3,8 @@
 #include "d3d7_buffer.h"
 #include "d3d7_state_block.h"
 
+#include "../ddraw_common_interface.h"
+
 #include "../ddraw7/ddraw7_surface.h"
 
 namespace dxvk {
@@ -22,7 +24,7 @@ namespace dxvk {
       DWORD CreationFlags9)
     : DDrawWrappedObject<D3D7Interface, IDirect3DDevice7, d3d9::IDirect3DDevice9>(pParent, std::move(d3d7DeviceProxy), std::move(pDevice9))
     , m_isMixedHWVP ( CreationFlags9 & D3DCREATE_MIXED_VERTEXPROCESSING )
-    , m_DD7IntfParent ( pParent->GetParent() )
+    , m_commonIntf ( pParent->GetParent()->GetCommonInterface() )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
     , m_desc ( Desc )
@@ -307,7 +309,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    if (unlikely(!m_DD7IntfParent->IsWrappedSurface(surface))) {
+    if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::SetRenderTarget: Received an unwrapped RT");
       return DDERR_GENERIC;
     }
@@ -850,7 +852,7 @@ namespace dxvk {
 
     RefreshLastUsedDevice();
 
-    if (unlikely(!m_DD7IntfParent->IsWrappedSurface(surface))) {
+    if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::PreLoad: Received an unwrapped surface");
       return DDERR_GENERIC;
     }
@@ -1228,7 +1230,7 @@ namespace dxvk {
     }
 
     // Binding texture stages
-    if (unlikely(!m_DD7IntfParent->IsWrappedSurface(surface))) {
+    if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::SetTexture: Received an unwrapped texture");
       return DDERR_GENERIC;
     }
@@ -1353,14 +1355,14 @@ namespace dxvk {
     IDirectDrawSurface7* loadSource      = src_surface;
     IDirectDrawSurface7* loadDestination = dst_surface;
 
-    if (likely(m_DD7IntfParent->IsWrappedSurface(src_surface))) {
+    if (likely(m_commonIntf->IsWrappedSurface(src_surface))) {
       DDraw7Surface* ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
       loadSource = ddraw7SurfaceSrc->GetProxied();
     } else {
       Logger::warn("D3D7Device::Load: Unwrapped surface source");
     }
 
-    if (likely(m_DD7IntfParent->IsWrappedSurface(dst_surface))) {
+    if (likely(m_commonIntf->IsWrappedSurface(dst_surface))) {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
       loadDestination = ddraw7SurfaceDst->GetProxied();
     } else {
@@ -1374,7 +1376,7 @@ namespace dxvk {
     }
 
     // Only upload the destination surface
-    if (likely(m_DD7IntfParent->IsWrappedSurface(dst_surface))) {
+    if (likely(m_commonIntf->IsWrappedSurface(dst_surface))) {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
 
       // Textures and cubemaps get uploaded during SetTexture calls

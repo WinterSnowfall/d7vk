@@ -25,6 +25,7 @@ namespace dxvk {
           Com<IDirectDrawSurface7>&& surfProxy,
           DDraw7Interface* pParent,
           DDraw7Surface* pParentSurf,
+          IUnknown* origin,
           bool isChildObject);
 
     ~DDraw7Surface();
@@ -127,7 +128,6 @@ namespace dxvk {
       return m_commonSurf.ptr();
     }
 
-    // Needed for use with legacy surfaces
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf;
     }
@@ -147,10 +147,6 @@ namespace dxvk {
 
     d3d9::IDirect3DCubeTexture9* GetD3D9CubeTexture() const {
       return m_cubeMap.ptr();
-    }
-
-    bool IsChildObject() const {
-      return m_isChildObject;
     }
 
     bool IsTextureOrCubeMap() const {
@@ -305,9 +301,11 @@ namespace dxvk {
     uint32_t         m_surfCount     = 0;
 
     Com<DDrawCommonSurface>             m_commonSurf;
-    DDrawCommonInterface*               m_commonIntf;
+    DDrawCommonInterface*               m_commonIntf = nullptr;
 
     DDraw7Surface*                      m_parentSurf = nullptr;
+
+    IUnknown*                           m_origin     = nullptr;
 
     D3D7Device*                         m_d3d7Device = nullptr;
 

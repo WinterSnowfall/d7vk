@@ -277,7 +277,7 @@ namespace dxvk {
     }
 
     Com<DDrawSurface> rt;
-    if (unlikely(!m_parent->IsWrappedSurface(lpDDS))) {
+    if (unlikely(!m_parent->GetCommonInterface()->IsWrappedSurface(lpDDS))) {
       if (unlikely(m_options.proxiedQueryInterface)) {
         Logger::debug("D3D5Interface::CreateDevice: Unwrapped surface passed as RT");
         rt = new DDrawSurface(nullptr, std::move(lpDDS), m_parent, nullptr, nullptr, true);
