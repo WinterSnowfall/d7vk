@@ -93,8 +93,61 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg) {
-    Logger::debug("<<< D3D5Interface::EnumDevices: Proxy");
-    return m_proxy->EnumDevices(lpEnumDevicesCallback, lpUserArg);
+    Logger::debug(">>> D3D6Interface::EnumDevices");
+
+    if (unlikely(lpEnumDevicesCallback == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    // D3D5 reports both HAL and HEL caps for any time of device,
+    // with minor differences between the two. Note that the
+    // device listing order matters, so list RGB first, HAL second.
+
+    // Software emulation, this is expected to be exposed (SWVP)
+    GUID guidRGB = IID_IDirect3DRGBDevice;
+    D3DDEVICEDESC2 desc2RGB_HAL = GetD3D5Caps(IID_IDirect3DRGBDevice, m_options.disableAASupport);
+    D3DDEVICEDESC2 desc2RGB_HEL = desc2RGB_HAL;
+    D3DDEVICEDESC descRGB_HAL = { };
+    D3DDEVICEDESC descRGB_HEL = { };
+    desc2RGB_HAL.dwFlags = 0;
+    desc2RGB_HAL.dcmColorModel = 0;
+    // Some applications apparently care about RGB texture caps
+    desc2RGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                            & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    desc2RGB_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                            & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    desc2RGB_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
+    desc2RGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
+    memcpy(&descRGB_HAL, &desc2RGB_HAL, sizeof(D3DDEVICEDESC2));
+    memcpy(&descRGB_HEL, &desc2RGB_HEL, sizeof(D3DDEVICEDESC2));
+    char deviceDescRGB[100] = "D5VK RGB";
+    char deviceNameRGB[100] = "D5VK RGB";
+
+    HRESULT hr = lpEnumDevicesCallback(const_cast<GUID*>(&guidRGB), &deviceDescRGB[0],
+                                       &deviceNameRGB[0], &descRGB_HAL, &descRGB_HEL, lpUserArg);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;
+
+    // Hardware acceleration (SWVP)
+    GUID guidHAL = IID_IDirect3DHALDevice;
+    D3DDEVICEDESC2 desc2HAL_HAL = GetD3D5Caps(IID_IDirect3DHALDevice, m_options.disableAASupport);
+    D3DDEVICEDESC2 desc2HAL_HEL = desc2HAL_HAL;
+    D3DDEVICEDESC descHAL_HAL = { };
+    D3DDEVICEDESC descHAL_HEL = { };
+    desc2HAL_HEL.dcmColorModel = 0;
+    desc2HAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                            & ~D3DDEVCAPS_DRAWPRIMITIVES2
+                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+    memcpy(&descHAL_HAL, &desc2HAL_HAL, sizeof(D3DDEVICEDESC2));
+    memcpy(&descHAL_HEL, &desc2HAL_HEL, sizeof(D3DDEVICEDESC2));
+    char deviceDescHAL[100] = "D5VK HAL";
+    char deviceNameHAL[100] = "D5VK HAL";
+
+    hr = lpEnumDevicesCallback(const_cast<GUID*>(&guidHAL), &deviceDescHAL[0],
+                               &deviceNameHAL[0], &descHAL_HAL, &descHAL_HEL, lpUserArg);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Interface::CreateLight(LPDIRECT3DLIGHT *lplpDirect3DLight, IUnknown *pUnkOuter) {
@@ -160,8 +213,10 @@ namespace dxvk {
     descRGB_HAL.dwFlags = 0;
     descRGB_HAL.dcmColorModel = 0;
     // Some applications apparently care about RGB texture caps
-    descRGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE;
-    descRGB_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE;
+    descRGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    descRGB_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
     descRGB_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
     descRGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
 
