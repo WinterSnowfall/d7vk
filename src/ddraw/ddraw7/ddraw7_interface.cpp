@@ -12,8 +12,13 @@ namespace dxvk {
 
   uint32_t DDraw7Interface::s_intfCount = 0;
 
-  DDraw7Interface::DDraw7Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw7>&& proxyIntf, IUnknown* origin)
+  DDraw7Interface::DDraw7Interface(
+      DDrawCommonInterface* commonIntf,
+      Com<IDirectDraw7>&& proxyIntf,
+      IUnknown* origin,
+      bool needsInitialization)
     : DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
+    , m_needsInitialization ( needsInitialization )
     , m_commonIntf ( commonIntf )
     , m_origin ( origin ) {
     // Initialize the IDirect3D7 interlocked object
@@ -86,7 +91,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject), this));
+      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject), this, false));
 
       return S_OK;
     }
@@ -103,7 +108,8 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDDInterface(), this));
+      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
+                                           m_commonIntf->GetDDInterface(), this, false));
 
       return S_OK;
     }
@@ -120,7 +126,8 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDDInterface(), this));
+      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
+                                           m_commonIntf->GetDDInterface(), this, false));
 
       return S_OK;
     }
@@ -388,6 +395,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::Initialize(GUID* lpGUID) {
+    // Needed for interfaces crated via GetProxiedDDrawModule()
+    if (unlikely(m_needsInitialization && !m_isInitialized)) {
+      Logger::debug(">>> DDrawInterface::Initialize");
+      m_isInitialized = true;
+      return DD_OK;
+    }
+
     Logger::debug("<<< DDraw7Interface::Initialize: Proxy");
     return m_proxy->Initialize(lpGUID);
   }

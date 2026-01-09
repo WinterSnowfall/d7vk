@@ -7,6 +7,7 @@
 
 #include "ddraw_common_interface.h"
 
+#include "../ddraw/ddraw_interface.h"
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw2/ddraw2_interface.h"
 
