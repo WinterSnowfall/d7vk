@@ -12,10 +12,7 @@
 
 namespace dxvk {
 
-  class D3D5Device;
   class DDrawInterface;
-  class DDraw4Interface;
-  class DDraw7Interface;
   class DDrawSurface;
 
   /**
@@ -24,7 +21,12 @@ namespace dxvk {
   class DDraw2Interface final : public DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown> {
 
   public:
-    DDraw2Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw2>&& proxyIntf, DDrawInterface* pParent, IUnknown* origin);
+    DDraw2Interface(
+      DDrawCommonInterface* commonIntf,
+      Com<IDirectDraw2>&& proxyIntf,
+      DDrawInterface* pParent,
+      IUnknown* origin,
+      bool needsInitialization);
 
     ~DDraw2Interface();
 
@@ -81,6 +83,9 @@ namespace dxvk {
     }
 
   private:
+
+    bool                      m_needsInitialization = false;
+    bool                      m_isInitialized = false;
 
     static uint32_t           s_intfCount;
     uint32_t                  m_intfCount  = 0;
