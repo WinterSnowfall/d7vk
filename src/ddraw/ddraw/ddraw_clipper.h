@@ -3,9 +3,9 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
-#include "ddraw_interface.h"
-
 namespace dxvk {
+
+  class DDrawInterface;
 
   class DDrawClipper final : public DDrawWrappedObject<DDrawInterface, IDirectDrawClipper, IUnknown> {
 
