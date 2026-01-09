@@ -148,8 +148,10 @@ namespace dxvk {
       desc_HAL.dwFlags = 0;
       desc_HAL.dcmColorModel = 0;
       // Some applications apparently care about RGB texture caps
-      desc_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE;
-      desc_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE;
+      desc_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+      desc_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
       desc_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
       desc_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
     } else if (m_deviceGUID == IID_IDirect3DHALDevice) {
