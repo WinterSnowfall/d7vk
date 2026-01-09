@@ -2,6 +2,7 @@
 
 #include "../ddraw/ddraw_gamma.h"
 
+#include "../ddraw/ddraw_interface.h"
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw2/ddraw3_surface.h"
 #include "../ddraw4/ddraw4_surface.h"
