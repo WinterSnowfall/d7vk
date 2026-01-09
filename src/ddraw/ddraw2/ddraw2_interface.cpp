@@ -2,8 +2,8 @@
 
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw/ddraw_interface.h"
-#include "../ddraw7/ddraw7_interface.h"
 #include "../ddraw4/ddraw4_interface.h"
+#include "../ddraw7/ddraw7_interface.h"
 
 #include "../d3d3/d3d3_interface.h"
 #include "../d3d5/d3d5_device.h"
@@ -14,8 +14,14 @@ namespace dxvk {
 
   uint32_t DDraw2Interface::s_intfCount = 0;
 
-  DDraw2Interface::DDraw2Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw2>&& proxyIntf, DDrawInterface* pParent, IUnknown* origin)
+  DDraw2Interface::DDraw2Interface(
+      DDrawCommonInterface* commonIntf,
+      Com<IDirectDraw2>&& proxyIntf,
+      DDrawInterface* pParent,
+      IUnknown* origin,
+      bool needsInitialization)
     : DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown>(pParent, std::move(proxyIntf), nullptr)
+    , m_needsInitialization ( needsInitialization )
     , m_commonIntf ( commonIntf )
     , m_origin ( origin ) {
     // m_commonIntf can never be null for IDirectDraw2
@@ -87,7 +93,8 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject), nullptr));
+      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject),
+                                          nullptr, m_needsInitialization));
 
       return S_OK;
     }
@@ -105,7 +112,8 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_parent, nullptr));
+      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
+                                           m_parent, nullptr, m_needsInitialization));
 
       return S_OK;
     }
@@ -123,7 +131,8 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), this));
+      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
+                                           this, m_needsInitialization));
 
       return S_OK;
     }
@@ -348,6 +357,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::Initialize(GUID* lpGUID) {
+    // Needed for interfaces crated via GetProxiedDDrawModule()
+    if (unlikely(m_needsInitialization && !m_isInitialized)) {
+      Logger::debug(">>> DDrawInterface::Initialize");
+      m_isInitialized = true;
+      return DD_OK;
+    }
+
     Logger::debug("<<< DDraw2Interface::Initialize: Proxy");
     return m_proxy->Initialize(lpGUID);
   }

@@ -14,7 +14,6 @@ namespace dxvk {
 
   class D3D6Device;
   class DDrawInterface;
-  class DDraw7Interface;
   class DDraw4Surface;
 
   /**
@@ -23,7 +22,12 @@ namespace dxvk {
   class DDraw4Interface final : public DDrawWrappedObject<DDrawInterface, IDirectDraw4, IUnknown> {
 
   public:
-    DDraw4Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw4>&& proxyIntf, DDrawInterface* pParent, IUnknown* origin);
+    DDraw4Interface(
+      DDrawCommonInterface* commonIntf,
+      Com<IDirectDraw4>&& proxyIntf,
+      DDrawInterface* pParent,
+      IUnknown* origin,
+      bool needsInitialization);
 
     ~DDraw4Interface();
 
@@ -93,16 +97,19 @@ namespace dxvk {
 
   private:
 
-    static uint32_t             s_intfCount;
-    uint32_t                    m_intfCount  = 0;
+    bool                      m_needsInitialization = false;
+    bool                      m_isInitialized = false;
 
-    Com<DDrawCommonInterface>   m_commonIntf;
+    static uint32_t           s_intfCount;
+    uint32_t                  m_intfCount  = 0;
 
-    IUnknown*                   m_origin = nullptr;
+    Com<DDrawCommonInterface> m_commonIntf;
 
-    Com<D3D6Interface, false>   m_d3d6Intf;
+    IUnknown*                 m_origin = nullptr;
 
-    DDraw4Surface*              m_lastDepthStencil = nullptr;
+    Com<D3D6Interface, false> m_d3d6Intf;
+
+    DDraw4Surface*            m_lastDepthStencil = nullptr;
 
   };
 

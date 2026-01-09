@@ -1,5 +1,7 @@
 #include "ddraw_include.h"
 
+#include "ddraw_class_factory.h"
+
 #include "ddraw/ddraw_clipper.h"
 #include "ddraw/ddraw_interface.h"
 #include "ddraw7/ddraw7_interface.h"
@@ -34,7 +36,7 @@ namespace dxvk {
     return hDDraw;
   }
 
-  HRESULT CreateDirectDrawEx(GUID *lpGUID, LPVOID *lplpDD, REFIID iid, IUnknown *pUnkOuter) {
+  HRESULT CreateDirectDrawEx(GUID *lpGUID, LPVOID *lplpDD, REFIID iid, IUnknown *pUnkOuter, bool needsInitialization) {
     Logger::debug(">>> DirectDrawCreateEx");
 
     typedef HRESULT (__stdcall *DirectDrawCreateEx_t)(GUID *lpGUID, LPVOID *lplpDD, REFIID iid, IUnknown *pUnkOuter);
@@ -74,7 +76,7 @@ namespace dxvk {
       }
 
       Com<IDirectDraw7> DDraw7IntfProxied = static_cast<IDirectDraw7*>(lplpDDProxied);
-      *lplpDD = ref(new DDraw7Interface(nullptr, std::move(DDraw7IntfProxied), nullptr));
+      *lplpDD = ref(new DDraw7Interface(nullptr, std::move(DDraw7IntfProxied), nullptr, needsInitialization));
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;
@@ -83,7 +85,7 @@ namespace dxvk {
     return S_OK;
   }
 
-  HRESULT CreateDirectDraw(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuter) {
+  HRESULT CreateDirectDraw(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuter, bool needsInitialization) {
     Logger::debug(">>> DirectDrawCreate");
 
     typedef HRESULT (__stdcall *DirectDrawCreate_t)(GUID *lpGUID, LPVOID *lplpDD, IUnknown *pUnkOuter);
@@ -120,7 +122,7 @@ namespace dxvk {
       }
 
       Com<IDirectDraw> DDrawIntfProxied = static_cast<IDirectDraw*>(lplpDDProxied);
-      *lplpDD = ref(new DDrawInterface(nullptr, std::move(DDrawIntfProxied), nullptr));
+      *lplpDD = ref(new DDrawInterface(nullptr, std::move(DDrawIntfProxied), nullptr, needsInitialization));
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;
@@ -167,6 +169,21 @@ namespace dxvk {
     *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), nullptr));
 
     return S_OK;
+  }
+
+  HRESULT ClassFactoryCreateDirectDraw(IUnknown *pUnkOuter, REFIID riid, void **ppvObject) {
+    Logger::debug(">>> ClassFactoryCreateDirectDraw");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    if (unlikely(pUnkOuter != nullptr))
+      return CLASS_E_NOAGGREGATION;
+
+    GUID intfGUID = __uuidof(IDirectDraw);
+    return CreateDirectDraw(&intfGUID, reinterpret_cast<IDirectDraw**>(ppvObject), NULL, true);
   }
 
 }
@@ -229,7 +246,7 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawCreate(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuter) {
-    return dxvk::CreateDirectDraw(lpGUID, lplpDD, pUnkOuter);
+    return dxvk::CreateDirectDraw(lpGUID, lplpDD, pUnkOuter, false);
   }
 
   // Mostly unused, except for Sea Dogs (D3D6)
@@ -238,7 +255,7 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawCreateEx(GUID *lpGUID, LPVOID *lplpDD, REFIID iid, IUnknown *pUnkOuter) {
-    return dxvk::CreateDirectDrawEx(lpGUID, lplpDD, iid, pUnkOuter);
+    return dxvk::CreateDirectDrawEx(lpGUID, lplpDD, iid, pUnkOuter, false);
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext) {
@@ -371,12 +388,16 @@ extern "C" {
 
     dxvk::Logger::debug(dxvk::str::format("DllGetClassObject: Call for rclsid: ", rclsid));
 
-    if (riid != __uuidof(IClassFactory) && riid != __uuidof(IUnknown))
+    if (unlikely(riid != __uuidof(IClassFactory) && riid != __uuidof(IUnknown)))
       return E_NOINTERFACE;
 
-    if (rclsid == dxvk::CLSID_DirectDraw) {
-      GUID intfGUID = __uuidof(IDirectDraw);
-      return dxvk::CreateDirectDraw(&intfGUID, reinterpret_cast<IDirectDraw**>(ppv), NULL);
+    // TODO: CLSID_DirectDraw7, if there's any use in the wild
+    if (likely(rclsid == dxvk::CLSID_DirectDraw)) {
+      dxvk::DDrawClassFactory* ddrawClassFactory = new dxvk::DDrawClassFactory(dxvk::ClassFactoryCreateDirectDraw);
+
+      *ppv = ref(ddrawClassFactory);
+
+      return S_OK;
     }
 
     return CLASS_E_CLASSNOTAVAILABLE;

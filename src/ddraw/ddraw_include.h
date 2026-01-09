@@ -233,6 +233,7 @@ typedef struct _D3DFindDeviceResult2
 } D3DFINDDEVICERESULT2;
 
 namespace dxvk {
+
   // Some applications use it as an CLSID entry point with DllGetClassObject
   static constexpr IID CLSID_DirectDraw           = { 0xD7B70EE0, 0x4340, 0x11CF, {0xB0, 0x63, 0x00, 0x20, 0xAF, 0xC2, 0xCD, 0x35} };
 
@@ -249,4 +250,5 @@ namespace dxvk {
     DWORD width;
     DWORD height;
   };
+
 }
