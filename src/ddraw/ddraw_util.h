@@ -317,7 +317,7 @@ namespace dxvk {
 
     if (rclsid == IID_IDirect3DHALDevice) {
       desc.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
-                      | D3DDEVCAPS_HWTRANSFORMANDLIGHT // Also advertised in D3D6
+                      | D3DDEVCAPS_HWTRANSFORMANDLIGHT // Also advertised in D3D5
                       | D3DDEVCAPS_DRAWPRIMITIVES2
                       | D3DDEVCAPS_DRAWPRIMITIVES2EX;
     }
@@ -435,7 +435,7 @@ namespace dxvk {
                               | D3DPTEXTURECAPS_BORDER
                               | D3DPTEXTURECAPS_COLORKEYBLEND // Hard required, but not implemented in D3D9
                               | D3DPTEXTURECAPS_CUBEMAP
-                           // | D3DPTEXTURECAPS_NONPOW2CONDITIONAL
+                              | D3DPTEXTURECAPS_NONPOW2CONDITIONAL // Apparently always exposed by D3D5
                               | D3DPTEXTURECAPS_PERSPECTIVE
                            // | D3DPTEXTURECAPS_POW2
                               | D3DPTEXTURECAPS_PROJECTED
@@ -478,21 +478,21 @@ namespace dxvk {
     prim.dwStippleWidth       = 32;
     prim.dwStippleHeight      = 32;
 
-    desc.dpcLineCaps         = prim;
-    desc.dpcTriCaps          = prim;
+    desc.dpcLineCaps          = prim;
+    desc.dpcTriCaps           = prim;
 
-    desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_32;
-    desc.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
+    desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
+    desc.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24;
     desc.dwMaxBufferSize          = 0;
     desc.dwMaxVertexCount         = D3DDD_MAXVERTEXCOUNT;
-    desc.dwMinTextureWidth        = 0;
-    desc.dwMinTextureHeight       = 0;
+    desc.dwMinTextureWidth        = 1;
+    desc.dwMinTextureHeight       = 1;
     desc.dwMaxTextureWidth        = ddrawCaps::MaxTextureDimension;
     desc.dwMaxTextureHeight       = ddrawCaps::MaxTextureDimension;
-    desc.dwMinStippleWidth        = 0;
-    desc.dwMinStippleHeight       = 0;
-    desc.dwMaxStippleWidth        = 0;
-    desc.dwMaxStippleHeight       = 0;
+    desc.dwMinStippleWidth        = 1;
+    desc.dwMinStippleHeight       = 1;
+    desc.dwMaxStippleWidth        = 32;
+    desc.dwMaxStippleHeight       = 32;
 
     return desc;
   }
@@ -656,7 +656,7 @@ namespace dxvk {
                               | D3DPTEXTURECAPS_BORDER
                               | D3DPTEXTURECAPS_COLORKEYBLEND // Hard required, but not implemented in D3D9
                               | D3DPTEXTURECAPS_CUBEMAP
-                           // | D3DPTEXTURECAPS_NONPOW2CONDITIONAL
+                              | D3DPTEXTURECAPS_NONPOW2CONDITIONAL // Apparently always exposed by D3D6
                               | D3DPTEXTURECAPS_PERSPECTIVE
                            // | D3DPTEXTURECAPS_POW2
                               | D3DPTEXTURECAPS_PROJECTED
@@ -699,23 +699,23 @@ namespace dxvk {
     prim.dwStippleWidth       = 32;
     prim.dwStippleHeight      = 32;
 
-    desc.dpcLineCaps         = prim;
-    desc.dpcTriCaps          = prim;
+    desc.dpcLineCaps          = prim;
+    desc.dpcTriCaps           = prim;
 
-    desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_32;
-    desc.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
+    desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
+    desc.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24;
     desc.dwMaxBufferSize          = 0;
     desc.dwMaxVertexCount         = D3DDD_MAXVERTEXCOUNT;
-    desc.dwMinTextureWidth        = 0;
-    desc.dwMinTextureHeight       = 0;
+    desc.dwMinTextureWidth        = 1;
+    desc.dwMinTextureHeight       = 1;
     desc.dwMaxTextureWidth        = ddrawCaps::MaxTextureDimension;
     desc.dwMaxTextureHeight       = ddrawCaps::MaxTextureDimension;
-    desc.dwMinStippleWidth        = 0;
-    desc.dwMinStippleHeight       = 0;
-    desc.dwMaxStippleWidth        = 0;
-    desc.dwMaxStippleHeight       = 0;
+    desc.dwMinStippleWidth        = 1;
+    desc.dwMinStippleHeight       = 1;
+    desc.dwMaxStippleWidth        = 32;
+    desc.dwMaxStippleHeight       = 32;
     desc.dwMaxTextureRepeat       = 8192;
-    desc.dwMaxTextureAspectRatio  = 8192;
+    desc.dwMaxTextureAspectRatio  = ddrawCaps::MaxTextureDimension;
     desc.dwMaxAnisotropy          = 16;
     desc.dvGuardBandLeft          = -32768.0f;
     desc.dvGuardBandTop           = -32768.0f;
@@ -895,7 +895,7 @@ namespace dxvk {
                               | D3DPTEXTURECAPS_BORDER
                               | D3DPTEXTURECAPS_COLORKEYBLEND // Hard required, but not implemented in D3D9
                               | D3DPTEXTURECAPS_CUBEMAP
-                           // | D3DPTEXTURECAPS_NONPOW2CONDITIONAL
+                              | D3DPTEXTURECAPS_NONPOW2CONDITIONAL // Apparently always exposed by D3D7
                               | D3DPTEXTURECAPS_PERSPECTIVE
                            // | D3DPTEXTURECAPS_POW2
                               | D3DPTEXTURECAPS_PROJECTED
@@ -943,10 +943,10 @@ namespace dxvk {
     desc7.dpcLineCaps         = prim;
     desc7.dpcTriCaps          = prim;
 
-    desc7.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_32;
-    desc7.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
-    desc7.dwMinTextureWidth        = 0;
-    desc7.dwMinTextureHeight       = 0;
+    desc7.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
+    desc7.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24;
+    desc7.dwMinTextureWidth        = 1;
+    desc7.dwMinTextureHeight       = 1;
     desc7.dwMaxTextureWidth        = ddrawCaps::MaxTextureDimension;
     desc7.dwMaxTextureHeight       = ddrawCaps::MaxTextureDimension;
     desc7.dwMaxTextureRepeat       = 8192;
@@ -1011,6 +1011,11 @@ namespace dxvk {
                                    | D3DVTXPCAPS_DIRECTIONALLIGHTS
                                    | D3DVTXPCAPS_POSITIONALLIGHTS;
                                 // | D3DVTXPCAPS_NONLOCALVIEWER; // Described in the official docs, otherwise a ghost
+
+    desc7.dwReserved1              = 0;
+    desc7.dwReserved2              = 0;
+    desc7.dwReserved3              = 0;
+    desc7.dwReserved4              = 0;
 
     return desc7;
   }
