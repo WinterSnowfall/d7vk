@@ -1,5 +1,7 @@
 #include "ddraw_palette.h"
 
+#include "ddraw_interface.h"
+
 namespace dxvk {
 
   DDrawPalette::DDrawPalette(

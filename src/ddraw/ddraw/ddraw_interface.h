@@ -1,13 +1,11 @@
 #pragma once
 
-#include "ddraw_include.h"
-#include "ddraw_wrapped_object.h"
+#include "../ddraw_include.h"
+#include "../ddraw_wrapped_object.h"
 
 #include "../ddraw_common_interface.h"
 
 #include "../../d3d9/d3d9_bridge.h"
-
-#include "../ddraw2/ddraw2_interface.h"
 
 #include "../d3d5/d3d5_interface.h"
 
@@ -17,17 +15,19 @@ namespace dxvk {
 
   class D3D5Device;
   class D3D5Texture;
-  class DDraw4Interface;
-  class DDraw7Interface;
   class DDrawSurface;
 
   /**
-  * \brief Minimal IDirectDraw interface implementation for IDirectDraw7 QueryInterface calls
+  * \brief DirectDraw interface implementation
   */
   class DDrawInterface final : public DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown> {
 
   public:
-    DDrawInterface(DDrawCommonInterface* commonIntf, Com<IDirectDraw>&& proxyIntf, IUnknown* origin);
+    DDrawInterface(
+      DDrawCommonInterface* commonIntf,
+      Com<IDirectDraw>&& proxyIntf,
+      IUnknown* origin,
+      bool needsInitialization);
 
     ~DDrawInterface();
 
@@ -103,18 +103,21 @@ namespace dxvk {
 
   private:
 
-    static uint32_t            s_intfCount;
-    uint32_t                   m_intfCount  = 0;
+    bool                      m_needsInitialization = false;
+    bool                      m_isInitialized = false;
 
-    Com<DDrawCommonInterface>  m_commonIntf;
+    static uint32_t           s_intfCount;
+    uint32_t                  m_intfCount  = 0;
 
-    IUnknown*                  m_origin = nullptr;
+    Com<DDrawCommonInterface> m_commonIntf;
 
-    Com<D3D5Interface, false>  m_d3d5Intf;
+    IUnknown*                 m_origin = nullptr;
 
-    DDrawSurface*              m_lastDepthStencil = nullptr;
+    Com<D3D5Interface, false> m_d3d5Intf;
 
-    D3DTEXTUREHANDLE           m_textureHandle = 0;
+    DDrawSurface*             m_lastDepthStencil = nullptr;
+
+    D3DTEXTUREHANDLE          m_textureHandle = 0;
     std::unordered_map<D3DTEXTUREHANDLE, D3D5Texture*> m_textures;
 
   };

@@ -22,7 +22,11 @@ namespace dxvk {
   class DDraw7Interface final : public DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown> {
 
   public:
-    DDraw7Interface(DDrawCommonInterface* commonIntf, Com<IDirectDraw7>&& proxyIntf, IUnknown* origin);
+    DDraw7Interface(
+      DDrawCommonInterface* commonIntf,
+      Com<IDirectDraw7>&& proxyIntf,
+      IUnknown* origin,
+      bool needsInitialization);
 
     ~DDraw7Interface();
 
@@ -96,16 +100,19 @@ namespace dxvk {
 
   private:
 
-    static uint32_t             s_intfCount;
-    uint32_t                    m_intfCount  = 0;
+    bool                      m_needsInitialization = false;
+    bool                      m_isInitialized = false;
 
-    Com<DDrawCommonInterface>   m_commonIntf;
+    static uint32_t           s_intfCount;
+    uint32_t                  m_intfCount  = 0;
 
-    IUnknown*                   m_origin = nullptr;
+    Com<DDrawCommonInterface> m_commonIntf;
 
-    Com<D3D7Interface, false>   m_d3d7Intf;
+    IUnknown*                 m_origin = nullptr;
 
-    DDraw7Surface*              m_lastDepthStencil = nullptr;
+    Com<D3D7Interface, false> m_d3d7Intf;
+
+    DDraw7Surface*            m_lastDepthStencil = nullptr;
 
   };
 
