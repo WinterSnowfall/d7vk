@@ -120,6 +120,14 @@ namespace dxvk {
       return m_d3d5Device;
     }
 
+    D3D5Texture* GetD3D5Texture() const {
+      return m_texture5.ptr();
+    }
+
+    void SetD3D5Texture(D3D5Texture* texture5) {
+      m_texture5 = texture5;
+    }
+
     d3d9::IDirect3DTexture9* GetD3D9Texture() const {
       return m_texture.ptr();
     }

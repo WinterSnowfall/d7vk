@@ -8,12 +8,11 @@
 
 #include "../../d3d9/d3d9_bridge.h"
 
-#include "../d3d5/d3d5_interface.h"
-
 namespace dxvk {
 
   class DDrawInterface;
   class DDrawSurface;
+  class D3D5Device;
 
   /**
   * \brief DirectDraw2 interface implementation
@@ -84,6 +83,8 @@ namespace dxvk {
 
   private:
 
+    inline void RefreshD3D5Device();
+
     bool                      m_needsInitialization = false;
     bool                      m_isInitialized = false;
 
@@ -94,7 +95,7 @@ namespace dxvk {
 
     IUnknown*                 m_origin = nullptr;
 
-    Com<D3D5Interface, false> m_d3d5Intf;
+    D3D5Device*               m_d3d5Device = nullptr;
 
     DDrawSurface*             m_lastDepthStencil = nullptr;
 
