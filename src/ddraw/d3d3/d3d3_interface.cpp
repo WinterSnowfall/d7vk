@@ -2,6 +2,8 @@
 
 #include "../ddraw/ddraw_interface.h"
 
+#include "d3d3_viewport.h"
+
 namespace dxvk {
 
   uint32_t D3D3Interface::s_intfCount = 0;
@@ -97,8 +99,18 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Interface::CreateViewport(LPDIRECT3DVIEWPORT *lplpD3DViewport, IUnknown *pUnkOuter) {
-    Logger::debug("<<< D3D3Interface::CreateViewport: Proxy");
-    return m_proxy->CreateViewport(lplpD3DViewport, pUnkOuter);
+    Logger::debug(">>> D3D5Interface::CreateViewport");
+
+    Com<IDirect3DViewport> lplpD3DViewportProxy;
+    HRESULT hr = m_proxy->CreateViewport(&lplpD3DViewportProxy, pUnkOuter);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    InitReturnPtr(lplpD3DViewport);
+
+    *lplpD3DViewport = ref(new D3D3Viewport(std::move(lplpD3DViewportProxy), this, nullptr));
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Interface::FindDevice(D3DFINDDEVICESEARCH *lpD3DFDS, D3DFINDDEVICERESULT *lpD3DFDR) {
