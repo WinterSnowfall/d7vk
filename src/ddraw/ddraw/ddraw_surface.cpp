@@ -2,6 +2,9 @@
 
 #include "ddraw_gamma.h"
 
+#include "../d3d3/d3d3_device.h"
+#include "../d3d3/d3d3_texture.h"
+
 #include "../ddraw2/ddraw2_surface.h"
 #include "../ddraw2/ddraw3_surface.h"
 #include "../ddraw4/ddraw4_surface.h"
@@ -106,13 +109,29 @@ namespace dxvk {
     if (riid == IID_IDirect3DHALDevice) {
       Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DHALDevice");
       Logger::warn("DDrawSurface::QueryInterface: Use of unsupported D3D3 device");
-      return m_proxy->QueryInterface(riid, ppvObject);
+
+      Com<IDirect3DDevice> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D3Device(std::move(ppvProxyObject), this, nullptr));
+
+      return S_OK;
     }
     // Apparently, the standard way of creating a RGB D3D3 device...
     if (riid == IID_IDirect3DRGBDevice) {
       Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DRGBDevice");
       Logger::warn("DDrawSurface::QueryInterface: Use of unsupported D3D3 device");
-      return m_proxy->QueryInterface(riid, ppvObject);
+
+      Com<IDirect3DDevice> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D3Device(std::move(ppvProxyObject), this, nullptr));
+
+      return S_OK;
     }
     // Wrap IDirectDrawGammaControl, to potentially ignore application set gamma ramps
     if (riid == __uuidof(IDirectDrawGammaControl)) {
@@ -142,7 +161,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, this));
 
       return S_OK;
     }
@@ -159,7 +178,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, this));
 
       return S_OK;
     }
@@ -223,8 +242,16 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DTexture))) {
-      Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::warn("DDrawSurface::QueryInterface: Query for IDirect3DTexture");
+
+      Com<IDirect3DTexture> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D3Texture(std::move(ppvProxyObject), this));
+
+      return S_OK;
     }
     // Some games are known to query for the clipper
     // from the surface, for some reason, though that won't work
@@ -502,7 +529,11 @@ namespace dxvk {
     // is trying to flip the surface. Allow that for compatibility reasons.
     } else {
       Logger::debug("<<< DDrawSurface::Flip: Proxy");
-      m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+      if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
+        m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+      } else {
+        m_proxy->Flip(surf->GetProxied(), dwFlags);
+      }
     }
 
     return DD_OK;

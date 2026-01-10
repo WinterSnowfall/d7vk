@@ -1672,6 +1672,16 @@ namespace dxvk {
     { R"(\\Rogue Squadron\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
     }} },
+    /* Blood II: The Chosen                       */
+    { R"(\\Blood.*\\Client\.exe$)", {{
+      { "d3d9.maxFrameRate",                 "-60" },
+      { "ddraw.proxiedQueryInterface",      "True" },
+    }} },
+    /* Shogo: Mobile Armor Division               */
+    { R"(\\Shogo.*\\Client\.exe$)", {{
+      { "d3d9.maxFrameRate",                 "-60" },
+      { "ddraw.proxiedQueryInterface",      "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */
@@ -1683,6 +1693,14 @@ namespace dxvk {
     /* Descent: FreeSpace - The Great War         */
     { R"(\\FS\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Populous: The Beginning                    */
+    { R"(\\D3DPopTB(UW)?\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* N.I.C.E 2 - Fixes main menu flickering     */
+    { R"(\\n2_(std|arc)\.exe$)", {{
+      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
 
   };
