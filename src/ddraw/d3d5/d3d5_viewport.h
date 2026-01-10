@@ -6,6 +6,8 @@
 
 #include "d3d5_interface.h"
 
+#include "../d3d3/d3d3_viewport.h"
+
 #include <vector>
 
 namespace dxvk {
@@ -19,7 +21,7 @@ namespace dxvk {
 
   public:
 
-    D3D5Viewport(Com<IDirect3DViewport2>&& proxyViewport, D3D5Interface* pParent);
+    D3D5Viewport(Com<IDirect3DViewport2>&& proxyViewport, D3D5Interface* pParent, IUnknown* origin);
 
     ~D3D5Viewport();
 
@@ -87,6 +89,8 @@ namespace dxvk {
 
     static uint32_t    s_viewportCount;
     uint32_t           m_viewportCount   = 0;
+
+    IUnknown*          m_origin = nullptr;
 
     BOOL               m_materialIsSet   = FALSE;
     D3DMATERIALHANDLE  m_materialHandle  = 0;

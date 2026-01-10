@@ -4,6 +4,8 @@
 
 #include "d3d5_texture.h"
 
+#include "../d3d3/d3d3_device.h"
+
 #include "../ddraw/ddraw_interface.h"
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw2/ddraw2_interface.h"
@@ -105,9 +107,18 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
+    // O.D.T.: Escape... Or Die Trying queries for a D3D3 device in order to use execute buffers
     if (unlikely(riid == __uuidof(IDirect3DDevice))) {
-      Logger::debug("D3D6Device::QueryInterface: Query for legacy IDirect3DDevice");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::debug("D3D5Device::QueryInterface: Query for IDirect3DDevice");
+
+      Com<IDirect3DDevice> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D3Device(std::move(ppvProxyObject), nullptr, this));
+
+      return S_OK;
     }
 
     try {

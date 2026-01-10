@@ -12,8 +12,12 @@ namespace dxvk {
 
   uint32_t D3D5Viewport::s_viewportCount = 0;
 
-  D3D5Viewport::D3D5Viewport(Com<IDirect3DViewport2>&& proxyViewport, D3D5Interface* pParent)
-    : DDrawWrappedObject<D3D5Interface, IDirect3DViewport2, IUnknown>(pParent, std::move(proxyViewport), nullptr) {
+  D3D5Viewport::D3D5Viewport(Com<IDirect3DViewport2>&& proxyViewport, D3D5Interface* pParent, IUnknown* origin)
+    : DDrawWrappedObject<D3D5Interface, IDirect3DViewport2, IUnknown>(pParent, std::move(proxyViewport), nullptr)
+    , m_origin ( origin ) {
+    if (unlikely(m_origin != nullptr))
+      m_origin->AddRef();
+
     m_viewportCount = ++s_viewportCount;
 
     Logger::debug(str::format("D3D5Viewport: Created a new viewport nr. [[2-", m_viewportCount, "]]"));
@@ -24,6 +28,9 @@ namespace dxvk {
     for (auto light : m_lights) {
       light->SetViewport(nullptr);
     }
+
+    if (unlikely(m_origin != nullptr))
+      m_origin->Release();
 
     Logger::debug(str::format("D3D5Viewport: Viewport nr. [[2-", m_viewportCount, "]] bites the dust"));
   }
@@ -58,13 +65,20 @@ namespace dxvk {
 
     // Some games query for legacy viewport interfaces
     if (unlikely(riid == __uuidof(IDirect3DViewport))) {
-      Logger::warn("D3D5Viewport::QueryInterface: Query for legacy IDirect3DViewport");
-      // Revenant uses this QueryInterface call as a poor man's ref increment,
-      // and does absolutely nothing with the object. Since this isn't used at
-      // all in other contexts, make this a global hack of sorts, for now.
-      *ppvObject = ref(this);
+      Logger::debug("D3D5Viewport::QueryInterface: Query for IDirect3DViewport");
+
+      Com<IDirect3DViewport> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D3Viewport(std::move(ppvProxyObject), nullptr, this));
+
       return S_OK;
-      //return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    if (unlikely(riid == __uuidof(IDirect3DViewport3))) {
+      Logger::warn("D3D5Viewport::QueryInterface: Query for IDirect3DViewport3");
+      m_proxy->QueryInterface(riid, ppvObject);
     }
 
     try {
@@ -157,7 +171,7 @@ namespace dxvk {
 
   // Docs state: "The IDirect3DViewport2::LightElements method is not currently implemented."
   HRESULT STDMETHODCALLTYPE D3D5Viewport::LightElements(DWORD element_count, D3DLIGHTDATA *data) {
-    Logger::warn(">>> D3D6Viewport::LightElements");
+    Logger::warn(">>> D3D5Viewport::LightElements");
     return DDERR_UNSUPPORTED;
   }
 

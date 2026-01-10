@@ -8,7 +8,9 @@
 #include "../ddraw4/ddraw4_surface.h"
 #include "../ddraw7/ddraw7_surface.h"
 
+#include "../d3d3/d3d3_texture.h"
 #include "../d3d5/d3d5_device.h"
+#include "../d3d5/d3d5_texture.h"
 
 namespace dxvk {
 
@@ -22,6 +24,10 @@ namespace dxvk {
     : DDrawWrappedObject<DDrawSurface, IDirectDrawSurface2, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
     , m_commonSurf ( commonSurf )
     , m_origin ( origin ) {
+    // We need to keep the IDirectDrawSurface parent around, since we're entirely dependent on it
+    if (m_parent != nullptr)
+      m_parent->AddRef();
+
     // Retrieve and cache the proxy surface desc
     m_desc.dwSize = sizeof(DDSURFACEDESC);
     HRESULT hr = m_proxy->GetSurfaceDesc(&m_desc);
@@ -46,6 +52,9 @@ namespace dxvk {
   }
 
   DDraw2Surface::~DDraw2Surface() {
+    if (m_parent != nullptr)
+      m_parent->Release();
+
     m_commonSurf->SetDD2Surface(nullptr);
 
     Logger::debug(str::format("DDraw2Surface: Surface nr. [[2-", m_surfCount, "]] bites the dust"));
@@ -122,7 +131,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), this));
 
       return S_OK;
     }
@@ -160,15 +169,44 @@ namespace dxvk {
 
       return S_OK;
     }
-    if (unlikely(riid == __uuidof(IDirect3DTexture)
-              || riid == __uuidof(IDirect3DTexture2))) {
-      if (m_commonSurf->GetDDSurface() != nullptr) {
-        Logger::debug("DDraw2Surface::QueryInterface: Query for existing IDirect3DTexture/2");
-        return m_commonSurf->GetDDSurface()->QueryInterface(riid, ppvObject);
+    if (riid == __uuidof(IDirect3DTexture2)) {
+      if (m_parent == nullptr) {
+        Logger::warn("DDraw2Surface::QueryInterface: Query for IDirect3DTexture2");
+        return m_proxy->QueryInterface(riid, ppvObject);
       }
 
-      Logger::warn("DDraw2Surface::QueryInterface: Query for IDirect3DTexture/2");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::debug("DDraw2Surface::QueryInterface: Query for IDirect3DTexture2");
+
+      Com<D3D5Texture> texture5 = m_parent->GetD3D5Texture();
+      if (unlikely(texture5 == nullptr)) {
+        Com<IDirect3DTexture2> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
+        texture5 = new D3D5Texture(std::move(ppvProxyObject), m_parent, nextHandle);
+        m_parent->SetD3D5Texture(texture5.ptr());
+        m_parent->GetParent()->EmplaceTexture(texture5.ptr(), nextHandle);
+
+        m_commonSurf->DirtyMipMaps();
+      }
+
+      *ppvObject = texture5.ref();
+
+      return S_OK;
+    }
+    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
+      Logger::warn("DDraw2Surface::QueryInterface: Query for IDirect3DTexture");
+
+      Com<IDirect3DTexture> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D3Texture(std::move(ppvProxyObject), m_commonSurf->GetDDSurface()));
+
+      return S_OK;
     }
 
     try {
@@ -377,7 +415,11 @@ namespace dxvk {
     // is trying to flip the surface. Allow that for compatibility reasons.
     } else {
       Logger::debug("<<< DDraw2Surface::Flip: Proxy");
-      m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+      if (lpDDSurfaceTargetOverride == nullptr) {
+        m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+      } else {
+        m_proxy->Flip(surf2->GetProxied(), dwFlags);
+      }
     }
 
     return DD_OK;
