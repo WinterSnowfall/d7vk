@@ -8,6 +8,7 @@
 #include "../ddraw2/ddraw3_surface.h"
 #include "../ddraw7/ddraw7_surface.h"
 
+#include "../d3d3/d3d3_texture.h"
 #include "../d3d6/d3d6_texture.h"
 
 namespace dxvk {
@@ -146,7 +147,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), this));
 
       return S_OK;
     }
@@ -163,7 +164,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), this));
 
       return S_OK;
     }
@@ -205,8 +206,16 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DTexture))) {
-      Logger::debug("DDraw4Surface::QueryInterface: Query for IDirect3DTexture");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::warn("DDraw2Surface::QueryInterface: Query for IDirect3DTexture");
+
+      Com<IDirect3DTexture> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D3Texture(std::move(ppvProxyObject), m_commonSurf->GetDDSurface()));
+
+      return S_OK;
     }
 
     try {
@@ -482,7 +491,11 @@ namespace dxvk {
     // is trying to flip the surface. Allow that for compatibility reasons.
     } else {
       Logger::debug("<<< DDraw4Surface::Flip: Proxy");
-      m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+      if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
+        m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+      } else {
+        m_proxy->Flip(surf4->GetProxied(), dwFlags);
+      }
     }
 
     return DD_OK;

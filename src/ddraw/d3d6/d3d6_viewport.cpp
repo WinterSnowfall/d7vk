@@ -5,6 +5,8 @@
 #include "d3d6_material.h"
 
 #include "../ddraw4/ddraw4_surface.h"
+#include "../d3d5/d3d5_viewport.h"
+#include "../d3d3/d3d3_viewport.h"
 
 #include <algorithm>
 
@@ -58,17 +60,28 @@ namespace dxvk {
 
     // Some games query for legacy viewport interfaces
     if (unlikely(riid == __uuidof(IDirect3DViewport))) {
-      Logger::warn("D3D6Viewport::QueryInterface: Query for legacy IDirect3DViewport");
-      // Revenant uses this QueryInterface call as a poor man's ref increment,
-      // and does absolutely nothing with the object. Since this isn't used at
-      // all in other contexts, make this a global hack of sorts, for now.
-      *ppvObject = ref(this);
+      Logger::debug("D3D6Viewport::QueryInterface: Query for IDirect3DViewport");
+
+      Com<IDirect3DViewport> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D3Viewport(std::move(ppvProxyObject), nullptr, this));
+
       return S_OK;
-      //return m_proxy->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirect3DViewport2))) {
-      Logger::warn("D3D6Viewport::QueryInterface: Query for legacy IDirect3DViewport2");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::debug("D3D6Viewport::QueryInterface: Query for IDirect3DViewport2");
+
+      Com<IDirect3DViewport2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D5Viewport(std::move(ppvProxyObject), nullptr, this));
+
+      return S_OK;
     }
 
     try {

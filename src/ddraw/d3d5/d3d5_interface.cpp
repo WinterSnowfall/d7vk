@@ -193,7 +193,7 @@ namespace dxvk {
 
     InitReturnPtr(lplpD3DViewport);
 
-    *lplpD3DViewport = ref(new D3D5Viewport(std::move(lplpD3DViewportProxy), this));
+    *lplpD3DViewport = ref(new D3D5Viewport(std::move(lplpD3DViewportProxy), this, nullptr));
 
     return D3D_OK;
   }

@@ -7,6 +7,9 @@
 #include "../ddraw2/ddraw3_surface.h"
 #include "../ddraw4/ddraw4_surface.h"
 
+#include "../d3d3/d3d3_texture.h"
+#include "../d3d6/d3d6_texture.h"
+
 namespace dxvk {
 
   uint32_t DDraw7Surface::s_surfCount = 0;
@@ -124,7 +127,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawSurface(m_commonSurf.ptr(), std::move(ppvProxyObject), nullptr, nullptr, this, false));
+      *ppvObject = ref(new DDrawSurface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDDInterface(), nullptr, this, false));
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
@@ -140,7 +143,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), this));
 
       return S_OK;
     }
@@ -157,7 +160,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), this));
 
       return S_OK;
     }
@@ -174,15 +177,34 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), nullptr, nullptr, this, false));
+      *ppvObject = ref(new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD4Interface(), nullptr, this, false));
 
       return S_OK;
     }
     // Black & White queries for IDirect3DTexture2 for whatever reason...
-    if (unlikely(riid == __uuidof(IDirect3DTexture)
-              || riid == __uuidof(IDirect3DTexture2))) {
-      Logger::debug("DDraw7Surface::QueryInterface: Query for legacy IDirect3DTexture");
-      return m_proxy->QueryInterface(riid, ppvObject);
+    if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
+      Logger::debug("DDraw7Surface::QueryInterface: Query for IDirect3DTexture2");
+
+      Com<IDirect3DTexture2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D6Texture(std::move(ppvProxyObject), m_commonSurf->GetDD4Surface()));
+
+      return S_OK;
+    }
+    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
+      Logger::warn("DDraw7Surface::QueryInterface: Query for IDirect3DTexture");
+
+      Com<IDirect3DTexture> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D3Texture(std::move(ppvProxyObject), m_commonSurf->GetDDSurface()));
+
+      return S_OK;
     }
 
     try {
@@ -454,6 +476,15 @@ namespace dxvk {
       }
 
       m_d3d7Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
+    // If we don't yet have a device, perhaps a D3D7 application is trying to
+    // present exclusively on DDraw (such as a main menu), so allow the flip
+    } else {
+      Logger::debug("<<< DDraw7Surface::Flip: Proxy");
+      if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
+        m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+      } else {
+        m_proxy->Flip(surf7->GetProxied(), dwFlags);
+      }
     }
 
     return DD_OK;

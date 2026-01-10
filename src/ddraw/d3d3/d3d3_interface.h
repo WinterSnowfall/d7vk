@@ -8,7 +8,7 @@ namespace dxvk {
   class DDrawInterface;
 
   /**
-  * \brief D3D3 interface implementation
+  * \brief Minimal D3D3 interface implementation
   */
   class D3D3Interface final : public DDrawWrappedObject<DDrawInterface, IDirect3D, d3d9::IDirect3D9> {
 
