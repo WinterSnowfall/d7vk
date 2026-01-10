@@ -55,7 +55,7 @@ namespace dxvk {
     InitReturnPtr(ppvObject);
 
     if (unlikely(riid == __uuidof(IDirect3DTexture))) {
-      Logger::debug("D3D6Texture::QueryInterface: Query for IDirect3DTexture");
+      Logger::debug("D3D5Texture::QueryInterface: Query for IDirect3DTexture");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawGammaControl)
@@ -64,15 +64,15 @@ namespace dxvk {
     }
     if (unlikely(riid == __uuidof(IUnknown)
               || riid == __uuidof(IDirectDrawSurface))) {
-      Logger::debug("D3D6Texture::QueryInterface: Query for IDirectDrawSurface");
+      Logger::debug("D3D5Texture::QueryInterface: Query for IDirectDrawSurface");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
-      Logger::debug("D3D6Texture::QueryInterface: Query for IDirectDrawSurface2");
+      Logger::debug("D3D5Texture::QueryInterface: Query for IDirectDrawSurface2");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface3))) {
-      Logger::debug("D3D6Texture::QueryInterface: Query for IDirectDrawSurface3");
+      Logger::debug("D3D5Texture::QueryInterface: Query for IDirectDrawSurface3");
       return m_parent->QueryInterface(riid, ppvObject);
     }
 
