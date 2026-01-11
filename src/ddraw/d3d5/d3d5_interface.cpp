@@ -5,8 +5,6 @@
 #include "d3d5_material.h"
 #include "d3d5_viewport.h"
 
-#include "ddraw_common_interface.h"
-
 #include "../ddraw/ddraw_interface.h"
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw2/ddraw2_interface.h"
@@ -467,17 +465,17 @@ namespace dxvk {
     D3DDEVICEDESC2 desc5 = GetD3D5Caps(rclsidOverride, m_options.disableAASupport);
 
     try{
-      Com<D3D5Device> device = new D3D5Device(std::move(d3d5DeviceProxy), this, desc5,
-                                              rclsidOverride, params, std::move(device9),
-                                              rt.ptr(), deviceCreationFlags9);
-      // Hold the address of the most recently created device, not a reference
-      m_lastUsedDevice = device.ptr();
+      Com<D3D5Device> device5 = new D3D5Device(std::move(d3d5DeviceProxy), this, desc5,
+                                               rclsidOverride, params, std::move(device9),
+                                               rt.ptr(), deviceCreationFlags9);
+      // Set the newly created D3D7 device on the common interface
+      m_parent->GetCommonInterface()->SetD3D5Device(device5.ptr());
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
-      m_lastUsedDevice->InitializeDS();
+      device5->InitializeDS();
       // Enable SWVP in case of mixed SWVP devices
       if (unlikely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
-        m_lastUsedDevice->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
-      *lplpD3DDevice = device.ref();
+        device5->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
+      *lplpD3DDevice = device5.ref();
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;
