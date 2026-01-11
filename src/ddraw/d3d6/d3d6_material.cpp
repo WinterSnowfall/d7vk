@@ -1,7 +1,10 @@
 #include "d3d6_material.h"
 
 #include "d3d6_device.h"
+#include "d3d6_interface.h"
 #include "d3d6_viewport.h"
+
+#include "../ddraw4/ddraw4_interface.h"
 
 namespace dxvk {
 
@@ -80,7 +83,7 @@ namespace dxvk {
     Logger::debug(str::format("   Power:    ", m_material9.Power));
 
     // Update the D3D9 material directly if it's actively being used
-    D3D6Device* device6 = m_parent->GetLastUsedDevice();
+    D3D6Device* device6 = m_parent->GetParent()->GetCommonInterface()->GetD3D6Device();
     if (likely(device6 != nullptr)) {
       D3DMATERIALHANDLE material = device6->GetCurrentMaterialHandle();
       if (material == m_materialHandle) {

@@ -6,6 +6,8 @@
 #include "../ddraw_util.h"
 #include "../ddraw_caps.h"
 
+#include "../ddraw_common_interface.h"
+
 #include "../../d3d9/d3d9_bridge.h"
 
 #include "d3d7_interface.h"
@@ -203,8 +205,8 @@ namespace dxvk {
     inline bool ShouldRecord() const { return m_recorder != nullptr; }
 
     inline void RefreshLastUsedDevice() {
-      if (unlikely(m_parent->GetLastUsedDevice() != this))
-        m_parent->SetLastUsedDevice(this);
+      if (unlikely(m_commonIntf->GetD3D7Device() != this))
+        m_commonIntf->SetD3D7Device(this);
     }
 
     bool                          m_isMixedHWVP = false;

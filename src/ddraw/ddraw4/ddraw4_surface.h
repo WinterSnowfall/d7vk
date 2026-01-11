@@ -2,7 +2,6 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
-#include "../ddraw_format.h"
 
 #include "../ddraw_common_interface.h"
 #include "../ddraw_common_surface.h"
@@ -141,30 +140,6 @@ namespace dxvk {
       return m_texture.ptr();
     }
 
-    bool IsTexture() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_TEXTURE;
-    }
-
-    bool IsRenderTarget() const {
-      return IsFrontBuffer() || IsBackBufferOrFlippable() || Is3DSurface();
-    }
-
-    bool IsForwardableSurface() const {
-      return IsFrontBuffer() || IsBackBufferOrFlippable() || IsDepthStencil() || IsOffScreenPlainSurface();
-    }
-
-    bool IsBackBufferOrFlippable() const {
-      return !IsFrontBuffer() && (m_desc.ddsCaps.dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP));
-    }
-
-    bool IsDepthStencil() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_ZBUFFER;
-    }
-
-    bool Is3DSurface() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_3DDEVICE;
-    }
-
     DDraw4Surface* GetAttachedDepthStencil() const {
       return m_depthStencil.ptr();
     }
@@ -188,90 +163,49 @@ namespace dxvk {
 
   private:
 
-    inline bool IsAttached() const {
-      return m_parentSurf != nullptr;
-    }
-
-    inline bool IsComplex() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_COMPLEX;
-    }
-
-    inline bool IsNotKnown() const {
-      return !(m_desc.dwFlags & DDSD_CAPS);
-    }
-
-    inline bool IsPrimarySurface() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE;
-    }
-
-    inline bool IsFrontBuffer() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER;
-    }
-
-    inline bool IsBackBuffer() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER;
-    }
-
-    inline bool IsOffScreenPlainSurface() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN;
-    }
-
-    inline bool IsTextureMip() const {
-      return (m_desc.ddsCaps.dwCaps  & DDSCAPS_MIPMAP) ||
-             (m_desc.ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL);
-    }
-
-    inline bool IsOverlay() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_OVERLAY;
-    }
-
-    inline bool IsManaged() const {
-      return m_desc.ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE;
-    }
-
     inline HRESULT IntializeD3D9(const bool initRT);
 
     inline HRESULT UploadSurfaceData();
 
     inline void RefreshD3D6Device() {
-      if (likely(m_parent != nullptr)) {
-        D3D6Device* d3d6Device = m_parent->GetD3D6Device();
-        if (unlikely(m_d3d6Device != d3d6Device)) {
-          // Check if the device has been recreated and reset all D3D9 resources
-          if (unlikely(m_d3d6Device != nullptr)) {
-            Logger::debug("DDraw4Surface: Device context has changed, clearing all D3D9 resources");
-            m_texture = nullptr;
-            m_d3d9 = nullptr;
-          }
-          m_d3d6Device = d3d6Device;
+      D3D6Device* d3d6Device = m_commonIntf->GetD3D6Device();
+      if (unlikely(m_d3d6Device != d3d6Device)) {
+        // Check if the device has been recreated and reset all D3D9 resources
+        if (unlikely(m_d3d6Device != nullptr)) {
+          Logger::debug("DDraw4Surface: Device context has changed, clearing all D3D9 resources");
+          m_texture = nullptr;
+          m_d3d9 = nullptr;
         }
+        m_d3d6Device = d3d6Device;
       }
     }
 
     inline void ListSurfaceDetails() const {
       const char* type = "generic surface";
 
-      if (IsFrontBuffer())                type = "front buffer";
-      else if (IsBackBuffer())            type = "back buffer";
-      else if (IsTextureMip())            type = "texture mipmap";
-      else if (IsTexture())               type = "texture";
-      else if (IsDepthStencil())          type = "depth stencil";
-      else if (IsOffScreenPlainSurface()) type = "offscreen plain surface";
-      else if (IsOverlay())               type = "overlay";
-      else if (Is3DSurface())             type = "render target";
-      else if (IsNotKnown())              type = "unknown";
+      if (m_commonSurf->IsFrontBuffer())                type = "front buffer";
+      else if (m_commonSurf->IsBackBuffer())            type = "back buffer";
+      else if (m_commonSurf->IsTextureMip())            type = "texture mipmap";
+      else if (m_commonSurf->IsTexture())               type = "texture";
+      else if (m_commonSurf->IsDepthStencil())          type = "depth stencil";
+      else if (m_commonSurf->IsOffScreenPlainSurface()) type = "offscreen plain surface";
+      else if (m_commonSurf->IsOverlay())               type = "overlay";
+      else if (m_commonSurf->Is3DSurface())             type = "render target";
+      else if (m_commonSurf->IsPrimarySurface())        type = "primary surface";
+      else if (m_commonSurf->IsNotKnown())              type = "unknown";
 
-      const char* attached = IsAttached() ? "yes" : "no";
+      const DDSURFACEDESC2* desc2 = m_commonSurf->GetDesc2();
 
       Logger::debug(str::format("DDraw4Surface: Created a new surface nr. [[4-", m_surfCount, "]]:"));
-      Logger::debug(str::format("   Type:       ", type));
-      Logger::debug(str::format("   Dimensions: ", m_desc.dwWidth, "x", m_desc.dwHeight));
-      Logger::debug(str::format("   Format:     ", m_format));
-      Logger::debug(str::format("   IsComplex:  ", IsComplex() ? "yes" : "no"));
-      Logger::debug(str::format("   HasMips:    ", m_desc.dwMipMapCount ? "yes" : "no"));
-      Logger::debug(str::format("   IsAttached: ", attached));
-      if (IsFrontBuffer())
-        Logger::debug(str::format("   BackBuffer: ", m_desc.dwBackBufferCount));
+      Logger::debug(str::format("   Type:        ", type));
+      Logger::debug(str::format("   Dimensions:  ", desc2->dwWidth, "x", desc2->dwHeight));
+      Logger::debug(str::format("   Format:      ", m_commonSurf->GetD3D9Format()));
+      Logger::debug(str::format("   IsComplex:   ", m_commonSurf->IsComplex() ? "yes" : "no"));
+      Logger::debug(str::format("   HasMipMaps:  ", desc2->dwMipMapCount ? "yes" : "no"));
+      Logger::debug(str::format("   HasColorKey: ", m_commonSurf->HasColorKey() ? "yes" : "no"));
+      Logger::debug(str::format("   IsAttached:  ", m_parentSurf != nullptr ? "yes" : "no"));
+      if (m_commonSurf->IsFrontBuffer())
+        Logger::debug(str::format("   BackBuffers: ", desc2->dwBackBufferCount));
     }
 
     bool             m_isChildObject = true;
@@ -287,9 +221,6 @@ namespace dxvk {
     IUnknown*                           m_origin     = nullptr;
 
     D3D6Device*                         m_d3d6Device = nullptr;
-
-    DDSURFACEDESC2                      m_desc;
-    d3d9::D3DFORMAT                     m_format;
 
     Com<D3D6Texture, false>             m_texture6;
 

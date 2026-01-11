@@ -297,8 +297,8 @@ namespace dxvk {
         if (unlikely(m_commonIntf->GetOptions()->proxiedQueryInterface)) {
           // Hack: Gothic / Gothic 2 and other games attach the depth stencil to an externally created
           // back buffer, so we need to re-attach the depth stencil to the back buffer on device creation
-          if (unlikely(surface4->IsForwardableSurface())) {
-            if (unlikely(surface4->IsDepthStencil()))
+          if (unlikely(surface4->GetCommonSurface()->IsForwardableSurface())) {
+            if (unlikely(surface4->GetCommonSurface()->IsDepthStencil()))
               m_lastDepthStencil = surface4.ptr();
             surface4->SetForwardToProxy(true);
           }
@@ -508,7 +508,7 @@ namespace dxvk {
     if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
       // Switch to a default presentation interval when an application
       // tries to wait for vertical blank, if we're not already doing so
-      D3D6Device* d3d6Device = GetD3D6Device();
+      D3D6Device* d3d6Device = m_commonIntf->GetD3D6Device();
       if (unlikely(d3d6Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
         Logger::info("DDraw4Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
 
@@ -534,7 +534,7 @@ namespace dxvk {
 
     constexpr DWORD Megabytes = 1024 * 1024;
 
-    D3D6Device* d3d6Device = GetD3D6Device();
+    D3D6Device* d3d6Device = m_commonIntf->GetD3D6Device();
     if (likely(d3d6Device != nullptr)) {
       Logger::debug("DDraw4Interface::GetAvailableVidMem: Getting memory stats from D3D9");
 
