@@ -12,6 +12,10 @@ namespace dxvk {
   class DDraw2Interface;
   class DDrawInterface;
 
+  class D3D7Device;
+  class D3D6Device;
+  class D3D5Device;
+
   class DDrawCommonInterface : public ComObjectClamp<IUnknown> {
 
   public:
@@ -104,6 +108,30 @@ namespace dxvk {
       return m_intf;
     }
 
+    void SetD3D7Device(D3D7Device* device7) {
+      m_device7 = device7;
+    }
+
+    D3D7Device* GetD3D7Device() const {
+      return m_device7;
+    }
+
+    void SetD3D6Device(D3D6Device* device6) {
+      m_device6 = device6;
+    }
+
+    D3D6Device* GetD3D6Device() const {
+      return m_device6;
+    }
+
+    void SetD3D5Device(D3D5Device* device5) {
+      m_device5 = device5;
+    }
+
+    D3D5Device* GetD3D5Device() const {
+      return m_device5;
+    }
+
   private:
 
     bool                              m_waitForVBlank    = true;
@@ -115,6 +143,11 @@ namespace dxvk {
     DDrawModeSize                     m_modeSize = { };
 
     D3DOptions                        m_options;
+
+    // Track all possible last used D3D devices
+    D3D7Device*                       m_device7          = nullptr;
+    D3D6Device*                       m_device6          = nullptr;
+    D3D5Device*                       m_device5          = nullptr;
 
     // Track all possible instance versions of the same object
     DDraw7Interface*                  m_intf7            = nullptr;

@@ -3,9 +3,9 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
-#include "d3d5_interface.h"
-
 namespace dxvk {
+
+  class D3D5Interface;
 
   class D3D5Material final : public DDrawWrappedObject<D3D5Interface, IDirect3DMaterial2, IUnknown> {
 
