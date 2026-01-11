@@ -6,6 +6,8 @@
 #include "../ddraw_util.h"
 #include "../ddraw_format.h"
 
+#include "ddraw_common_interface.h"
+
 #include "../../d3d9/d3d9_bridge.h"
 
 #include <unordered_map>
@@ -52,14 +54,6 @@ namespace dxvk {
 
     D3D6Material* GetMaterialFromHandle(D3DMATERIALHANDLE handle);
 
-    D3D6Device* GetLastUsedDevice() const {
-      return m_lastUsedDevice;
-    }
-
-    void SetLastUsedDevice(D3D6Device* device) {
-      m_lastUsedDevice = device;
-    }
-
     const D3DOptions* GetOptions() const {
       return &m_options;
     }
@@ -72,8 +66,6 @@ namespace dxvk {
     Com<IDxvkD3D8InterfaceBridge> m_bridge;
 
     D3DOptions                    m_options;
-
-    D3D6Device*                   m_lastUsedDevice = nullptr;
 
     D3DMATERIALHANDLE             m_materialHandle = 0;
     std::unordered_map<D3DMATERIALHANDLE, D3D6Material> m_materials;

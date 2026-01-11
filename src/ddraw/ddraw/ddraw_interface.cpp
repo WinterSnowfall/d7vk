@@ -463,7 +463,7 @@ namespace dxvk {
     if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
       // Switch to a default presentation interval when an application
       // tries to wait for vertical blank, if we're not already doing so
-      D3D5Device* d3d5Device = m_d3d5Intf->GetLastUsedDevice();
+      D3D5Device* d3d5Device = m_commonIntf->GetD3D5Device();
       if (unlikely(d3d5Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
         Logger::info("DDrawInterface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
 

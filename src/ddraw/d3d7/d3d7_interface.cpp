@@ -4,8 +4,6 @@
 #include "d3d7_buffer.h"
 #include "d3d7_multithread.h"
 
-#include "ddraw_common_interface.h"
-
 #include "../ddraw7/ddraw7_interface.h"
 #include "../ddraw7/ddraw7_surface.h"
 
@@ -65,6 +63,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> D3D7Interface::QueryInterface");
+
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
@@ -321,17 +321,17 @@ namespace dxvk {
     D3DDEVICEDESC7 desc7 = GetD3D7Caps(rclsid, m_options.disableAASupport);
 
     try{
-      Com<D3D7Device> device = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7,
-                                              params, std::move(device9),
-                                              rt7.ptr(), deviceCreationFlags9);
-      // Hold the address of the most recently created device, not a reference
-      m_lastUsedDevice = device.ptr();
+      Com<D3D7Device> device7 = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7,
+                                               params, std::move(device9),
+                                               rt7.ptr(), deviceCreationFlags9);
+      // Set the newly created D3D7 device on the common interface
+      m_parent->GetCommonInterface()->SetD3D7Device(device7.ptr());
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
-      m_lastUsedDevice->InitializeDS();
+      device7->InitializeDS();
       // Enable SWVP in case of mixed SWVP devices
       if (unlikely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
-        m_lastUsedDevice->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
-      *ppd3dDevice = device.ref();
+        device7->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
+      *ppd3dDevice = device7.ref();
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;
@@ -400,10 +400,11 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (likely(m_lastUsedDevice != nullptr)) {
-      D3D7DeviceLock lock = m_lastUsedDevice->LockDevice();
+    D3D7Device* d3d7Device = m_parent->GetCommonInterface()->GetD3D7Device();
+    if (likely(d3d7Device != nullptr)) {
+      D3D7DeviceLock lock = d3d7Device->LockDevice();
 
-      HRESULT hr9 = m_lastUsedDevice->GetD3D9()->EvictManagedResources();
+      HRESULT hr9 = d3d7Device->GetD3D9()->EvictManagedResources();
       if (unlikely(FAILED(hr9))) {
         Logger::err("D3D7Interface::EvictManagedTextures: Failed D3D9 managed resource eviction");
         return hr9;
