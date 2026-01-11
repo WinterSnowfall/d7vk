@@ -7,13 +7,12 @@
 
 #include "../../d3d9/d3d9_bridge.h"
 
-#include "../d3d5/d3d5_interface.h"
-
 #include <unordered_map>
 
 namespace dxvk {
 
   class D3D5Device;
+  class D3D5Interface;
   class D3D5Texture;
   class DDrawSurface;
 
@@ -77,14 +76,6 @@ namespace dxvk {
 
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf.ptr();
-    }
-
-    D3D5Interface* GetD3D5Interface() const {
-      return m_d3d5Intf.ptr();
-    }
-
-    D3D5Device* GetD3D5Device() const {
-      return m_d3d5Intf != nullptr ? m_d3d5Intf->GetLastUsedDevice() : nullptr;
     }
 
     D3DTEXTUREHANDLE GetNextTextureHandle() {

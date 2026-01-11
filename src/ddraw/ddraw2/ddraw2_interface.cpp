@@ -424,13 +424,13 @@ namespace dxvk {
     if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
       // Switch to a default presentation interval when an application
       // tries to wait for vertical blank, if we're not already doing so
-      RefreshD3D5Device();
-      if (unlikely(m_d3d5Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
+      D3D5Device* d3d5Device = m_commonIntf->GetD3D5Device();
+      if (unlikely(d3d5Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
         Logger::info("DDraw2Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
 
-        d3d9::D3DPRESENT_PARAMETERS resetParams = m_d3d5Device->GetPresentParameters();
+        d3d9::D3DPRESENT_PARAMETERS resetParams = d3d5Device->GetPresentParameters();
         resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
-        HRESULT hrReset = m_d3d5Device->Reset(&resetParams);
+        HRESULT hrReset = d3d5Device->Reset(&resetParams);
         if (unlikely(FAILED(hrReset))) {
           Logger::warn("DDraw2Interface::WaitForVerticalBlank: Failed D3D9 swapchain reset");
         } else {
@@ -450,12 +450,12 @@ namespace dxvk {
 
     constexpr DWORD Megabytes = 1024 * 1024;
 
-    RefreshD3D5Device();
-    if (likely(m_d3d5Device != nullptr)) {
+    D3D5Device* d3d5Device = m_commonIntf->GetD3D5Device();
+    if (likely(d3d5Device != nullptr)) {
       Logger::debug("DDraw2Interface::GetAvailableVidMem: Getting memory stats from D3D9");
 
       const DWORD total9 = static_cast<DWORD>(m_commonIntf->GetOptions()->maxAvailableMemory) * Megabytes;
-      const DWORD free9  = static_cast<DWORD>(m_d3d5Device->GetD3D9()->GetAvailableTextureMem());
+      const DWORD free9  = static_cast<DWORD>(d3d5Device->GetD3D9()->GetAvailableTextureMem());
 
       Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Total: ", total9));
       Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Free : ", free9));
@@ -498,15 +498,6 @@ namespace dxvk {
     }
 
     return DD_OK;
-  }
-
-  inline void DDraw2Interface::RefreshD3D5Device() {
-    if (m_parent != nullptr) {
-      D3D5Interface* d3d5Intf = m_parent->GetD3D5Interface();
-
-      if (d3d5Intf != nullptr)
-        m_d3d5Device = d3d5Intf->GetLastUsedDevice();
-    }
   }
 
 }

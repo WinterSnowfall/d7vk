@@ -7,8 +7,6 @@
 #include "d3d6_multithread.h"
 #include "d3d6_viewport.h"
 
-#include "ddraw_common_interface.h"
-
 #include "../ddraw4/ddraw4_interface.h"
 #include "../ddraw4/ddraw4_surface.h"
 
@@ -466,17 +464,17 @@ namespace dxvk {
     D3DDEVICEDESC desc6 = GetD3D6Caps(rclsidOverride, m_options.disableAASupport);
 
     try{
-      Com<D3D6Device> device = new D3D6Device(std::move(d3d6DeviceProxy), this, desc6,
-                                              rclsidOverride, params, std::move(device9),
-                                              rt4.ptr(), deviceCreationFlags9);
-      // Hold the address of the most recently created device, not a reference
-      m_lastUsedDevice = device.ptr();
+      Com<D3D6Device> device6 = new D3D6Device(std::move(d3d6DeviceProxy), this, desc6,
+                                               rclsidOverride, params, std::move(device9),
+                                               rt4.ptr(), deviceCreationFlags9);
+      // Set the newly created D3D6 device on the common interface
+      m_parent->GetCommonInterface()->SetD3D6Device(device6.ptr());
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
-      m_lastUsedDevice->InitializeDS();
+      device6->InitializeDS();
       // Enable SWVP in case of mixed SWVP devices
       if (unlikely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
-        m_lastUsedDevice->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
-      *lplpD3DDevice = device.ref();
+        device6->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
+      *lplpD3DDevice = device6.ref();
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;
@@ -547,10 +545,11 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (likely(m_lastUsedDevice != nullptr)) {
-      D3D6DeviceLock lock = m_lastUsedDevice->LockDevice();
+    D3D6Device* d3d6Device = m_parent->GetCommonInterface()->GetD3D6Device();
+    if (likely(d3d6Device != nullptr)) {
+      D3D6DeviceLock lock = d3d6Device->LockDevice();
 
-      HRESULT hr9 = m_lastUsedDevice->GetD3D9()->EvictManagedResources();
+      HRESULT hr9 = d3d6Device->GetD3D9()->EvictManagedResources();
       if (unlikely(FAILED(hr9))) {
         Logger::err("D3D6Interface::EvictManagedTextures: Failed D3D9 managed resource eviction");
         return hr9;
