@@ -17,6 +17,7 @@ namespace dxvk {
             DWORD creationFlags,
             D3DVERTEXBUFFERDESC desc)
     : DDrawWrappedObject<D3D6Interface, IDirect3DVertexBuffer, d3d9::IDirect3DVertexBuffer9>(pParent, std::move(buffProxy), std::move(pBuffer9))
+    , m_commonIntf ( pParent->GetParent()->GetCommonInterface() )
     , m_creationFlags ( creationFlags )
     , m_desc ( desc )
     , m_stride ( GetFVFSize(desc.dwFVF) )
@@ -186,7 +187,7 @@ namespace dxvk {
   HRESULT D3D6VertexBuffer::InitializeD3D9() {
     // Can't create anything without a valid device
     if (unlikely(m_d3d6Device == nullptr)) {
-      Logger::err("D3D6VertexBuffer::IntializeD3D9: Null D3D6 device, can't initalize right now");
+      Logger::warn("D3D6VertexBuffer::IntializeD3D9: Null D3D6 device, can't initalize right now");
       return DDERR_GENERIC;
     }
 

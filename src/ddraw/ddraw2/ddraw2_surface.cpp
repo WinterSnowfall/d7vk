@@ -28,20 +28,25 @@ namespace dxvk {
     if (m_parent != nullptr)
       m_parent->AddRef();
 
-    // Retrieve and cache the proxy surface desc
-    m_desc.dwSize = sizeof(DDSURFACEDESC);
-    HRESULT hr = m_proxy->GetSurfaceDesc(&m_desc);
-
-    if (unlikely(FAILED(hr))) {
-      throw DxvkError("DDraw2Surface: ERROR! Failed to retrieve new surface desc!");
-    }
-
     if (m_parent != nullptr) {
       m_commonIntf = m_parent->GetCommonInterface();
     } else if (m_commonSurf != nullptr) {
       m_commonIntf = m_commonSurf->GetCommonInterface();
     } else {
       throw DxvkError("DDraw2Surface: ERROR! Failed to retrieve the common interface!");
+    }
+
+    // Retrieve and cache the proxy surface desc
+    if (!m_commonSurf->IsDescSet()) {
+      DDSURFACEDESC desc;
+      desc.dwSize = sizeof(DDSURFACEDESC);
+      HRESULT hr = m_proxy->GetSurfaceDesc(&desc);
+
+      if (unlikely(FAILED(hr))) {
+        throw DxvkError("DDraw2Surface: ERROR! Failed to retrieve new surface desc!");
+      } else {
+        m_commonSurf->SetDesc(desc);
+      }
     }
 
     m_commonSurf->SetDD2Surface(this);
@@ -241,11 +246,11 @@ namespace dxvk {
 
       // Eclusive mode back buffer guard
       if (exclusiveMode && m_d3d5Device->HasDrawn() &&
-         (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()) &&
+          m_commonSurf->IsGuardableSurface() &&
           m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
         return DD_OK;
       // Windowed mode presentation path
-      } else if (!exclusiveMode && m_d3d5Device->HasDrawn() && m_parent->IsPrimarySurface()) {
+      } else if (!exclusiveMode && m_d3d5Device->HasDrawn() && m_commonSurf->IsPrimarySurface()) {
         m_d3d5Device->ResetDrawTracking();
         m_d3d5Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
         return DD_OK;
@@ -258,7 +263,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures get uploaded during SetTexture calls
-      if (IsTexture()) {
+      if (m_commonSurf->IsTexture()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDrawSurface::Blt: Failed upload to d3d9 surface");
@@ -287,11 +292,11 @@ namespace dxvk {
 
       // Eclusive mode back buffer guard
       if (exclusiveMode && m_d3d5Device->HasDrawn() &&
-         (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()) &&
+          m_commonSurf->IsGuardableSurface() &&
           m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
         return DD_OK;
       // Windowed mode presentation path
-      } else if (!exclusiveMode && m_d3d5Device->HasDrawn() && m_parent->IsPrimarySurface()) {
+      } else if (!exclusiveMode && m_d3d5Device->HasDrawn() && m_commonSurf->IsPrimarySurface()) {
         m_d3d5Device->ResetDrawTracking();
         m_d3d5Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
         return DD_OK;
@@ -304,7 +309,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures get uploaded during SetTexture calls
-      if (IsTexture()) {
+      if (m_commonSurf->IsTexture()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw2Surface::BltFast: Failed upload to d3d9 surface");
@@ -339,7 +344,7 @@ namespace dxvk {
       return hr;
     }
 
-    if (unlikely(!(IsFrontBuffer() || IsBackBufferOrFlippable()))) {
+    if (unlikely(!(m_commonSurf->IsFrontBuffer() || m_commonSurf->IsBackBufferOrFlippable()))) {
       Logger::debug("DDraw2Surface::Flip: Unflippable surface");
       return DDERR_NOTFLIPPABLE;
     }
@@ -347,20 +352,20 @@ namespace dxvk {
     const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
     // Non-exclusive mode validations
-    if (unlikely(IsPrimarySurface() && !exclusiveMode)) {
+    if (unlikely(m_commonSurf->IsPrimarySurface() && !exclusiveMode)) {
       Logger::debug("DDraw2Surface::Flip: Primary surface flip in non-exclusive mode");
       return DDERR_NOEXCLUSIVEMODE;
     }
 
     // Exclusive mode validations
-    if (unlikely(IsBackBufferOrFlippable() && exclusiveMode)) {
+    if (unlikely(m_commonSurf->IsBackBufferOrFlippable() && exclusiveMode)) {
       Logger::debug("DDraw2Surface::Flip: Back buffer flip in exclusive mode");
       return DDERR_NOTFLIPPABLE;
     }
 
     Com<DDraw2Surface> surf2 = static_cast<DDraw2Surface*>(lpDDSurfaceTargetOverride);
     if (lpDDSurfaceTargetOverride != nullptr) {
-      if (unlikely(!surf2->GetParent()->IsBackBufferOrFlippable())) {
+      if (unlikely(!surf2->GetParent()->GetCommonSurface()->IsBackBufferOrFlippable())) {
         Logger::debug("DDraw2Surface::Flip: Unflippable override surface");
         return DDERR_NOTFLIPPABLE;
       }
@@ -375,7 +380,7 @@ namespace dxvk {
       m_d3d5Device->ResetDrawTracking();
 
       if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
-        if (unlikely(!m_parent->IsInitialized()))
+        if (unlikely(!IsInitialized()))
           m_parent->IntializeD3D9(m_d3d5Device->GetRenderTarget() == m_parent);
 
         BlitToDDrawSurface<IDirectDrawSurface2, DDSURFACEDESC>(m_proxy.ptr(), m_d3d5Device->GetRenderTarget()->GetD3D9());
@@ -441,7 +446,7 @@ namespace dxvk {
     if (unlikely(lpDDSCaps == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *lpDDSCaps = m_desc.ddsCaps;
+    *lpDDSCaps = m_commonSurf->GetDesc()->ddsCaps;
 
     return DD_OK;
   }
@@ -483,7 +488,7 @@ namespace dxvk {
     // Proxy GetDC calls if we haven't yet drawn and the surface is flippable
     RefreshD3D5Device();
     if (m_d3d5Device != nullptr && !(m_d3d5Device->HasDrawn() &&
-        (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()))) {
+                                     m_commonSurf->IsGuardableSurface())) {
       Logger::debug("DDraw2Surface::GetDC: Not yet drawn flippable surface");
       return m_proxy->GetDC(lphDC);
     }
@@ -535,7 +540,7 @@ namespace dxvk {
     if (unlikely(lpDDPixelFormat == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *lpDDPixelFormat = m_desc.ddpfPixelFormat;
+    *lpDDPixelFormat = m_commonSurf->GetDesc()->ddpfPixelFormat;
 
     return DD_OK;
   }
@@ -549,7 +554,7 @@ namespace dxvk {
     if (unlikely(lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC)))
       return DDERR_INVALIDPARAMS;
 
-    *lpDDSurfaceDesc = m_desc;
+    *lpDDSurfaceDesc = *m_commonSurf->GetDesc();
 
     return DD_OK;
   }
@@ -575,7 +580,7 @@ namespace dxvk {
     Logger::debug(">>> DDraw2Surface::ReleaseDC");
 
     if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
-      if (IsTexture())
+      if (m_commonSurf->IsTexture())
         m_commonSurf->DirtyMipMaps();
       return m_proxy->ReleaseDC(hDC);
     }
@@ -588,9 +593,9 @@ namespace dxvk {
     // Proxy ReleaseDC calls if we haven't yet drawn and the surface is flippable
     RefreshD3D5Device();
     if (m_d3d5Device != nullptr && !(m_d3d5Device->HasDrawn() &&
-       (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable()))) {
+                                     m_commonSurf->IsGuardableSurface())) {
       Logger::debug("DDraw2Surface::ReleaseDC: Not yet drawn flippable surface");
-      if (IsTexture())
+      if (m_commonSurf->IsTexture())
         m_commonSurf->DirtyMipMaps();
       return m_proxy->ReleaseDC(hDC);
     }
@@ -673,7 +678,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!IsTexture()) {
+      if (!m_commonSurf->IsTexture()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw2Surface::Unlock: Failed upload to d3d9 surface");

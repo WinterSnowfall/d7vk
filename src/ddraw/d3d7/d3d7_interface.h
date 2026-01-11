@@ -5,6 +5,8 @@
 #include "../ddraw_options.h"
 #include "../ddraw_util.h"
 
+#include "../ddraw_common_interface.h"
+
 #include "../../d3d9/d3d9_bridge.h"
 
 #include <vector>
@@ -12,7 +14,6 @@
 namespace dxvk {
 
   class DDraw7Interface;
-  class D3D7Device;
 
   /**
   * \brief D3D7 interface implementation
@@ -40,14 +41,6 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE EvictManagedTextures();
 
-    D3D7Device* GetLastUsedDevice() const {
-      return m_lastUsedDevice;
-    }
-
-    void SetLastUsedDevice(D3D7Device* device) {
-      m_lastUsedDevice = device;
-    }
-
     const D3DOptions* GetOptions() const {
       return &m_options;
     }
@@ -60,8 +53,6 @@ namespace dxvk {
     Com<IDxvkD3D8InterfaceBridge> m_bridge;
 
     D3DOptions                    m_options;
-
-    D3D7Device*                   m_lastUsedDevice = nullptr;
 
   };
 

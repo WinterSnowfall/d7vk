@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ddraw_include.h"
+#include "ddraw_format.h"
 
 #include "ddraw_common_interface.h"
 
@@ -30,6 +31,53 @@ namespace dxvk {
 
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf.ptr();
+    }
+
+    bool IsDesc2Set() const {
+      return m_isDesc2Set;
+    }
+
+    void SetDesc2(DDSURFACEDESC2& desc2) {
+      m_desc2 = desc2;
+      m_isDesc2Set = true;
+      m_format9 = ConvertFormat(m_desc2.ddpfPixelFormat);
+      // determine and cache various frequently used flag combinations
+      m_isTextureOrCubeMap      = IsTexture() || IsCubeMap();
+      m_isBackBufferOrFlippable = !IsFrontBuffer() && (IsBackBuffer() || IsFlippableSurface());
+      m_isRenderTarget          = IsFrontBuffer() || IsBackBuffer() || IsFlippableSurface() || Is3DSurface();
+      m_isForwardableSurface    = IsFrontBuffer()  || IsBackBuffer() || IsFlippableSurface()
+                               || IsDepthStencil() || IsOffScreenPlainSurface();
+      m_isGuardableSurface      = IsPrimarySurface() || IsFrontBuffer()
+                               || IsBackBuffer() || IsFlippableSurface();
+    }
+
+    const DDSURFACEDESC2* GetDesc2() const {
+      return &m_desc2;
+    }
+
+    bool IsDescSet() const {
+      return m_isDescSet;
+    }
+
+    void SetDesc(DDSURFACEDESC& desc) {
+      m_desc = desc;
+      m_isDescSet = true;
+      m_format9 = ConvertFormat(m_desc.ddpfPixelFormat);
+      // determine and cache various frequently used flag combinations
+      m_isBackBufferOrFlippable = !IsFrontBuffer() && (IsBackBuffer() || IsFlippableSurface());
+      m_isRenderTarget          = IsFrontBuffer() || IsBackBuffer() || IsFlippableSurface() || Is3DSurface();
+      m_isForwardableSurface    = IsFrontBuffer()  || IsBackBuffer() || IsFlippableSurface()
+                               || IsDepthStencil() || IsOffScreenPlainSurface();
+      m_isGuardableSurface      = IsPrimarySurface() || IsFrontBuffer()
+                               || IsBackBuffer() || IsFlippableSurface();
+    }
+
+    const DDSURFACEDESC* GetDesc() const {
+      return &m_desc;
+    }
+
+    d3d9::D3DFORMAT GetD3D9Format() const {
+      return m_format9;
     }
 
     uint8_t GetMipCount() const {
@@ -108,11 +156,117 @@ namespace dxvk {
       return m_surf;
     }
 
+    bool IsComplex() const {
+      return m_desc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX
+          || m_desc.ddsCaps.dwCaps  & DDSCAPS_COMPLEX;
+    }
+
+    bool IsPrimarySurface() const {
+      return m_desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE
+          || m_desc.ddsCaps.dwCaps  & DDSCAPS_PRIMARYSURFACE;
+    }
+
+    bool IsFrontBuffer() const {
+      return m_desc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER
+          || m_desc.ddsCaps.dwCaps  & DDSCAPS_FRONTBUFFER;
+    }
+
+    bool IsBackBuffer() const {
+      return m_desc2.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER
+          || m_desc.ddsCaps.dwCaps  & DDSCAPS_BACKBUFFER;
+    }
+
+    bool IsDepthStencil() const {
+      return m_desc2.ddsCaps.dwCaps & DDSCAPS_ZBUFFER
+          || m_desc.ddsCaps.dwCaps  & DDSCAPS_ZBUFFER;
+    }
+
+    bool IsOffScreenPlainSurface() const {
+      return m_desc2.ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN
+          || m_desc.ddsCaps.dwCaps  & DDSCAPS_OFFSCREENPLAIN;
+    }
+
+    bool IsTexture() const {
+      return m_desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE
+          || m_desc.ddsCaps.dwCaps  & DDSCAPS_TEXTURE;
+    }
+
+    bool IsOverlay() const {
+      return m_desc2.ddsCaps.dwCaps & DDSCAPS_OVERLAY
+          || m_desc.ddsCaps.dwCaps  & DDSCAPS_OVERLAY;
+    }
+
+    bool Is3DSurface() const {
+      return m_desc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE
+          || m_desc.ddsCaps.dwCaps  & DDSCAPS_3DDEVICE;
+    }
+
+    bool IsTextureMip() const {
+      return m_desc2.ddsCaps.dwCaps  & DDSCAPS_MIPMAP
+          || m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL
+          || m_desc.ddsCaps.dwCaps   & DDSCAPS_MIPMAP;
+    }
+
+    bool IsCubeMap() const {
+      return m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP;
+    }
+
+    bool IsFlippableSurface() const {
+      return m_desc2.ddsCaps.dwCaps & DDSCAPS_FLIP
+          || m_desc.ddsCaps.dwCaps  & DDSCAPS_FLIP;
+    }
+
+    bool IsNotKnown() const {
+      return !(m_desc2.dwFlags & DDSD_CAPS)
+          && !(m_desc.dwFlags  & DDSD_CAPS);
+    }
+
+    bool IsManaged() const {
+      return m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE;
+    }
+
+    bool HasColorKey() const {
+      return m_desc2.dwFlags & DDSD_CKSRCBLT
+          || m_desc.dwFlags  & DDSD_CKSRCBLT;
+    }
+
+    bool IsTextureOrCubeMap() const {
+      return m_isTextureOrCubeMap;
+    }
+
+    bool IsBackBufferOrFlippable() const {
+      return m_isBackBufferOrFlippable;
+    }
+
+    bool IsRenderTarget() const {
+      return m_isRenderTarget;
+    }
+
+    bool IsForwardableSurface() const {
+      return m_isForwardableSurface;
+    }
+
+    bool IsGuardableSurface() const {
+      return m_isGuardableSurface;
+    }
+
   private:
 
     bool                      m_dirtyMipMaps = false;
+    bool                      m_isDesc2Set   = false;
+    bool                      m_isDescSet    = false;
+
+    bool                      m_isTextureOrCubeMap      = false;
+    bool                      m_isBackBufferOrFlippable = false;
+    bool                      m_isRenderTarget          = false;
+    bool                      m_isForwardableSurface    = false;
+    bool                      m_isGuardableSurface      = false;
 
     uint8_t                   m_mipCount     = 1;
+
+    DDSURFACEDESC             m_desc  = { };
+    DDSURFACEDESC2            m_desc2 = { };
+    d3d9::D3DFORMAT           m_format9 = d3d9::D3DFMT_UNKNOWN;
 
     Com<DDrawClipper>         m_clipper;
     Com<DDrawPalette>         m_palette;

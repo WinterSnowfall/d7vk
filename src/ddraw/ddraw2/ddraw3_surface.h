@@ -123,22 +123,6 @@ namespace dxvk {
       return m_commonIntf;
     }
 
-    bool IsPrimarySurface() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE;
-    }
-
-    bool IsFrontBuffer() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER;
-    }
-
-    bool IsBackBufferOrFlippable() const {
-      return !IsFrontBuffer() && (m_desc.ddsCaps.dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP));
-    }
-
-    bool IsTexture() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_TEXTURE;
-    }
-
     inline void RefreshD3D5Device() {
       if (likely(m_parent != nullptr)) {
         D3D5Device* d3d5Device = m_parent->GetD3D5Device();
@@ -162,8 +146,6 @@ namespace dxvk {
     IUnknown*               m_origin     = nullptr;
 
     D3D5Device*             m_d3d5Device = nullptr;
-
-    DDSURFACEDESC           m_desc;
 
   };
 
