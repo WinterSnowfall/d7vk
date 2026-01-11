@@ -3,6 +3,8 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
+#include "../ddraw_common_interface.h"
+
 #include "d3d6_interface.h"
 #include "d3d6_device.h"
 
@@ -51,7 +53,7 @@ namespace dxvk {
     }
 
     void RefreshD3D6Device() {
-      D3D6Device* d3d6Device = m_parent->GetLastUsedDevice();
+      D3D6Device* d3d6Device = m_commonIntf->GetD3D6Device();
       if (unlikely(m_d3d6Device != d3d6Device)) {
         // Check if the device has been recreated and reset all D3D9 resources
         if (unlikely(m_d3d6Device != nullptr)) {
@@ -95,20 +97,22 @@ namespace dxvk {
       Logger::debug(str::format("   Vertices: ", m_size / m_stride));
     }
 
-    static uint32_t     s_buffCount;
-    uint32_t            m_buffCount  = 0;
+    bool                  m_locked  = false;
 
-    D3D6Device*         m_d3d6Device = nullptr;
+    static uint32_t       s_buffCount;
+    uint32_t              m_buffCount  = 0;
 
-    DWORD               m_lighting   = FALSE;
+    DDrawCommonInterface* m_commonIntf = nullptr;
 
-    DWORD               m_creationFlags = 0;
-    D3DVERTEXBUFFERDESC m_desc;
+    D3D6Device*           m_d3d6Device = nullptr;
 
-    UINT                m_stride = 0;
-    UINT                m_size   = 0;
+    DWORD                 m_lighting   = FALSE;
 
-    bool                m_locked  = false;
+    DWORD                 m_creationFlags = 0;
+    D3DVERTEXBUFFERDESC   m_desc;
+
+    UINT                  m_stride = 0;
+    UINT                  m_size   = 0;
 
   };
 

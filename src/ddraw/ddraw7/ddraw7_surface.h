@@ -2,7 +2,6 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
-#include "../ddraw_format.h"
 
 #include "../ddraw_common_interface.h"
 #include "../ddraw_common_surface.h"
@@ -149,30 +148,6 @@ namespace dxvk {
       return m_cubeMap.ptr();
     }
 
-    bool IsTextureOrCubeMap() const {
-      return IsTexture() || IsCubeMap();
-    }
-
-    bool IsRenderTarget() const {
-      return IsFrontBuffer() || IsBackBufferOrFlippable() || Is3DSurface();
-    }
-
-    bool IsForwardableSurface() const {
-      return IsFrontBuffer() || IsBackBufferOrFlippable() || IsDepthStencil() || IsOffScreenPlainSurface();
-    }
-
-    bool IsBackBufferOrFlippable() const {
-      return !IsFrontBuffer() && (m_desc.ddsCaps.dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP));
-    }
-
-    bool IsDepthStencil() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_ZBUFFER;
-    }
-
-    bool Is3DSurface() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_3DDEVICE;
-    }
-
     DDraw7Surface* GetAttachedDepthStencil() const {
       return m_depthStencil.ptr();
     }
@@ -196,55 +171,6 @@ namespace dxvk {
 
   private:
 
-    inline bool IsAttached() const {
-      return m_parentSurf != nullptr;
-    }
-
-    inline bool IsComplex() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_COMPLEX;
-    }
-
-    inline bool IsNotKnown() const {
-      return !(m_desc.dwFlags & DDSD_CAPS);
-    }
-
-    inline bool IsPrimarySurface() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE;
-    }
-
-    inline bool IsFrontBuffer() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER;
-    }
-
-    inline bool IsBackBuffer() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER;
-    }
-
-    inline bool IsOffScreenPlainSurface() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN;
-    }
-
-    inline bool IsTexture() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_TEXTURE;
-    }
-
-    inline bool IsTextureMip() const {
-      return (m_desc.ddsCaps.dwCaps  & DDSCAPS_MIPMAP) ||
-             (m_desc.ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL);
-    }
-
-    inline bool IsCubeMap() const {
-      return m_desc.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP;
-    }
-
-    inline bool IsOverlay() const {
-      return m_desc.ddsCaps.dwCaps & DDSCAPS_OVERLAY;
-    }
-
-    inline bool IsManaged() const {
-      return m_desc.ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE;
-    }
-
     inline void InitializeAndAttachCubeFace(
         IDirectDrawSurface7* surf,
         d3d9::IDirect3DCubeTexture9* cubeTex9,
@@ -255,7 +181,7 @@ namespace dxvk {
     inline HRESULT UploadSurfaceData();
 
     inline void RefreshD3D7Device() {
-      D3D7Device* d3d7Device = m_parent->GetD3D7Device();
+      D3D7Device* d3d7Device = m_commonIntf->GetD3D7Device();
       if (unlikely(m_d3d7Device != d3d7Device)) {
         // Check if the device has been recreated and reset all D3D9 resources
         if (unlikely(m_d3d7Device != nullptr)) {
@@ -271,28 +197,30 @@ namespace dxvk {
     inline void ListSurfaceDetails() const {
       const char* type = "generic surface";
 
-      if (IsFrontBuffer())                type = "front buffer";
-      else if (IsBackBuffer())            type = "back buffer";
-      else if (IsTextureMip())            type = "texture mipmap";
-      else if (IsCubeMap())               type = "cube map";
-      else if (IsTexture())               type = "texture";
-      else if (IsDepthStencil())          type = "depth stencil";
-      else if (IsOffScreenPlainSurface()) type = "offscreen plain surface";
-      else if (IsOverlay())               type = "overlay";
-      else if (Is3DSurface())             type = "render target";
-      else if (IsNotKnown())              type = "unknown";
+      if (m_commonSurf->IsFrontBuffer())                type = "front buffer";
+      else if (m_commonSurf->IsBackBuffer())            type = "back buffer";
+      else if (m_commonSurf->IsTextureMip())            type = "texture mipmap";
+      else if (m_commonSurf->IsCubeMap())               type = "cube map";
+      else if (m_commonSurf->IsTexture())               type = "texture";
+      else if (m_commonSurf->IsDepthStencil())          type = "depth stencil";
+      else if (m_commonSurf->IsOffScreenPlainSurface()) type = "offscreen plain surface";
+      else if (m_commonSurf->IsOverlay())               type = "overlay";
+      else if (m_commonSurf->Is3DSurface())             type = "render target";
+      else if (m_commonSurf->IsPrimarySurface())        type = "primary surface";
+      else if (m_commonSurf->IsNotKnown())              type = "unknown";
 
-      const char* attached = IsAttached() ? "yes" : "no";
+      const DDSURFACEDESC2* desc2 = m_commonSurf->GetDesc2();
 
       Logger::debug(str::format("DDraw7Surface: Created a new surface nr. [[7-", m_surfCount, "]]:"));
-      Logger::debug(str::format("   Type:       ", type));
-      Logger::debug(str::format("   Dimensions: ", m_desc.dwWidth, "x", m_desc.dwHeight));
-      Logger::debug(str::format("   Format:     ", m_format));
-      Logger::debug(str::format("   IsComplex:  ", IsComplex() ? "yes" : "no"));
-      Logger::debug(str::format("   HasMips:    ", m_desc.dwMipMapCount ? "yes" : "no"));
-      Logger::debug(str::format("   IsAttached: ", attached));
-      if (IsFrontBuffer())
-        Logger::debug(str::format("   BackBuffer: ", m_desc.dwBackBufferCount));
+      Logger::debug(str::format("   Type:        ", type));
+      Logger::debug(str::format("   Dimensions:  ", desc2->dwWidth, "x", desc2->dwHeight));
+      Logger::debug(str::format("   Format:      ", m_commonSurf->GetD3D9Format()));
+      Logger::debug(str::format("   IsComplex:   ", m_commonSurf->IsComplex() ? "yes" : "no"));
+      Logger::debug(str::format("   HasMipMaps:  ", desc2->dwMipMapCount ? "yes" : "no"));
+      Logger::debug(str::format("   HasColorKey: ", m_commonSurf->HasColorKey() ? "yes" : "no"));
+      Logger::debug(str::format("   IsAttached:  ", m_parentSurf != nullptr ? "yes" : "no"));
+      if (m_commonSurf->IsFrontBuffer())
+        Logger::debug(str::format("   BackBuffers: ", desc2->dwBackBufferCount));
     }
 
     bool             m_isChildObject = false;
@@ -308,9 +236,6 @@ namespace dxvk {
     IUnknown*                           m_origin     = nullptr;
 
     D3D7Device*                         m_d3d7Device = nullptr;
-
-    DDSURFACEDESC2                      m_desc;
-    d3d9::D3DFORMAT                     m_format;
 
     Com<d3d9::IDirect3DCubeTexture9>    m_cubeMap;
     std::array<IDirectDrawSurface7*, 6> m_cubeMapSurfaces;
