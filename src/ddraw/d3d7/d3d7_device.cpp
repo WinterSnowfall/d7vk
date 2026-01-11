@@ -3,8 +3,6 @@
 #include "d3d7_buffer.h"
 #include "d3d7_state_block.h"
 
-#include "../ddraw_common_interface.h"
-
 #include "../ddraw7/ddraw7_surface.h"
 
 namespace dxvk {
@@ -69,9 +67,9 @@ namespace dxvk {
       Logger::info(str::format("   XL: ", m_ib9_uploads[4]));
     }
 
-    // Clear the parent interface device pointer if it points to this device
-    if (m_parent->GetLastUsedDevice() == this)
-      m_parent->SetLastUsedDevice(nullptr);
+    // Clear the common interface device pointer if it points to this device
+    if (m_commonIntf->GetD3D7Device() == this)
+      m_commonIntf->SetD3D7Device(nullptr);
 
     m_parent->Release();
 
@@ -99,6 +97,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> D3D7Device::QueryInterface");
+
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
@@ -125,8 +125,6 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::GetCaps(D3DDEVICEDESC7 *desc) {
     Logger::debug(">>> D3D7Device::GetCaps");
 
-    RefreshLastUsedDevice();
-
     if (unlikely(desc == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -137,8 +135,6 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx) {
     Logger::debug(">>> D3D7Device::EnumTextureFormats");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -287,8 +283,6 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::GetDirect3D(IDirect3D7 **d3d) {
     Logger::debug(">>> D3D7Device::GetDirect3D");
 
-    RefreshLastUsedDevice();
-
     if (unlikely(d3d == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -301,8 +295,6 @@ namespace dxvk {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D7Device::SetRenderTarget");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(surface == nullptr)) {
       Logger::err("D3D7Device::SetRenderTarget: NULL render target");
@@ -327,7 +319,7 @@ namespace dxvk {
     }
 
     // A render target surface needs to have the DDSCAPS_3DDEVICE cap
-    if (unlikely(!rt7->Is3DSurface())) {
+    if (unlikely(!rt7->GetCommonSurface()->Is3DSurface())) {
       Logger::err("D3D7Device::SetRenderTarget: Surface is missing DDSCAPS_3DDEVICE");
       return DDERR_INVALIDCAPS;
     }
@@ -388,8 +380,6 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::GetRenderTarget");
 
-    RefreshLastUsedDevice();
-
     if (unlikely(surface == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -402,8 +392,6 @@ namespace dxvk {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D7Device::Clear");
-
-    RefreshLastUsedDevice();
 
     // We are now allowing proxy back buffer blits in certain cases, so
     // we must also ensure the back buffer clear calls are proxied
@@ -420,25 +408,16 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
     Logger::debug(">>> D3D7Device::SetTransform");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->SetTransform(ConvertTransformState(state), matrix);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
     Logger::debug(">>> D3D7Device::GetTransform");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->GetTransform(ConvertTransformState(state), matrix);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::MultiplyTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
     Logger::debug(">>> D3D7Device::MultiplyTransform");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->MultiplyTransform(ConvertTransformState(state), matrix);
   }
 
@@ -446,8 +425,6 @@ namespace dxvk {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D7Device::SetViewport");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(data == nullptr))
       return E_INVALIDARG;
@@ -469,40 +446,26 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::GetViewport");
 
-    RefreshLastUsedDevice();
-
     return m_d3d9->GetViewport(reinterpret_cast<d3d9::D3DVIEWPORT9*>(data));
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetMaterial(D3DMATERIAL7 *data) {
     Logger::debug(">>> D3D7Device::SetMaterial");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->SetMaterial(reinterpret_cast<d3d9::D3DMATERIAL9*>(data));
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetMaterial(D3DMATERIAL7 *data) {
     Logger::debug(">>> D3D7Device::GetMaterial");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->GetMaterial(reinterpret_cast<d3d9::D3DMATERIAL9*>(data));
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetLight(DWORD idx, D3DLIGHT7 *data) {
     Logger::debug(">>> D3D7Device::SetLight");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->SetLight(idx, reinterpret_cast<d3d9::D3DLIGHT9*>(data));
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetLight(DWORD idx, D3DLIGHT7 *data) {
     Logger::debug(">>> D3D7Device::GetLight");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->GetLight(idx, reinterpret_cast<d3d9::D3DLIGHT9*>(data));
   }
 
@@ -510,8 +473,6 @@ namespace dxvk {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug(str::format(">>> D3D7Device::SetRenderState: ", dwRenderStateType));
-
-    RefreshLastUsedDevice();
 
     // As opposed to D3D8/9, D3D7 actually validates and
     // errors out in case of unknown/invalid render states
@@ -615,8 +576,6 @@ namespace dxvk {
 
     Logger::debug(str::format(">>> D3D7Device::GetRenderState: ", dwRenderStateType));
 
-    RefreshLastUsedDevice();
-
     if (unlikely(lpdwRenderState == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -692,8 +651,6 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::BeginStateBlock");
 
-    RefreshLastUsedDevice();
-
     if (unlikely(m_recorder != nullptr))
       return D3DERR_INBEGINSTATEBLOCK;
 
@@ -715,8 +672,6 @@ namespace dxvk {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D7Device::EndStateBlock");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(lpdwBlockHandle == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -744,8 +699,6 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::ApplyStateBlock");
 
-    RefreshLastUsedDevice();
-
     // Applications cannot apply a state block while another is being recorded
     if (unlikely(ShouldRecord()))
       return D3DERR_INBEGINSTATEBLOCK;
@@ -765,8 +718,6 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::CaptureStateBlock");
 
-    RefreshLastUsedDevice();
-
     // Applications cannot capture a state block while another is being recorded
     if (unlikely(ShouldRecord()))
       return D3DERR_INBEGINSTATEBLOCK;
@@ -785,8 +736,6 @@ namespace dxvk {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D7Device::DeleteStateBlock");
-
-    RefreshLastUsedDevice();
 
     // Applications cannot delete a state block while another is being recorded
     if (unlikely(ShouldRecord()))
@@ -814,8 +763,6 @@ namespace dxvk {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D7Device::CreateStateBlock");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(lpdwBlockHandle == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -849,8 +796,6 @@ namespace dxvk {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D7Device::PreLoad");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::PreLoad: Received an unwrapped surface");
@@ -953,8 +898,6 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::SetClipStatus");
 
-    RefreshLastUsedDevice();
-
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -970,8 +913,6 @@ namespace dxvk {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D7Device::GetClipStatus");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -1168,9 +1109,6 @@ namespace dxvk {
   // No actual use of it seen in the wild yet
   HRESULT STDMETHODCALLTYPE D3D7Device::ComputeSphereVisibility(D3DVECTOR *centers, D3DVALUE *radii, DWORD sphere_count, DWORD sphereCount, DWORD *visibility) {
     Logger::warn("!!! D3D7Device::ComputeSphereVisibility: Stub");
-
-    RefreshLastUsedDevice();
-
     return D3D_OK;
   }
 
@@ -1178,8 +1116,6 @@ namespace dxvk {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D7Device::GetTexture");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(surface == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -1198,8 +1134,6 @@ namespace dxvk {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D7Device::SetTexture");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(stage >= ddrawCaps::TextureStageCount)) {
       Logger::err(str::format("D3D7Device::SetTexture: Invalid texture stage: ", stage));
@@ -1288,8 +1222,6 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGESTATETYPE d3dTexStageStateType, LPDWORD lpdwState) {
     Logger::debug(">>> D3D7Device::GetTextureStageState");
 
-    RefreshLastUsedDevice();
-
     if (unlikely(lpdwState == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -1312,8 +1244,6 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGESTATETYPE d3dTexStageStateType, DWORD dwState) {
     Logger::debug(">>> D3D7Device::SetTextureStageState");
 
-    RefreshLastUsedDevice();
-
     // In the case of D3DTSS_ADDRESS, which is D3D7 specific,
     // we need to set up both D3DTSS_ADDRESSU and D3DTSS_ADDRESSV
     if (d3dTexStageStateType == D3DTSS_ADDRESS) {
@@ -1333,9 +1263,6 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::ValidateDevice(LPDWORD lpdwPasses) {
     Logger::debug(">>> D3D7Device::ValidateDevice");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->ValidateDevice(lpdwPasses);
   }
 
@@ -1344,8 +1271,6 @@ namespace dxvk {
     D3D7DeviceLock lock = LockDevice();
 
     Logger::debug("<<< D3D7Device::Load: Proxy");
-
-    RefreshLastUsedDevice();
 
     if (dst_surface == nullptr || src_surface == nullptr) {
       Logger::warn("D3D7Device::Load: null source or destination");
@@ -1380,7 +1305,7 @@ namespace dxvk {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
 
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!ddraw7SurfaceDst->IsTextureOrCubeMap()) {
+      if (!ddraw7SurfaceDst->GetCommonSurface()->IsTextureOrCubeMap()) {
         HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrInitDst))) {
           Logger::err("D3D7Device::Load: Failed to upload D3D9 destination surface data");
@@ -1395,42 +1320,27 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::LightEnable(DWORD dwLightIndex, BOOL bEnable) {
     Logger::debug(">>> D3D7Device::LightEnable");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->LightEnable(dwLightIndex, bEnable);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetLightEnable(DWORD dwLightIndex, BOOL *pbEnable) {
     Logger::debug(">>> D3D7Device::GetLightEnable");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->GetLightEnable(dwLightIndex, pbEnable);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetClipPlane(DWORD dwIndex, D3DVALUE *pPlaneEquation) {
     Logger::debug(">>> D3D7Device::SetClipPlane");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->SetClipPlane(dwIndex, pPlaneEquation);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetClipPlane(DWORD dwIndex, D3DVALUE *pPlaneEquation) {
     Logger::debug(">>> D3D7Device::GetClipPlane");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->GetClipPlane(dwIndex, pPlaneEquation);
   }
 
   // Docs state: "This method returns S_FALSE on retail builds of DirectX."
   HRESULT STDMETHODCALLTYPE D3D7Device::GetInfo(DWORD info_id, void *info, DWORD info_size) {
     Logger::debug(">>> D3D7Device::GetInfo");
-
-    RefreshLastUsedDevice();
-
     return S_FALSE;
   }
 

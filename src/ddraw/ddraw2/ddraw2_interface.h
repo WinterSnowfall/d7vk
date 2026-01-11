@@ -12,7 +12,6 @@ namespace dxvk {
 
   class DDrawInterface;
   class DDrawSurface;
-  class D3D5Device;
 
   /**
   * \brief DirectDraw2 interface implementation
@@ -83,8 +82,6 @@ namespace dxvk {
 
   private:
 
-    inline void RefreshD3D5Device();
-
     bool                      m_needsInitialization = false;
     bool                      m_isInitialized = false;
 
@@ -94,8 +91,6 @@ namespace dxvk {
     Com<DDrawCommonInterface> m_commonIntf;
 
     IUnknown*                 m_origin = nullptr;
-
-    D3D5Device*               m_d3d5Device = nullptr;
 
     DDrawSurface*             m_lastDepthStencil = nullptr;
 

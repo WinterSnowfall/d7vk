@@ -90,10 +90,6 @@ namespace dxvk {
       return m_commonIntf.ptr();
     }
 
-    D3D7Device* GetD3D7Device() const {
-      return m_d3d7Intf->GetLastUsedDevice();
-    }
-
     DDraw7Surface* GetLastDepthStencil() const {
       return m_lastDepthStencil;
     }

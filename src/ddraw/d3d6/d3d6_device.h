@@ -6,6 +6,8 @@
 #include "../ddraw_util.h"
 #include "../ddraw_caps.h"
 
+#include "../ddraw_common_interface.h"
+
 #include "../../d3d9/d3d9_bridge.h"
 
 #include "d3d6_interface.h"
@@ -198,8 +200,8 @@ namespace dxvk {
     }
 
     inline void RefreshLastUsedDevice() {
-      if (unlikely(m_parent->GetLastUsedDevice() != this))
-        m_parent->SetLastUsedDevice(this);
+      if (unlikely(m_commonIntf->GetD3D6Device() != this))
+        m_commonIntf->SetD3D6Device(this);
     }
 
     inline void HandlePreDrawFlags(DWORD drawFlags, DWORD vertexTypeDesc) {

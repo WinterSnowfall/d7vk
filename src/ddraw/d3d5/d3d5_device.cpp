@@ -72,9 +72,9 @@ namespace dxvk {
       viewport->SetDevice(nullptr);
     }
 
-    // Clear the parent interface device pointer if it points to this device
-    if (m_parent->GetLastUsedDevice() == this)
-      m_parent->SetLastUsedDevice(nullptr);
+    // Clear the common interface device pointer if it points to this device
+    if (m_commonIntf->GetD3D5Device() == this)
+      m_commonIntf->SetD3D5Device(nullptr);
 
     m_parent->Release();
 
@@ -134,8 +134,6 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D5Device::GetCaps(D3DDEVICEDESC *hal_desc, D3DDEVICEDESC *hel_desc) {
     Logger::debug(">>> D3D5Device::GetCaps");
 
-    RefreshLastUsedDevice();
-
     if (unlikely(hal_desc == nullptr || hel_desc == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -173,17 +171,11 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SwapTextureHandles(IDirect3DTexture2 *tex1, IDirect3DTexture2 *tex2) {
     Logger::warn("!!! D3D5Device::SwapTextureHandles: Stub");
-
-    RefreshLastUsedDevice();
-
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetStats(D3DSTATS *stats) {
     Logger::debug("<<< D3D5Device::GetStats: Proxy");
-
-    RefreshLastUsedDevice();
-
     return m_proxy->GetStats(stats);
   }
 
@@ -191,8 +183,6 @@ namespace dxvk {
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::AddViewport");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -211,8 +201,6 @@ namespace dxvk {
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::DeleteViewport");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -233,16 +221,11 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D5Device::NextViewport(IDirect3DViewport2 *ref, IDirect3DViewport2 **viewport, DWORD flags) {
     Logger::warn("!!! D3D5Device::NextViewport: Stub");
-
-    RefreshLastUsedDevice();
-
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK cb, void *ctx) {
     Logger::debug(">>> D3D5Device::EnumTextureFormats");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -356,8 +339,6 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D5Device::GetDirect3D(IDirect3D2 **d3d) {
     Logger::debug(">>> D3D5Device::GetDirect3D");
 
-    RefreshLastUsedDevice();
-
     if (unlikely(d3d == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -370,8 +351,6 @@ namespace dxvk {
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::SetCurrentViewport");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -398,8 +377,6 @@ namespace dxvk {
 
     Logger::debug(">>> D3D5Device::GetCurrentViewport");
 
-    RefreshLastUsedDevice();
-
     if (unlikely(viewport == nullptr))
       return D3DERR_NOCURRENTVIEWPORT;
 
@@ -417,8 +394,6 @@ namespace dxvk {
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::SetRenderTarget");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(surface == nullptr)) {
       Logger::err("D3D5Device::SetRenderTarget: NULL render target");
@@ -443,7 +418,7 @@ namespace dxvk {
     }
 
     // A render target surface needs to have the DDSCAPS_3DDEVICE cap
-    if (unlikely(!rt5->Is3DSurface())) {
+    if (unlikely(!rt5->GetCommonSurface()->Is3DSurface())) {
       Logger::err("D3D5Device::SetRenderTarget: Surface is missing DDSCAPS_3DDEVICE");
       return DDERR_INVALIDCAPS;
     }
@@ -504,8 +479,6 @@ namespace dxvk {
 
     Logger::debug(">>> D3D5Device::GetRenderTarget");
 
-    RefreshLastUsedDevice();
-
     if (unlikely(surface == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -516,41 +489,26 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D5Device::Begin(D3DPRIMITIVETYPE d3dptPrimitiveType, D3DVERTEXTYPE dwVertexTypeDesc, DWORD dwFlags) {
     Logger::warn("!!! D3D5Device::Begin: Stub");
-
-    RefreshLastUsedDevice();
-
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::BeginIndexed(D3DPRIMITIVETYPE primitive_type, D3DVERTEXTYPE fvf, void *vertices, DWORD vertex_count, DWORD flags) {
     Logger::warn("!!! D3D5Device::BeginIndexed: Stub");
-
-    RefreshLastUsedDevice();
-
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::Vertex(void *vertex) {
     Logger::warn("!!! D3D5Device::Vertex: Stub");
-
-    RefreshLastUsedDevice();
-
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::Index(WORD wVertexIndex) {
     Logger::warn("!!! D3D5Device::Index: Stub");
-
-    RefreshLastUsedDevice();
-
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::End(DWORD dwFlags) {
     Logger::warn("!!! D3D5Device::End: Stub");
-
-    RefreshLastUsedDevice();
-
     return D3D_OK;
   }
 
@@ -558,8 +516,6 @@ namespace dxvk {
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(str::format(">>> D3D5Device::GetRenderState: ", dwRenderStateType));
-
-    RefreshLastUsedDevice();
 
     if (unlikely(lpdwRenderState == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -745,8 +701,6 @@ namespace dxvk {
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(str::format(">>> D3D5Device::SetRenderState: ", dwRenderStateType));
-
-    RefreshLastUsedDevice();
 
     // As opposed to D3D7, D3D5 does not error out on
     // unknown or invalid render states.
@@ -1095,8 +1049,6 @@ namespace dxvk {
 
     Logger::debug(">>> D3D5Device::GetLightState");
 
-    RefreshLastUsedDevice();
-
     switch (dwLightStateType) {
       case D3DLIGHTSTATE_MATERIAL:
         *lpdwLightState = m_materialHandle;
@@ -1131,8 +1083,6 @@ namespace dxvk {
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::SetLightState");
-
-    RefreshLastUsedDevice();
 
     switch (dwLightStateType) {
       case D3DLIGHTSTATE_MATERIAL: {
@@ -1177,25 +1127,16 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
     Logger::debug(">>> D3D5Device::SetTransform");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->SetTransform(ConvertTransformState(state), matrix);
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
     Logger::debug(">>> D3D5Device::GetTransform");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->GetTransform(ConvertTransformState(state), matrix);
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::MultiplyTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
     Logger::debug(">>> D3D5Device::MultiplyTransform");
-
-    RefreshLastUsedDevice();
-
     return m_d3d9->MultiplyTransform(ConvertTransformState(state), matrix);
   }
 
@@ -1285,8 +1226,6 @@ namespace dxvk {
 
     Logger::debug(">>> D3D5Device::SetClipStatus");
 
-    RefreshLastUsedDevice();
-
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -1302,8 +1241,6 @@ namespace dxvk {
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::GetClipStatus");
-
-    RefreshLastUsedDevice();
 
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
