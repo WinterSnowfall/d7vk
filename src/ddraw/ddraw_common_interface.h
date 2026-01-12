@@ -20,7 +20,7 @@ namespace dxvk {
 
   public:
 
-    DDrawCommonInterface(D3DOptions options);
+    DDrawCommonInterface(const D3DOptions& options);
 
     ~DDrawCommonInterface();
 
@@ -57,6 +57,14 @@ namespace dxvk {
 
     bool GetWaitForVBlank() const {
       return m_waitForVBlank;
+    }
+
+    void SetColorKeyState(bool state) {
+      m_isColorKeyEnabled = state;
+    }
+
+    bool GetColorKeyState () const {
+      return m_isColorKeyEnabled;
     }
 
     void SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
@@ -134,7 +142,8 @@ namespace dxvk {
 
   private:
 
-    bool                              m_waitForVBlank    = true;
+    bool                              m_waitForVBlank     = true;
+    bool                              m_isColorKeyEnabled = false;
 
     DWORD                             m_cooperativeLevel = 0;
 
