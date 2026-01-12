@@ -639,7 +639,7 @@ namespace dxvk {
 
       // TODO:
       case D3DRENDERSTATE_COLORKEYENABLE:
-        *lpdwRenderState = FALSE;
+        *lpdwRenderState = m_commonIntf->GetColorKeyState();
         return D3D_OK;
 
       case D3DRENDERSTATE_BORDERCOLOR:
@@ -964,6 +964,8 @@ namespace dxvk {
 
         if (dwRenderState && !std::exchange(s_colorKeyEnableErrorShown, true))
           Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_COLORKEYENABLE");
+
+        m_commonIntf->SetColorKeyState(dwRenderState);
 
         return D3D_OK;
 
