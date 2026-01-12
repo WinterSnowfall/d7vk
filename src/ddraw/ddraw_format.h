@@ -2,7 +2,14 @@
 
 #include "ddraw_include.h"
 
+#include <type_traits>
+
 namespace dxvk {
+
+  template <size_t N>
+  static void CopyToStringArray(char (&dst)[N], const char* src) {
+    str::strlcpy(dst, src, N);
+  }
 
   struct CubeMapAttachedSurfaces {
     IDirectDrawSurface7* positiveX = nullptr;
@@ -697,11 +704,14 @@ namespace dxvk {
         SurfaceType* parentSurface = mipMap;
         mipMap = nullptr;
 
-        if constexpr (std::is_same<SurfaceType, IDirectDrawSurface4>::value) {
-          parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces4Callback);
-        }
-        else if constexpr (std::is_same<SurfaceType, IDirectDrawSurface7>::value) {
+        if constexpr (std::is_same<SurfaceType, IDirectDrawSurface7>::value) {
           parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces7Callback);
+        } else if constexpr (std::is_same<SurfaceType, IDirectDrawSurface4>::value) {
+          parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces4Callback);
+        } else if constexpr (std::is_same<SurfaceType, IDirectDrawSurface>::value) {
+          parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
+        } else {
+          Logger::err("BlitToD3D9Texture: Unsupported surface type");
         }
       } else {
         Logger::warn(str::format("BlitToD3D9Texture: Failed to lock D3D9 mip ", i));
@@ -717,11 +727,11 @@ namespace dxvk {
     d3d9::D3DLOCKED_RECT rect9;
     // D3DLOCK_DISCARD will get ignored for MANAGED/SYSTEMMEM, but will work on DEFAULT
     HRESULT hr9 = surface9->LockRect(&rect9, 0, D3DLOCK_DISCARD);
-    if (SUCCEEDED(hr9)) {
+    if (likely(SUCCEEDED(hr9))) {
       DescType desc;
       desc.dwSize = sizeof(DescType);
       HRESULT hr = surface->Lock(0, &desc, DDLOCK_READONLY, 0);
-      if (SUCCEEDED(hr)) {
+      if (likely(SUCCEEDED(hr))) {
         Logger::debug(str::format("desc.dwWidth:  ", desc.dwWidth));
         Logger::debug(str::format("desc.dwHeight: ", desc.dwHeight));
         Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));
@@ -765,10 +775,10 @@ namespace dxvk {
     DescType desc;
     desc.dwSize = sizeof(DescType);
     HRESULT hr = surface->Lock(0, &desc, DDLOCK_WRITEONLY, 0);
-    if (SUCCEEDED(hr)) {
+    if (likely(SUCCEEDED(hr))) {
       d3d9::D3DLOCKED_RECT rect9;
       HRESULT hr9 = surface9->LockRect(&rect9, 0, D3DLOCK_READONLY);
-      if (SUCCEEDED(hr9)) {
+      if (likely(SUCCEEDED(hr9))) {
         Logger::debug(str::format("desc.dwWidth:  ", desc.dwWidth));
         Logger::debug(str::format("desc.dwHeight: ", desc.dwHeight));
         Logger::debug(str::format("desc.lPitch:   ", desc.lPitch));

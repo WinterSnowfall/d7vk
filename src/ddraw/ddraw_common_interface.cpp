@@ -4,7 +4,7 @@
 
 namespace dxvk {
 
-  DDrawCommonInterface::DDrawCommonInterface(D3DOptions options)
+  DDrawCommonInterface::DDrawCommonInterface(const D3DOptions& options)
     : m_options ( options ) {
   }
 

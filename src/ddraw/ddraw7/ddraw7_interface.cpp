@@ -571,8 +571,43 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetDeviceIdentifier(LPDDDEVICEIDENTIFIER2 pDDDI, DWORD dwFlags) {
-    Logger::debug("<<< DDraw7Interface::GetDeviceIdentifier: Proxy");
-    return m_proxy->GetDeviceIdentifier(pDDDI, dwFlags);
+    Logger::debug(">>> DDraw7Interface::GetDeviceIdentifier");
+
+    if (unlikely(pDDDI == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(dwFlags & DDGDI_GETHOSTIDENTIFIER)) {
+      CopyToStringArray(pDDDI->szDriver,      "vga.dll");
+      CopyToStringArray(pDDDI->szDescription, "Standard VGA Adapter");
+      pDDDI->liDriverVersion.QuadPart = 0;
+      pDDDI->dwVendorId               = 0;
+      pDDDI->dwDeviceId               = 0;
+      pDDDI->dwSubSysId               = 0;
+      pDDDI->dwRevision               = 0;
+      pDDDI->guidDeviceIdentifier     = GUID_StandardVGAAdapter;
+      pDDDI->dwWHQLLevel              = 0;
+    } else {
+      d3d9::D3DADAPTER_IDENTIFIER9 adapterIdentifier9;
+      HRESULT hr = m_d3d7Intf->GetD3D9()->GetAdapterIdentifier(0, 0, &adapterIdentifier9);
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDraw7Interface::GetDeviceIdentifier: Failed to get D3D9 adapter identifier");
+        return hr;
+      }
+
+      memcpy(&pDDDI->szDriver,      &adapterIdentifier9.Driver,      sizeof(adapterIdentifier9.Driver));
+      memcpy(&pDDDI->szDescription, &adapterIdentifier9.Description, sizeof(adapterIdentifier9.Description));
+      pDDDI->liDriverVersion.QuadPart = adapterIdentifier9.DriverVersion.QuadPart;
+      pDDDI->dwVendorId               = adapterIdentifier9.VendorId;
+      pDDDI->dwDeviceId               = adapterIdentifier9.DeviceId;
+      pDDDI->dwSubSysId               = adapterIdentifier9.SubSysId;
+      pDDDI->dwRevision               = adapterIdentifier9.Revision;
+      pDDDI->guidDeviceIdentifier     = adapterIdentifier9.DeviceIdentifier;
+      pDDDI->dwWHQLLevel              = adapterIdentifier9.WHQLLevel;
+    }
+
+    Logger::info(str::format("DDraw7Interface::GetDeviceIdentifier: Reporting: ", pDDDI->szDescription));
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::StartModeTest(LPSIZE pModes, DWORD dwNumModes, DWORD dwFlags) {
