@@ -47,6 +47,14 @@ namespace dxvk {
       return S_OK;
     }
 
+    void SetAdapterIdentifier(const d3d9::D3DADAPTER_IDENTIFIER9& adapterIdentifier9) {
+      m_adapterIdentifier9 = adapterIdentifier9;
+    }
+
+    const d3d9::D3DADAPTER_IDENTIFIER9* GetAdapterIdentifier() const {
+      return &m_adapterIdentifier9;
+    }
+
     const D3DOptions* GetOptions() const {
       return &m_options;
     }
@@ -150,6 +158,8 @@ namespace dxvk {
     HWND                              m_hwnd             = nullptr;
 
     DDrawModeSize                     m_modeSize = { };
+
+    d3d9::D3DADAPTER_IDENTIFIER9      m_adapterIdentifier9 = { };
 
     D3DOptions                        m_options;
 

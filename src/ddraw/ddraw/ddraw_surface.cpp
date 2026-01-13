@@ -222,18 +222,16 @@ namespace dxvk {
 
       Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture2");
 
-      if (unlikely(m_texture5 == nullptr)) {
-        Com<IDirect3DTexture2> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      Com<IDirect3DTexture2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-        D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
-        m_texture5 = new D3D5Texture(std::move(ppvProxyObject), this, nextHandle);
-        m_parent->EmplaceTexture(m_texture5.ptr(), nextHandle);
+      D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
+      Com<D3D5Texture> m_texture5 = new D3D5Texture(std::move(ppvProxyObject), this, nextHandle);
+      m_parent->EmplaceTexture(m_texture5.ptr(), nextHandle);
 
-        m_commonSurf->DirtyMipMaps();
-      }
+      m_commonSurf->DirtyMipMaps();
 
       *ppvObject = m_texture5.ref();
 
@@ -489,9 +487,13 @@ namespace dxvk {
 
       if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
         if (unlikely(!IsInitialized()))
-          IntializeD3D9(m_d3d5Device->GetRenderTarget() == this);
+          InitializeD3D9(m_d3d5Device->GetRenderTarget() == this);
+        // Also ensure the D3D5 device render target is initialized
+        DDrawSurface* rt5 = m_d3d5Device->GetRenderTarget();
+        if (unlikely(!rt5->IsInitialized()))
+          rt5->InitializeD3D9RenderTarget();
 
-        BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_proxy.ptr(), m_d3d5Device->GetRenderTarget()->GetD3D9());
+        BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_proxy.ptr(), rt5->GetD3D9());
 
         if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
           if (unlikely(lpDDSurfaceTargetOverride != nullptr))
@@ -522,7 +524,6 @@ namespace dxvk {
       }
 
       m_d3d5Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
-      Logger::debug("*** DDrawSurface::Flip: We have presented, allegedly");
     // If we don't have a valid D3D5 device, this means a D3D3 application
     // is trying to flip the surface. Allow that for compatibility reasons.
     } else {
@@ -578,9 +579,10 @@ namespace dxvk {
           m_attachedSurfaces.emplace(std::piecewise_construct,
                                      std::forward_as_tuple(ddrawSurface->GetProxied()),
                                      std::forward_as_tuple(ddrawSurface.ptr()));
-          *lplpDDAttachedSurface = ddrawSurface.ref();
+          // TODO: We should ref here, but somehow we're leaking an interface attached surface if we do...
+          *lplpDDAttachedSurface = ddrawSurface.ptr();
         } else {
-          *lplpDDAttachedSurface = attachedSurfaceIter->second.ref();
+          *lplpDDAttachedSurface = attachedSurfaceIter->second.ptr();
         }
       } catch (const DxvkError& e) {
         Logger::err(e.message());
@@ -873,7 +875,7 @@ namespace dxvk {
     RefreshD3D5Device();
 
     if (unlikely(!IsInitialized()))
-      hr = IntializeD3D9(true);
+      hr = InitializeD3D9(true);
 
     return hr;
   }
@@ -886,30 +888,30 @@ namespace dxvk {
     if (likely(IsInitialized())) {
       hr = UploadSurfaceData();
     } else {
-      hr = IntializeD3D9(false);
+      hr = InitializeD3D9(false);
     }
 
     return hr;
   }
 
-  HRESULT DDrawSurface::IntializeD3D9(const bool initRT) {
+  HRESULT DDrawSurface::InitializeD3D9(const bool initRT) {
     if (unlikely(m_d3d5Device == nullptr)) {
-      Logger::debug("DDrawSurface::IntializeD3D9: Null device, can't initalize right now");
+      Logger::debug("DDrawSurface::InitializeD3D9: Null device, can't initialize right now");
       return DD_OK;
     }
 
-    Logger::debug(str::format("DDrawSurface::IntializeD3D9: Initializing nr. [[1-", m_surfCount, "]]"));
+    Logger::debug(str::format("DDrawSurface::InitializeD3D9: Initializing nr. [[1-", m_surfCount, "]]"));
 
     const DDSURFACEDESC* desc  = m_commonSurf->GetDesc();
     const d3d9::D3DFORMAT format = m_commonSurf->GetD3D9Format();
 
     if (unlikely(desc->dwHeight == 0 || desc->dwWidth == 0)) {
-      Logger::err("DDrawSurface::IntializeD3D9: Surface has 0 height or width");
+      Logger::err("DDrawSurface::InitializeD3D9: Surface has 0 height or width");
       return DDERR_GENERIC;
     }
 
     if (unlikely(format == d3d9::D3DFMT_UNKNOWN)) {
-      Logger::err("DDrawSurface::IntializeD3D9: Surface has an unknown format");
+      Logger::err("DDrawSurface::InitializeD3D9: Surface has an unknown format");
       return DDERR_GENERIC;
     }
 
@@ -920,7 +922,7 @@ namespace dxvk {
       static bool s_formatP8ErrorShown;
 
       if (!std::exchange(s_formatP8ErrorShown, true))
-        Logger::warn("DDrawSurface::IntializeD3D9: Unsupported format D3DFMT_P8");
+        Logger::warn("DDrawSurface::InitializeD3D9: Unsupported format D3DFMT_P8");
 
       return DD_OK;
 
@@ -931,7 +933,7 @@ namespace dxvk {
       static bool s_formatR3G3B2ErrorShown;
 
       if (!std::exchange(s_formatR3G3B2ErrorShown, true))
-        Logger::warn("DDrawSurface::IntializeD3D9: Unsupported format D3DFMT_R3G3B2");
+        Logger::warn("DDrawSurface::InitializeD3D9: Unsupported format D3DFMT_R3G3B2");
 
       return DD_OK;
     }
@@ -955,14 +957,14 @@ namespace dxvk {
       // Do not worry about maximum supported mip map levels validation,
       // because D3D9 will handle this for us and cap them appropriately
       if (mipCount > 1) {
-        Logger::debug(str::format("DDrawSurface::IntializeD3D9: Found ", mipCount, " mip levels"));
+        Logger::debug(str::format("DDrawSurface::InitializeD3D9: Found ", mipCount, " mip levels"));
 
         if (unlikely(mipCount != desc->dwMipMapCount))
-          Logger::debug(str::format("DDrawSurface::IntializeD3D9: Mismatch with declared ", desc->dwMipMapCount, " mip levels"));
+          Logger::debug(str::format("DDrawSurface::InitializeD3D9: Mismatch with declared ", desc->dwMipMapCount, " mip levels"));
       }
 
       if (unlikely(m_commonIntf->GetOptions()->autoGenMipMaps)) {
-        Logger::debug("DDrawSurface::IntializeD3D9: Using auto mip map generation");
+        Logger::debug("DDrawSurface::InitializeD3D9: Using auto mip map generation");
         mipCount = 0;
       }
 
@@ -993,13 +995,13 @@ namespace dxvk {
     // isn't supported in D3D9, but we have a D3D7 exception in place.
     //
     if (m_commonSurf->IsRenderTarget() || initRT) {
-      Logger::debug("DDrawSurface::IntializeD3D9: Usage: D3DUSAGE_RENDERTARGET");
+      Logger::debug("DDrawSurface::InitializeD3D9: Usage: D3DUSAGE_RENDERTARGET");
       pool  = d3d9::D3DPOOL_DEFAULT;
       usage |= D3DUSAGE_RENDERTARGET;
     }
     // All depth stencils will be created in DEFAULT
     if (m_commonSurf->IsDepthStencil()) {
-      Logger::debug("DDrawSurface::IntializeD3D9: Usage: D3DUSAGE_DEPTHSTENCIL");
+      Logger::debug("DDrawSurface::InitializeD3D9: Usage: D3DUSAGE_DEPTHSTENCIL");
       pool  = d3d9::D3DPOOL_DEFAULT;
       usage |= D3DUSAGE_DEPTHSTENCIL;
     }
@@ -1007,11 +1009,11 @@ namespace dxvk {
     // General usage flags
     if (m_commonSurf->IsTexture()) {
       if (pool == d3d9::D3DPOOL_DEFAULT) {
-        Logger::debug("DDrawSurface::IntializeD3D9: Usage: D3DUSAGE_DYNAMIC");
+        Logger::debug("DDrawSurface::InitializeD3D9: Usage: D3DUSAGE_DYNAMIC");
         usage |= D3DUSAGE_DYNAMIC;
       }
       if (unlikely(m_commonIntf->GetOptions()->autoGenMipMaps)) {
-        Logger::debug("DDrawSurface::IntializeD3D9: Usage: D3DUSAGE_AUTOGENMIPMAP");
+        Logger::debug("DDrawSurface::InitializeD3D9: Usage: D3DUSAGE_AUTOGENMIPMAP");
         usage |= D3DUSAGE_AUTOGENMIPMAP;
       }
     }
@@ -1019,7 +1021,7 @@ namespace dxvk {
     const char* poolPlacement = pool == d3d9::D3DPOOL_DEFAULT ? "D3DPOOL_DEFAULT" :
                                 pool == d3d9::D3DPOOL_SYSTEMMEM ? "D3DPOOL_SYSTEMMEM" : "D3DPOOL_MANAGED";
 
-    Logger::debug(str::format("DDrawSurface::IntializeD3D9: Placing in: ", poolPlacement));
+    Logger::debug(str::format("DDrawSurface::InitializeD3D9: Placing in: ", poolPlacement));
 
     // Use the MSAA type that was determined to be supported during device creation
     const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = m_d3d5Device->GetMultiSampleType();
@@ -1030,12 +1032,12 @@ namespace dxvk {
 
     // Front Buffer
     if (m_commonSurf->IsFrontBuffer()) {
-      Logger::debug("DDrawSurface::IntializeD3D9: Initializing front buffer...");
+      Logger::debug("DDrawSurface::InitializeD3D9: Initializing front buffer...");
 
       surf = m_d3d5Device->GetD3D9BackBuffer(m_proxy.ptr());
 
       if (unlikely(surf == nullptr)) {
-        Logger::err("DDrawSurface::IntializeD3D9: Failed to retrieve front buffer");
+        Logger::err("DDrawSurface::InitializeD3D9: Failed to retrieve front buffer");
         m_d3d9 = nullptr;
         return hr;
       }
@@ -1044,12 +1046,12 @@ namespace dxvk {
 
     // Back Buffer
     } else if (m_commonSurf->IsBackBufferOrFlippable()) {
-      Logger::debug("DDrawSurface::IntializeD3D9: Initializing back buffer...");
+      Logger::debug("DDrawSurface::InitializeD3D9: Initializing back buffer...");
 
       surf = m_d3d5Device->GetD3D9BackBuffer(m_proxy.ptr());
 
       if (unlikely(surf == nullptr)) {
-        Logger::err("DDrawSurface::IntializeD3D9: Failed to retrieve back buffer");
+        Logger::err("DDrawSurface::InitializeD3D9: Failed to retrieve back buffer");
         m_d3d9 = nullptr;
         return hr;
       }
@@ -1058,7 +1060,7 @@ namespace dxvk {
 
     // Textures
     } else if (m_commonSurf->IsTexture()) {
-      Logger::debug("DDrawSurface::IntializeD3D9: Initializing texture...");
+      Logger::debug("DDrawSurface::InitializeD3D9: Initializing texture...");
 
       Com<d3d9::IDirect3DTexture9> tex;
 
@@ -1067,7 +1069,7 @@ namespace dxvk {
         format, pool, &tex, nullptr);
 
       if (unlikely(FAILED(hr))) {
-        Logger::err("DDrawSurface::IntializeD3D9: Failed to create texture");
+        Logger::err("DDrawSurface::InitializeD3D9: Failed to create texture");
         m_texture = nullptr;
         return hr;
       }
@@ -1079,40 +1081,40 @@ namespace dxvk {
       tex->GetSurfaceLevel(0, &surf);
       m_d3d9 = (std::move(surf));
 
-      Logger::debug("DDrawSurface::IntializeD3D9: Created texture");
+      Logger::debug("DDrawSurface::InitializeD3D9: Created texture");
       m_texture = std::move(tex);
 
     // Depth Stencil
     } else if (m_commonSurf->IsDepthStencil()) {
-      Logger::debug("DDrawSurface::IntializeD3D9: Initializing depth stencil...");
+      Logger::debug("DDrawSurface::InitializeD3D9: Initializing depth stencil...");
 
       hr = m_d3d5Device->GetD3D9()->CreateDepthStencilSurface(
         desc->dwWidth, desc->dwHeight, format,
         multiSampleType, 0, FALSE, &surf, nullptr);
 
       if (unlikely(FAILED(hr))) {
-        Logger::err("DDrawSurface::IntializeD3D9: Failed to create DS");
+        Logger::err("DDrawSurface::InitializeD3D9: Failed to create DS");
         m_d3d9 = nullptr;
         return hr;
       }
 
-      Logger::debug("DDrawSurface::IntializeD3D9: Created depth stencil surface");
+      Logger::debug("DDrawSurface::InitializeD3D9: Created depth stencil surface");
 
       m_d3d9 = std::move(surf);
 
     // Offscreen Plain Surfaces
     } else if (m_commonSurf->IsOffScreenPlainSurface()) {
-      Logger::debug("DDrawSurface::IntializeD3D9: Initializing offscreen plain surface...");
+      Logger::debug("DDrawSurface::InitializeD3D9: Initializing offscreen plain surface...");
 
       // Sometimes we get passed offscreen plain surfaces which should be tied to the back buffer,
       // either as existing RTs or during SetRenderTarget() calls, which are tracked with initRT
       if (unlikely(m_d3d5Device->GetRenderTarget() == this || initRT)) {
-        Logger::debug("DDrawSurface::IntializeD3D9: Offscreen plain surface is the RT");
+        Logger::debug("DDrawSurface::InitializeD3D9: Offscreen plain surface is the RT");
 
         surf = m_d3d5Device->GetD3D9BackBuffer(m_proxy.ptr());
 
         if (unlikely(surf == nullptr)) {
-          Logger::err("DDrawSurface::IntializeD3D9: Failed to retrieve offscreen plain surface");
+          Logger::err("DDrawSurface::InitializeD3D9: Failed to retrieve offscreen plain surface");
           m_d3d9 = nullptr;
           return hr;
         }
@@ -1122,7 +1124,7 @@ namespace dxvk {
           pool, &surf, nullptr);
 
         if (unlikely(FAILED(hr))) {
-          Logger::err("DDrawSurface::IntializeD3D9: Failed to create offscreen plain surface");
+          Logger::err("DDrawSurface::InitializeD3D9: Failed to create offscreen plain surface");
           m_d3d9 = nullptr;
           return hr;
         }
@@ -1132,13 +1134,13 @@ namespace dxvk {
 
     // Overlays (haven't seen any actual use of overlays in the wild)
     } else if (m_commonSurf->IsOverlay()) {
-      Logger::debug("DDrawSurface::IntializeD3D9: Initializing overlay...");
+      Logger::debug("DDrawSurface::InitializeD3D9: Initializing overlay...");
 
       // Always link overlays to the current render target
       surf = m_d3d5Device->GetD3D9BackBuffer(m_proxy.ptr());
 
       if (unlikely(surf == nullptr)) {
-        Logger::err("DDrawSurface::IntializeD3D9: Failed to retrieve overlay surface");
+        Logger::err("DDrawSurface::InitializeD3D9: Failed to retrieve overlay surface");
         m_d3d9 = nullptr;
         return hr;
       }
@@ -1147,7 +1149,7 @@ namespace dxvk {
 
     // Generic render target
     } else if (m_commonSurf->IsRenderTarget()) {
-      Logger::debug("DDrawSurface::IntializeD3D9: Initializing render target...");
+      Logger::debug("DDrawSurface::InitializeD3D9: Initializing render target...");
 
       // Must be lockable for blitting to work. Note that
       // D3D9 does not allow the creation of lockable RTs when
@@ -1157,7 +1159,7 @@ namespace dxvk {
         multiSampleType, usage, TRUE, &surf, nullptr);
 
       if (unlikely(FAILED(hr))) {
-        Logger::err("DDrawSurface::IntializeD3D9: Failed to create render target");
+        Logger::err("DDrawSurface::InitializeD3D9: Failed to create render target");
         m_d3d9 = nullptr;
         return hr;
       }
@@ -1166,23 +1168,23 @@ namespace dxvk {
 
     // We sometimes get generic surfaces, with only dimensions, format and placement info
     } else if (!m_commonSurf->IsNotKnown()) {
-      Logger::debug("DDrawSurface::IntializeD3D9: Initializing generic surface...");
+      Logger::debug("DDrawSurface::InitializeD3D9: Initializing generic surface...");
 
       hr = m_d3d5Device->GetD3D9()->CreateOffscreenPlainSurface(
           desc->dwWidth, desc->dwHeight, format,
           pool, &surf, nullptr);
 
       if (unlikely(FAILED(hr))) {
-        Logger::err("DDrawSurface::IntializeD3D9: Failed to create offscreen plain surface");
+        Logger::err("DDrawSurface::InitializeD3D9: Failed to create offscreen plain surface");
         m_d3d9 = nullptr;
         return hr;
       }
 
-      Logger::debug("DDrawSurface::IntializeD3D9: Created offscreen plain surface");
+      Logger::debug("DDrawSurface::InitializeD3D9: Created offscreen plain surface");
 
       m_d3d9 = std::move(surf);
     } else {
-      Logger::warn("DDrawSurface::IntializeD3D9: Skipping initialization of unknown surface");
+      Logger::warn("DDrawSurface::InitializeD3D9: Skipping initialization of unknown surface");
     }
 
     UploadSurfaceData();
