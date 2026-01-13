@@ -5,15 +5,13 @@
 
 namespace dxvk {
 
-  class DDrawInterface;
-
-  class DDrawPalette final : public DDrawWrappedObject<DDrawInterface, IDirectDrawPalette, IUnknown> {
+  class DDrawPalette final : public DDrawWrappedObject<IUnknown, IDirectDrawPalette, IUnknown> {
 
   public:
 
     DDrawPalette(
           Com<IDirectDrawPalette>&& paletteProxy,
-          DDrawInterface* pParent);
+          IUnknown* pParent);
 
     ~DDrawPalette();
 

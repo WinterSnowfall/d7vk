@@ -82,17 +82,21 @@ namespace dxvk {
 
   private:
 
-    bool                      m_needsInitialization = false;
-    bool                      m_isInitialized = false;
+    bool                       m_needsInitialization = false;
+    bool                       m_isInitialized = false;
 
-    static uint32_t           s_intfCount;
-    uint32_t                  m_intfCount  = 0;
+    static uint32_t            s_intfCount;
+    uint32_t                   m_intfCount  = 0;
 
-    Com<DDrawCommonInterface> m_commonIntf;
+    Com<DDrawCommonInterface>  m_commonIntf;
 
-    IUnknown*                 m_origin = nullptr;
+    // We can not increase the public ref count on the parent IDirectDraw
+    // interface, so keep a private COM reference to it instead
+    Com<DDrawInterface, false> m_parentIntf;
 
-    DDrawSurface*             m_lastDepthStencil = nullptr;
+    IUnknown*                  m_origin = nullptr;
+
+    DDrawSurface*              m_lastDepthStencil = nullptr;
 
   };
 

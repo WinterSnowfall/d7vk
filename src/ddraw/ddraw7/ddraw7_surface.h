@@ -176,7 +176,7 @@ namespace dxvk {
         d3d9::IDirect3DCubeTexture9* cubeTex9,
         d3d9::D3DCUBEMAP_FACES face);
 
-    inline HRESULT IntializeD3D9(const bool initRT);
+    inline HRESULT InitializeD3D9(const bool initRT);
 
     inline HRESULT UploadSurfaceData();
 

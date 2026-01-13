@@ -197,7 +197,7 @@ namespace dxvk {
 
     inline float GetZBiasFactor();
 
-    // If the last index buffer is initalized, then all are initialized
+    // If the last index buffer is initialized, then all are initialized
     inline bool AreIndexBuffersInitialized() const {
       return m_ib9[ddrawCaps::IndexBufferCount - 1] != nullptr;
     }
@@ -213,14 +213,14 @@ namespace dxvk {
     bool                          m_hasDrawn    = false;
     bool                          m_inScene     = false;
 
+    static uint32_t               s_deviceCount;
+    uint32_t                      m_deviceCount = 0;
+
     DDrawCommonInterface*         m_commonIntf  = nullptr;
 
     Com<DxvkD3D8Bridge>           m_bridge;
 
     D3D7Multithread               m_multithread;
-
-    static uint32_t               s_deviceCount;
-    uint32_t                      m_deviceCount = 0;
 
     d3d9::D3DPRESENT_PARAMETERS   m_params9;
 

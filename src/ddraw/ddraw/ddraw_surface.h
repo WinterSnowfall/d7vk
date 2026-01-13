@@ -119,14 +119,6 @@ namespace dxvk {
       return m_d3d5Device;
     }
 
-    D3D5Texture* GetD3D5Texture() const {
-      return m_texture5.ptr();
-    }
-
-    void SetD3D5Texture(D3D5Texture* texture5) {
-      m_texture5 = texture5;
-    }
-
     d3d9::IDirect3DTexture9* GetD3D9Texture() const {
       return m_texture.ptr();
     }
@@ -152,7 +144,7 @@ namespace dxvk {
 
     HRESULT InitializeOrUploadD3D9();
 
-    HRESULT IntializeD3D9(const bool initRT);
+    HRESULT InitializeD3D9(const bool initRT);
 
   private:
 
@@ -212,8 +204,6 @@ namespace dxvk {
     IUnknown*                           m_origin     = nullptr;
 
     D3D5Device*                         m_d3d5Device = nullptr;
-
-    Com<D3D5Texture, false>             m_texture5;
 
     Com<d3d9::IDirect3DTexture9>        m_texture;
 

@@ -10,23 +10,17 @@ namespace dxvk {
 
   D3D3Texture::D3D3Texture(Com<IDirect3DTexture>&& proxyTexture, DDrawSurface* pParent)
     : DDrawWrappedObject<DDrawSurface, IDirect3DTexture, IUnknown>(pParent, std::move(proxyTexture), nullptr) {
+    m_parent->AddRef();
+
     m_texCount = ++s_texCount;
 
     Logger::debug(str::format("D3D3Texture: Created a new texture nr. [[1-", m_texCount, "]]"));
   }
 
   D3D3Texture::~D3D3Texture() {
+    m_parent->Release();
+
     Logger::debug(str::format("D3D3Texture: Texture nr. [[1-", m_texCount, "]] bites the dust"));
-  }
-
-  // Interlocked refcount with the parent IDirectDrawSurface
-  ULONG STDMETHODCALLTYPE D3D3Texture::AddRef() {
-    return m_parent->AddRef();
-  }
-
-  // Interlocked refcount with the parent IDirectDrawSurface
-  ULONG STDMETHODCALLTYPE D3D3Texture::Release() {
-    return m_parent->Release();
   }
 
   template<>
