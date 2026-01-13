@@ -5,15 +5,13 @@
 
 namespace dxvk {
 
-  class DDrawInterface;
-
-  class DDrawClipper final : public DDrawWrappedObject<DDrawInterface, IDirectDrawClipper, IUnknown> {
+  class DDrawClipper final : public DDrawWrappedObject<IUnknown, IDirectDrawClipper, IUnknown> {
 
   public:
 
     DDrawClipper(
           Com<IDirectDrawClipper>&& clipperProxy,
-          DDrawInterface* pParent);
+          IUnknown* pParent);
 
     ~DDrawClipper();
 
