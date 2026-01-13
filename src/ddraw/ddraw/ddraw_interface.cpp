@@ -127,24 +127,6 @@ namespace dxvk {
 
       return S_OK;
     }
-    // Legacy way of retrieving a D3D7 interface
-    if (unlikely(riid == __uuidof(IDirect3D7))) {
-      if (m_commonIntf->GetDD7Interface() != nullptr) {
-        Logger::debug("DDrawInterface::QueryInterface: Forwarded query for IDirect3D7");
-        return m_commonIntf->GetDD7Interface()->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::warn("DDrawInterface::QueryInterface: Query for IDirect3D7");
-
-      Com<IDirect3D7> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      *ppvObject = ref(new D3D7Interface(std::move(ppvProxyObject), nullptr));
-
-      return S_OK;
-    }
     // Standard way of getting a DDraw4 interface
     if (riid == __uuidof(IDirectDraw4)) {
       if (m_commonIntf->GetDD4Interface() != nullptr) {
@@ -262,7 +244,8 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreatePalette(dwFlags, lpColorTable, &lplpDDPaletteProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), this));
+      // Palettes created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
+      *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), nullptr));
     } else {
       Logger::warn("DDrawInterface::CreatePalette: Failed to create proxy palette");
       return hr;
@@ -284,7 +267,9 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       try{
-        Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied), this, nullptr, nullptr, true);
+        // Surfaces created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
+        Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied),
+                                                     this, nullptr, nullptr, false);
         *lplpDDSurface = surface.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());
@@ -309,7 +294,8 @@ namespace dxvk {
       HRESULT hr = m_proxy->DuplicateSurface(ddrawSurface->GetProxied(), &dupSurface);
       if (likely(SUCCEEDED(hr))) {
         try {
-          *lplpDupDDSurface = ref(new DDrawSurface(nullptr, std::move(dupSurface), this, nullptr, nullptr, false));
+          *lplpDupDDSurface = ref(new DDrawSurface(nullptr, std::move(dupSurface),
+                                                   this, nullptr, nullptr, false));
         } catch (const DxvkError& e) {
           Logger::err(e.message());
           return DDERR_GENERIC;

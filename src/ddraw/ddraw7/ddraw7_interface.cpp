@@ -6,6 +6,7 @@
 #include "../ddraw2/ddraw2_interface.h"
 #include "../ddraw4/ddraw4_interface.h"
 
+#include "../d3d7/d3d7_interface.h"
 #include "../d3d7/d3d7_device.h"
 
 namespace dxvk {
@@ -21,15 +22,25 @@ namespace dxvk {
     , m_needsInitialization ( needsInitialization )
     , m_commonIntf ( commonIntf )
     , m_origin ( origin ) {
-    // Initialize the IDirect3D7 interlocked object
-    void* d3d7IntfProxiedVoid = nullptr;
-    // This can never reasonably fail
-    m_proxy->QueryInterface(__uuidof(IDirect3D7), &d3d7IntfProxiedVoid);
-    Com<IDirect3D7> d3d7IntfProxied = static_cast<IDirect3D7*>(d3d7IntfProxiedVoid);
-    m_d3d7Intf = new D3D7Interface(std::move(d3d7IntfProxied), this);
+    // We need a temporary D3D9 interface at this point to retrieve the
+    // adapter identifier, as well as (potentially) the options through a bridge
+    Com<d3d9::IDirect3D9> d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
 
-    if (m_commonIntf == nullptr)
-      m_commonIntf = new DDrawCommonInterface(*m_d3d7Intf->GetOptions());
+    d3d9::D3DADAPTER_IDENTIFIER9 adapterIdentifier9;
+    HRESULT hr = d3d9Intf->GetAdapterIdentifier(0, 0, &adapterIdentifier9);
+    if (unlikely(FAILED(hr))) {
+      throw DxvkError("DDraw7Interface: ERROR! Failed to get D3D9 adapter identifier!");
+    }
+
+    if (m_commonIntf == nullptr) {
+      Com<IDxvkD3D8InterfaceBridge> d3d9Bridge;
+      // Can never fail while we statically link the d3d9 module
+      d3d9Intf->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&d3d9Bridge));
+
+      m_commonIntf = new DDrawCommonInterface(D3DOptions(*d3d9Bridge->GetConfig()));
+    }
+
+    m_commonIntf->SetAdapterIdentifier(adapterIdentifier9);
 
     m_commonIntf->SetDD7Interface(this);
 
@@ -74,7 +85,20 @@ namespace dxvk {
 
     // Standard way of retrieving a D3D7 interface
     if (riid == __uuidof(IDirect3D7)) {
+      Logger::debug("DDraw7Interface::QueryInterface: Query for IDirect3D7");
+
+      // Initialize the IDirect3D7 interlocked object
+      if (unlikely(m_d3d7Intf == nullptr)) {
+        Com<IDirect3D7> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        m_d3d7Intf = new D3D7Interface(std::move(ppvProxyObject), this);
+      }
+
       *ppvObject = m_d3d7Intf.ref();
+
       return S_OK;
     }
     // Some games query for legacy ddraw interfaces
@@ -165,7 +189,7 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), reinterpret_cast<DDrawInterface*>(this)));
+      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this));
     } else {
       Logger::warn("DDraw7Interface::CreateClipper: Failed to create proxy clipper");
       return hr;
@@ -186,7 +210,7 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreatePalette(dwFlags, lpColorTable, &lplpDDPaletteProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), reinterpret_cast<DDrawInterface*>(this)));
+      *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), this));
     } else {
       Logger::warn("DDraw7Interface::CreatePalette: Failed to create proxy palette");
       return hr;
@@ -587,22 +611,16 @@ namespace dxvk {
       pDDDI->guidDeviceIdentifier     = GUID_StandardVGAAdapter;
       pDDDI->dwWHQLLevel              = 0;
     } else {
-      d3d9::D3DADAPTER_IDENTIFIER9 adapterIdentifier9;
-      HRESULT hr = m_d3d7Intf->GetD3D9()->GetAdapterIdentifier(0, 0, &adapterIdentifier9);
-      if (unlikely(FAILED(hr))) {
-        Logger::err("DDraw7Interface::GetDeviceIdentifier: Failed to get D3D9 adapter identifier");
-        return hr;
-      }
-
-      memcpy(&pDDDI->szDriver,      &adapterIdentifier9.Driver,      sizeof(adapterIdentifier9.Driver));
-      memcpy(&pDDDI->szDescription, &adapterIdentifier9.Description, sizeof(adapterIdentifier9.Description));
-      pDDDI->liDriverVersion.QuadPart = adapterIdentifier9.DriverVersion.QuadPart;
-      pDDDI->dwVendorId               = adapterIdentifier9.VendorId;
-      pDDDI->dwDeviceId               = adapterIdentifier9.DeviceId;
-      pDDDI->dwSubSysId               = adapterIdentifier9.SubSysId;
-      pDDDI->dwRevision               = adapterIdentifier9.Revision;
-      pDDDI->guidDeviceIdentifier     = adapterIdentifier9.DeviceIdentifier;
-      pDDDI->dwWHQLLevel              = adapterIdentifier9.WHQLLevel;
+      const d3d9::D3DADAPTER_IDENTIFIER9* adapterIdentifier9 = m_commonIntf->GetAdapterIdentifier();
+      memcpy(&pDDDI->szDriver,      &adapterIdentifier9->Driver,      sizeof(adapterIdentifier9->Driver));
+      memcpy(&pDDDI->szDescription, &adapterIdentifier9->Description, sizeof(adapterIdentifier9->Description));
+      pDDDI->liDriverVersion.QuadPart = adapterIdentifier9->DriverVersion.QuadPart;
+      pDDDI->dwVendorId               = adapterIdentifier9->VendorId;
+      pDDDI->dwDeviceId               = adapterIdentifier9->DeviceId;
+      pDDDI->dwSubSysId               = adapterIdentifier9->SubSysId;
+      pDDDI->dwRevision               = adapterIdentifier9->Revision;
+      pDDDI->guidDeviceIdentifier     = adapterIdentifier9->DeviceIdentifier;
+      pDDDI->dwWHQLLevel              = adapterIdentifier9->WHQLLevel;
     }
 
     Logger::info(str::format("DDraw7Interface::GetDeviceIdentifier: Reporting: ", pDDDI->szDescription));
