@@ -23,11 +23,8 @@ namespace dxvk {
     : DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown>(pParent, std::move(proxyIntf), nullptr)
     , m_needsInitialization ( needsInitialization )
     , m_commonIntf ( commonIntf )
+    , m_parentIntf ( pParent )
     , m_origin ( origin ) {
-    // We need to keep the IDirectDraw parent around, since we're entirely dependent on it
-    if (m_parent != nullptr)
-      m_parent->AddRef();
-
     // m_commonIntf can never be null for IDirectDraw2
     m_commonIntf->SetDD2Interface(this);
 
@@ -37,9 +34,6 @@ namespace dxvk {
   }
 
   DDraw2Interface::~DDraw2Interface() {
-    if (m_parent != nullptr)
-      m_parent->Release();
-
     m_commonIntf->SetDD2Interface(nullptr);
 
     Logger::debug(str::format("DDraw2Interface: Interface nr. <<2-", m_intfCount, ">> bites the dust"));
@@ -117,7 +111,7 @@ namespace dxvk {
         return hr;
 
       *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           m_parent, nullptr, m_needsInitialization));
+                                           m_commonIntf->GetDDInterface(), nullptr, m_needsInitialization));
 
       return S_OK;
     }
@@ -142,7 +136,7 @@ namespace dxvk {
     }
     // Standard way of retrieving a D3D3 interface
     if (unlikely(riid == __uuidof(IDirect3D))) {
-      if (m_parent == nullptr) {
+      if (m_commonIntf->GetDDInterface() == nullptr) {
         Logger::warn("DDraw2Interface::QueryInterface: Query for IDirect3D");
         return m_proxy->QueryInterface(riid, ppvObject);
       }
@@ -154,7 +148,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D3Interface(std::move(ppvProxyObject), m_parent));
+      *ppvObject = ref(new D3D3Interface(std::move(ppvProxyObject), m_commonIntf->GetDDInterface()));
 
       return S_OK;
     }
@@ -205,7 +199,7 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), reinterpret_cast<DDrawInterface*>(this)));
+      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this));
     } else {
       Logger::warn("DDraw2Interface::CreateClipper: Failed to create proxy clipper");
       return hr;
@@ -226,7 +220,8 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreatePalette(dwFlags, lpColorTable, &lplpDDPaletteProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), reinterpret_cast<DDrawInterface*>(this)));
+      // Palettes created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
+      *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), nullptr));
     } else {
       Logger::warn("DDraw2Interface::CreatePalette: Failed to create proxy palette");
       return hr;
@@ -248,7 +243,9 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       try{
-        Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied), m_parent, nullptr, nullptr, true);
+        // Surfaces created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
+        Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied),
+                                                     m_commonIntf->GetDDInterface(), nullptr, nullptr, false);
         *lplpDDSurface = surface.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());
@@ -273,7 +270,8 @@ namespace dxvk {
       HRESULT hr = m_proxy->DuplicateSurface(ddrawSurface->GetProxied(), &dupSurface);
       if (likely(SUCCEEDED(hr))) {
         try {
-          *lplpDupDDSurface = ref(new DDrawSurface(nullptr, std::move(dupSurface), m_parent, nullptr, nullptr, false));
+          *lplpDupDDSurface = ref(new DDrawSurface(nullptr, std::move(dupSurface),
+                                                   m_commonIntf->GetDDInterface(), nullptr, nullptr, false));
         } catch (const DxvkError& e) {
           Logger::err(e.message());
           return DDERR_GENERIC;

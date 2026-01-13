@@ -8,11 +8,9 @@
 
 #include "../../d3d9/d3d9_bridge.h"
 
-#include "../d3d6/d3d6_interface.h"
-
 namespace dxvk {
 
-  class D3D6Device;
+  class D3D6Interface;
   class DDrawInterface;
   class DDraw4Surface;
 

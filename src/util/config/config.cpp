@@ -1643,6 +1643,14 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.proxiedQueryInterface",      "True" },
     }} },
+    /* Enemy Engaged: Apache vs Havoc             */
+    { R"(\\aphavoc\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Star Trek: Starfleet Command               */
+    { R"(\\Starfleet\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */
@@ -1661,6 +1669,7 @@ namespace dxvk {
     }} },
     /* N.I.C.E 2 - Fixes main menu flickering     */
     { R"(\\n2_(std|arc)\.exe$)", {{
+      { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
 

@@ -15,10 +15,6 @@ namespace dxvk {
 
     ~D3D3Texture();
 
-    ULONG STDMETHODCALLTYPE AddRef();
-
-    ULONG STDMETHODCALLTYPE Release();
-
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
     HRESULT STDMETHODCALLTYPE GetHandle(LPDIRECT3DDEVICE lpDirect3DDevice, LPD3DTEXTUREHANDLE lpHandle);

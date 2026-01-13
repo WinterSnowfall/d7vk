@@ -11,7 +11,6 @@
 
 namespace dxvk {
 
-  class D3D5Device;
   class D3D5Interface;
   class D3D5Texture;
   class DDrawSurface;

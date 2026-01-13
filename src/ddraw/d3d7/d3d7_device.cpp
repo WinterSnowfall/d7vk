@@ -32,8 +32,6 @@ namespace dxvk {
       throw DxvkError("D3D7Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
-    m_parent->AddRef();
-
     m_rtOrig = m_rt.ptr();
 
     HRESULT hr = EnumerateBackBuffers(m_rt->GetProxied());
@@ -70,8 +68,6 @@ namespace dxvk {
     // Clear the common interface device pointer if it points to this device
     if (m_commonIntf->GetD3D7Device() == this)
       m_commonIntf->SetD3D7Device(nullptr);
-
-    m_parent->Release();
 
     Logger::debug(str::format("D3D7Device: Device nr. ((7-", m_deviceCount, ")) bites the dust"));
   }

@@ -203,20 +203,20 @@ namespace dxvk {
       }
     }
 
-    bool                          m_hasDrawn   = false;
-    bool                          m_inScene    = false;
+    bool                          m_hasDrawn    = false;
+    bool                          m_inScene     = false;
 
-    DWORD                         m_lighting   = FALSE;
+    static uint32_t               s_deviceCount;
+    uint32_t                      m_deviceCount = 0;
+
+    DWORD                         m_lighting    = FALSE;
 
     DDrawInterface*               m_DDIntfParent = nullptr;
-    DDrawCommonInterface*         m_commonIntf = nullptr;
+    DDrawCommonInterface*         m_commonIntf   = nullptr;
 
     Com<DxvkD3D8Bridge>           m_bridge;
 
     D3D5Multithread               m_multithread;
-
-    static uint32_t               s_deviceCount;
-    uint32_t                      m_deviceCount = 0;
 
     d3d9::D3DPRESENT_PARAMETERS   m_params9;
 

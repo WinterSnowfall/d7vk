@@ -307,8 +307,7 @@ namespace dxvk {
                 // | D3DDEVCAPS_DRAWPRIMITIVES2EX
                 // | D3DDEVCAPS_SORTDECREASINGZ
                 // | D3DDEVCAPS_SORTEXACT
-                   | D3DDEVCAPS_SORTINCREASINGZ // TODO: Check native
-                // | D3DDEVCAPS_TEXREPEATNOTSCALEDBYSIZE
+                // | D3DDEVCAPS_SORTINCREASINGZ
                    | D3DDEVCAPS_TEXTURENONLOCALVIDMEM
                 // | D3DDEVCAPS_TEXTURESYSTEMMEMORY
                    | D3DDEVCAPS_TEXTUREVIDEOMEMORY
@@ -333,7 +332,6 @@ namespace dxvk {
     D3DLIGHTINGCAPS lightingCaps;
     lightingCaps.dwSize  = sizeof(D3DLIGHTINGCAPS);
     lightingCaps.dwCaps  = D3DLIGHTCAPS_DIRECTIONAL
-                      // | D3DLIGHTCAPS_GLSPOT
                       // | D3DLIGHTCAPS_PARALLELPOINT // Not supported by D3D9
                          | D3DLIGHTCAPS_POINT
                          | D3DLIGHTCAPS_SPOT;
@@ -345,12 +343,12 @@ namespace dxvk {
     D3DPRIMCAPS prim;
     prim.dwSize = sizeof(D3DPRIMCAPS);
 
-    prim.dwMiscCaps           = D3DPMISCCAPS_CONFORMANT
-                              | D3DPMISCCAPS_CULLCCW
+    prim.dwMiscCaps           = D3DPMISCCAPS_CULLCCW
                               | D3DPMISCCAPS_CULLCW
                               | D3DPMISCCAPS_CULLNONE
+                           // | D3DPMISCCAPS_CONFORMANT
                            // | D3DPMISCCAPS_LINEPATTERNREP // Not implemented in D3D9
-                              | D3DPMISCCAPS_MASKPLANES
+                           // | D3DPMISCCAPS_MASKPLANES
                               | D3DPMISCCAPS_MASKZ;
 
     prim.dwRasterCaps         = D3DPRASTERCAPS_ANISOTROPY
@@ -363,14 +361,14 @@ namespace dxvk {
                               | D3DPRASTERCAPS_FOGVERTEX
                               | D3DPRASTERCAPS_MIPMAPLODBIAS
                            // | D3DPRASTERCAPS_PAT // Not implemented in D3D9
-                              | D3DPRASTERCAPS_ROP2
-                           // | D3DPRASTERCAPS_STIPPLE
+                           // | D3DPRASTERCAPS_ROP2
+                              | D3DPRASTERCAPS_STIPPLE // Technically not implemented
                               | D3DPRASTERCAPS_SUBPIXEL
-                              | D3DPRASTERCAPS_SUBPIXELX
+                           // | D3DPRASTERCAPS_SUBPIXELX
                            // | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
                            // | D3DPRASTERCAPS_WBUFFER
                               | D3DPRASTERCAPS_WFOG
-                              | D3DPRASTERCAPS_XOR
+                           // | D3DPRASTERCAPS_XOR
                               | D3DPRASTERCAPS_ZBIAS
                            // | D3DPRASTERCAPS_ZBUFFERLESSHSR // Easy footgun to not get a z-buffer
                               | D3DPRASTERCAPS_ZFOG
@@ -414,33 +412,27 @@ namespace dxvk {
                            // | D3DPSHADECAPS_ALPHAGOURAUDSTIPPLED
                            // | D3DPSHADECAPS_ALPHAPHONGBLEND
                            // | D3DPSHADECAPS_ALPHAPHONGSTIPPLED
-                              | D3DPSHADECAPS_COLORFLATMONO
+                           // | D3DPSHADECAPS_COLORFLATMONO
                               | D3DPSHADECAPS_COLORFLATRGB
-                              | D3DPSHADECAPS_COLORGOURAUDMONO
+                           // | D3DPSHADECAPS_COLORGOURAUDMONO
                               | D3DPSHADECAPS_COLORGOURAUDRGB
                            // | D3DPSHADECAPS_COLORPHONGMONO
                            // | D3DPSHADECAPS_COLORPHONGRGB
                               | D3DPSHADECAPS_FOGFLAT
                               | D3DPSHADECAPS_FOGGOURAUD
                            // | D3DPSHADECAPS_FOGPHONG
-                              | D3DPSHADECAPS_SPECULARFLATMONO
+                           // | D3DPSHADECAPS_SPECULARFLATMONO
                               | D3DPSHADECAPS_SPECULARFLATRGB
-                              | D3DPSHADECAPS_SPECULARGOURAUDMONO
+                           // | D3DPSHADECAPS_SPECULARGOURAUDMONO
                               | D3DPSHADECAPS_SPECULARGOURAUDRGB;
                            // | D3DPSHADECAPS_SPECULARPHONGMONO
                            // | D3DPSHADECAPS_SPECULARPHONGRGB;
 
     prim.dwTextureCaps        = D3DPTEXTURECAPS_ALPHA
-                              | D3DPTEXTURECAPS_ALPHAPALETTE
                               | D3DPTEXTURECAPS_BORDER
-                              | D3DPTEXTURECAPS_COLORKEYBLEND // Hard required, but not implemented in D3D9
-                              | D3DPTEXTURECAPS_CUBEMAP
-                              | D3DPTEXTURECAPS_NONPOW2CONDITIONAL // Apparently always exposed by D3D5
                               | D3DPTEXTURECAPS_PERSPECTIVE
                            // | D3DPTEXTURECAPS_POW2
-                              | D3DPTEXTURECAPS_PROJECTED
                            // | D3DPTEXTURECAPS_SQUAREONLY
-                              | D3DPTEXTURECAPS_TEXREPEATNOTSCALEDBYSIZE
                               | D3DPTEXTURECAPS_TRANSPARENCY;
 
     prim.dwTextureFilterCaps  = D3DPTFILTERCAPS_LINEAR
@@ -448,17 +440,7 @@ namespace dxvk {
                               | D3DPTFILTERCAPS_LINEARMIPNEAREST
                               | D3DPTFILTERCAPS_MIPLINEAR
                               | D3DPTFILTERCAPS_MIPNEAREST
-                              | D3DPTFILTERCAPS_NEAREST
-                           // | D3DPTFILTERCAPS_MAGFAFLATCUBIC
-                              | D3DPTFILTERCAPS_MAGFANISOTROPIC
-                           // | D3DPTFILTERCAPS_MAGFGAUSSIANCUBIC
-                              | D3DPTFILTERCAPS_MAGFLINEAR
-                              | D3DPTFILTERCAPS_MAGFPOINT
-                              | D3DPTFILTERCAPS_MINFANISOTROPIC
-                              | D3DPTFILTERCAPS_MINFLINEAR
-                              | D3DPTFILTERCAPS_MINFPOINT
-                              | D3DPTFILTERCAPS_MIPFLINEAR
-                              | D3DPTFILTERCAPS_MIPFPOINT;
+                              | D3DPTFILTERCAPS_NEAREST;
 
     prim.dwTextureBlendCaps   = D3DPTBLENDCAPS_ADD
                               | D3DPTBLENDCAPS_COPY
@@ -528,8 +510,7 @@ namespace dxvk {
                 // | D3DDEVCAPS_DRAWPRIMITIVES2EX
                 // | D3DDEVCAPS_SORTDECREASINGZ
                 // | D3DDEVCAPS_SORTEXACT
-                   | D3DDEVCAPS_SORTINCREASINGZ // TODO: Check native
-                // | D3DDEVCAPS_TEXREPEATNOTSCALEDBYSIZE
+                // | D3DDEVCAPS_SORTINCREASINGZ
                    | D3DDEVCAPS_TEXTURENONLOCALVIDMEM
                 // | D3DDEVCAPS_TEXTURESYSTEMMEMORY
                    | D3DDEVCAPS_TEXTUREVIDEOMEMORY
@@ -566,12 +547,12 @@ namespace dxvk {
     D3DPRIMCAPS prim;
     prim.dwSize = sizeof(D3DPRIMCAPS);
 
-    prim.dwMiscCaps           = D3DPMISCCAPS_CONFORMANT
-                              | D3DPMISCCAPS_CULLCCW
+    prim.dwMiscCaps           = D3DPMISCCAPS_CULLCCW
                               | D3DPMISCCAPS_CULLCW
                               | D3DPMISCCAPS_CULLNONE
+                           // | D3DPMISCCAPS_CONFORMANT
                            // | D3DPMISCCAPS_LINEPATTERNREP // Not implemented in D3D9
-                              | D3DPMISCCAPS_MASKPLANES
+                           // | D3DPMISCCAPS_MASKPLANES
                               | D3DPMISCCAPS_MASKZ;
 
     prim.dwRasterCaps         = D3DPRASTERCAPS_ANISOTROPY
@@ -584,14 +565,14 @@ namespace dxvk {
                               | D3DPRASTERCAPS_FOGVERTEX
                               | D3DPRASTERCAPS_MIPMAPLODBIAS
                            // | D3DPRASTERCAPS_PAT // Not implemented in D3D9
-                              | D3DPRASTERCAPS_ROP2
-                           // | D3DPRASTERCAPS_STIPPLE
+                           // | D3DPRASTERCAPS_ROP2
+                              | D3DPRASTERCAPS_STIPPLE // Technically not implemented
                               | D3DPRASTERCAPS_SUBPIXEL
-                              | D3DPRASTERCAPS_SUBPIXELX
+                           // | D3DPRASTERCAPS_SUBPIXELX
                            // | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
                            // | D3DPRASTERCAPS_WBUFFER
                               | D3DPRASTERCAPS_WFOG
-                              | D3DPRASTERCAPS_XOR
+                           // | D3DPRASTERCAPS_XOR
                               | D3DPRASTERCAPS_ZBIAS
                            // | D3DPRASTERCAPS_ZBUFFERLESSHSR // Easy footgun to not get a z-buffer
                               | D3DPRASTERCAPS_ZFOG
@@ -635,18 +616,18 @@ namespace dxvk {
                            // | D3DPSHADECAPS_ALPHAGOURAUDSTIPPLED
                            // | D3DPSHADECAPS_ALPHAPHONGBLEND
                            // | D3DPSHADECAPS_ALPHAPHONGSTIPPLED
-                              | D3DPSHADECAPS_COLORFLATMONO
+                           // | D3DPSHADECAPS_COLORFLATMONO
                               | D3DPSHADECAPS_COLORFLATRGB
-                              | D3DPSHADECAPS_COLORGOURAUDMONO
+                           // | D3DPSHADECAPS_COLORGOURAUDMONO
                               | D3DPSHADECAPS_COLORGOURAUDRGB
                            // | D3DPSHADECAPS_COLORPHONGMONO
                            // | D3DPSHADECAPS_COLORPHONGRGB
                               | D3DPSHADECAPS_FOGFLAT
                               | D3DPSHADECAPS_FOGGOURAUD
                            // | D3DPSHADECAPS_FOGPHONG
-                              | D3DPSHADECAPS_SPECULARFLATMONO
+                           // | D3DPSHADECAPS_SPECULARFLATMONO
                               | D3DPSHADECAPS_SPECULARFLATRGB
-                              | D3DPSHADECAPS_SPECULARGOURAUDMONO
+                           // | D3DPSHADECAPS_SPECULARGOURAUDMONO
                               | D3DPSHADECAPS_SPECULARGOURAUDRGB;
                            // | D3DPSHADECAPS_SPECULARPHONGMONO
                            // | D3DPSHADECAPS_SPECULARPHONGRGB;
@@ -654,12 +635,9 @@ namespace dxvk {
     prim.dwTextureCaps        = D3DPTEXTURECAPS_ALPHA
                               | D3DPTEXTURECAPS_ALPHAPALETTE
                               | D3DPTEXTURECAPS_BORDER
-                              | D3DPTEXTURECAPS_COLORKEYBLEND // Hard required, but not implemented in D3D9
-                              | D3DPTEXTURECAPS_CUBEMAP
-                              | D3DPTEXTURECAPS_NONPOW2CONDITIONAL // Apparently always exposed by D3D6
+                           // | D3DPTEXTURECAPS_NONPOW2CONDITIONAL
                               | D3DPTEXTURECAPS_PERSPECTIVE
                            // | D3DPTEXTURECAPS_POW2
-                              | D3DPTEXTURECAPS_PROJECTED
                            // | D3DPTEXTURECAPS_SQUAREONLY
                               | D3DPTEXTURECAPS_TEXREPEATNOTSCALEDBYSIZE
                               | D3DPTEXTURECAPS_TRANSPARENCY;
@@ -733,7 +711,7 @@ namespace dxvk {
                               | D3DSTENCILCAPS_ZERO;
 
     desc.dwFVFCaps                = (ddrawCaps::MaxSimultaneousTextures & D3DFVFCAPS_TEXCOORDCOUNTMASK);
-                                /* | D3DFVFCAPS_DONOTSTRIPELEMENTS; */
+                                // | D3DFVFCAPS_DONOTSTRIPELEMENTS;
 
     desc.dwTextureOpCaps          = D3DTEXOPCAPS_ADD
                                   | D3DTEXOPCAPS_ADDSIGNED
@@ -782,7 +760,7 @@ namespace dxvk {
                  // | D3DDEVCAPS_DRAWPRIMITIVES2EX
                  // | D3DDEVCAPS_SORTDECREASINGZ
                  // | D3DDEVCAPS_SORTEXACT
-                    | D3DDEVCAPS_SORTINCREASINGZ // TODO: Check native
+                 // | D3DDEVCAPS_SORTINCREASINGZ
                  // | D3DDEVCAPS_STRIDEDVERTICES // Mentioned in the docs, but apparently is a ghost
                     | D3DDEVCAPS_TEXTURENONLOCALVIDMEM
                  // | D3DDEVCAPS_TEXTURESYSTEMMEMORY
@@ -805,12 +783,12 @@ namespace dxvk {
     D3DPRIMCAPS prim;
     prim.dwSize = sizeof(D3DPRIMCAPS);
 
-    prim.dwMiscCaps           = D3DPMISCCAPS_CONFORMANT
-                              | D3DPMISCCAPS_CULLCCW
+    prim.dwMiscCaps           = D3DPMISCCAPS_CULLCCW
                               | D3DPMISCCAPS_CULLCW
                               | D3DPMISCCAPS_CULLNONE
+                           // | D3DPMISCCAPS_CONFORMANT
                            // | D3DPMISCCAPS_LINEPATTERNREP // Not implemented in D3D9
-                              | D3DPMISCCAPS_MASKPLANES
+                           // | D3DPMISCCAPS_MASKPLANES
                               | D3DPMISCCAPS_MASKZ;
 
     prim.dwRasterCaps         = D3DPRASTERCAPS_ANISOTROPY
@@ -823,14 +801,14 @@ namespace dxvk {
                               | D3DPRASTERCAPS_FOGVERTEX
                               | D3DPRASTERCAPS_MIPMAPLODBIAS
                            // | D3DPRASTERCAPS_PAT // Not implemented in D3D9
-                              | D3DPRASTERCAPS_ROP2
-                           // | D3DPRASTERCAPS_STIPPLE
+                           // | D3DPRASTERCAPS_ROP2
+                              | D3DPRASTERCAPS_STIPPLE // Technically not implemented
                               | D3DPRASTERCAPS_SUBPIXEL
-                              | D3DPRASTERCAPS_SUBPIXELX
+                           // | D3DPRASTERCAPS_SUBPIXELX
                            // | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
                            // | D3DPRASTERCAPS_WBUFFER
                               | D3DPRASTERCAPS_WFOG
-                              | D3DPRASTERCAPS_XOR
+                           // | D3DPRASTERCAPS_XOR
                               | D3DPRASTERCAPS_ZBIAS
                            // | D3DPRASTERCAPS_ZBUFFERLESSHSR // Easy footgun to not get a z-buffer
                               | D3DPRASTERCAPS_ZFOG
@@ -874,18 +852,18 @@ namespace dxvk {
                            // | D3DPSHADECAPS_ALPHAGOURAUDSTIPPLED
                            // | D3DPSHADECAPS_ALPHAPHONGBLEND
                            // | D3DPSHADECAPS_ALPHAPHONGSTIPPLED
-                              | D3DPSHADECAPS_COLORFLATMONO
+                           // | D3DPSHADECAPS_COLORFLATMONO
                               | D3DPSHADECAPS_COLORFLATRGB
-                              | D3DPSHADECAPS_COLORGOURAUDMONO
+                           // | D3DPSHADECAPS_COLORGOURAUDMONO
                               | D3DPSHADECAPS_COLORGOURAUDRGB
                            // | D3DPSHADECAPS_COLORPHONGMONO
                            // | D3DPSHADECAPS_COLORPHONGRGB
                               | D3DPSHADECAPS_FOGFLAT
                               | D3DPSHADECAPS_FOGGOURAUD
                            // | D3DPSHADECAPS_FOGPHONG
-                              | D3DPSHADECAPS_SPECULARFLATMONO
+                           // | D3DPSHADECAPS_SPECULARFLATMONO
                               | D3DPSHADECAPS_SPECULARFLATRGB
-                              | D3DPSHADECAPS_SPECULARGOURAUDMONO
+                           // | D3DPSHADECAPS_SPECULARGOURAUDMONO
                               | D3DPSHADECAPS_SPECULARGOURAUDRGB;
                            // | D3DPSHADECAPS_SPECULARPHONGMONO
                            // | D3DPSHADECAPS_SPECULARPHONGRGB;
@@ -893,9 +871,9 @@ namespace dxvk {
     prim.dwTextureCaps        = D3DPTEXTURECAPS_ALPHA
                               | D3DPTEXTURECAPS_ALPHAPALETTE
                               | D3DPTEXTURECAPS_BORDER
-                              | D3DPTEXTURECAPS_COLORKEYBLEND // Hard required, but not implemented in D3D9
+                           // | D3DPTEXTURECAPS_COLORKEYBLEND
                               | D3DPTEXTURECAPS_CUBEMAP
-                              | D3DPTEXTURECAPS_NONPOW2CONDITIONAL // Apparently always exposed by D3D7
+                           // | D3DPTEXTURECAPS_NONPOW2CONDITIONAL
                               | D3DPTEXTURECAPS_PERSPECTIVE
                            // | D3DPTEXTURECAPS_POW2
                               | D3DPTEXTURECAPS_PROJECTED
@@ -968,7 +946,7 @@ namespace dxvk {
                                | D3DSTENCILCAPS_ZERO;
 
     desc7.dwFVFCaps                = (ddrawCaps::MaxSimultaneousTextures & D3DFVFCAPS_TEXCOORDCOUNTMASK);
-                                /* | D3DFVFCAPS_DONOTSTRIPELEMENTS; */
+                                // | D3DFVFCAPS_DONOTSTRIPELEMENTS;
 
     desc7.dwTextureOpCaps          = D3DTEXOPCAPS_ADD
                                    | D3DTEXOPCAPS_ADDSIGNED
@@ -1009,8 +987,8 @@ namespace dxvk {
                                    | D3DVTXPCAPS_MATERIALSOURCE7
                                    | D3DVTXPCAPS_VERTEXFOG
                                    | D3DVTXPCAPS_DIRECTIONALLIGHTS
-                                   | D3DVTXPCAPS_POSITIONALLIGHTS;
-                                // | D3DVTXPCAPS_NONLOCALVIEWER; // Described in the official docs, otherwise a ghost
+                                   | D3DVTXPCAPS_POSITIONALLIGHTS
+                                   | D3DVTXPCAPS_LOCALVIEWER;
 
     desc7.dwReserved1              = 0;
     desc7.dwReserved2              = 0;

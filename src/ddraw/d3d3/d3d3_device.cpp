@@ -16,18 +16,12 @@ namespace dxvk {
       D3D5Device* origin)
     : DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9>(pParent, std::move(d3d5DeviceProxy), nullptr)
     , m_origin ( origin ) {
-    if (likely(m_parent != nullptr))
-      m_parent->AddRef();
-
     m_deviceCount = ++s_deviceCount;
 
     Logger::debug(str::format("D3D3Device: Created a new device nr. ((1-", m_deviceCount, "))"));
   }
 
   D3D3Device::~D3D3Device() {
-    if (likely(m_parent != nullptr))
-      m_parent->Release();
-
     Logger::debug(str::format("D3D3Device: Device nr. ((1-", m_deviceCount, ")) bites the dust"));
   }
 

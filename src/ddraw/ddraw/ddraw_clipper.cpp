@@ -6,23 +6,17 @@ namespace dxvk {
 
   DDrawClipper::DDrawClipper(
         Com<IDirectDrawClipper>&& clipperProxy,
-        DDrawInterface* pParent)
-    : DDrawWrappedObject<DDrawInterface, IDirectDrawClipper, IUnknown>(pParent, std::move(clipperProxy), nullptr) {
-    if (likely(m_parent != nullptr))
-      m_parent->AddRef();
-
+        IUnknown* pParent)
+    : DDrawWrappedObject<IUnknown, IDirectDrawClipper, IUnknown>(pParent, std::move(clipperProxy), nullptr) {
     Logger::debug("DDrawClipper: Created a new clipper");
   }
 
   DDrawClipper::~DDrawClipper() {
-    if (likely(m_parent != nullptr))
-      m_parent->Release();
-
     Logger::debug("DDrawClipper: A clipper bites the dust");
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<DDrawInterface, IDirectDrawClipper, IUnknown>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<IUnknown, IDirectDrawClipper, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
     if (riid == __uuidof(IDirectDrawClipper)) {

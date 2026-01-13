@@ -182,20 +182,16 @@ namespace dxvk {
 
       Logger::debug("DDraw2Surface::QueryInterface: Query for IDirect3DTexture2");
 
-      Com<D3D5Texture> texture5 = m_parent->GetD3D5Texture();
-      if (unlikely(texture5 == nullptr)) {
-        Com<IDirect3DTexture2> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      Com<IDirect3DTexture2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-        D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
-        texture5 = new D3D5Texture(std::move(ppvProxyObject), m_parent, nextHandle);
-        m_parent->SetD3D5Texture(texture5.ptr());
-        m_parent->GetParent()->EmplaceTexture(texture5.ptr(), nextHandle);
+      D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
+      Com<D3D5Texture> texture5 = new D3D5Texture(std::move(ppvProxyObject), m_parent, nextHandle);
+      m_parent->GetParent()->EmplaceTexture(texture5.ptr(), nextHandle);
 
-        m_commonSurf->DirtyMipMaps();
-      }
+      m_commonSurf->DirtyMipMaps();
 
       *ppvObject = texture5.ref();
 
@@ -381,7 +377,7 @@ namespace dxvk {
 
       if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
         if (unlikely(!IsInitialized()))
-          m_parent->IntializeD3D9(m_d3d5Device->GetRenderTarget() == m_parent);
+          m_parent->InitializeD3D9(m_d3d5Device->GetRenderTarget() == m_parent);
 
         BlitToDDrawSurface<IDirectDrawSurface2, DDSURFACEDESC>(m_proxy.ptr(), m_d3d5Device->GetRenderTarget()->GetD3D9());
 
@@ -415,7 +411,6 @@ namespace dxvk {
       }
 
       m_d3d5Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
-      Logger::debug("*** DDraw2Surface::Flip: We have presented, allegedly");
     // If we don't have a valid D3D5 device, this means a D3D3 application
     // is trying to flip the surface. Allow that for compatibility reasons.
     } else {
