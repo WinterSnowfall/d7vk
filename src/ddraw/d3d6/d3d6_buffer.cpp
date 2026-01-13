@@ -187,7 +187,7 @@ namespace dxvk {
   HRESULT D3D6VertexBuffer::InitializeD3D9() {
     // Can't create anything without a valid device
     if (unlikely(m_d3d6Device == nullptr)) {
-      Logger::warn("D3D6VertexBuffer::IntializeD3D9: Null D3D6 device, can't initalize right now");
+      Logger::warn("D3D6VertexBuffer::InitializeD3D9: Null D3D6 device, can't initialize right now");
       return DDERR_GENERIC;
     }
 
@@ -198,17 +198,17 @@ namespace dxvk {
 
     const char* poolPlacement = pool == d3d9::D3DPOOL_DEFAULT ? "D3DPOOL_DEFAULT" : "D3DPOOL_SYSTEMMEM";
 
-    Logger::debug(str::format("D3D6VertexBuffer::IntializeD3D9: Placing in: ", poolPlacement));
+    Logger::debug(str::format("D3D6VertexBuffer::InitializeD3D9: Placing in: ", poolPlacement));
 
     const DWORD usage = ConvertD3D6UsageFlags(m_desc.dwCaps, m_creationFlags, pool);
     HRESULT hr = m_d3d6Device->GetD3D9()->CreateVertexBuffer(m_size, usage, m_desc.dwFVF, pool, &m_d3d9, nullptr);
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6VertexBuffer::IntializeD3D9: Failed to create D3D9 vertex buffer");
+      Logger::err("D3D6VertexBuffer::InitializeD3D9: Failed to create D3D9 vertex buffer");
       return hr;
     }
 
-    Logger::debug("D3D6VertexBuffer::IntializeD3D9: Created D3D9 vertex buffer");
+    Logger::debug("D3D6VertexBuffer::InitializeD3D9: Created D3D9 vertex buffer");
 
     return DD_OK;
   }

@@ -8,12 +8,9 @@
 
 #include "../../d3d9/d3d9_bridge.h"
 
-#include "../d3d7/d3d7_interface.h"
-
-
 namespace dxvk {
 
-  class D3D7Device;
+  class D3D7Interface;
   class DDraw7Surface;
 
   /**
@@ -96,19 +93,19 @@ namespace dxvk {
 
   private:
 
-    bool                      m_needsInitialization = false;
-    bool                      m_isInitialized = false;
+    bool                         m_needsInitialization = false;
+    bool                         m_isInitialized = false;
 
-    static uint32_t           s_intfCount;
-    uint32_t                  m_intfCount  = 0;
+    static uint32_t              s_intfCount;
+    uint32_t                     m_intfCount  = 0;
 
-    Com<DDrawCommonInterface> m_commonIntf;
+    Com<DDrawCommonInterface>    m_commonIntf;
 
-    IUnknown*                 m_origin = nullptr;
+    IUnknown*                    m_origin = nullptr;
 
-    Com<D3D7Interface, false> m_d3d7Intf;
+    Com<D3D7Interface, false>    m_d3d7Intf;
 
-    DDraw7Surface*            m_lastDepthStencil = nullptr;
+    DDraw7Surface*               m_lastDepthStencil = nullptr;
 
   };
 

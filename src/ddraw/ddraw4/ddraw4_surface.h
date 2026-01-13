@@ -163,7 +163,7 @@ namespace dxvk {
 
   private:
 
-    inline HRESULT IntializeD3D9(const bool initRT);
+    inline HRESULT InitializeD3D9(const bool initRT);
 
     inline HRESULT UploadSurfaceData();
 
@@ -221,8 +221,6 @@ namespace dxvk {
     IUnknown*                           m_origin     = nullptr;
 
     D3D6Device*                         m_d3d6Device = nullptr;
-
-    Com<D3D6Texture, false>             m_texture6;
 
     Com<d3d9::IDirect3DTexture9>        m_texture;
 
