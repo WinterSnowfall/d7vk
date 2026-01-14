@@ -262,7 +262,7 @@ namespace dxvk {
     bool                      m_isForwardableSurface    = false;
     bool                      m_isGuardableSurface      = false;
 
-    uint8_t                   m_mipCount     = 1;
+    uint8_t                   m_mipCount = 1;
 
     DDSURFACEDESC             m_desc  = { };
     DDSURFACEDESC2            m_desc2 = { };
