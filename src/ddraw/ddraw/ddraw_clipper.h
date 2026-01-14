@@ -11,7 +11,8 @@ namespace dxvk {
 
     DDrawClipper(
           Com<IDirectDrawClipper>&& clipperProxy,
-          IUnknown* pParent);
+          IUnknown* pParent,
+          bool needsInitialization);
 
     ~DDrawClipper();
 
@@ -26,6 +27,11 @@ namespace dxvk {
     HRESULT STDMETHODCALLTYPE SetHWnd(DWORD dwFlags, HWND hWnd);
 
     HRESULT STDMETHODCALLTYPE GetHWnd(HWND *lphWnd);
+
+  private:
+
+    bool m_needsInitialization = false;
+    bool m_isInitialized       = false;
 
   };
 

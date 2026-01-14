@@ -211,9 +211,10 @@ namespace dxvk {
           (drawFlags & D3DDP_DONOTLIGHT) ||
          !(vertexTypeDesc & D3DFVF_NORMAL)) {
         m_d3d9->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
-        if (m_lighting)
+        if (m_lighting) {
           Logger::debug("D3D6Device: Disabling lighting");
           m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+        }
       }
     }
 
