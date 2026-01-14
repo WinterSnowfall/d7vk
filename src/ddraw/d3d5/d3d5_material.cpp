@@ -26,8 +26,9 @@ namespace dxvk {
   IUnknown* DDrawWrappedObject<D3D5Interface, IDirect3DMaterial2, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
-    // This appears to be largely unhandled for IDirect3DMaterial2
-    /*if (riid == __uuidof(IDirect3DMaterial2)) {
+    // Materials are managed through handles, so nobody will query this,
+    // nor should we care in particular about older interfaces here
+    if (riid == __uuidof(IDirect3DMaterial2)) {
       if (unlikely(m_forwardToProxy)) {
         Logger::debug("D3D5Material::QueryInterface: Forwarding interface query to proxied object");
         // Hack: Return the proxied interface, as some applications need
@@ -38,7 +39,7 @@ namespace dxvk {
           return reinterpret_cast<IUnknown*>(ppvObject);
       }
       return this;
-    }*/
+    }
 
     throw DxvkError("D3D5Material::QueryInterface: Unknown interface query");
   }

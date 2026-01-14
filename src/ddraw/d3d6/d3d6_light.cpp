@@ -19,8 +19,7 @@ namespace dxvk {
   IUnknown* DDrawWrappedObject<D3D6Interface, IDirect3DLight, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
-    // This appears to be largely unhandled for IDirect3DLight...
-    /*if (riid == __uuidof(IDirect3DLight)) {
+    if (riid == __uuidof(IDirect3DLight)) {
       if (unlikely(m_forwardToProxy)) {
         Logger::debug("D3D6Light::QueryInterface: Forwarding interface query to proxied object");
         // Hack: Return the proxied interface, as some applications need
@@ -31,7 +30,7 @@ namespace dxvk {
           return reinterpret_cast<IUnknown*>(ppvObject);
       }
       return this;
-    }*/
+    }
 
     throw DxvkError("D3D6Light::QueryInterface: Unknown interface query");
   }
@@ -64,9 +63,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Light::SetLight(D3DLIGHT *data) {
     Logger::debug(">>> D3D6Light::SetLight");
 
-    static constexpr D3DCOLORVALUE zeroValue = {{0.0f}, {0.0f}, {0.0f}, {0.0f}};
+    static constexpr D3DCOLORVALUE noLight = {{0.0f}, {0.0f}, {0.0f}, {0.0f}};
 
     if (unlikely(data == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(!data->dwSize))
       return DDERR_INVALIDPARAMS;
 
     // Hidden & Dangeous spams a lot of parallel point lights
@@ -82,12 +84,15 @@ namespace dxvk {
     // Docs: "Although this method's declaration specifies the lpLight parameter as being
     // the address of a D3DLIGHT structure, that structure is not normally used. Rather,
     // the D3DLIGHT2 structure is recommended to achieve the best lighting effects."
-    memcpy(&m_light, data, sizeof(D3DLIGHT2));
+    memcpy(&m_light, data, data->dwSize);
+    // D3DLIGHT structure lights are, apparently, considered to be active by default
+    m_light.dwFlags = data->dwSize == sizeof(D3DLIGHT2) ? reinterpret_cast<D3DLIGHT2*>(data)->dwFlags : D3DLIGHT_ACTIVE;
 
     m_light9.Type         = d3d9::D3DLIGHTTYPE(m_light.dltType);
     m_light9.Diffuse      = m_light.dcvColor;
-    m_light9.Specular     = HasSpecular() ? m_light.dcvColor : zeroValue;
-    m_light9.Ambient      = m_light.dcvColor;
+    m_light9.Specular     = HasSpecular() ? m_light.dcvColor : noLight;
+    // Ambient light comes from the material
+    m_light9.Ambient      = noLight;
     m_light9.Position     = m_light.dvPosition;
     m_light9.Direction    = m_light.dvDirection;
     m_light9.Range        = m_light.dvRange;
@@ -126,11 +131,10 @@ namespace dxvk {
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // Technically should also accept D3DLIGHT, but prior to D3D5
-    if (unlikely(data->dwSize != sizeof(D3DLIGHT2)))
+    if (unlikely(!data->dwSize))
       return DDERR_INVALIDPARAMS;
 
-    memcpy(data, &m_light, sizeof(D3DLIGHT2));
+    memcpy(data, &m_light, data->dwSize);
 
     return D3D_OK;
   }

@@ -101,7 +101,7 @@ namespace dxvk {
         HMODULE hDDraw = GetProxiedDDrawModule();
 
         if (unlikely(!hDDraw)) {
-          Logger::err("CreateDirectDrawEx: Failed to load proxied ddraw.dll");
+          Logger::err("CreateDirectDraw: Failed to load proxied ddraw.dll");
           return DDERR_GENERIC;
         }
 
@@ -131,7 +131,7 @@ namespace dxvk {
     return S_OK;
   }
 
-  HRESULT CreateDirectDrawClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
+  HRESULT CreateDirectDrawClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter, bool needsInitialization) {
     Logger::debug(">>> DirectDrawCreateClipper");
 
     if (unlikely(lplpDDClipper == nullptr))
@@ -166,7 +166,7 @@ namespace dxvk {
       return hr;
     }
 
-    *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), nullptr));
+    *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), nullptr, needsInitialization));
 
     return S_OK;
   }
@@ -184,6 +184,35 @@ namespace dxvk {
 
     GUID intfGUID = __uuidof(IDirectDraw);
     return CreateDirectDraw(&intfGUID, reinterpret_cast<IDirectDraw**>(ppvObject), NULL, true);
+  }
+
+  HRESULT ClassFactoryCreateDirectDrawEx(IUnknown *pUnkOuter, REFIID riid, void **ppvObject) {
+    Logger::debug(">>> ClassFactoryCreateDirectDrawEx");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    if (unlikely(pUnkOuter != nullptr))
+      return CLASS_E_NOAGGREGATION;
+
+    GUID intfGUID = __uuidof(IDirectDraw7);
+    return CreateDirectDrawEx(&intfGUID, ppvObject, __uuidof(IDirectDraw7), NULL, true);
+  }
+
+  HRESULT ClassFactoryCreateDirectDrawClipper(IUnknown *pUnkOuter, REFIID riid, void **ppvObject) {
+    Logger::debug(">>> ClassFactoryCreateDirectDrawClipper");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    if (unlikely(pUnkOuter != nullptr))
+      return CLASS_E_NOAGGREGATION;
+
+    return CreateDirectDrawClipper(0, reinterpret_cast<IDirectDrawClipper**>(ppvObject), NULL, true);
   }
 
 }
@@ -251,7 +280,7 @@ extern "C" {
 
   // Mostly unused, except for Sea Dogs (D3D6)
   DLLEXPORT HRESULT __stdcall DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
-    return dxvk::CreateDirectDrawClipper(dwFlags, lplpDDClipper, pUnkOuter);
+    return dxvk::CreateDirectDrawClipper(dwFlags, lplpDDClipper, pUnkOuter, false);
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawCreateEx(GUID *lpGUID, LPVOID *lplpDD, REFIID iid, IUnknown *pUnkOuter) {
@@ -391,9 +420,20 @@ extern "C" {
     if (unlikely(riid != __uuidof(IClassFactory) && riid != __uuidof(IUnknown)))
       return E_NOINTERFACE;
 
-    // TODO: CLSID_DirectDraw7, if there's any use in the wild
     if (likely(rclsid == dxvk::CLSID_DirectDraw)) {
       dxvk::DDrawClassFactory* ddrawClassFactory = new dxvk::DDrawClassFactory(dxvk::ClassFactoryCreateDirectDraw);
+
+      *ppv = ref(ddrawClassFactory);
+
+      return S_OK;
+    } else if (rclsid == dxvk::CLSID_DirectDraw7) {
+      dxvk::DDrawClassFactory* ddrawClassFactory = new dxvk::DDrawClassFactory(dxvk::ClassFactoryCreateDirectDrawEx);
+
+      *ppv = ref(ddrawClassFactory);
+
+      return S_OK;
+    } else if (rclsid == dxvk::CLSID_DirectDrawClipper) {
+      dxvk::DDrawClassFactory* ddrawClassFactory = new dxvk::DDrawClassFactory(dxvk::ClassFactoryCreateDirectDrawClipper);
 
       *ppv = ref(ddrawClassFactory);
 
