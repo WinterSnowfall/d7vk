@@ -150,12 +150,12 @@ namespace dxvk {
 
   private:
 
-    bool                              m_waitForVBlank     = true;
-    bool                              m_isColorKeyEnabled = false;
+    bool                              m_waitForVBlank      = true;
+    bool                              m_isColorKeyEnabled  = false;
 
-    DWORD                             m_cooperativeLevel = 0;
+    DWORD                             m_cooperativeLevel   = 0;
 
-    HWND                              m_hwnd             = nullptr;
+    HWND                              m_hwnd               = nullptr;
 
     DDrawModeSize                     m_modeSize = { };
 
@@ -164,15 +164,15 @@ namespace dxvk {
     D3DOptions                        m_options;
 
     // Track all possible last used D3D devices
-    D3D7Device*                       m_device7          = nullptr;
-    D3D6Device*                       m_device6          = nullptr;
-    D3D5Device*                       m_device5          = nullptr;
+    D3D7Device*                       m_device7            = nullptr;
+    D3D6Device*                       m_device6            = nullptr;
+    D3D5Device*                       m_device5            = nullptr;
 
     // Track all possible instance versions of the same object
-    DDraw7Interface*                  m_intf7            = nullptr;
-    DDraw4Interface*                  m_intf4            = nullptr;
-    DDraw2Interface*                  m_intf2            = nullptr;
-    DDrawInterface*                   m_intf             = nullptr;
+    DDraw7Interface*                  m_intf7              = nullptr;
+    DDraw4Interface*                  m_intf4              = nullptr;
+    DDraw2Interface*                  m_intf2              = nullptr;
+    DDrawInterface*                   m_intf               = nullptr;
 
     std::vector<IDirectDrawSurface7*> m_surfaces7;
     std::vector<IDirectDrawSurface4*> m_surfaces4;
