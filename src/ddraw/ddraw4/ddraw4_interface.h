@@ -92,7 +92,7 @@ namespace dxvk {
   private:
 
     bool                      m_needsInitialization = false;
-    bool                      m_isInitialized = false;
+    bool                      m_isInitialized       = false;
 
     static uint32_t           s_intfCount;
     uint32_t                  m_intfCount  = 0;
