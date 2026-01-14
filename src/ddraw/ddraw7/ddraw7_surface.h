@@ -15,6 +15,9 @@
 
 namespace dxvk {
 
+  /**
+  * \brief IDirectDrawSurface7 interface implementation
+  */
   class DDraw7Surface final : public DDrawWrappedObject<DDraw7Interface, IDirectDrawSurface7, d3d9::IDirect3DSurface9> {
 
   public:

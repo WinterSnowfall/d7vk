@@ -188,9 +188,10 @@ namespace dxvk {
           (drawFlags & D3DDP_DONOTLIGHT) ||
          !(vertexTypeDesc & D3DFVF_NORMAL)) {
         m_d3d9->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
-        if (m_lighting)
+        if (m_lighting) {
           Logger::debug("D3D5Device: Disabling lighting");
           m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+        }
       }
     }
 
@@ -203,13 +204,13 @@ namespace dxvk {
       }
     }
 
-    bool                          m_hasDrawn    = false;
-    bool                          m_inScene     = false;
+    bool                          m_hasDrawn     = false;
+    bool                          m_inScene      = false;
 
     static uint32_t               s_deviceCount;
-    uint32_t                      m_deviceCount = 0;
+    uint32_t                      m_deviceCount  = 0;
 
-    DWORD                         m_lighting    = FALSE;
+    DWORD                         m_lighting     = FALSE;
 
     DDrawInterface*               m_DDIntfParent = nullptr;
     DDrawCommonInterface*         m_commonIntf   = nullptr;

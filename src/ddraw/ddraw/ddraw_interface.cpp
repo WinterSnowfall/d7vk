@@ -223,7 +223,7 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this));
+      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this, false));
     } else {
       Logger::warn("DDrawInterface::CreateClipper: Failed to create proxy clipper");
       return hr;

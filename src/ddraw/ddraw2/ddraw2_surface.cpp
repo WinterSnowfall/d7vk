@@ -395,21 +395,6 @@ namespace dxvk {
         }
       }
 
-      // If the interface is waiting for VBlank and we get a no VSync flip, switch
-      // to doing immediate presents by resetting the swapchain appropriately
-      if (unlikely(m_commonIntf->GetWaitForVBlank() && (dwFlags & DDFLIP_NOVSYNC))) {
-        Logger::info("DDraw2Surface::Flip: Switching to D3DPRESENT_INTERVAL_IMMEDIATE for presentation");
-
-        d3d9::D3DPRESENT_PARAMETERS resetParams = m_d3d5Device->GetPresentParameters();
-        resetParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-        HRESULT hrReset = m_d3d5Device->Reset(&resetParams);
-        if (unlikely(FAILED(hrReset))) {
-          Logger::warn("DDraw2Surface::Flip: Failed D3D9 swapchain reset");
-        } else {
-          m_commonIntf->SetWaitForVBlank(false);
-        }
-      }
-
       m_d3d5Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
     // If we don't have a valid D3D5 device, this means a D3D3 application
     // is trying to flip the surface. Allow that for compatibility reasons.
