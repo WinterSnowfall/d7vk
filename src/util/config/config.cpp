@@ -1608,6 +1608,10 @@ namespace dxvk {
     { R"(\\Lancer\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* SimCity 4                                  */
+    { R"(\\SimCity 4\.exe$)", {{
+      { "ddraw.proxiedQueryInterface",      "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
@@ -1710,6 +1714,10 @@ namespace dxvk {
     { R"(\\n2_(std|arc)\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.forceSingleBackBuffer",      "True" },
+    }} },
+    /* Twisted Metal 2                            */
+    { R"(\\tm2\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
 
   };
