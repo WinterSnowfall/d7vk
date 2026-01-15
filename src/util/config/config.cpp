@@ -1680,6 +1680,22 @@ namespace dxvk {
     { R"(\\tm2\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Incoming                                   */
+    { R"(\\incoming\.exe$)", {{
+      { "d3d7.proxiedExecuteBuffers",       "True" },
+    }} },
+    /* Warhammer: Dark Omen                       */
+    { R"(\\DarkOmen\.exe$)", {{
+      { "d3d7.proxiedExecuteBuffers",       "True" },
+    }} },
+    /* O.D.T.: Escape... Or Die Trying            */
+    { R"(\\ODT\.exe$)", {{
+      { "d3d7.proxiedExecuteBuffers",       "True" },
+    }} },
+    /* Star Wars: Shadows of the Empire           */
+    { R"(\\Shadows\.exe$)", {{
+      { "d3d7.proxiedExecuteBuffers",       "True" },
+    }} },
 
   };
 

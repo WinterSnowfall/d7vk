@@ -61,6 +61,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Light::SetLight(D3DLIGHT *data) {
+    if (unlikely(m_parent->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Light::SetLight: Proxy");
+      return m_proxy->SetLight(data);
+    }
+
     Logger::debug(">>> D3D5Light::SetLight");
 
     static constexpr D3DCOLORVALUE noLight = {{0.0f}, {0.0f}, {0.0f}, {0.0f}};
@@ -126,6 +131,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Light::GetLight(D3DLIGHT *data) {
+    if (unlikely(m_parent->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Light::GetLight: Proxy");
+      return m_proxy->GetLight(data);
+    }
+
     Logger::debug(">>> D3D5Light::GetLight");
 
     if (unlikely(data == nullptr))

@@ -1171,7 +1171,7 @@ namespace dxvk {
 
     DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
 
-    if (unlikely(m_parent->GetOptions()->proxySetTexture)) {
+    if (unlikely(m_parent->GetOptions()->proxiedSetTexture)) {
       HRESULT hrProxy = m_proxy->SetTexture(stage, surface7->GetProxied());
       if (unlikely(FAILED(hrProxy)))
         Logger::warn("D3D7Device::SetTexture: Failed proxied call");

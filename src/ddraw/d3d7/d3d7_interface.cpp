@@ -325,7 +325,7 @@ namespace dxvk {
                                                params, std::move(device9),
                                                rt7.ptr(), deviceCreationFlags9);
       // Set the newly created D3D7 device on the common interface
-      m_parent->GetCommonInterface()->SetD3D7Device(device7.ptr());
+      commonIntf->SetD3D7Device(device7.ptr());
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       device7->InitializeDS();
       // Enable SWVP in case of mixed SWVP devices

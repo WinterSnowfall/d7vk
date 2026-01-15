@@ -2,7 +2,7 @@
 
 A Vulkan-based translation layer for Direct3D 7, 6 and 5 which allows running 3D applications on Linux using Wine. It uses DXVK's D3D9 backend as well as Wine's DDraw implementation (or the windows native DDraw) and acts as a proxy between the two, providing a minimal D3D7/6/5-on-D3D9 implementation.
 
-Note however that D3D6/5 games making use of the legacy D3D3 rendering pipeline (using execute buffers) and not supported by D7VK. Needless to say, neither are any cursed D3D retained-mode applications, since the project only implements immediate-mode.
+Note however that D3D6/5 games making use of the legacy D3D3 rendering pipeline (using execute buffers) are not supported by D7VK. Needless to say, neither are any cursed D3D retained-mode applications, since the project only implements immediate-mode.
 
 ## FAQ
 
