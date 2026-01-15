@@ -176,6 +176,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::AddViewport(IDirect3DViewport2 *viewport) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::AddViewport: Proxy");
+      D3D5Viewport* d3d5Viewport = static_cast<D3D5Viewport*>(viewport);
+      return m_proxy->AddViewport(d3d5Viewport->GetProxied());
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::AddViewport");
@@ -194,6 +200,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::DeleteViewport(IDirect3DViewport2 *viewport) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::DeleteViewport: Proxy");
+      D3D5Viewport* d3d5Viewport = static_cast<D3D5Viewport*>(viewport);
+      return m_proxy->DeleteViewport(d3d5Viewport->GetProxied());
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::DeleteViewport");
@@ -282,6 +294,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::BeginScene() {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::BeginScene: Proxy");
+      return m_proxy->BeginScene();
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::BeginScene");
@@ -300,6 +317,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::EndScene() {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::EndScene: Proxy");
+      return m_proxy->EndScene();
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::EndScene");
@@ -344,6 +366,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SetCurrentViewport(IDirect3DViewport2 *viewport) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::SetCurrentViewport: Proxy");
+      Com<D3D5Viewport> d3d5Viewport = static_cast<D3D5Viewport*>(viewport);
+      return m_proxy->SetCurrentViewport(d3d5Viewport->GetProxied());
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::SetCurrentViewport");
@@ -369,6 +397,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetCurrentViewport(IDirect3DViewport2 **viewport) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::GetCurrentViewport: Proxy");
+      return m_proxy->GetCurrentViewport(viewport);
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::GetCurrentViewport");
@@ -387,6 +420,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SetRenderTarget(IDirectDrawSurface *surface, DWORD flags) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::SetRenderTarget: Proxy");
+      DDrawSurface* rt5 = static_cast<DDrawSurface*>(surface);
+      return m_proxy->SetRenderTarget(rt5->GetProxied(), flags);
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::SetRenderTarget");
@@ -471,6 +510,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetRenderTarget(IDirectDrawSurface **surface) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::GetRenderTarget: Proxy");
+      return m_proxy->GetRenderTarget(surface);
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::GetRenderTarget");
@@ -509,6 +553,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType, LPDWORD lpdwRenderState) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::GetRenderState: Proxy");
+      return m_proxy->GetRenderState(dwRenderStateType, lpdwRenderState);
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(str::format(">>> D3D5Device::GetRenderState: ", dwRenderStateType));
@@ -532,7 +581,7 @@ namespace dxvk {
 
       // Replacement for later implemented GetTexture calls
       case D3DRENDERSTATE_TEXTUREHANDLE: {
-        if (unlikely(m_parent->GetOptions()->proxySetTexture)) {
+        if (unlikely(m_parent->GetOptions()->proxiedSetTexture)) {
           Logger::debug("<<< D3D5Device::GetRenderState: Proxy");
           return m_proxy->GetRenderState(dwRenderStateType, lpdwRenderState);
         }
@@ -694,6 +743,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::SetRenderState: Proxy");
+      return m_proxy->SetRenderState(dwRenderStateType, dwRenderState);
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(str::format(">>> D3D5Device::SetRenderState: ", dwRenderStateType));
@@ -712,7 +766,7 @@ namespace dxvk {
 
       // Replacement for later implemented SetTexture calls
       case D3DRENDERSTATE_TEXTUREHANDLE: {
-        if (unlikely(m_parent->GetOptions()->proxySetTexture)) {
+        if (unlikely(m_parent->GetOptions()->proxiedSetTexture)) {
           Logger::debug("<<< D3D5Device::SetRenderState: Proxy");
           return m_proxy->SetRenderState(dwRenderStateType, dwRenderState);
         }
@@ -1043,6 +1097,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LPDWORD lpdwLightState) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::GetLightState: Proxy");
+      return m_proxy->GetLightState(dwLightStateType, lpdwLightState);
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::GetLightState");
@@ -1078,6 +1137,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DWORD dwLightState) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::SetLightState: Proxy");
+      return m_proxy->SetLightState(dwLightStateType, dwLightState);
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::SetLightState");
@@ -1124,21 +1188,41 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::SetTransform: Proxy");
+      return m_proxy->SetTransform(state, matrix);
+    }
+
     Logger::debug(">>> D3D5Device::SetTransform");
     return m_d3d9->SetTransform(ConvertTransformState(state), matrix);
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::GetTransform: Proxy");
+      return m_proxy->GetTransform(state, matrix);
+    }
+
     Logger::debug(">>> D3D5Device::GetTransform");
     return m_d3d9->GetTransform(ConvertTransformState(state), matrix);
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::MultiplyTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::GetTransform: Proxy");
+      return m_proxy->MultiplyTransform(state, matrix);
+    }
+
     Logger::debug(">>> D3D5Device::MultiplyTransform");
     return m_d3d9->MultiplyTransform(ConvertTransformState(state), matrix);
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::DrawPrimitive(D3DPRIMITIVETYPE primitive_type, D3DVERTEXTYPE vertex_type, void *vertices, DWORD vertex_count, DWORD flags) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::DrawPrimitive: Proxy");
+      return m_proxy->DrawPrimitive(primitive_type, vertex_type, vertices, vertex_count, flags);
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::DrawPrimitive");
@@ -1176,6 +1260,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE primitive_type, D3DVERTEXTYPE fvf, void *vertices, DWORD vertex_count, WORD *indices, DWORD index_count, DWORD flags) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::DrawIndexedPrimitive: Proxy");
+      return m_proxy->DrawIndexedPrimitive(primitive_type, fvf, vertices, vertex_count, indices, index_count, flags);
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::DrawIndexedPrimitive");
@@ -1220,6 +1309,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SetClipStatus(D3DCLIPSTATUS *clip_status) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::SetClipStatus: Proxy");
+      return m_proxy->SetClipStatus(clip_status);
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::SetClipStatus");
@@ -1236,6 +1330,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetClipStatus(D3DCLIPSTATUS *clip_status) {
+    if (unlikely(m_commonIntf->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Device::GetClipStatus: Proxy");
+      return m_proxy->GetClipStatus(clip_status);
+    }
+
     D3D5DeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::GetClipStatus");
