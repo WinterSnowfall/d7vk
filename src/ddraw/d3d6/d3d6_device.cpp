@@ -1516,7 +1516,7 @@ namespace dxvk {
     D3D6Texture* texture6 = static_cast<D3D6Texture*>(texture);
     DDraw4Surface* surface6 = texture6->GetParent();
 
-    if (unlikely(m_parent->GetOptions()->proxySetTexture)) {
+    if (unlikely(m_parent->GetOptions()->proxiedSetTexture)) {
       HRESULT hrProxy = m_proxy->SetTexture(stage, texture6->GetProxied());
       if (unlikely(FAILED(hrProxy)))
         Logger::warn("D3D6Device::SetTexture: Failed proxied call");
