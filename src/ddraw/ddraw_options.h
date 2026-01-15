@@ -45,6 +45,9 @@ namespace dxvk {
     /// Sacrifice, which won't enable 32-bit modes without D32 support.
     bool useD24X8forD32;
 
+    /// Proxies all D3D5 calls, to allow mixed D3D3 execute buffer use
+    bool proxiedExecuteBuffers;
+
     /// Max available memory override, shared with the D3D9 backend
     uint32_t maxAvailableMemory;
 
@@ -76,9 +79,9 @@ namespace dxvk {
     /// applications write to surfaces/mip maps outside of locks.
     bool alwaysDirtyMipMaps;
 
-    /// Also proxies SetTexture calls onto the underlying ddraw implementation.
+    /// Also proxies SetTexture calls onto the underlying DDraw implementation.
     /// Useful only for debugging and apitrace inspection.
-    bool proxySetTexture;
+    bool proxiedSetTexture;
 
     /// Force the use of a certain D3D9 device type. Sometimes needed to handle dubious
     /// application buffer placement and/or other types of SWVP-related issues.
@@ -95,6 +98,7 @@ namespace dxvk {
       this->forceEnableAA         = config.getOption<bool>   ("d3d7.forceEnableAA",          false);
       this->forceMultiThreaded    = config.getOption<bool>   ("d3d7.forceMultiThreaded",     false);
       this->useD24X8forD32        = config.getOption<bool>   ("d3d7.useD24X8forD32",         false);
+      this->proxiedExecuteBuffers = config.getOption<bool>   ("d3d7.proxiedExecuteBuffers",  false);
       // DDraw options
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);
@@ -105,7 +109,7 @@ namespace dxvk {
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
       this->autoGenMipMaps        = config.getOption<bool>   ("ddraw.autoGenMipMaps",        false);
       this->alwaysDirtyMipMaps    = config.getOption<bool>   ("ddraw.alwaysDirtyMipMaps",    false);
-      this->proxySetTexture       = config.getOption<bool>   ("ddraw.proxySetTexture",       false);
+      this->proxiedSetTexture     = config.getOption<bool>   ("ddraw.proxiedSetTexture",     false);
       // D3D9 options
       this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",      1024);
 
