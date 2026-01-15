@@ -155,10 +155,18 @@ namespace dxvk {
     if (unlikely(lplpDirect3DLight == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    // We do not really need a proxy light object, it's a simple container,
+    // however let's create one in case of execute buffers proxying
+    Com<IDirect3DLight> lightProxy = nullptr;
+    if (unlikely(m_options.proxiedExecuteBuffers)) {
+      HRESULT hr = m_proxy->CreateLight(&lightProxy, pUnkOuter);
+      if (unlikely(FAILED(hr)))
+        return hr;
+    }
+
     InitReturnPtr(lplpDirect3DLight);
 
-    // We do not really need a proxy light object, it's a simple container
-    *lplpDirect3DLight = ref(new D3D5Light(nullptr, this));
+    *lplpDirect3DLight = ref(new D3D5Light(std::move(lightProxy), this));
 
     return D3D_OK;
   }
@@ -169,12 +177,19 @@ namespace dxvk {
     if (unlikely(lplpDirect3DMaterial == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    Com<IDirect3DMaterial2> materialProxy = nullptr;
+    if (unlikely(m_options.proxiedExecuteBuffers)) {
+      HRESULT hr = m_proxy->CreateMaterial(&materialProxy, pUnkOuter);
+      if (unlikely(FAILED(hr)))
+        return hr;
+    }
+
     InitReturnPtr(lplpDirect3DMaterial);
 
     m_materialHandle++;
     auto materialIterPair = m_materials.emplace(std::piecewise_construct,
                                                 std::forward_as_tuple(m_materialHandle),
-                                                std::forward_as_tuple(nullptr, this, m_materialHandle));
+                                                std::forward_as_tuple(std::move(materialProxy), this, m_materialHandle));
 
     *lplpDirect3DMaterial = ref(&materialIterPair.first->second);
 
@@ -468,13 +483,15 @@ namespace dxvk {
       Com<D3D5Device> device5 = new D3D5Device(std::move(d3d5DeviceProxy), this, desc5,
                                                rclsidOverride, params, std::move(device9),
                                                rt.ptr(), deviceCreationFlags9);
-      // Set the newly created D3D7 device on the common interface
-      m_parent->GetCommonInterface()->SetD3D5Device(device5.ptr());
-      // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
-      device5->InitializeDS();
-      // Enable SWVP in case of mixed SWVP devices
-      if (unlikely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
-        device5->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
+      if (likely(!m_options.proxiedExecuteBuffers)) {
+        // Set the newly created D3D7 device on the common interface
+        commonIntf->SetD3D5Device(device5.ptr());
+        // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
+        device5->InitializeDS();
+        // Enable SWVP in case of mixed SWVP devices
+        if (unlikely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
+          device5->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
+      }
       *lplpD3DDevice = device5.ref();
     } catch (const DxvkError& e) {
       Logger::err(e.message());
