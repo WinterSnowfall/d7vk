@@ -81,7 +81,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Texture::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3DTEXTUREHANDLE lpHandle) {
-    if (unlikely(m_parent->GetOptions()->proxySetTexture)) {
+    if (unlikely(m_parent->GetOptions()->proxiedSetTexture ||
+                 m_parent->GetOptions()->proxiedExecuteBuffers)) {
       Logger::debug("<<< D3D5Texture::GetHandle: Proxy");
       return m_proxy->GetHandle(lpDirect3DDevice2, lpHandle);
     }
