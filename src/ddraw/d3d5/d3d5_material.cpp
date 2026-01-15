@@ -63,6 +63,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Material::SetMaterial(D3DMATERIAL *data) {
+    if (unlikely(m_parent->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Material::SetMaterial: Proxy");
+      return m_proxy->SetMaterial(data);
+    }
+
     Logger::debug(">>> D3D5Material::SetMaterial");
 
     if (unlikely(data == nullptr))
@@ -97,6 +102,11 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Material::GetMaterial(D3DMATERIAL *data) {
+    if (unlikely(m_parent->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Material::GetMaterial: Proxy");
+      return m_proxy->GetMaterial(data);
+    }
+
     Logger::debug(">>> D3D5Material::GetMaterial");
 
     if (unlikely(data == nullptr))
@@ -108,6 +118,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Material::GetHandle(IDirect3DDevice2 *device, D3DMATERIALHANDLE *handle) {
+    if (unlikely(m_parent->GetOptions()->proxiedExecuteBuffers)) {
+      Logger::debug("<<< D3D5Material::GetHandle: Proxy");
+      D3D5Device* d3d5Device = static_cast<D3D5Device*>(device);
+      return m_proxy->GetHandle(d3d5Device->GetProxied(), handle);
+    }
+
     Logger::debug(">>> D3D5Material::GetHandle");
 
     if(unlikely(device == nullptr || handle == nullptr))
