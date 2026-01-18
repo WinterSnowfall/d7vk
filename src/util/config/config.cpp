@@ -1379,12 +1379,17 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                "-240" },
       { "d3d7.deviceTypeOverride",          "SWVP" },
     }} },
+    /* Arx Fatalis                                */
+    { R"(\\arx\.exe$)", {{
+      { "d3d7.emulateFSAA",                 "True" },
+    }} },
     /* Sacrifice - Prevents hitching on asset     *
      * loading and fixes broken AI above 60 FPS.  *
      * Also support 32-bit modes, which need D32. */
     { R"(\\Sacrifice\.exe$)", {{
       { "d3d9.cachedWriteOnlyBuffers",      "True" },
       { "d3d9.maxFrameRate",                 "-60" },
+      { "d3d7.emulateFSAA",                 "True" },
       { "d3d7.useD24X8forD32",              "True" },
     }} },
     /* Battle Isle: The Andosia War - Performance *
@@ -1530,6 +1535,7 @@ namespace dxvk {
      * and cutscene playback / physics            */
     { R"(\\MessiahD3D\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
+      { "d3d7.emulateFSAA",                 "True" },
       { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Might and Magic IX / No One Lives Forever  */
@@ -1553,6 +1559,7 @@ namespace dxvk {
      * loading screens / menu transitions         */
     { R"(\\hitman\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
+      { "d3d7.emulateFSAA",                 "True" },
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Screamer 4x4 - Broken menu animation speed */
@@ -1562,6 +1569,7 @@ namespace dxvk {
     /* (The) Summoner - Accelerated game speed    */
     { R"(\\Sum\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
+      { "d3d7.emulateFSAA",                 "True" },
     }} },
     /* Wizardry 8 - Broken input handling and     *
      * crashing during intro / cutscene playback  */
@@ -1609,6 +1617,7 @@ namespace dxvk {
     }} },
     /* Sacred - Fixes transition artifacting      */
     { R"(\\Sacred\.exe$)", {{
+      { "d3d7.emulateFSAA",                 "True" },
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* StarLancer                                 */
@@ -1636,11 +1645,11 @@ namespace dxvk {
       { "ddraw.ignoreExclusiveMode",        "True" },
     }} },
     /* Might and Magic VII: For Blood and Honor   */
-    { R"(\\MM7-Rel\.exe$)", {{
+    { R"(\\MM7(-Rel)?\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Might and Magic VIII: Day of the Destroyer */
-    { R"(\\MM8-Rel\.exe$)", {{
+    { R"(\\MM8(-Rel)?\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Omikron: The Nomad Soul                    *
@@ -1700,6 +1709,18 @@ namespace dxvk {
     /* Star Trek: Starfleet Command               */
     { R"(\\Starfleet\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Expendable                                 */
+    { R"(\\Expendable\\go_start\.exe$)", {{
+      { "d3d7.emulateFSAA",                 "True" },
+    }} },
+    /* F/A-18E Super Hornet                       */
+    { R"(\\F18\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Total Annihilation: Kingdoms               */
+    { R"(\\KINGDOMS\.icd$)", {{
+      { "d3d7.emulateFSAA",                 "True" },
     }} },
 
     /**********************************************/
