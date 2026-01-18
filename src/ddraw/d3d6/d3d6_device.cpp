@@ -47,8 +47,7 @@ namespace dxvk {
     // Common D3D9 index buffers
     m_ib9.fill(nullptr);
 
-    if (unlikely(!m_parent->GetOptions()->disableAASupport
-                &&m_parent->GetOptions()->forceEnableAA)) {
+    if (unlikely(m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Forced)) {
       Logger::warn("D3D6Device: Force enabling AA");
       m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
     }
@@ -738,13 +737,21 @@ namespace dxvk {
       case D3DRENDERSTATE_TEXTUREHANDLE:
         return D3D_OK;
 
-      case D3DRENDERSTATE_ANTIALIAS:
+      case D3DRENDERSTATE_ANTIALIAS: {
+        if (likely(m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Disabled)) {
+          if (unlikely(dwRenderState == D3DANTIALIAS_SORTDEPENDENT
+                    || dwRenderState == D3DANTIALIAS_SORTINDEPENDENT))
+            Logger::warn("D3D6Device::SetRenderState: Device does not expose FSAA emulation");
+          return D3D_OK;
+        }
+
         State9        = d3d9::D3DRS_MULTISAMPLEANTIALIAS;
         m_antialias   = dwRenderState;
         dwRenderState = m_antialias == D3DANTIALIAS_SORTDEPENDENT
                      || m_antialias == D3DANTIALIAS_SORTINDEPENDENT
-                     || m_parent->GetOptions()->forceEnableAA ? TRUE : FALSE;
+                     || m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Forced ? TRUE : FALSE;
         break;
+      }
 
       case D3DRENDERSTATE_TEXTUREADDRESS:
         m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_ADDRESSU, dwRenderState);
