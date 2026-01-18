@@ -313,7 +313,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes) {
-    Logger::debug(">>> DDraw7Interface::GetFourCCCodes");
+    Logger::debug(">>> DDraw2Interface::GetFourCCCodes");
 
     static const DWORD supportedFourCCs[] =
     {
@@ -322,18 +322,18 @@ namespace dxvk {
         MAKEFOURCC('D', 'X', 'T', '3'),
         MAKEFOURCC('D', 'X', 'T', '4'),
         MAKEFOURCC('D', 'X', 'T', '5'),
+        MAKEFOURCC('Y', 'U', 'Y', '2'),
     };
 
-    // TODO: Check passed lpNumCodes size is larger than 5
+    // TODO: Check passed lpNumCodes size is larger than 6
     if (likely(lpNumCodes != nullptr && lpCodes != nullptr)) {
-      for (uint8_t i = 0; i < 5; i++) {
+      for (uint8_t i = 0; i < 6; i++) {
         lpCodes[i] = supportedFourCCs[i];
       }
     }
 
-    // Only report DXT1-5 as supported FOURCCs
     if (lpNumCodes != nullptr)
-      *lpNumCodes = 5;
+      *lpNumCodes = 6;
 
     return DD_OK;
   }
