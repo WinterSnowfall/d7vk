@@ -1481,6 +1481,7 @@ namespace dxvk {
      * Crashes without multithreading protection  */
     { R"(\\SCP - Containment Breach\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
+      { "d3d7.emulateFSAA",                 "True" },
       { "d3d7.forceMultiThreaded",          "True" },
     }} },
     /* Unreal                                     *
