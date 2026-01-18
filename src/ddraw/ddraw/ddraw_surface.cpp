@@ -228,12 +228,12 @@ namespace dxvk {
         return hr;
 
       D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
-      Com<D3D5Texture> m_texture5 = new D3D5Texture(std::move(ppvProxyObject), this, nextHandle);
-      m_parent->EmplaceTexture(m_texture5.ptr(), nextHandle);
+      Com<D3D5Texture> texture5 = new D3D5Texture(std::move(ppvProxyObject), this, nextHandle);
+      m_parent->EmplaceTexture(texture5.ptr(), nextHandle);
 
       m_commonSurf->DirtyMipMaps();
 
-      *ppvObject = m_texture5.ref();
+      *ppvObject = texture5.ref();
 
       return S_OK;
     }

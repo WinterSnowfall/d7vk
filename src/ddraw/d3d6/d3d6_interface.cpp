@@ -119,7 +119,7 @@ namespace dxvk {
 
     // Software emulation, this is expected to be exposed (SWVP)
     GUID guidRGB = IID_IDirect3DRGBDevice;
-    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_options.disableAASupport);
+    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
     D3DDEVICEDESC descRGB_HEL = descRGB_HAL;
     descRGB_HAL.dwFlags = 0;
     descRGB_HAL.dcmColorModel = 0;
@@ -140,7 +140,7 @@ namespace dxvk {
 
     // Hardware acceleration (SWVP)
     GUID guidHAL = IID_IDirect3DHALDevice;
-    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_options.disableAASupport);
+    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
     D3DDEVICEDESC descHAL_HEL = descHAL_HAL;
     descHAL_HEL.dcmColorModel = 0;
     descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
@@ -215,7 +215,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // Software emulation, this is expected to be exposed (SWVP)
-    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_options.disableAASupport);
+    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
     D3DDEVICEDESC descRGB_HEL = descRGB_HAL;
     descRGB_HAL.dwFlags = 0;
     descRGB_HAL.dcmColorModel = 0;
@@ -228,7 +228,7 @@ namespace dxvk {
     descRGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
 
     // Hardware acceleration (SWVP)
-    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_options.disableAASupport);
+    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
     D3DDEVICEDESC descHAL_HEL = descHAL_HAL;
     descHAL_HEL.dcmColorModel = 0;
     descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
@@ -381,24 +381,24 @@ namespace dxvk {
 
     // Determine the supported AA sample count by querying the D3D9 interface
     d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
-    if (likely(!m_options.disableAASupport)) {
+    if (likely(m_options.emulateFSAA != FSAAEmulation::Disabled)) {
       HRESULT hr4S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
                                                         TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
       if (unlikely(FAILED(hr4S))) {
         HRESULT hr2S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
                                                           TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
         if (unlikely(FAILED(hr2S))) {
-          Logger::info("D3D6Interface::CreateDevice: Detected no AA support");
+          Logger::warn("D3D6Interface::CreateDevice: No MSAA support has been detected");
         } else {
-          Logger::info("D3D6Interface::CreateDevice: Detected support for 2x AA");
+          Logger::info("D3D6Interface::CreateDevice: Using 2x MSAA for FSAA emulation");
           multiSampleType = d3d9::D3DMULTISAMPLE_2_SAMPLES;
         }
       } else {
-        Logger::info("D3D6Interface::CreateDevice: Detected support for 4x AA");
+        Logger::info("D3D6Interface::CreateDevice: Using 4x MSAA for FSAA emulation");
         multiSampleType = d3d9::D3DMULTISAMPLE_4_SAMPLES;
       }
     } else {
-      Logger::warn("D3D6Interface::CreateDevice: AA support fully disabled");
+      Logger::info("D3D6Interface::CreateDevice: FSAA emulation is disabled");
     }
 
     Logger::info(str::format("D3D6Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
@@ -461,7 +461,7 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC desc6 = GetD3D6Caps(rclsidOverride, m_options.disableAASupport);
+    D3DDEVICEDESC desc6 = GetD3D6Caps(rclsidOverride, m_options.emulateFSAA != FSAAEmulation::Disabled);
 
     try{
       Com<D3D6Device> device6 = new D3D6Device(std::move(d3d6DeviceProxy), this, desc6,

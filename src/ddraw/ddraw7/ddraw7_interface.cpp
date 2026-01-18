@@ -600,9 +600,12 @@ namespace dxvk {
     if (unlikely(pDDDI == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    const d3d9::D3DADAPTER_IDENTIFIER9* adapterIdentifier9 = m_commonIntf->GetAdapterIdentifier();
+    // This is typically the "2D accelerator" in the system, but
+    // let's supply the same description string as we usually do
     if (unlikely(dwFlags & DDGDI_GETHOSTIDENTIFIER)) {
-      CopyToStringArray(pDDDI->szDriver,      "vga.dll");
-      CopyToStringArray(pDDDI->szDescription, "Standard VGA Adapter");
+      CopyToStringArray(pDDDI->szDriver, "vga.dll");
+      memcpy(&pDDDI->szDescription, &adapterIdentifier9->Description, sizeof(adapterIdentifier9->Description));
       pDDDI->liDriverVersion.QuadPart = 0;
       pDDDI->dwVendorId               = 0;
       pDDDI->dwDeviceId               = 0;
@@ -611,7 +614,6 @@ namespace dxvk {
       pDDDI->guidDeviceIdentifier     = GUID_StandardVGAAdapter;
       pDDDI->dwWHQLLevel              = 0;
     } else {
-      const d3d9::D3DADAPTER_IDENTIFIER9* adapterIdentifier9 = m_commonIntf->GetAdapterIdentifier();
       memcpy(&pDDDI->szDriver,      &adapterIdentifier9->Driver,      sizeof(adapterIdentifier9->Driver));
       memcpy(&pDDDI->szDescription, &adapterIdentifier9->Description, sizeof(adapterIdentifier9->Description));
       pDDDI->liDriverVersion.QuadPart = adapterIdentifier9->DriverVersion.QuadPart;
