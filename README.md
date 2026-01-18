@@ -46,7 +46,9 @@ You can, however, use the traditional DXVK config options for controlling either
 
 ### Is there a way to force enable AA?
 
-Yes, use `d3d7.forceEnableAA = True`. Note that AA is natively supported by D7VK, and some applications will outright provide you with the means to enable it. Only use the above config option if you want to force enable AA, regardless of application support. Please also keep in mind that force enabling AA may not work well in all cases, and screen edge artifacting and/or GUI element corruption are possible consequences.
+Yes, use `d3d7.emulateFSAA = Forced`. Note that FSAA emulation is supported by D7VK, and some applications will outright provide you with the means to enable or disable it. Only use the above config option if you want to force enable AA, regardless of application support. Please also keep in mind that force enabling AA may not work well in all cases, and screen edge artifacting and/or GUI element corruption are possible consequences.
+
+Should you encounter any situation in which AA support is listed as unavailable / greyed out by an application (without it being forced, as per the above), please raise an issue on our tracker.
 
 ### Do the D3D7 config options work for D3D6/5?
 
