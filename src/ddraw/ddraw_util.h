@@ -276,7 +276,7 @@ namespace dxvk {
     }
   }
 
-  inline D3DDEVICEDESC2 GetD3D5Caps(const IID rclsid, bool disableAASupport) {
+  inline D3DDEVICEDESC2 GetD3D5Caps(const IID rclsid, bool exposeFSAA) {
     D3DDEVICEDESC2 desc;
 
     desc.dwSize    = sizeof(D3DDEVICEDESC2);
@@ -374,7 +374,7 @@ namespace dxvk {
                               | D3DPRASTERCAPS_ZFOG
                               | D3DPRASTERCAPS_ZTEST;
 
-    if (likely(!disableAASupport)) {
+    if (unlikely(exposeFSAA)) {
       prim.dwRasterCaps |= D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT
                         |  D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT;
     }
@@ -479,7 +479,7 @@ namespace dxvk {
     return desc;
   }
 
-  inline D3DDEVICEDESC GetD3D6Caps(const IID rclsid, bool disableAASupport) {
+  inline D3DDEVICEDESC GetD3D6Caps(const IID rclsid, bool exposeFSAA) {
     D3DDEVICEDESC desc;
 
     desc.dwSize    = sizeof(D3DDEVICEDESC);
@@ -578,7 +578,7 @@ namespace dxvk {
                               | D3DPRASTERCAPS_ZFOG
                               | D3DPRASTERCAPS_ZTEST;
 
-    if (likely(!disableAASupport)) {
+    if (unlikely(exposeFSAA)) {
       prim.dwRasterCaps |= D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT
                         |  D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT;
     }
@@ -744,7 +744,7 @@ namespace dxvk {
     return desc;
   }
 
-  inline D3DDEVICEDESC7 GetD3D7Caps(const IID rclsid, bool disableAASupport) {
+  inline D3DDEVICEDESC7 GetD3D7Caps(const IID rclsid, bool exposeFSAA) {
     D3DDEVICEDESC7 desc7;
 
     desc7.dwDevCaps = D3DDEVCAPS_CANBLTSYSTONONLOCAL
@@ -814,7 +814,7 @@ namespace dxvk {
                               | D3DPRASTERCAPS_ZFOG
                               | D3DPRASTERCAPS_ZTEST;
 
-    if (likely(!disableAASupport)) {
+    if (unlikely(exposeFSAA)) {
       prim.dwRasterCaps |= D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT
                         |  D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT;
     }
