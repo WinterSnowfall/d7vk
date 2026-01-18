@@ -391,18 +391,18 @@ namespace dxvk {
         MAKEFOURCC('D', 'X', 'T', '3'),
         MAKEFOURCC('D', 'X', 'T', '4'),
         MAKEFOURCC('D', 'X', 'T', '5'),
+        MAKEFOURCC('Y', 'U', 'Y', '2'),
     };
 
-    // TODO: Check passed lpNumCodes size is larger than 5
+    // TODO: Check passed lpNumCodes size is larger than 6
     if (likely(lpNumCodes != nullptr && lpCodes != nullptr)) {
-      for (uint8_t i = 0; i < 5; i++) {
+      for (uint8_t i = 0; i < 6; i++) {
         lpCodes[i] = supportedFourCCs[i];
       }
     }
 
-    // Only report DXT1-5 as supported FOURCCs
     if (lpNumCodes != nullptr)
-      *lpNumCodes = 5;
+      *lpNumCodes = 6;
 
     return DD_OK;
   }
@@ -634,11 +634,11 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     const d3d9::D3DADAPTER_IDENTIFIER9* adapterIdentifier9 = m_commonIntf->GetAdapterIdentifier();
-    // This is typically the "2D accelerator" in the system, but
-    // let's supply the same description string as we usually do
+    // This is typically the "2D accelerator" in the system
     if (unlikely(dwFlags & DDGDI_GETHOSTIDENTIFIER)) {
+      Logger::debug("DDraw4Interface::GetDeviceIdentifier: Retrieving secondary adapter info");
       CopyToStringArray(pDDDI->szDriver, "vga.dll");
-      memcpy(&pDDDI->szDescription, &adapterIdentifier9->Description, sizeof(adapterIdentifier9->Description));
+      CopyToStringArray(pDDDI->szDescription, "Standard VGA Adapter");
       pDDDI->liDriverVersion.QuadPart = 0;
       pDDDI->dwVendorId               = 0;
       pDDDI->dwDeviceId               = 0;
@@ -646,6 +646,7 @@ namespace dxvk {
       pDDDI->dwRevision               = 0;
       pDDDI->guidDeviceIdentifier     = GUID_StandardVGAAdapter;
     } else {
+      Logger::debug("DDraw4Interface::GetDeviceIdentifier: Retrieving primary adapter info");
       memcpy(&pDDDI->szDriver,      &adapterIdentifier9->Driver,      sizeof(adapterIdentifier9->Driver));
       memcpy(&pDDDI->szDescription, &adapterIdentifier9->Description, sizeof(adapterIdentifier9->Description));
       pDDDI->liDriverVersion.QuadPart = adapterIdentifier9->DriverVersion.QuadPart;
