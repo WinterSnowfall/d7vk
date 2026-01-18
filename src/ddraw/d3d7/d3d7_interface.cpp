@@ -109,7 +109,7 @@ namespace dxvk {
     // such as (The) Summoner, so always report RGB first, then HAL, then T&L HAL
 
     // Software emulation, this is expected to be exposed (SWVP)
-    D3DDEVICEDESC7 desc7RGB = GetD3D7Caps(IID_IDirect3DRGBDevice, m_options.disableAASupport);
+    D3DDEVICEDESC7 desc7RGB = GetD3D7Caps(IID_IDirect3DRGBDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
     char deviceDescRGB[100] = "D7VK RGB";
     char deviceNameRGB[100] = "D7VK RGB";
 
@@ -118,7 +118,7 @@ namespace dxvk {
       return D3D_OK;
 
     // Hardware acceleration (no T&L, SWVP)
-    D3DDEVICEDESC7 desc7HAL = GetD3D7Caps(IID_IDirect3DHALDevice, m_options.disableAASupport);
+    D3DDEVICEDESC7 desc7HAL = GetD3D7Caps(IID_IDirect3DHALDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
     char deviceDescHAL[100] = "D7VK HAL";
     char deviceNameHAL[100] = "D7VK HAL";
 
@@ -127,7 +127,7 @@ namespace dxvk {
       return D3D_OK;
 
     // Hardware acceleration with T&L (HWVP)
-    D3DDEVICEDESC7 desc7TNL = GetD3D7Caps(IID_IDirect3DTnLHalDevice, m_options.disableAASupport);
+    D3DDEVICEDESC7 desc7TNL = GetD3D7Caps(IID_IDirect3DTnLHalDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
     char deviceDescTNL[100] = "D7VK T&L HAL";
     char deviceNameTNL[100] = "D7VK T&L HAL";
 
@@ -238,24 +238,24 @@ namespace dxvk {
 
     // Determine the supported AA sample count by querying the D3D9 interface
     d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
-    if (likely(!m_options.disableAASupport)) {
+    if (likely(m_options.emulateFSAA != FSAAEmulation::Disabled)) {
       HRESULT hr4S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
                                                         TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
       if (unlikely(FAILED(hr4S))) {
         HRESULT hr2S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
                                                           TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
         if (unlikely(FAILED(hr2S))) {
-          Logger::info("D3D7Interface::CreateDevice: Detected no AA support");
+          Logger::warn("D3D7Interface::CreateDevice: No MSAA support has been detected");
         } else {
-          Logger::info("D3D7Interface::CreateDevice: Detected support for 2x AA");
+          Logger::info("D3D7Interface::CreateDevice: Using 2x MSAA for FSAA emulation");
           multiSampleType = d3d9::D3DMULTISAMPLE_2_SAMPLES;
         }
       } else {
-        Logger::info("D3D7Interface::CreateDevice: Detected support for 4x AA");
+        Logger::info("D3D7Interface::CreateDevice: Using 4x MSAA for FSAA emulation");
         multiSampleType = d3d9::D3DMULTISAMPLE_4_SAMPLES;
       }
     } else {
-      Logger::warn("D3D7Interface::CreateDevice: AA support fully disabled");
+      Logger::info("D3D7Interface::CreateDevice: FSAA emulation is disabled");
     }
 
     Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
@@ -318,7 +318,7 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC7 desc7 = GetD3D7Caps(rclsid, m_options.disableAASupport);
+    D3DDEVICEDESC7 desc7 = GetD3D7Caps(rclsid, m_options.emulateFSAA != FSAAEmulation::Disabled);
 
     try{
       Com<D3D7Device> device7 = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7,

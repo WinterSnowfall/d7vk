@@ -6,10 +6,10 @@
 
 namespace dxvk {
 
-  enum class D3DBackBufferGuard {
+  enum class FSAAEmulation {
     Disabled,
     Enabled,
-    Strict
+    Forced
   };
 
   enum class D3DDeviceTypeOverride {
@@ -20,13 +20,13 @@ namespace dxvk {
     HWVPMixed
   };
 
+  enum class D3DBackBufferGuard {
+    Disabled,
+    Enabled,
+    Strict
+  };
+
   struct D3DOptions {
-
-    /// Fully disables support for AA, lowering memory bandwidth pressure
-    bool disableAASupport;
-
-    /// Forces enables AA, regardless of application preference
-    bool forceEnableAA;
 
     /// Map all back buffers onto a single D3D9 back buffer. Some applications have broken flip
     /// implementations or simply do not use all the back buffers they create, which causes issues.
@@ -83,6 +83,10 @@ namespace dxvk {
     /// Useful only for debugging and apitrace inspection.
     bool proxiedSetTexture;
 
+    /// Uses supported MSAA up to 4x to emulate D3D5 and higher order-dependent
+    /// and order-independent full scene anti-aliasing. Disabled by default.
+    FSAAEmulation emulateFSAA;
+
     /// Force the use of a certain D3D9 device type. Sometimes needed to handle dubious
     /// application buffer placement and/or other types of SWVP-related issues.
     D3DDeviceTypeOverride deviceTypeOverride;
@@ -94,8 +98,6 @@ namespace dxvk {
 
     D3DOptions(const Config& config) {
       // D3D6/7 options
-      this->disableAASupport      = config.getOption<bool>   ("d3d7.disableAASupport",       false);
-      this->forceEnableAA         = config.getOption<bool>   ("d3d7.forceEnableAA",          false);
       this->forceMultiThreaded    = config.getOption<bool>   ("d3d7.forceMultiThreaded",     false);
       this->useD24X8forD32        = config.getOption<bool>   ("d3d7.useD24X8forD32",         false);
       this->proxiedExecuteBuffers = config.getOption<bool>   ("d3d7.proxiedExecuteBuffers",  false);
@@ -112,6 +114,15 @@ namespace dxvk {
       this->proxiedSetTexture     = config.getOption<bool>   ("ddraw.proxiedSetTexture",     false);
       // D3D9 options
       this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",      1024);
+
+      std::string emulateFSAAStr = Config::toLower(config.getOption<std::string>("d3d7.emulateFSAA", "auto"));
+      if (emulateFSAAStr == "true") {
+        this->emulateFSAA = FSAAEmulation::Enabled;
+      } else if (emulateFSAAStr == "forced") {
+        this->emulateFSAA = FSAAEmulation::Forced;
+      } else {
+        this->emulateFSAA = FSAAEmulation::Disabled;
+      }
 
       std::string deviceTypeOverrideStr = Config::toLower(config.getOption<std::string>("d3d7.deviceTypeOverride", "auto"));
       if (deviceTypeOverrideStr == "swvp") {
