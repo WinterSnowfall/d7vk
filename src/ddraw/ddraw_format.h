@@ -212,6 +212,8 @@ namespace dxvk {
           return d3d9::D3DFMT_DXT4;
         case MAKEFOURCC('D', 'X', 'T', '5'):
           return d3d9::D3DFMT_DXT5;
+        case MAKEFOURCC('Y', 'U', 'Y', '2'):
+          return d3d9::D3DFMT_YUY2;
       }
       Logger::warn("ConvertFormat: Unhandled FOURCC payload");
       return d3d9::D3DFMT_UNKNOWN;
