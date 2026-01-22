@@ -586,12 +586,12 @@ namespace dxvk {
 
     IDirectDrawSurface7* mipMap = surface;
 
-    Logger::debug(str::format("BlitToD3D9CubeMap: Blitting ", actualMipLevels, " mip map(s)"));
+    Logger::debug(str::format("BlitToD3D9CubeMap: Blitting ", static_cast<uint32_t>(actualMipLevels), " mip map(s)"));
 
     for (uint8_t i = 0; i < actualMipLevels; i++) {
       // Should never occur normally, but acts as a last ditch safety check
       if (unlikely(mipMap == nullptr)) {
-        Logger::warn(str::format("BlitToD3D9CubeMap: Last found source mip ", i - 1));
+        Logger::warn(str::format("BlitToD3D9CubeMap: Last found source mip ", static_cast<uint32_t>(i - 1)));
         break;
       }
 
@@ -611,9 +611,9 @@ namespace dxvk {
           if (IsDXTFormat(format9)) {
             const size_t size = static_cast<size_t>(descMip.lPitch);
             memcpy(rect9mip.pBits, descMip.lpSurface, size);
-            Logger::debug(str::format("BlitToD3D9CubeMap: Done blitting DXT mip ", i));
+            Logger::debug(str::format("BlitToD3D9CubeMap: Done blitting DXT mip ", static_cast<uint32_t>(i)));
           } else if (unlikely(descMip.lPitch != rect9mip.Pitch)) {
-            Logger::debug(str::format("BlitToD3D9CubeMap: Incompatible mip map ", i, " pitch"));
+            Logger::debug(str::format("BlitToD3D9CubeMap: Incompatible mip map ", static_cast<uint32_t>(i), " pitch"));
 
             uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9mip.pBits);
             uint8_t* data7 = reinterpret_cast<uint8_t*>(descMip.lpSurface);
@@ -626,11 +626,11 @@ namespace dxvk {
           } else {
             const size_t size = static_cast<size_t>(descMip.dwHeight * descMip.lPitch);
             memcpy(rect9mip.pBits, descMip.lpSurface, size);
-            Logger::debug(str::format("BlitToD3D9CubeMap: Done blitting mip ", i));
+            Logger::debug(str::format("BlitToD3D9CubeMap: Done blitting mip ", static_cast<uint32_t>(i)));
           }
           mipMap->Unlock(0);
         } else {
-          Logger::warn(str::format("BlitToD3D9CubeMap: Failed to lock mip ", i));
+          Logger::warn(str::format("BlitToD3D9CubeMap: Failed to lock mip ", static_cast<uint32_t>(i)));
         }
         cubeTex9->UnlockRect(face, i);
 
@@ -639,7 +639,7 @@ namespace dxvk {
 
         parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces7Callback);
       } else {
-        Logger::warn(str::format("BlitToD3D9CubeMap: Failed to lock D3D9 mip ", i));
+        Logger::warn(str::format("BlitToD3D9CubeMap: Failed to lock D3D9 mip ", static_cast<uint32_t>(i)));
       }
     }
   }
@@ -655,12 +655,12 @@ namespace dxvk {
 
     SurfaceType* mipMap = surface;
 
-    Logger::debug(str::format("BlitToD3D9Texture: Blitting ", actualMipLevels, " mip map(s)"));
+    Logger::debug(str::format("BlitToD3D9Texture: Blitting ", static_cast<uint32_t>(actualMipLevels), " mip map(s)"));
 
     for (uint8_t i = 0; i < actualMipLevels; i++) {
       // Should never occur normally, but acts as a last ditch safety check
       if (unlikely(mipMap == nullptr)) {
-        Logger::warn(str::format("BlitToD3D9Texture: Last found source mip ", i - 1));
+        Logger::warn(str::format("BlitToD3D9Texture: Last found source mip ", static_cast<uint32_t>(i - 1)));
         break;
       }
 
@@ -680,9 +680,9 @@ namespace dxvk {
           if (IsDXTFormat(format9)) {
             const size_t size = static_cast<size_t>(descMip.lPitch);
             memcpy(rect9mip.pBits, descMip.lpSurface, size);
-            Logger::debug(str::format("BlitToD3D9Texture: Done blitting DXT mip ", i));
+            Logger::debug(str::format("BlitToD3D9Texture: Done blitting DXT mip ", static_cast<uint32_t>(i)));
           } else if (unlikely(descMip.lPitch != rect9mip.Pitch)) {
-            Logger::debug(str::format("BlitToD3D9Texture: Incompatible mip map ", i, " pitch"));
+            Logger::debug(str::format("BlitToD3D9Texture: Incompatible mip map ", static_cast<uint32_t>(i), " pitch"));
 
             uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9mip.pBits);
             uint8_t* data7 = reinterpret_cast<uint8_t*>(descMip.lpSurface);
@@ -691,15 +691,15 @@ namespace dxvk {
             for (uint32_t h = 0; h < descMip.dwHeight; h++)
               memcpy(&data9[h * rect9mip.Pitch], &data7[h * descMip.lPitch], copyPitch);
 
-            Logger::debug(str::format("BlitToD3D9Texture: Done blitting mip ", i, " row by row"));
+            Logger::debug(str::format("BlitToD3D9Texture: Done blitting mip ", static_cast<uint32_t>(i), " row by row"));
           } else {
             const size_t size = static_cast<size_t>(descMip.dwHeight * descMip.lPitch);
             memcpy(rect9mip.pBits, descMip.lpSurface, size);
-            Logger::debug(str::format("BlitToD3D9Texture: Done blitting mip ", i));
+            Logger::debug(str::format("BlitToD3D9Texture: Done blitting mip ", static_cast<uint32_t>(i)));
           }
           mipMap->Unlock(0);
         } else {
-          Logger::warn(str::format("BlitToD3D9Texture: Failed to lock mip ", i));
+          Logger::warn(str::format("BlitToD3D9Texture: Failed to lock mip ", static_cast<uint32_t>(i)));
         }
         texture9->UnlockRect(i);
 
