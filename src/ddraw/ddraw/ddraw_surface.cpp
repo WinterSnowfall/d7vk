@@ -159,7 +159,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, this));
+      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nullptr, this));
 
       return S_OK;
     }
@@ -176,7 +176,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, this));
+      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nullptr, this));
 
       return S_OK;
     }
@@ -841,7 +841,14 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFACE lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx) {
     Logger::debug("<<< DDrawSurface::UpdateOverlay: Proxy");
-    return m_proxy->UpdateOverlay(lpSrcRect, lpDDDestSurface, lpDestRect, dwFlags, lpDDOverlayFx);
+
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDDestSurface))) {
+      Logger::warn("DDrawSurface::UpdateOverlay: Called with an unwrapped surface");
+      return m_proxy->UpdateOverlay(lpSrcRect, lpDDDestSurface, lpDestRect, dwFlags, lpDDOverlayFx);
+    }
+
+    DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDDestSurface);
+    return m_proxy->UpdateOverlay(lpSrcRect, ddrawSurface->GetProxied(), lpDestRect, dwFlags, lpDDOverlayFx);
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::UpdateOverlayDisplay(DWORD dwFlags) {
@@ -851,7 +858,14 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE lpDDSReference) {
     Logger::debug("<<< DDrawSurface::UpdateOverlayZOrder: Proxy");
-    return m_proxy->UpdateOverlayZOrder(dwFlags, lpDDSReference);
+
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSReference))) {
+      Logger::warn("DDrawSurface::UpdateOverlayZOrder: Called with an unwrapped surface");
+      return m_proxy->UpdateOverlayZOrder(dwFlags, lpDDSReference);
+    }
+
+    DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSReference);
+    return m_proxy->UpdateOverlayZOrder(dwFlags, ddrawSurface->GetProxied());
   }
 
   HRESULT DDrawSurface::InitializeD3D9RenderTarget() {
