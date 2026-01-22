@@ -24,6 +24,7 @@ namespace dxvk {
         DDrawCommonSurface* commonSurf,
         Com<IDirectDrawSurface2>&& surfProxy,
         DDrawSurface* pParent,
+        DDraw2Surface* pParentSurf,
         IUnknown* origin);
 
     ~DDraw2Surface();
@@ -139,6 +140,8 @@ namespace dxvk {
 
     Com<DDrawCommonSurface> m_commonSurf;
     DDrawCommonInterface*   m_commonIntf = nullptr;
+
+    DDraw2Surface*          m_parentSurf = nullptr;
 
     IUnknown*               m_origin     = nullptr;
 

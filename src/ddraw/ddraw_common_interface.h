@@ -30,6 +30,18 @@ namespace dxvk {
 
     void RemoveWrappedSurface(IDirectDrawSurface* surface);
 
+    bool IsWrappedSurface(IDirectDrawSurface2* surface) const;
+
+    void AddWrappedSurface(IDirectDrawSurface2* surface);
+
+    void RemoveWrappedSurface(IDirectDrawSurface2* surface);
+
+    bool IsWrappedSurface(IDirectDrawSurface3* surface) const;
+
+    void AddWrappedSurface(IDirectDrawSurface3* surface);
+
+    void RemoveWrappedSurface(IDirectDrawSurface3* surface);
+
     bool IsWrappedSurface(IDirectDrawSurface4* surface) const;
 
     void AddWrappedSurface(IDirectDrawSurface4* surface);
@@ -176,6 +188,8 @@ namespace dxvk {
 
     std::vector<IDirectDrawSurface7*> m_surfaces7;
     std::vector<IDirectDrawSurface4*> m_surfaces4;
+    std::vector<IDirectDrawSurface3*> m_surfaces3;
+    std::vector<IDirectDrawSurface2*> m_surfaces2;
     std::vector<IDirectDrawSurface*>  m_surfaces;
 
   };
