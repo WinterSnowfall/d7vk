@@ -222,7 +222,7 @@ namespace dxvk {
     d3d9::D3DPRESENT_PARAMETERS   m_params9;
 
     D3DMATERIALHANDLE             m_materialHandle = 0;
-    D3DTEXTUREHANDLE              m_textureHandle = 0;
+    D3DTEXTUREHANDLE              m_textureHandle  = 0;
 
     D3DDEVICEDESC2                m_desc;
     GUID                          m_deviceGUID;
