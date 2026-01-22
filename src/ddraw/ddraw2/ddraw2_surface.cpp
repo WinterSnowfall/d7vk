@@ -20,9 +20,11 @@ namespace dxvk {
         DDrawCommonSurface* commonSurf,
         Com<IDirectDrawSurface2>&& surfProxy,
         DDrawSurface* pParent,
+        DDraw2Surface* pParentSurf,
         IUnknown* origin)
     : DDrawWrappedObject<DDrawSurface, IDirectDrawSurface2, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
     , m_commonSurf ( commonSurf )
+    , m_parentSurf ( pParentSurf )
     , m_origin ( origin ) {
     // We need to keep the IDirectDrawSurface parent around, since we're entirely dependent on it
     if (m_parent != nullptr)
@@ -30,11 +32,18 @@ namespace dxvk {
 
     if (m_parent != nullptr) {
       m_commonIntf = m_parent->GetCommonInterface();
+    } else if (m_parentSurf != nullptr) {
+      m_commonIntf = m_parentSurf->GetCommonInterface();
     } else if (m_commonSurf != nullptr) {
       m_commonIntf = m_commonSurf->GetCommonInterface();
     } else {
       throw DxvkError("DDraw2Surface: ERROR! Failed to retrieve the common interface!");
     }
+
+    m_commonIntf->AddWrappedSurface(this);
+
+    if (m_commonSurf == nullptr)
+      m_commonSurf = new DDrawCommonSurface(m_commonIntf);
 
     // Retrieve and cache the proxy surface desc
     if (!m_commonSurf->IsDescSet()) {
@@ -57,6 +66,8 @@ namespace dxvk {
   }
 
   DDraw2Surface::~DDraw2Surface() {
+    m_commonIntf->RemoveWrappedSurface(this);
+
     if (m_parent != nullptr)
       m_parent->Release();
 
@@ -136,7 +147,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), this));
+      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), nullptr, this));
 
       return S_OK;
     }
@@ -221,8 +232,15 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::AddAttachedSurface(LPDIRECTDRAWSURFACE2 lpDDSAttachedSurface) {
-    Logger::warn("<<< DDraw2Surface::AddAttachedSurface: Proxy");
-    return m_proxy->AddAttachedSurface(lpDDSAttachedSurface);
+    Logger::debug("<<< DDrawSurface::AddAttachedSurface: Proxy");
+
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
+      Logger::warn("DDrawSurface::AddAttachedSurface: Attaching unwrapped surface");
+      return m_proxy->AddAttachedSurface(lpDDSAttachedSurface);
+    }
+
+    DDraw2Surface* ddraw2Surface = static_cast<DDraw2Surface*>(lpDDSAttachedSurface);
+    return m_proxy->AddAttachedSurface(ddraw2Surface->GetProxied());
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::AddOverlayDirtyRect(LPRECT lpRect) {
@@ -253,16 +271,23 @@ namespace dxvk {
       }
     }
 
-    // We are pretty much guaranteed to get wrapped surfaces with IDirectDrawSurface2
-    DDraw2Surface* ddraw2Surface = static_cast<DDraw2Surface*>(lpDDSrcSurface);
-    HRESULT hr = m_proxy->Blt(lpDestRect, ddraw2Surface->GetProxied(), lpSrcRect, dwFlags, lpDDBltFx);
+    HRESULT hr;
+
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
+      if (unlikely(lpDDSrcSurface != nullptr))
+        Logger::debug("DDraw2Surface::Blt: Received an unwrapped source surface");
+      hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
+    } else {
+      DDraw2Surface* ddraw2Surface = static_cast<DDraw2Surface*>(lpDDSrcSurface);
+      hr = m_proxy->Blt(lpDestRect, ddraw2Surface->GetProxied(), lpSrcRect, dwFlags, lpDDBltFx);
+    }
 
     if (likely(SUCCEEDED(hr))) {
       // Textures get uploaded during SetTexture calls
       if (m_commonSurf->IsTexture()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
-          Logger::warn("DDrawSurface::Blt: Failed upload to d3d9 surface");
+          Logger::warn("DDraw2Surface::Blt: Failed upload to d3d9 surface");
       } else {
         m_commonSurf->DirtyMipMaps();
       }
@@ -299,9 +324,16 @@ namespace dxvk {
       }
     }
 
-    // We are pretty much guaranteed to get wrapped surfaces with IDirectDrawSurface2
-    DDraw2Surface* ddraw2Surface = static_cast<DDraw2Surface*>(lpDDSrcSurface);
-    HRESULT hr = m_proxy->BltFast(dwX, dwY, ddraw2Surface->GetProxied(), lpSrcRect, dwTrans);
+    HRESULT hr;
+
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
+      if (unlikely(lpDDSrcSurface != nullptr))
+        Logger::warn("DDraw2Surface::BltFast: Received an unwrapped source surface");
+      hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
+    } else {
+      DDraw2Surface* ddraw2Surface = static_cast<DDraw2Surface*>(lpDDSrcSurface);
+      hr = m_proxy->BltFast(dwX, dwY, ddraw2Surface->GetProxied(), lpSrcRect, dwTrans);
+    }
 
     if (likely(SUCCEEDED(hr))) {
       // Textures get uploaded during SetTexture calls
@@ -411,8 +443,55 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTDRAWSURFACE2 *lplpDDAttachedSurface) {
-    Logger::warn("<<< DDraw2Surface::GetAttachedSurface: Proxy");
-    return m_proxy->GetAttachedSurface(lpDDSCaps, lplpDDAttachedSurface);
+    Logger::debug("<<< DDraw2Surface::GetAttachedSurface: Proxy");
+
+    if (unlikely(lpDDSCaps == nullptr || lplpDDAttachedSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (lpDDSCaps->dwCaps & DDSCAPS_PRIMARYSURFACE)
+      Logger::debug("DDraw2Surface::GetAttachedSurface: Querying for the front buffer");
+    else if (lpDDSCaps->dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP))
+      Logger::debug("DDraw2Surface::GetAttachedSurface: Querying for the back buffer");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_OFFSCREENPLAIN)
+      Logger::debug("DDraw2Surface::GetAttachedSurface: Querying for an offscreen plain surface");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_ZBUFFER)
+      Logger::debug("DDraw2Surface::GetAttachedSurface: Querying for a depth stencil");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_MIPMAP)
+      Logger::debug("DDraw2Surface::GetAttachedSurface: Querying for a texture mip map");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_TEXTURE)
+      Logger::debug("DDraw2Surface::GetAttachedSurface: Querying for a texture");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_OVERLAY)
+      Logger::debug("DDraw2Surface::GetAttachedSurface: Querying for an overlay");
+
+    Com<IDirectDrawSurface2> surface;
+    HRESULT hr = m_proxy->GetAttachedSurface(lpDDSCaps, &surface);
+
+    // These are rather common, as some games query expecting to get nothing in return, for
+    // example it's a common use case to query the mip attach chain until nothing is returned
+    if (FAILED(hr)) {
+      Logger::debug("DDraw2Surface::GetAttachedSurface: Failed to find the requested surface");
+      *lplpDDAttachedSurface = surface.ptr();
+      return hr;
+    }
+
+    if (likely(!m_commonIntf->IsWrappedSurface(surface.ptr()))) {
+      Logger::debug("DDraw2Surface::GetAttachedSurface: Got a new unwrapped surface");
+      try {
+        Com<DDraw2Surface> ddraw2Surface = new DDraw2Surface(nullptr, std::move(surface), nullptr, this, nullptr);
+        *lplpDDAttachedSurface = ddraw2Surface.ref();
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        *lplpDDAttachedSurface = nullptr;
+        return DDERR_GENERIC;
+      }
+    // Can potentially happen with manually attached surfaces
+    } else {
+      Logger::debug("DDraw2Surface::GetAttachedSurface: Got an existing wrapped surface");
+      Com<DDraw2Surface> ddraw2Surface = static_cast<DDraw2Surface*>(surface.ptr());
+      *lplpDDAttachedSurface = ddraw2Surface.ref();
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::GetBltStatus(DWORD dwFlags) {
@@ -672,7 +751,14 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFACE2 lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx) {
     Logger::debug("<<< DDraw2Surface::UpdateOverlay: Proxy");
-    return m_proxy->UpdateOverlay(lpSrcRect, lpDDDestSurface, lpDestRect, dwFlags, lpDDOverlayFx);
+
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDDestSurface))) {
+      Logger::warn("DDraw2Surface::UpdateOverlay: Called with an unwrapped surface");
+      return m_proxy->UpdateOverlay(lpSrcRect, lpDDDestSurface, lpDestRect, dwFlags, lpDDOverlayFx);
+    }
+
+    DDraw2Surface* ddraw2Surface = static_cast<DDraw2Surface*>(lpDDDestSurface);
+    return m_proxy->UpdateOverlay(lpSrcRect, ddraw2Surface->GetProxied(), lpDestRect, dwFlags, lpDDOverlayFx);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::UpdateOverlayDisplay(DWORD dwFlags) {
@@ -682,7 +768,14 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE2 lpDDSReference) {
     Logger::debug("<<< DDraw2Surface::UpdateOverlayZOrder: Proxy");
-    return m_proxy->UpdateOverlayZOrder(dwFlags, lpDDSReference);
+
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSReference))) {
+      Logger::warn("DDraw2Surface::UpdateOverlayZOrder: Called with an unwrapped surface");
+      return m_proxy->UpdateOverlayZOrder(dwFlags, lpDDSReference);
+    }
+
+    DDraw2Surface* ddraw2Surface = static_cast<DDraw2Surface*>(lpDDSReference);
+    return m_proxy->UpdateOverlayZOrder(dwFlags, ddraw2Surface->GetProxied());
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::GetDDInterface(LPVOID *lplpDD) {

@@ -25,6 +25,7 @@ namespace dxvk {
         DDrawCommonSurface* commonSurf,
         Com<IDirectDrawSurface3>&& surfProxy,
         DDrawSurface* pParent,
+        DDraw3Surface* pParentSurf,
         IUnknown* origin);
 
     ~DDraw3Surface();
@@ -129,7 +130,7 @@ namespace dxvk {
         if (unlikely(m_d3d5Device != d3d5Device)) {
           // Check if the device has been recreated and reset all D3D9 resources
           if (unlikely(m_d3d5Device != nullptr)) {
-            Logger::debug("DDrawSurface: Device context has changed, clearing all D3D9 resources");
+            Logger::debug("DDraw3Surface: Device context has changed, clearing all D3D9 resources");
             m_d3d9 = nullptr;
           }
           m_d3d5Device = d3d5Device;
@@ -142,6 +143,8 @@ namespace dxvk {
 
     Com<DDrawCommonSurface> m_commonSurf;
     DDrawCommonInterface*   m_commonIntf = nullptr;
+
+    DDraw3Surface*          m_parentSurf = nullptr;
 
     IUnknown*               m_origin     = nullptr;
 
