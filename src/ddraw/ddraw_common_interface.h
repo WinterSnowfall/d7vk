@@ -169,7 +169,7 @@ namespace dxvk {
 
     HWND                              m_hwnd               = nullptr;
 
-    DDrawModeSize                     m_modeSize = { };
+    DDrawModeSize                     m_modeSize           = { };
 
     d3d9::D3DADAPTER_IDENTIFIER9      m_adapterIdentifier9 = { };
 
