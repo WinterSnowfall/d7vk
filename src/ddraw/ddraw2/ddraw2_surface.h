@@ -103,6 +103,14 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE PageUnlock(DWORD dwFlags);
 
+    DDrawCommonSurface* GetCommonSurface() const {
+      return m_commonSurf.ptr();
+    }
+
+    DDrawCommonInterface* GetCommonInterface() const {
+      return m_commonIntf;
+    }
+
     HRESULT InitializeOrUploadD3D9() {
       if (m_parent != nullptr)
         return m_parent->InitializeOrUploadD3D9();
@@ -116,10 +124,6 @@ namespace dxvk {
     }
 
   private:
-
-    DDrawCommonInterface* GetCommonInterface() const {
-      return m_commonIntf;
-    }
 
     inline void RefreshD3D5Device() {
       if (likely(m_parent != nullptr)) {

@@ -234,6 +234,14 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw3Surface::AddAttachedSurface(LPDIRECTDRAWSURFACE3 lpDDSAttachedSurface) {
     Logger::debug("<<< DDraw3Surface::AddAttachedSurface: Proxy");
 
+    // Some games, like Nightmare Creatures, try to attach an IDirectDrawSurface depth stencil directly...
+    if (unlikely(m_commonIntf->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSAttachedSurface)))) {
+      DDrawSurface* ddrawSurface = reinterpret_cast<DDrawSurface*>(lpDDSAttachedSurface);
+      IDirectDrawSurface3* surface3 = nullptr;
+      ddrawSurface->GetProxied()->QueryInterface(__uuidof(IDirectDrawSurface3), reinterpret_cast<void**>(&surface3));
+      return m_proxy->AddAttachedSurface(surface3);
+    }
+
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
       Logger::warn("DDraw3Surface::AddAttachedSurface: Attaching unwrapped surface");
       return m_proxy->AddAttachedSurface(lpDDSAttachedSurface);
@@ -279,6 +287,10 @@ namespace dxvk {
       hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     } else {
       DDraw3Surface* ddraw3Surface = static_cast<DDraw3Surface*>(lpDDSrcSurface);
+
+      if (unlikely(ddraw3Surface->GetCommonSurface()->IsDepthStencil()))
+        Logger::warn("DDraw3Surface::Blt: Source surface is a depth stencil");
+
       hr = m_proxy->Blt(lpDestRect, ddraw3Surface->GetProxied(), lpSrcRect, dwFlags, lpDDBltFx);
     }
 
@@ -332,6 +344,10 @@ namespace dxvk {
       hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
     } else {
       DDraw3Surface* ddraw3Surface = static_cast<DDraw3Surface*>(lpDDSrcSurface);
+
+      if (unlikely(ddraw3Surface->GetCommonSurface()->IsDepthStencil()))
+        Logger::warn("DDraw3Surface::BltFast: Source surface is a depth stencil");
+
       hr = m_proxy->BltFast(dwX, dwY, ddraw3Surface->GetProxied(), lpSrcRect, dwTrans);
     }
 
@@ -559,6 +575,10 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent) {
     Logger::debug("<<< DDraw3Surface::Lock: Proxy");
+
+    if (unlikely(m_commonSurf->IsDepthStencil()))
+      Logger::warn("DDraw3Surface::Lock: Source surface is a depth stencil");
+
     return m_proxy->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
   }
 

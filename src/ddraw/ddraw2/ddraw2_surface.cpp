@@ -279,6 +279,10 @@ namespace dxvk {
       hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     } else {
       DDraw2Surface* ddraw2Surface = static_cast<DDraw2Surface*>(lpDDSrcSurface);
+
+      if (unlikely(ddraw2Surface->GetCommonSurface()->IsDepthStencil()))
+        Logger::warn("DDraw2Surface::Blt: Source surface is a depth stencil");
+
       hr = m_proxy->Blt(lpDestRect, ddraw2Surface->GetProxied(), lpSrcRect, dwFlags, lpDDBltFx);
     }
 
@@ -332,6 +336,10 @@ namespace dxvk {
       hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
     } else {
       DDraw2Surface* ddraw2Surface = static_cast<DDraw2Surface*>(lpDDSrcSurface);
+
+      if (unlikely(ddraw2Surface->GetCommonSurface()->IsDepthStencil()))
+        Logger::warn("DDraw2Surface::BltFast: Source surface is a depth stencil");
+
       hr = m_proxy->BltFast(dwX, dwY, ddraw2Surface->GetProxied(), lpSrcRect, dwTrans);
     }
 
@@ -632,6 +640,10 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent) {
     Logger::debug("<<< DDraw2Surface::Lock: Proxy");
+
+    if (unlikely(m_commonSurf->IsDepthStencil()))
+      Logger::warn("DDraw2Surface::Lock: Source surface is a depth stencil");
+
     return m_proxy->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
   }
 

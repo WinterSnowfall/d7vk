@@ -246,6 +246,20 @@ namespace dxvk {
         // Surfaces created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
         Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied),
                                                      m_commonIntf->GetDDInterface(), nullptr, nullptr, false);
+
+        if (unlikely(surface->GetCommonSurface()->IsDepthStencil())) {
+          m_lastDepthStencil = surface.ptr();
+          // Also update the last set depth stencil on the base interface
+          if (m_parent != nullptr)
+            m_parent->SetLastDepthStencil(surface.ptr());
+        }
+
+        if (unlikely(m_commonIntf->GetOptions()->proxiedQueryInterface)) {
+          if (unlikely(surface->GetCommonSurface()->IsForwardableSurface())) {
+            surface->SetForwardToProxy(true);
+          }
+        }
+
         *lplpDDSurface = surface.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());

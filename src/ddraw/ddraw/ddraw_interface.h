@@ -87,6 +87,10 @@ namespace dxvk {
                          std::forward_as_tuple(texture));
     }
 
+    void SetLastDepthStencil(DDrawSurface* lastDepthStencil) {
+      m_lastDepthStencil = lastDepthStencil;
+    }
+
     DDrawSurface* GetLastDepthStencil() const {
       return m_lastDepthStencil;
     }
