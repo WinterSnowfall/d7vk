@@ -1718,6 +1718,18 @@ namespace dxvk {
     { R"(\\Shadows\.exe$)", {{
       { "d3d7.proxiedExecuteBuffers",       "True" },
     }} },
+    /* Mobil 1 Rally Championship                 *
+     * Crashes on certain tracks above 30 FPS     */
+    { R"(\\Ral\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "30" },
+    }} },
+    /* Nightmare Creatures                        *
+     * Fixes presentation and physics, which is   *
+     * tied to framerate in various situations    */
+    { R"(\\NC(_V12)?\.exe$)", {{
+      { "d3d9.maxFrameRate",                 "-30" },
+      { "ddraw.ignoreExclusiveMode",        "True" },
+    }} },
 
   };
 

@@ -289,6 +289,10 @@ namespace dxvk {
       hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     } else {
       DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
+
+      if (unlikely(ddraw4Surface->GetCommonSurface()->IsDepthStencil()))
+        Logger::warn("DDraw4Surface::Blt: Source surface is a depth stencil");
+
       hr = m_proxy->Blt(lpDestRect, ddraw4Surface->GetProxied(), lpSrcRect, dwFlags, lpDDBltFx);
     }
 
@@ -342,6 +346,10 @@ namespace dxvk {
       hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
     } else {
       DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
+
+      if (unlikely(ddraw4Surface->GetCommonSurface()->IsDepthStencil()))
+        Logger::warn("DDraw4Surface::BltFast: Source surface is a depth stencil");
+
       hr = m_proxy->BltFast(dwX, dwY, ddraw4Surface->GetProxied(), lpSrcRect, dwTrans);
     }
 
@@ -705,6 +713,10 @@ namespace dxvk {
     // TODO: Directly lock d3d9 surfaces and skip surface uploads on unlock,
     // but it can get very involved, especially when dealing with DXT formats.
     Logger::debug("<<< DDraw4Surface::Lock: Proxy");
+
+    if (unlikely(m_commonSurf->IsDepthStencil()))
+        Logger::warn("DDraw4Surface::Lock: Surface is a depth stencil");
+
     return m_proxy->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
   }
 
