@@ -8,6 +8,7 @@
 #include "../ddraw/ddraw_interface.h"
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw2/ddraw2_interface.h"
+#include "../ddraw2/ddraw3_surface.h"
 
 namespace dxvk {
 
@@ -347,7 +348,15 @@ namespace dxvk {
 
     Com<DDrawSurface> rt;
     if (unlikely(!m_parent->GetCommonInterface()->IsWrappedSurface(lpDDS))) {
-      if (unlikely(m_options.proxiedQueryInterface)) {
+      // Nightmare Creatures passes an IDirectDrawSurface3 surface as RT
+      if (unlikely(m_parent->GetCommonInterface()->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface3*>(lpDDS)))) {
+        Logger::debug("D3D5Interface::CreateDevice: IDirectDrawSurface3 surface passed as RT");
+        DDraw3Surface* ddraw3Surface = reinterpret_cast<DDraw3Surface*>(lpDDS);
+        // A DDrawSurface has to exist, because a DDraw3Surface is obtained from it via QueryInterface
+        rt = ddraw3Surface->GetCommonSurface()->GetDDSurface();
+        // The actual depth stencil is an attached IDirectDrawSurface3 surface too, so yeah...
+        rt->SetAttachedDepthStencil(m_parent->GetLastDepthStencil());
+      } else if (unlikely(m_options.proxiedQueryInterface)) {
         Logger::debug("D3D5Interface::CreateDevice: Unwrapped surface passed as RT");
         rt = new DDrawSurface(nullptr, std::move(lpDDS), m_parent, nullptr, nullptr, true);
         // Hack: attach the last created depth stencil to the unwrapped RT
