@@ -1464,7 +1464,7 @@ namespace dxvk {
                             std::forward_as_tuple(std::move(surf9)));
 
       IDirectDrawSurface* nextBackBuffer = nullptr;
-      parentSurface->EnumAttachedSurfaces(&nextBackBuffer, ListBackBufferSurfaces5Callback);
+      parentSurface->EnumAttachedSurfaces(&nextBackBuffer, ListBackBufferSurfacesCallback);
 
       // the swapchain will eventually return to its origin
       if (nextBackBuffer == origin)

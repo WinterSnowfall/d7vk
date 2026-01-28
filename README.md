@@ -127,6 +127,8 @@ Note that you need to use the `D7VK_LOG_LEVEL` variable to control logging verbo
 
 On Windows, log files will be created in the game's working directory by default, which is usually next to the game executable.
 
+Note: D7VK v1.2 and earlier versions use the `DXVK_LOG_LEVEL` and `DXVK_LOG_PATH` variables.
+
 ## Any other doubts?
 
 Please refer to the upstream DXVK wiki and documentation, available [here](https://github.com/doitsujin/dxvk).
