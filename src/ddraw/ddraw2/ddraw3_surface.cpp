@@ -236,6 +236,7 @@ namespace dxvk {
 
     // Some games, like Nightmare Creatures, try to attach an IDirectDrawSurface depth stencil directly...
     if (unlikely(m_commonIntf->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSAttachedSurface)))) {
+      Logger::debug("DDraw3Surface::AddAttachedSurface: Attaching IDirectDrawSurface surface");
       DDrawSurface* ddrawSurface = reinterpret_cast<DDrawSurface*>(lpDDSAttachedSurface);
       IDirectDrawSurface3* surface3 = nullptr;
       ddrawSurface->GetProxied()->QueryInterface(__uuidof(IDirectDrawSurface3), reinterpret_cast<void**>(&surface3));
@@ -381,7 +382,80 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Flip(LPDIRECTDRAWSURFACE3 lpDDSurfaceTargetOverride, DWORD dwFlags) {
-    Logger::warn("*** DDraw3Surface::Flip: Ignoring");
+    // Lost surfaces are not flippable
+    HRESULT hr = m_proxy->IsLost();
+    if (unlikely(FAILED(hr))) {
+      Logger::debug("DDraw3Surface::Flip: Lost surface");
+      return hr;
+    }
+
+    if (unlikely(!(m_commonSurf->IsFrontBuffer() || m_commonSurf->IsBackBufferOrFlippable()))) {
+      Logger::debug("DDraw3Surface::Flip: Unflippable surface");
+      return DDERR_NOTFLIPPABLE;
+    }
+
+    const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+
+    // Non-exclusive mode validations
+    if (unlikely(m_commonSurf->IsPrimarySurface() && !exclusiveMode)) {
+      Logger::debug("DDraw3Surface::Flip: Primary surface flip in non-exclusive mode");
+      return DDERR_NOEXCLUSIVEMODE;
+    }
+
+    // Exclusive mode validations
+    if (unlikely(m_commonSurf->IsBackBufferOrFlippable() && exclusiveMode)) {
+      Logger::debug("DDraw3Surface::Flip: Back buffer flip in exclusive mode");
+      return DDERR_NOTFLIPPABLE;
+    }
+
+    Com<DDraw3Surface> surf3 = static_cast<DDraw3Surface*>(lpDDSurfaceTargetOverride);
+    if (lpDDSurfaceTargetOverride != nullptr) {
+      if (unlikely(!surf3->GetParent()->GetCommonSurface()->IsBackBufferOrFlippable())) {
+        Logger::debug("DDraw3Surface::Flip: Unflippable override surface");
+        return DDERR_NOTFLIPPABLE;
+      }
+    }
+
+    RefreshD3D5Device();
+    if (likely(m_d3d5Device != nullptr)) {
+      Logger::debug("*** DDraw3Surface::Flip: Presenting");
+
+      D3D5DeviceLock lock = m_d3d5Device->LockDevice();
+
+      m_d3d5Device->ResetDrawTracking();
+
+      if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+        if (unlikely(!IsInitialized()))
+          m_parent->InitializeD3D9(m_d3d5Device->GetRenderTarget() == m_parent);
+
+        BlitToDDrawSurface<IDirectDrawSurface3, DDSURFACEDESC>(m_proxy.ptr(), m_d3d5Device->GetRenderTarget()->GetD3D9());
+
+        if (likely(m_d3d5Device->GetRenderTarget() == m_parent)) {
+          if (lpDDSurfaceTargetOverride != nullptr) {
+            m_d3d5Device->SetFlipRTFlags(surf3->GetParent()->GetProxied(), dwFlags);
+          } else {
+            m_d3d5Device->SetFlipRTFlags(nullptr, dwFlags);
+          }
+        }
+        if (lpDDSurfaceTargetOverride != nullptr) {
+          return m_proxy->Flip(surf3->GetProxied(), dwFlags);
+        } else {
+          return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+        }
+      }
+
+      m_d3d5Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
+    // If we don't have a valid D3D5 device, this means a D3D3 application
+    // is trying to flip the surface. Allow that for compatibility reasons.
+    } else {
+      Logger::debug("<<< DDraw3Surface::Flip: Proxy");
+      if (lpDDSurfaceTargetOverride == nullptr) {
+        m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+      } else {
+        m_proxy->Flip(surf3->GetProxied(), dwFlags);
+      }
+    }
+
     return DD_OK;
   }
 
