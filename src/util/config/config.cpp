@@ -1686,7 +1686,7 @@ namespace dxvk {
       { "d3d9.allowDirectBufferMapping",   "False" },
     }} },
     /* Dungeon Keeper 2                           */
-    { R"(\\DKII-DX\.exe$)", {{
+    { R"(\\DKII(-DX)?\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Star Wars: Rogue Squadron 3D               */
