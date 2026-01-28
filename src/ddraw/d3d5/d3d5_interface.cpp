@@ -352,9 +352,16 @@ namespace dxvk {
       if (unlikely(m_parent->GetCommonInterface()->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface3*>(lpDDS)))) {
         Logger::debug("D3D5Interface::CreateDevice: IDirectDrawSurface3 surface passed as RT");
         DDraw3Surface* ddraw3Surface = reinterpret_cast<DDraw3Surface*>(lpDDS);
-        // A DDrawSurface has to exist, because a DDraw3Surface is obtained from it via QueryInterface
+        // A DDrawSurface usually exists, because a DDraw3Surface is obtained from it via
+        // QueryInterface, however the passed surface can be obtained by GetAttachedSurface() calls
+        // on IDirectDrawSurface3, in which case it will NOT have a preexisting DDrawSurface
         rt = ddraw3Surface->GetCommonSurface()->GetDDSurface();
-        // The actual depth stencil is an attached IDirectDrawSurface3 surface too, so yeah...
+        if (unlikely(rt == nullptr)) {
+          Com<IDirectDrawSurface> surface;
+          ddraw3Surface->GetProxied()->QueryInterface(__uuidof(IDirectDrawSurface), reinterpret_cast<void**>(&surface));
+          rt = new DDrawSurface(nullptr, std::move(surface), m_parent, nullptr, nullptr, false);
+        }
+        // The depth stencil can be an attached IDirectDrawSurface3 surface too, so play it safe
         rt->SetAttachedDepthStencil(m_parent->GetLastDepthStencil());
       } else if (unlikely(m_options.proxiedQueryInterface)) {
         Logger::debug("D3D5Interface::CreateDevice: Unwrapped surface passed as RT");
@@ -434,7 +441,7 @@ namespace dxvk {
       while (backBuffer != nullptr) {
         IDirectDrawSurface* parentSurface = backBuffer;
         backBuffer = nullptr;
-        parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfaces5Callback);
+        parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfacesCallback);
         backBufferCount++;
         // the swapchain will eventually return to its origin
         if (backBuffer == rt->GetProxied())
