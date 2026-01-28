@@ -465,7 +465,7 @@ namespace dxvk {
   }
 
   // D3D5 Callback function used to navigate a flipable surface swapchain
-  inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfaces5Callback(IDirectDrawSurface* subsurf, DDSURFACEDESC* desc, void* ctx) {
+  inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfacesCallback(IDirectDrawSurface* subsurf, DDSURFACEDESC* desc, void* ctx) {
     IDirectDrawSurface** nextBackBuffer = static_cast<IDirectDrawSurface**>(ctx);
 
     if (desc->ddsCaps.dwCaps & DDSCAPS_FLIP) {
@@ -477,7 +477,7 @@ namespace dxvk {
   }
 
   // D3D6 Callback function used to navigate a flipable surface swapchain
-  inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfaces6Callback(IDirectDrawSurface4* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+  inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfaces4Callback(IDirectDrawSurface4* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     IDirectDrawSurface4** nextBackBuffer = static_cast<IDirectDrawSurface4**>(ctx);
 
     if (desc->ddsCaps.dwCaps & DDSCAPS_FLIP) {

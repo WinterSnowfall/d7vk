@@ -409,7 +409,7 @@ namespace dxvk {
       while (backBuffer != nullptr) {
         IDirectDrawSurface4* parentSurface = backBuffer;
         backBuffer = nullptr;
-        parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfaces6Callback);
+        parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfaces4Callback);
         backBufferCount++;
         // the swapchain will eventually return to its origin
         if (backBuffer == rt4->GetProxied())
