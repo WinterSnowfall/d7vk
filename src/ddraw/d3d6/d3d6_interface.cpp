@@ -441,7 +441,9 @@ namespace dxvk {
 
     if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_options.forceMultiThreaded)
       deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
-    if (cooperativeLevel & DDSCL_FPUPRESERVE)
+    // DDSCL_FPUPRESERVE does not exist prior to DDraw7,
+    // and DDSCL_FPUSETUP is NOT the default state
+    if (!(cooperativeLevel & DDSCL_FPUSETUP))
       deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
     if (cooperativeLevel & DDSCL_NOWINDOWCHANGES)
       deviceCreationFlags9 |= D3DCREATE_NOWINDOWCHANGES;
