@@ -1583,16 +1583,18 @@ namespace dxvk {
     { R"(\\SimCity 4\.exe$)", {{
       { "ddraw.proxiedQueryInterface",      "True" },
     }} },
+    /* The Settlers IV                            */
+    { R"(\\S4_Main\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
     /**********************************************/
     /* Drakan: Order of the Flame                 *
-     * Fixes realtime character shadow updates    *
-     * and physics glitches at over 60 FPS        */
+     * Fixes physics glitches at over 60 FPS      */
     { R"(\\Drakan\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.alwaysDirtyMipMaps",         "True" },
     }} },
     /* O.R.B: Off-World Resource Base             *
      * Uses windowed present mode in full-screen  */
@@ -1681,10 +1683,6 @@ namespace dxvk {
     /**********************************************/
     /* D3D5 GAMES                                 */
     /**********************************************/
-    /* FreeSpace 2 - Fixes main menu animations   */
-    { R"(\\FS2\.exe$)", {{
-      { "ddraw.alwaysDirtyMipMaps",         "True" },
-    }} },
     /* Descent: FreeSpace - The Great War         */
     { R"(\\FS\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
