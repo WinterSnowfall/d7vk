@@ -198,9 +198,6 @@ namespace dxvk {
 
       *ppvObject = ref(new D3D6Texture(std::move(ppvProxyObject), this));
 
-      // Arabian Nights needs a dirty here to properly update textures
-      m_commonSurf->DirtyMipMaps();
-
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DTexture))) {
