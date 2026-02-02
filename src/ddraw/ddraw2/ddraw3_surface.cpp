@@ -202,8 +202,6 @@ namespace dxvk {
       Com<D3D5Texture> texture5 = new D3D5Texture(std::move(ppvProxyObject), m_parent, nextHandle);
       m_parent->GetParent()->EmplaceTexture(texture5.ptr(), nextHandle);
 
-      m_commonSurf->DirtyMipMaps();
-
       *ppvObject = texture5.ref();
 
       return S_OK;
