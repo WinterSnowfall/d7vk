@@ -79,18 +79,8 @@ namespace dxvk {
   IUnknown* DDrawWrappedObject<DDrawInterface, IDirectDrawSurface, d3d9::IDirect3DSurface9>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
-    if (riid == __uuidof(IDirectDrawSurface)) {
-      if (unlikely(m_forwardToProxy)) {
-        Logger::debug("DDrawSurface::QueryInterface: Forwarding interface query to proxied object");
-        // Hack: Return the proxied interface, as some applications need
-        // to use an unwrapped object in relation with external modules
-        void* ppvObject = nullptr;
-        HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
-        if (likely(SUCCEEDED(hr)))
-          return reinterpret_cast<IUnknown*>(ppvObject);
-      }
+    if (riid == __uuidof(IDirectDrawSurface))
       return this;
-    }
 
     throw DxvkError("DDrawSurface::QueryInterface: Unknown interface query");
   }
@@ -318,13 +308,9 @@ namespace dxvk {
     HRESULT hr;
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
-      if (unlikely(lpDDSrcSurface != nullptr)) {
-        if (likely(!m_commonIntf->GetOptions()->proxiedQueryInterface)) {
-          Logger::warn("DDrawSurface::Blt: Received an unwrapped source surface");
-        } else {
-          Logger::debug("DDrawSurface::Blt: Received an unwrapped source surface");
-        }
-      }
+      if (unlikely(lpDDSrcSurface != nullptr))
+        Logger::warn("DDrawSurface::Blt: Received an unwrapped source surface");
+
       hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     } else {
       DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSrcSurface);
@@ -437,8 +423,38 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback) {
-    Logger::debug("<<< DDrawSurface::EnumAttachedSurfaces: Proxy");
-    return m_proxy->EnumAttachedSurfaces(lpContext, lpEnumSurfacesCallback);
+    Logger::debug(">>> DDrawSurface::EnumAttachedSurfaces");
+
+    if (unlikely(lpEnumSurfacesCallback == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    std::vector<AttachedSurface> attachedSurfaces;
+    // Enumerate all attached surfaces from the underlying DDraw implementation
+    m_proxy->EnumAttachedSurfaces(reinterpret_cast<void*>(&attachedSurfaces), EnumAttachedSurfacesCallback);
+
+    HRESULT hr = DDENUMRET_OK;
+
+    // Wrap surfaces as needed and perform the actual callback the application is requesting
+    auto surfaceIt = attachedSurfaces.begin();
+    while (surfaceIt != attachedSurfaces.end() && hr != D3DENUMRET_CANCEL) {
+      Com<IDirectDrawSurface> surface = surfaceIt->surface;
+
+      auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
+      if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
+        Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), m_parent, this, nullptr, false);
+        m_attachedSurfaces.emplace(std::piecewise_construct,
+                                   std::forward_as_tuple(ddrawSurface->GetProxied()),
+                                   std::forward_as_tuple(ddrawSurface.ptr()));
+        // TODO: We should ref here, but somehow we're leaking an interface attached surface if we do...
+        hr = lpEnumSurfacesCallback(ddrawSurface.ptr(), &surfaceIt->surfaceDesc, lpContext);
+      } else {
+        hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ptr(), &surfaceIt->surfaceDesc, lpContext);
+      }
+
+      ++surfaceIt;
+    }
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::EnumOverlayZOrders(DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpfnCallback) {
