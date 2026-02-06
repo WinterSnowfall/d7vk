@@ -43,18 +43,8 @@ namespace dxvk {
   IUnknown* DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
-    if (riid == __uuidof(IDirectDraw2)) {
-      if (unlikely(m_forwardToProxy)) {
-        Logger::debug("DDraw2Interface::QueryInterface: Forwarding interface query to proxied object");
-        // Hack: Return the proxied interface, as some applications need
-        // to use an unwrapped object in relation with external modules
-        void* ppvObject = nullptr;
-        HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
-        if (likely(SUCCEEDED(hr)))
-          return reinterpret_cast<IUnknown*>(ppvObject);
-      }
+    if (riid == __uuidof(IDirectDraw2))
       return this;
-    }
 
     throw DxvkError("DDraw2Interface::QueryInterface: Unknown interface query");
   }
@@ -254,12 +244,6 @@ namespace dxvk {
             m_parent->SetLastDepthStencil(surface.ptr());
         }
 
-        if (unlikely(m_commonIntf->GetOptions()->proxiedQueryInterface)) {
-          if (unlikely(surface->GetCommonSurface()->IsForwardableSurface())) {
-            surface->SetForwardToProxy(true);
-          }
-        }
-
         *lplpDDSurface = surface.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());
@@ -307,7 +291,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSD, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback) {
-    Logger::debug("<<< DDraw2Interface::EnumSurfaces: Proxy");
+    Logger::warn("<<< DDraw2Interface::EnumSurfaces: Proxy");
     return m_proxy->EnumSurfaces(dwFlags, lpDDSD, lpContext, lpEnumSurfacesCallback);
   }
 

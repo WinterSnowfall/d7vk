@@ -2,6 +2,7 @@
 
 #include "ddraw_include.h"
 
+#include <vector>
 #include <type_traits>
 
 namespace dxvk {
@@ -18,6 +19,21 @@ namespace dxvk {
     IDirectDrawSurface7* negativeY = nullptr;
     IDirectDrawSurface7* positiveZ = nullptr;
     IDirectDrawSurface7* negativeZ = nullptr;
+  };
+
+  struct AttachedSurface {
+    IDirectDrawSurface*  surface      = nullptr;
+    DDSURFACEDESC        surfaceDesc  = { };
+  };
+
+  struct AttachedSurface4 {
+    IDirectDrawSurface4* surface4     = nullptr;
+    DDSURFACEDESC2       surface4Desc = { };
+  };
+
+  struct AttachedSurface7 {
+    IDirectDrawSurface7* surface7     = nullptr;
+    DDSURFACEDESC2       surface7Desc = { };
   };
 
   inline bool IsCubeMapFace(DDSURFACEDESC2* desc) {
@@ -534,6 +550,36 @@ namespace dxvk {
       *nextMip = subsurf;
       return DDENUMRET_CANCEL;
     }
+
+    return DDENUMRET_OK;
+  }
+
+  // D3D5 callback function used to enumerate attached surfaces
+  inline HRESULT STDMETHODCALLTYPE EnumAttachedSurfacesCallback(IDirectDrawSurface* surface, DDSURFACEDESC* desc, void* ctx) {
+    auto& attachedSurfaces = *static_cast<std::vector<AttachedSurface>*>(ctx);
+
+    AttachedSurface attachedSurface = { surface, *desc };
+    attachedSurfaces.push_back(attachedSurface);
+
+    return DDENUMRET_OK;
+  }
+
+  // D3D6 callback function used to enumerate attached surfaces
+  inline HRESULT STDMETHODCALLTYPE EnumAttachedSurfaces4Callback(IDirectDrawSurface4* surface, DDSURFACEDESC2* desc, void* ctx) {
+    auto& attachedSurfaces = *static_cast<std::vector<AttachedSurface4>*>(ctx);
+
+    AttachedSurface4 attachedSurface4 = { surface, *desc };
+    attachedSurfaces.push_back(attachedSurface4);
+
+    return DDENUMRET_OK;
+  }
+
+  // D3D7 callback function used to enumerate attached surfaces
+  inline HRESULT STDMETHODCALLTYPE EnumAttachedSurfaces7Callback(IDirectDrawSurface7* surface, DDSURFACEDESC2* desc, void* ctx) {
+    auto& attachedSurfaces = *static_cast<std::vector<AttachedSurface7>*>(ctx);
+
+    AttachedSurface7 attachedSurface7 = { surface, *desc };
+    attachedSurfaces.push_back(attachedSurface7);
 
     return DDENUMRET_OK;
   }

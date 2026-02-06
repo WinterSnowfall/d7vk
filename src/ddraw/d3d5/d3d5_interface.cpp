@@ -48,18 +48,8 @@ namespace dxvk {
   IUnknown* DDrawWrappedObject<DDrawInterface, IDirect3D2, d3d9::IDirect3D9>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
-    if (riid == __uuidof(IDirect3D2)) {
-      if (unlikely(m_forwardToProxy)) {
-        Logger::debug("D3D5Interface::QueryInterface: Forwarding interface query to proxied object");
-        // Hack: Return the proxied interface, as some applications need
-        // to use an unwrapped object in relation with external modules
-        void* ppvObject = nullptr;
-        HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
-        if (likely(SUCCEEDED(hr)))
-          return reinterpret_cast<IUnknown*>(ppvObject);
-      }
+    if (riid == __uuidof(IDirect3D2))
       return this;
-    }
 
     Logger::debug("D3D5Interface::QueryInterface: Forwarding interface query to parent");
     return m_parent->GetInterface(riid);
@@ -362,12 +352,6 @@ namespace dxvk {
           rt = new DDrawSurface(nullptr, std::move(surface), m_parent, nullptr, nullptr, false);
         }
         // The depth stencil can be an attached IDirectDrawSurface3 surface too, so play it safe
-        rt->SetAttachedDepthStencil(m_parent->GetLastDepthStencil());
-      } else if (unlikely(m_options.proxiedQueryInterface)) {
-        Logger::debug("D3D5Interface::CreateDevice: Unwrapped surface passed as RT");
-        rt = new DDrawSurface(nullptr, std::move(lpDDS), m_parent, nullptr, nullptr, true);
-        // Hack: attach the last created depth stencil to the unwrapped RT
-        // We can not do this the usual way because the RT is not known to ddraw
         rt->SetAttachedDepthStencil(m_parent->GetLastDepthStencil());
       } else {
         Logger::err("D3D5Interface::CreateDevice: Unwrapped surface passed as RT");
