@@ -569,15 +569,9 @@ namespace dxvk {
         break;
 
       // Replacement for later implemented GetTexture calls
-      case D3DRENDERSTATE_TEXTUREHANDLE: {
-        if (unlikely(m_parent->GetOptions()->proxiedSetTexture)) {
-          Logger::debug("<<< D3D5Device::GetRenderState: Proxy");
-          return m_proxy->GetRenderState(dwRenderStateType, lpdwRenderState);
-        }
-
+      case D3DRENDERSTATE_TEXTUREHANDLE:
         *lpdwRenderState = m_textureHandle;
         return D3D_OK;
-      }
 
       case D3DRENDERSTATE_ANTIALIAS:
         *lpdwRenderState = m_antialias;
@@ -755,11 +749,6 @@ namespace dxvk {
 
       // Replacement for later implemented SetTexture calls
       case D3DRENDERSTATE_TEXTUREHANDLE: {
-        if (unlikely(m_parent->GetOptions()->proxiedSetTexture)) {
-          Logger::debug("<<< D3D5Device::SetRenderState: Proxy");
-          return m_proxy->SetRenderState(dwRenderStateType, dwRenderState);
-        }
-
         D3D5Texture* texture5 = nullptr;
 
         if (likely(dwRenderState != 0)) {
@@ -1531,7 +1520,7 @@ namespace dxvk {
 
     // Only upload textures if any sort of blit/lock operation
     // has been performed on them since the last SetTexture call
-    if (surface5->GetCommonSurface()->HasDirtyMipMaps() || m_parent->GetOptions()->alwaysDirtyMipMaps) {
+    if (surface5->GetCommonSurface()->HasDirtyMipMaps()) {
       hr = surface5->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D5Device::SetTextureInternal: Failed to initialize/upload D3D9 texture");
