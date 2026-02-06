@@ -1639,11 +1639,11 @@ namespace dxvk {
     }} },
     /* Blood II: The Chosen                       */
     { R"(\\Blood.*\\Client\.exe$)", {{
-      { "d3d9.maxFrameRate",                 "-60" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Shogo: Mobile Armor Division               */
     { R"(\\Shogo.*\\Client\.exe$)", {{
-      { "d3d9.maxFrameRate",                 "-60" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Enemy Engaged: Apache vs Havoc             */
     { R"(\\aphavoc\.exe$)", {{
