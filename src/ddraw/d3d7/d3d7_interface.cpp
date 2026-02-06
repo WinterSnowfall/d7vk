@@ -45,18 +45,8 @@ namespace dxvk {
   IUnknown* DDrawWrappedObject<DDraw7Interface, IDirect3D7, d3d9::IDirect3D9>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
-    if (riid == __uuidof(IDirect3D7)) {
-      if (unlikely(m_forwardToProxy)) {
-        Logger::debug("D3D7Interface::QueryInterface: Forwarding interface query to proxied object");
-        // Hack: Return the proxied interface, as some applications need
-        // to use an unwrapped object in relation with external modules
-        void* ppvObject = nullptr;
-        HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
-        if (likely(SUCCEEDED(hr)))
-          return reinterpret_cast<IUnknown*>(ppvObject);
-      }
+    if (riid == __uuidof(IDirect3D7))
       return this;
-    }
 
     Logger::debug("D3D7Interface::QueryInterface: Forwarding interface query to parent");
     return m_parent->GetInterface(riid);
@@ -188,16 +178,8 @@ namespace dxvk {
 
     Com<DDraw7Surface> rt7;
     if (unlikely(!m_parent->GetCommonInterface()->IsWrappedSurface(surface))) {
-      if (unlikely(m_options.proxiedQueryInterface)) {
-        Logger::debug("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
-        rt7 = new DDraw7Surface(nullptr, std::move(surface), m_parent, nullptr, nullptr, true);
-        // Hack: attach the last created depth stencil to the unwrapped RT
-        // We can not do this the usual way because the RT is not known to ddraw
-        rt7->SetAttachedDepthStencil(m_parent->GetLastDepthStencil());
-      } else {
-        Logger::err("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
-        return DDERR_GENERIC;
-      }
+      Logger::err("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
+      return DDERR_GENERIC;
     } else {
       rt7 = static_cast<DDraw7Surface*>(surface);
     }

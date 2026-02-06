@@ -1416,7 +1416,6 @@ namespace dxvk {
      * flickering on the loading screen           */
     { R"(\\GOTHIC(Mod)?\.EXE$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.proxiedQueryInterface",      "True" },
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Gothic 2 / Night of the Raven              *
@@ -1424,18 +1423,12 @@ namespace dxvk {
      * flickering on the loading screen           */
     { R"(\\Gothic2\.exe)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.proxiedQueryInterface",      "True" },
       { "ddraw.forceSingleBackBuffer",      "True" },
-    }} },
-    /* Ground Control (to Major Tom)              */
-    { R"(\\Ground Control\\gc\.exe$)", {{
-      { "ddraw.proxiedQueryInterface",      "True" },
     }} },
     /* Blade of Darkness - broken physics, main   *
      * menu transitions, animations and GUI       */
     { R"(\\Blade\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.proxiedQueryInterface",      "True" },
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Hogs of War - Fixes animation speed        */
@@ -1542,7 +1535,6 @@ namespace dxvk {
     /* Might and Magic IX / No One Lives Forever  */
     { R"(\\lithtech\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.proxiedQueryInterface",      "True" },
     }} },
     /* 3DMark2000 - Performance                   */
     { R"(\\3DMark2000\.exe$)", {{
@@ -1625,10 +1617,6 @@ namespace dxvk {
     { R"(\\Lancer\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
-    /* SimCity 4                                  */
-    { R"(\\SimCity 4\.exe$)", {{
-      { "ddraw.proxiedQueryInterface",      "True" },
-    }} },
     /* The Settlers IV                            */
     { R"(\\S4_Main\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
@@ -1698,12 +1686,10 @@ namespace dxvk {
     /* Blood II: The Chosen                       */
     { R"(\\Blood.*\\Client\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.proxiedQueryInterface",      "True" },
     }} },
     /* Shogo: Mobile Armor Division               */
     { R"(\\Shogo.*\\Client\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.proxiedQueryInterface",      "True" },
     }} },
     /* Enemy Engaged: Apache vs Havoc             */
     { R"(\\aphavoc\.exe$)", {{
