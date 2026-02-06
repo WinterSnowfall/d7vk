@@ -1513,15 +1513,9 @@ namespace dxvk {
     D3D6Texture* texture6 = static_cast<D3D6Texture*>(texture);
     DDraw4Surface* surface6 = texture6->GetParent();
 
-    if (unlikely(m_parent->GetOptions()->proxiedSetTexture)) {
-      HRESULT hrProxy = m_proxy->SetTexture(stage, texture6->GetProxied());
-      if (unlikely(FAILED(hrProxy)))
-        Logger::warn("D3D6Device::SetTexture: Failed proxied call");
-    }
-
     // Only upload textures if any sort of blit/lock operation
     // has been performed on them since the last SetTexture call
-    if (surface6->GetCommonSurface()->HasDirtyMipMaps() || m_parent->GetOptions()->alwaysDirtyMipMaps) {
+    if (surface6->GetCommonSurface()->HasDirtyMipMaps()) {
       hr = surface6->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D6Device::SetTexture: Failed to initialize/upload D3D9 texture");
