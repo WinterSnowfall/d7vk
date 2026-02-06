@@ -37,6 +37,12 @@ namespace dxvk {
 
     m_commonIntf->SetDD4Interface(this);
 
+    static bool s_apitraceModeWarningShown;
+
+    if (unlikely(m_commonIntf->GetOptions()->apitraceMode &&
+                 !std::exchange(s_apitraceModeWarningShown, true)))
+      Logger::warn("DDraw4Interface: Apitrace mode is enabled. Performance will be suboptimal!");
+
     m_intfCount = ++s_intfCount;
 
     Logger::debug(str::format("DDraw4Interface: Created a new interface nr. <<4-", m_intfCount, ">>"));

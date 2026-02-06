@@ -1168,15 +1168,9 @@ namespace dxvk {
 
     DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
 
-    if (unlikely(m_parent->GetOptions()->proxiedSetTexture)) {
-      HRESULT hrProxy = m_proxy->SetTexture(stage, surface7->GetProxied());
-      if (unlikely(FAILED(hrProxy)))
-        Logger::warn("D3D7Device::SetTexture: Failed proxied call");
-    }
-
     // Only upload textures if any sort of blit/lock operation
     // has been performed on them since the last SetTexture call
-    if (surface7->GetCommonSurface()->HasDirtyMipMaps() || m_parent->GetOptions()->alwaysDirtyMipMaps) {
+    if (surface7->GetCommonSurface()->HasDirtyMipMaps()) {
       hr = surface7->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Device::SetTexture: Failed to initialize/upload D3D9 texture");
@@ -1300,7 +1294,8 @@ namespace dxvk {
       DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
 
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!ddraw7SurfaceDst->GetCommonSurface()->IsTextureOrCubeMap()) {
+      if (!ddraw7SurfaceDst->GetCommonSurface()->IsTextureOrCubeMap()
+        || m_parent->GetOptions()->apitraceMode) {
         HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrInitDst))) {
           Logger::err("D3D7Device::Load: Failed to upload D3D9 destination surface data");
