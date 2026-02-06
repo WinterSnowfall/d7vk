@@ -52,18 +52,8 @@ namespace dxvk {
   IUnknown* DDrawWrappedObject<DDrawInterface, IDirectDraw4, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
-    if (riid == __uuidof(IDirectDraw4)) {
-      if (unlikely(m_forwardToProxy)) {
-        Logger::debug("DDraw4Interface::QueryInterface: Forwarding interface query to proxied object");
-        // Hack: Return the proxied interface, as some applications need
-        // to use an unwrapped object in relation with external modules
-        void* ppvObject = nullptr;
-        HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
-        if (likely(SUCCEEDED(hr)))
-          return reinterpret_cast<IUnknown*>(ppvObject);
-      }
+    if (riid == __uuidof(IDirectDraw4))
       return this;
-    }
 
     throw DxvkError("DDraw4Interface::QueryInterface: Unknown interface query");
   }
@@ -284,8 +274,7 @@ namespace dxvk {
 
     if (unlikely((lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)
               && (lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF))) {
-      if (!m_commonIntf->GetOptions()->proxiedQueryInterface
-        && m_commonIntf->GetOptions()->useD24X8forD32) {
+      if (m_commonIntf->GetOptions()->useD24X8forD32) {
         // In case of up-front unsupported and unadvertised D32 depth stencil use,
         // replace it with D24X8, as some games, such as Sacrifice, rely on it
         // to properly enable 32-bit display modes (and revert to 16-bit otherwise)
@@ -303,15 +292,8 @@ namespace dxvk {
       try{
         Com<DDraw4Surface> surface4 = new DDraw4Surface(nullptr, std::move(ddrawSurface4Proxied), this, nullptr, nullptr, true);
 
-        if (unlikely(m_commonIntf->GetOptions()->proxiedQueryInterface)) {
-          // Hack: Gothic / Gothic 2 and other games attach the depth stencil to an externally created
-          // back buffer, so we need to re-attach the depth stencil to the back buffer on device creation
-          if (unlikely(surface4->GetCommonSurface()->IsForwardableSurface())) {
-            if (unlikely(surface4->GetCommonSurface()->IsDepthStencil()))
-              m_lastDepthStencil = surface4.ptr();
-            surface4->SetForwardToProxy(true);
-          }
-        }
+        if (unlikely(surface4->GetCommonSurface()->IsDepthStencil()))
+          m_lastDepthStencil = surface4.ptr();
 
         *lplpDDSurface = surface4.ref();
       } catch (const DxvkError& e) {
@@ -358,7 +340,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSD, LPVOID lpContext, LPDDENUMSURFACESCALLBACK2 lpEnumSurfacesCallback) {
-    Logger::debug("<<< DDraw4Interface::EnumSurfaces: Proxy");
+    Logger::warn("<<< DDraw4Interface::EnumSurfaces: Proxy");
     return m_proxy->EnumSurfaces(dwFlags, lpDDSD, lpContext, lpEnumSurfacesCallback);
   }
 

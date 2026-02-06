@@ -80,18 +80,8 @@ namespace dxvk {
   IUnknown* DDrawWrappedObject<DDrawSurface, IDirectDrawSurface2, d3d9::IDirect3DSurface9>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
-    if (riid == __uuidof(IDirectDrawSurface2)) {
-      if (unlikely(m_forwardToProxy)) {
-        Logger::debug("DDraw2Surface::QueryInterface: Forwarding interface query to proxied object");
-        // Hack: Return the proxied interface, as some applications need
-        // to use an unwrapped object in relation with external modules
-        void* ppvObject = nullptr;
-        HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
-        if (likely(SUCCEEDED(hr)))
-          return reinterpret_cast<IUnknown*>(ppvObject);
-      }
+    if (riid == __uuidof(IDirectDrawSurface2))
       return this;
-    }
 
     throw DxvkError("DDraw2Surface::QueryInterface: Unknown interface query");
   }
@@ -361,7 +351,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback) {
-    Logger::debug("<<< DDraw2Surface::EnumAttachedSurfaces: Proxy");
+    Logger::warn("<<< DDraw2Surface::EnumAttachedSurfaces: Proxy");
     return m_proxy->EnumAttachedSurfaces(lpContext, lpEnumSurfacesCallback);
   }
 
