@@ -71,14 +71,9 @@ namespace dxvk {
     /// by the application. This is currently used as a workaround for all UE1 titles.
     bool autoGenMipMaps;
 
-    /// Always treats mip maps as dirty during SetTexture calls. Will negatively
-    /// affect performance, but is sometimes needed for corectness, as some
-    /// applications write to surfaces/mip maps outside of locks.
-    bool alwaysDirtyMipMaps;
-
-    /// Also proxies SetTexture calls onto the underlying DDraw implementation.
-    /// Useful only for debugging and apitrace inspection.
-    bool proxiedSetTexture;
+    /// Immediately perform all texture related operations and uploads instead of dirtying.
+    /// Will negatively affect performance and is only useful for debugging.
+    bool apitraceMode;
 
     /// Uses supported MSAA up to 4x to emulate D3D5 and higher order-dependent
     /// and order-independent full scene anti-aliasing. Disabled by default.
@@ -94,7 +89,7 @@ namespace dxvk {
     D3DOptions() {}
 
     D3DOptions(const Config& config) {
-      // D3D6/7 options
+      // D3D7/6/5 options
       this->forceMultiThreaded    = config.getOption<bool>   ("d3d7.forceMultiThreaded",     false);
       this->useD24X8forD32        = config.getOption<bool>   ("d3d7.useD24X8forD32",         false);
       this->proxiedExecuteBuffers = config.getOption<bool>   ("d3d7.proxiedExecuteBuffers",  false);
@@ -106,8 +101,7 @@ namespace dxvk {
       this->ignoreGammaRamp       = config.getOption<bool>   ("ddraw.ignoreGammaRamp",       false);
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
       this->autoGenMipMaps        = config.getOption<bool>   ("ddraw.autoGenMipMaps",        false);
-      this->alwaysDirtyMipMaps    = config.getOption<bool>   ("ddraw.alwaysDirtyMipMaps",    false);
-      this->proxiedSetTexture     = config.getOption<bool>   ("ddraw.proxiedSetTexture",     false);
+      this->apitraceMode          = config.getOption<bool>   ("ddraw.apitraceMode",          false);
       // D3D9 options
       this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",      1024);
 

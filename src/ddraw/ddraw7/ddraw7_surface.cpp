@@ -273,7 +273,10 @@ namespace dxvk {
     } else {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
 
-      if (unlikely(ddraw7Surface->GetCommonSurface()->IsDepthStencil()))
+      static bool s_depthStencilWarningShown;
+
+      if (unlikely(ddraw7Surface->GetCommonSurface()->IsDepthStencil() &&
+                   !std::exchange(s_depthStencilWarningShown, true)))
         Logger::warn("DDraw7Surface::Blt: Source surface is a depth stencil");
 
       hr = m_proxy->Blt(lpDestRect, ddraw7Surface->GetProxied(), lpSrcRect, dwFlags, lpDDBltFx);
@@ -281,7 +284,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!m_commonSurf->IsTextureOrCubeMap()) {
+      if (!m_commonSurf->IsTextureOrCubeMap() || m_commonIntf->GetOptions()->apitraceMode) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::Blt: Failed upload to d3d9 surface");
@@ -330,7 +333,10 @@ namespace dxvk {
     } else {
       DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
 
-      if (unlikely(ddraw7Surface->GetCommonSurface()->IsDepthStencil()))
+      static bool s_depthStencilWarningShown;
+
+      if (unlikely(ddraw7Surface->GetCommonSurface()->IsDepthStencil() &&
+                   !std::exchange(s_depthStencilWarningShown, true)))
         Logger::warn("DDraw7Surface::BltFast: Source surface is a depth stencil");
 
       hr = m_proxy->BltFast(dwX, dwY, ddraw7Surface->GetProxied(), lpSrcRect, dwTrans);
@@ -338,7 +344,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!m_commonSurf->IsTextureOrCubeMap()) {
+      if (!m_commonSurf->IsTextureOrCubeMap() || m_commonIntf->GetOptions()->apitraceMode) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::BltFast: Failed upload to d3d9 surface");
@@ -722,11 +728,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent) {
-    // TODO: Directly lock d3d9 surfaces and skip surface uploads on unlock,
-    // but it can get very involved, especially when dealing with DXT formats.
     Logger::debug("<<< DDraw7Surface::Lock: Proxy");
 
-    if (unlikely(m_commonSurf->IsDepthStencil()))
+    static bool s_depthStencilWarningShown;
+
+    if (unlikely(m_commonSurf->IsDepthStencil() &&
+                 !std::exchange(s_depthStencilWarningShown, true)))
         Logger::warn("DDraw7Surface::Lock: Surface is a depth stencil");
 
     return m_proxy->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
@@ -736,7 +743,7 @@ namespace dxvk {
     Logger::debug(">>> DDraw7Surface::ReleaseDC");
 
     if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
-      if (m_commonSurf->IsTextureOrCubeMap())
+      if (m_commonSurf->IsTextureOrCubeMap() && !m_commonIntf->GetOptions()->apitraceMode)
         m_commonSurf->DirtyMipMaps();
       return m_proxy->ReleaseDC(hDC);
     }
@@ -751,7 +758,7 @@ namespace dxvk {
     if (m_d3d7Device != nullptr && !(m_d3d7Device->HasDrawn()
                                   && m_commonSurf->IsGuardableSurface())) {
       Logger::debug("DDraw7Surface::ReleaseDC: Not yet drawn flippable surface");
-      if (m_commonSurf->IsTextureOrCubeMap())
+      if (m_commonSurf->IsTextureOrCubeMap() && !m_commonIntf->GetOptions()->apitraceMode)
         m_commonSurf->DirtyMipMaps();
       return m_proxy->ReleaseDC(hDC);
     }
@@ -828,13 +835,11 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Unlock(LPRECT lpSurfaceData) {
     Logger::debug("<<< DDraw7Surface::Unlock: Proxy");
 
-    // Note: Unfortunately, some applications write outside of locks too,
-    // so we will always need to upload texture and mip map data on SetTexture
     HRESULT hr = m_proxy->Unlock(lpSurfaceData);
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!m_commonSurf->IsTextureOrCubeMap()) {
+      if (!m_commonSurf->IsTextureOrCubeMap() || m_commonIntf->GetOptions()->apitraceMode) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw7Surface::Unlock: Failed upload to d3d9 surface");
@@ -919,7 +924,7 @@ namespace dxvk {
     // We may need to recreate the d3d9 object based on the new desc
     m_d3d9 = nullptr;
 
-    if (!m_commonSurf->IsTextureOrCubeMap()) {
+    if (!m_commonSurf->IsTextureOrCubeMap() || m_commonIntf->GetOptions()->apitraceMode) {
       InitializeOrUploadD3D9();
     } else {
       m_commonSurf->DirtyMipMaps();
