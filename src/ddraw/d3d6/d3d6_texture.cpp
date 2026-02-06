@@ -96,7 +96,11 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    m_parent->GetCommonSurface()->DirtyMipMaps();
+    if (likely(!m_parent->GetOptions()->apitraceMode)) {
+      m_parent->GetCommonSurface()->DirtyMipMaps();
+    } else {
+      m_parent->InitializeOrUploadD3D9();
+    }
 
     return hr;
   }
