@@ -442,7 +442,7 @@ namespace dxvk {
 
     // Wrap surfaces as needed and perform the actual callback the application is requesting
     auto surfaceIt = attachedSurfaces.begin();
-    while (surfaceIt != attachedSurfaces.end() && hr != D3DENUMRET_CANCEL) {
+    while (surfaceIt != attachedSurfaces.end() && hr != DDENUMRET_CANCEL) {
       Com<IDirectDrawSurface> surface = surfaceIt->surface;
 
       auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
