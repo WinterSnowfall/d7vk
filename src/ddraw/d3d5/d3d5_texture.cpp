@@ -71,8 +71,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Texture::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3DTEXTUREHANDLE lpHandle) {
-    if (unlikely(m_parent->GetOptions()->proxiedSetTexture ||
-                 m_parent->GetOptions()->proxiedExecuteBuffers)) {
+    if (unlikely(m_parent->GetOptions()->proxiedExecuteBuffers)) {
       Logger::debug("<<< D3D5Texture::GetHandle: Proxy");
       return m_proxy->GetHandle(lpDirect3DDevice2, lpHandle);
     }
@@ -101,7 +100,11 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    m_parent->GetCommonSurface()->DirtyMipMaps();
+    if (likely(!m_parent->GetOptions()->apitraceMode)) {
+      m_parent->GetCommonSurface()->DirtyMipMaps();
+    } else {
+      m_parent->InitializeOrUploadD3D9();
+    }
 
     return hr;
   }
