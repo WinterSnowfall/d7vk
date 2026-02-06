@@ -315,8 +315,29 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSD, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback) {
-    Logger::warn("<<< DDrawInterface::EnumSurfaces: Proxy");
-    return m_proxy->EnumSurfaces(dwFlags, lpDDSD, lpContext, lpEnumSurfacesCallback);
+    Logger::debug(">>> DDrawInterface::EnumSurfaces: Proxy");
+
+    if (unlikely(lpEnumSurfacesCallback == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    std::vector<AttachedSurface> attachedSurfaces;
+    // Enumerate all surfaces from the underlying DDraw implementation
+    m_proxy->EnumSurfaces(dwFlags, lpDDSD, reinterpret_cast<void*>(&attachedSurfaces), EnumAttachedSurfacesCallback);
+
+    HRESULT hr = DDENUMRET_OK;
+
+    // Wrap surfaces as needed and perform the actual callback the application is requesting
+    auto surfaceIt = attachedSurfaces.begin();
+    while (surfaceIt != attachedSurfaces.end() && hr != DDENUMRET_CANCEL) {
+      Com<IDirectDrawSurface> surface = surfaceIt->surface;
+
+      Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), this, nullptr, nullptr, false);
+      hr = lpEnumSurfacesCallback(ddrawSurface.ref(), &surfaceIt->surfaceDesc, lpContext);
+
+      ++surfaceIt;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::FlipToGDISurface() {
