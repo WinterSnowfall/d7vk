@@ -34,18 +34,8 @@ namespace dxvk {
   IUnknown* DDrawWrappedObject<DDrawInterface, IDirect3D, d3d9::IDirect3D9>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
-    if (riid == __uuidof(IDirect3D)) {
-      if (unlikely(m_forwardToProxy)) {
-        Logger::debug("D3D3Interface::QueryInterface: Forwarding interface query to proxied object");
-        // Hack: Return the proxied interface, as some applications need
-        // to use an unwrapped object in relation with external modules
-        void* ppvObject = nullptr;
-        HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
-        if (likely(SUCCEEDED(hr)))
-          return reinterpret_cast<IUnknown*>(ppvObject);
-      }
+    if (riid == __uuidof(IDirect3D))
       return this;
-    }
 
     Logger::debug("D3D3Interface::QueryInterface: Forwarding interface query to parent");
     return m_parent->GetInterface(riid);

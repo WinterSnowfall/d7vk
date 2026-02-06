@@ -56,9 +56,6 @@ namespace dxvk {
     /// does presentation through blits directly onto the front/back buffers.
     bool forceProxiedPresent;
 
-    /// Forward query interface calls to the proxied objects
-    bool proxiedQueryInterface;
-
     /// Proxy legacy surfaces on creation. Sometimes needed for proper
     /// intro/cutscene playback in some D3D7/D3D6 applications.
     bool proxiedLegacySurfaces;
@@ -105,7 +102,6 @@ namespace dxvk {
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);
       this->forceProxiedPresent   = config.getOption<bool>   ("ddraw.forceProxiedPresent",   false);
-      this->proxiedQueryInterface = config.getOption<bool>   ("ddraw.proxiedQueryInterface", false);
       this->proxiedLegacySurfaces = config.getOption<bool>   ("ddraw.proxiedLegacySurfaces", false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("ddraw.ignoreGammaRamp",       false);
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
