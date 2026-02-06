@@ -21,18 +21,8 @@ namespace dxvk {
   IUnknown* DDrawWrappedObject<IUnknown, IDirectDrawClipper, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
-    if (riid == __uuidof(IDirectDrawClipper)) {
-      if (unlikely(m_forwardToProxy)) {
-        Logger::debug("DDrawClipper::QueryInterface: Forwarding interface query to proxied object");
-        // Hack: Return the proxied interface, as some applications need
-        // to use an unwrapped object in relation with external modules
-        void* ppvObject = nullptr;
-        HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
-        if (likely(SUCCEEDED(hr)))
-          return reinterpret_cast<IUnknown*>(ppvObject);
-      }
+    if (riid == __uuidof(IDirectDrawClipper))
       return this;
-    }
 
     throw DxvkError("DDrawClipper::QueryInterface: Unknown interface query");
   }

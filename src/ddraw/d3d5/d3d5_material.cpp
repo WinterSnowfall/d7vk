@@ -28,18 +28,8 @@ namespace dxvk {
       return this;
     // Materials are managed through handles, so nobody will query this,
     // nor should we care in particular about older interfaces here
-    if (riid == __uuidof(IDirect3DMaterial2)) {
-      if (unlikely(m_forwardToProxy)) {
-        Logger::debug("D3D5Material::QueryInterface: Forwarding interface query to proxied object");
-        // Hack: Return the proxied interface, as some applications need
-        // to use an unwrapped object in relation with external modules
-        void* ppvObject = nullptr;
-        HRESULT hr = m_proxy->QueryInterface(riid, &ppvObject);
-        if (likely(SUCCEEDED(hr)))
-          return reinterpret_cast<IUnknown*>(ppvObject);
-      }
+    if (riid == __uuidof(IDirect3DMaterial2))
       return this;
-    }
 
     throw DxvkError("D3D5Material::QueryInterface: Unknown interface query");
   }

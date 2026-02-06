@@ -52,10 +52,6 @@ namespace dxvk {
       return GetD3D9Nullable(self.ptr());
     }
 
-    void SetForwardToProxy(bool forwardToProxy) {
-      m_forwardToProxy = forwardToProxy;
-    }
-
     // Implemented/specialized in all of the invididual wrapped
     // object types, due to the need of hierarchical forwarding
     virtual IUnknown* GetInterface(REFIID riid);
@@ -77,8 +73,6 @@ namespace dxvk {
     }
 
   protected:
-
-    bool       m_forwardToProxy = false;
 
     Parent*    m_parent = nullptr;
 
