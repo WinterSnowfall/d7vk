@@ -311,8 +311,29 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSD, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback) {
-    Logger::warn("<<< DDraw7Interface::EnumSurfaces: Proxy");
-    return m_proxy->EnumSurfaces(dwFlags, lpDDSD, lpContext, lpEnumSurfacesCallback);
+    Logger::debug(">>> DDraw7Interface::EnumSurfaces: Proxy");
+
+    if (unlikely(lpEnumSurfacesCallback == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    std::vector<AttachedSurface7> attachedSurfaces;
+    // Enumerate all surfaces from the underlying DDraw implementation
+    m_proxy->EnumSurfaces(dwFlags, lpDDSD, reinterpret_cast<void*>(&attachedSurfaces), EnumAttachedSurfaces7Callback);
+
+    HRESULT hr = DDENUMRET_OK;
+
+    // Wrap surfaces as needed and perform the actual callback the application is requesting
+    auto surfaceIt = attachedSurfaces.begin();
+    while (surfaceIt != attachedSurfaces.end() && hr != DDENUMRET_CANCEL) {
+      Com<IDirectDrawSurface7> surface7 = surfaceIt->surface7;
+
+      Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7), this, nullptr, nullptr, false);
+      hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &surfaceIt->surface7Desc, lpContext);
+
+      ++surfaceIt;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::FlipToGDISurface() {
