@@ -37,11 +37,6 @@ namespace dxvk {
   }
 
   HRESULT CreateDirectDrawEx(GUID *lpGUID, LPVOID *lplpDD, REFIID iid, IUnknown *pUnkOuter, bool needsInitialization) {
-    Logger::debug(">>> DirectDrawCreateEx");
-
-    typedef HRESULT (__stdcall *DirectDrawCreateEx_t)(GUID *lpGUID, LPVOID *lplpDD, REFIID iid, IUnknown *pUnkOuter);
-    static DirectDrawCreateEx_t ProxiedDirectDrawCreateEx = nullptr;
-
     if (unlikely(lplpDD == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -49,6 +44,9 @@ namespace dxvk {
 
     if (unlikely(iid != __uuidof(IDirectDraw7)))
       return DDERR_INVALIDPARAMS;
+
+    typedef HRESULT (__stdcall *DirectDrawCreateEx_t)(GUID *lpGUID, LPVOID *lplpDD, REFIID iid, IUnknown *pUnkOuter);
+    static DirectDrawCreateEx_t ProxiedDirectDrawCreateEx = nullptr;
 
     try {
       if (unlikely(ProxiedDirectDrawCreateEx == nullptr)) {
@@ -86,15 +84,13 @@ namespace dxvk {
   }
 
   HRESULT CreateDirectDraw(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuter, bool needsInitialization) {
-    Logger::debug(">>> DirectDrawCreate");
-
-    typedef HRESULT (__stdcall *DirectDrawCreate_t)(GUID *lpGUID, LPVOID *lplpDD, IUnknown *pUnkOuter);
-    static DirectDrawCreate_t ProxiedDirectDrawCreate = nullptr;
-
     if (unlikely(lplpDD == nullptr))
       return DDERR_INVALIDPARAMS;
 
     InitReturnPtr(lplpDD);
+
+    typedef HRESULT (__stdcall *DirectDrawCreate_t)(GUID *lpGUID, LPVOID *lplpDD, IUnknown *pUnkOuter);
+    static DirectDrawCreate_t ProxiedDirectDrawCreate = nullptr;
 
     try {
       if (unlikely(ProxiedDirectDrawCreate == nullptr)) {
@@ -132,8 +128,6 @@ namespace dxvk {
   }
 
   HRESULT CreateDirectDrawClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter, bool needsInitialization) {
-    Logger::debug(">>> DirectDrawCreateClipper");
-
     if (unlikely(lplpDDClipper == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -275,15 +269,18 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawCreate(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuter) {
+    dxvk::Logger::debug(">>> DirectDrawCreate");
     return dxvk::CreateDirectDraw(lpGUID, lplpDD, pUnkOuter, false);
   }
 
   // Mostly unused, except for Sea Dogs (D3D6)
   DLLEXPORT HRESULT __stdcall DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
+    dxvk::Logger::debug(">>> DirectDrawCreateClipper");
     return dxvk::CreateDirectDrawClipper(dwFlags, lplpDDClipper, pUnkOuter, false);
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawCreateEx(GUID *lpGUID, LPVOID *lplpDD, REFIID iid, IUnknown *pUnkOuter) {
+    dxvk::Logger::debug(">>> DirectDrawCreateEx");
     return dxvk::CreateDirectDrawEx(lpGUID, lplpDD, iid, pUnkOuter, false);
   }
 
