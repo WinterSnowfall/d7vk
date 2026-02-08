@@ -330,9 +330,9 @@ namespace dxvk {
 
     DDrawCommonInterface* commonIntf = m_parent->GetCommonInterface();
 
-    HWND hwnd = commonIntf->GetHWND();
+    HWND hWnd = commonIntf->GetHWND();
     // Needed to sometimes safely skip intro playback on legacy devices
-    if (unlikely(hwnd == nullptr)) {
+    if (unlikely(hWnd == nullptr)) {
       Logger::debug("D3D5Interface::CreateDevice: HWND is NULL");
     }
 
@@ -447,7 +447,7 @@ namespace dxvk {
     params.MultiSampleType    = multiSampleType; // Controlled through D3DRENDERSTATE_ANTIALIAS
     params.MultiSampleQuality = 0;
     params.SwapEffect         = d3d9::D3DSWAPEFFECT_DISCARD;
-    params.hDeviceWindow      = hwnd;
+    params.hDeviceWindow      = hWnd;
     params.Windowed           = TRUE; // Always use windowed, so that we can delegate mode switching to ddraw
     params.EnableAutoDepthStencil     = FALSE;
     params.AutoDepthStencilFormat     = d3d9::D3DFMT_UNKNOWN;
@@ -468,7 +468,7 @@ namespace dxvk {
     hr = m_d3d9->CreateDevice(
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
-      hwnd,
+      hWnd,
       deviceCreationFlags9,
       &params,
       &device9

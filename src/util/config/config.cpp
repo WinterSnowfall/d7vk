@@ -1714,6 +1714,11 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                 "-30" },
       { "ddraw.ignoreExclusiveMode",        "True" },
     }} },
+    /* Deathtrap Dungeon                          *
+     * Accelerated menu animations above 30 FPS   */
+    { R"(\\DD_CD\.exe$)", {{
+      { "d3d9.maxFrameRate",                 "-30" },
+    }} },
 
   };
 

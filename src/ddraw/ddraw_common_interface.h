@@ -88,7 +88,7 @@ namespace dxvk {
     }
 
     void SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
-      m_hwnd = hWnd;
+      m_hWnd = hWnd;
       m_cooperativeLevel = dwFlags;
     }
 
@@ -97,7 +97,7 @@ namespace dxvk {
     }
 
     HWND GetHWND() const {
-      return m_hwnd;
+      return m_hWnd;
     }
 
     DDrawModeSize* GetModeSize() {
@@ -167,7 +167,7 @@ namespace dxvk {
 
     DWORD                             m_cooperativeLevel   = 0;
 
-    HWND                              m_hwnd               = nullptr;
+    HWND                              m_hWnd               = nullptr;
 
     DDrawModeSize                     m_modeSize           = { };
 
