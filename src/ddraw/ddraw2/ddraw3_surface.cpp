@@ -349,7 +349,7 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       // Textures get uploaded during SetTexture calls
       if (!m_commonSurf->IsTexture() || m_commonIntf->GetOptions()->apitraceMode) {
-        HRESULT hrUpload = m_parent->InitializeOrUploadD3D9();
+        HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw3Surface::BltFast: Failed upload to d3d9 surface");
       } else {
