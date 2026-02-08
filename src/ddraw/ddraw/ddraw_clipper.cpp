@@ -28,15 +28,15 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags) {
+    Logger::debug(">>> DDrawClipper::Initialize");
+
     // Needed for interfaces crated via GetProxiedDDrawModule()
     if (unlikely(m_needsInitialization && !m_isInitialized)) {
-      Logger::debug(">>> DDrawClipper::Initialize");
       m_isInitialized = true;
       return DD_OK;
     }
 
-    Logger::debug("<<< DDrawClipper::Initialize: Proxy");
-    return m_proxy->Initialize(lpDD, dwFlags);
+    return DDERR_ALREADYINITIALIZED;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, LPDWORD lpdwSize) {
