@@ -284,10 +284,10 @@ namespace dxvk {
         // In case of up-front unsupported and unadvertised D32 depth stencil use,
         // replace it with D24X8, as some games, such as Sacrifice, rely on it
         // to properly enable 32-bit display modes (and revert to 16-bit otherwise)
-        Logger::info("DDraw7Interface::CreateSurface: Using D24X8 instead of D32");
+        Logger::info("DDraw4Interface::CreateSurface: Using D24X8 instead of D32");
         lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask = 0xFFFFFF;
       } else {
-        Logger::warn("DDraw7Interface::CreateSurface: Use of unsupported D32");
+        Logger::warn("DDraw4Interface::CreateSurface: Use of unsupported D32");
       }
     }
 
@@ -463,15 +463,15 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::Initialize(GUID* lpGUID) {
+    Logger::debug(">>> DDraw4Interface::Initialize");
+
     // Needed for interfaces crated via GetProxiedDDrawModule()
     if (unlikely(m_needsInitialization && !m_isInitialized)) {
-      Logger::debug(">>> DDraw4Interface::Initialize");
       m_isInitialized = true;
       return DD_OK;
     }
 
-    Logger::debug("<<< DDraw4Interface::Initialize: Proxy");
-    return m_proxy->Initialize(lpGUID);
+    return DDERR_ALREADYINITIALIZED;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::RestoreDisplayMode() {
@@ -493,6 +493,8 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags) {
     Logger::debug("<<< DDraw4Interface::SetDisplayMode: Proxy");
+
+    Logger::debug(str::format("DDraw4Interface::SetDisplayMode: ", dwWidth, "x", dwHeight, ":", dwBPP, "@", dwRefreshRate));
 
     HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
     if (unlikely(FAILED(hr)))
