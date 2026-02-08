@@ -428,15 +428,15 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::Initialize(GUID* lpGUID) {
+    Logger::debug(">>> DDraw7Interface::Initialize");
+
     // Needed for interfaces crated via GetProxiedDDrawModule()
     if (unlikely(m_needsInitialization && !m_isInitialized)) {
-      Logger::debug(">>> DDrawInterface::Initialize");
       m_isInitialized = true;
       return DD_OK;
     }
 
-    Logger::debug("<<< DDraw7Interface::Initialize: Proxy");
-    return m_proxy->Initialize(lpGUID);
+    return DDERR_ALREADYINITIALIZED;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::RestoreDisplayMode() {
@@ -458,6 +458,8 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags) {
     Logger::debug("<<< DDraw7Interface::SetDisplayMode: Proxy");
+
+    Logger::debug(str::format("DDraw7Interface::SetDisplayMode: ", dwWidth, "x", dwHeight, ":", dwBPP, "@", dwRefreshRate));
 
     HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
     if (unlikely(FAILED(hr)))

@@ -234,8 +234,40 @@ namespace dxvk {
 
     Logger::debug(">>> DDraw2Interface::CreateSurface");
 
+    // The cooperative level is always checked first
+    if (unlikely(!m_commonIntf->GetCooperativeLevel()))
+      return DDERR_NOCOOPERATIVELEVELSET;
+
+    if (unlikely(lpDDSurfaceDesc == nullptr || lplpDDSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDDSurface);
+
+    // Because we are removing the DDSCAPS_WRITEONLY flag below, we need
+    // to first validate the combinations that would otherwise cause issues
+    HRESULT hr = ValidateSurfaceFlags(lpDDSurfaceDesc);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    // We need to ensure we can always read from surfaces for upload to
+    // D3D9, so always strip the DDSCAPS_WRITEONLY flag on creation
+    lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_WRITEONLY;
+
+    if (unlikely((lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)
+              && (lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF))) {
+      if (m_commonIntf->GetOptions()->useD24X8forD32) {
+        // In case of up-front unsupported and unadvertised D32 depth stencil use,
+        // replace it with D24X8, as some games, such as Sacrifice, rely on it
+        // to properly enable 32-bit display modes (and revert to 16-bit otherwise)
+        Logger::info("DDraw2Interface::CreateSurface: Using D24X8 instead of D32");
+        lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask = 0xFFFFFF;
+      } else {
+        Logger::warn("DDraw2Interface::CreateSurface: Use of unsupported D32");
+      }
+    }
+
     Com<IDirectDrawSurface> ddrawSurfaceProxied;
-    HRESULT hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddrawSurfaceProxied, pUnkOuter);
+    hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddrawSurfaceProxied, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
       try{
@@ -363,15 +395,15 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::Initialize(GUID* lpGUID) {
+    Logger::debug(">>> DDraw2Interface::Initialize");
+
     // Needed for interfaces crated via GetProxiedDDrawModule()
     if (unlikely(m_needsInitialization && !m_isInitialized)) {
-      Logger::debug(">>> DDrawInterface::Initialize");
       m_isInitialized = true;
       return DD_OK;
     }
 
-    Logger::debug("<<< DDraw2Interface::Initialize: Proxy");
-    return m_proxy->Initialize(lpGUID);
+    return DDERR_ALREADYINITIALIZED;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::RestoreDisplayMode() {
@@ -393,6 +425,8 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags) {
     Logger::debug("<<< DDraw2Interface::SetDisplayMode: Proxy");
+
+    Logger::debug(str::format("DDraw2Interface::SetDisplayMode: ", dwWidth, "x", dwHeight, ":", dwBPP, "@", dwRefreshRate));
 
     HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
     if (unlikely(FAILED(hr)))

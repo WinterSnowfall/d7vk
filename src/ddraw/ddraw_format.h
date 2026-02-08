@@ -462,7 +462,8 @@ namespace dxvk {
         || fmt == d3d9::D3DFMT_DXT5;
   }
 
-  inline HRESULT ValidateSurfaceFlags(DDSURFACEDESC2* desc) {
+  template <typename DescType>
+  inline HRESULT ValidateSurfaceFlags(DescType* desc) {
     const bool isOffScreenPlainSurface = desc->ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN;
     const bool isTexture               = desc->ddsCaps.dwCaps & DDSCAPS_TEXTURE;
     const bool isInVideoMemory         = desc->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY;
