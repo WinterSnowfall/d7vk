@@ -148,7 +148,8 @@ namespace dxvk {
                 D3D9DeviceDirtyFlag::FFGlobalSpecular,
                 D3D9DeviceDirtyFlag::SharedPixelShaderData,
                 D3D9DeviceDirtyFlag::DepthBounds,
-                D3D9DeviceDirtyFlag::PointScale);
+                D3D9DeviceDirtyFlag::PointScale,
+                D3D9DeviceDirtyFlag::FFColorKeyState);
 
     m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
 
@@ -3932,6 +3933,7 @@ namespace dxvk {
         dirty |= m_specInfo.set(static_cast<D3D9SpecConstantId>(D3D9SpecConstantId::SpecFFTextureStage0ColorArg0 + i), 0u);
         dirty |= m_specInfo.set(static_cast<D3D9SpecConstantId>(D3D9SpecConstantId::SpecFFTextureStage0AlphaArg0 + i), 0u);
       }
+      dirty |= m_specInfo.set<D3D9SpecConstantId::SpecFFColorKeyEnabled>(0u);
       if (dirty) {
         m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
       }
@@ -6636,6 +6638,14 @@ namespace dxvk {
   }
 
 
+  void D3D9DeviceEx::UpdateColorKey() {
+    m_dirty.clr(D3D9DeviceDirtyFlag::FFColorKeyState);
+
+    if (m_specInfo.set<SpecFFColorKeyEnabled>(m_colorKeyEnabled))
+      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
+  }
+
+
   template<typename T>
   void D3D9DeviceEx::UpdatePushDataBlock(const T& Block) {
     EmitCs([cBlock = Block] (DxvkContext* ctx) {
@@ -7367,6 +7377,9 @@ namespace dxvk {
 
     if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::Fog)))
       UpdateFog();
+
+    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFColorKeyState)))
+      UpdateColorKey();
 
     if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::Framebuffer)))
       BindFramebuffer();
