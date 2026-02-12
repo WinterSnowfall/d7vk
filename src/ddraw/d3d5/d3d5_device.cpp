@@ -648,9 +648,8 @@ namespace dxvk {
         State9 = d3d9::D3DRS_ANTIALIASEDLINEENABLE;
         break;
 
-      // TODO:
       case D3DRENDERSTATE_COLORKEYENABLE:
-        *lpdwRenderState = m_commonIntf->GetColorKeyState();
+        *lpdwRenderState = m_colorKeyEnabled;
         return D3D_OK;
 
       case D3DRENDERSTATE_ALPHABLENDENABLE_OLD:
@@ -755,6 +754,8 @@ namespace dxvk {
           texture5 = m_DDIntfParent->GetTextureFromHandle(dwRenderState);
           if (unlikely(texture5 == nullptr))
             return DDERR_INVALIDPARAMS;
+
+          m_bridge->SetColorKeyState(m_colorKeyEnabled && texture5->GetParent()->GetCommonSurface()->IsColorKeySet());
         }
 
         HRESULT hr = SetTextureInternal(texture5);
@@ -997,16 +998,18 @@ namespace dxvk {
         State9 = d3d9::D3DRS_ANTIALIASEDLINEENABLE;
         break;
 
-      // TODO:
-      case D3DRENDERSTATE_COLORKEYENABLE:
-        static bool s_colorKeyEnableErrorShown;
+      case D3DRENDERSTATE_COLORKEYENABLE: {
+        m_colorKeyEnabled = dwRenderState;
 
-        if (dwRenderState && !std::exchange(s_colorKeyEnableErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_COLORKEYENABLE");
+        D3D5Texture* texture5 = nullptr;
+        if (likely(m_textureHandle != 0))
+          texture5 = m_parent->GetParent()->GetTextureFromHandle(m_textureHandle);
 
-        m_commonIntf->SetColorKeyState(dwRenderState);
+        const bool textureHasColorKey = texture5 != nullptr ? texture5->GetParent()->GetCommonSurface()->IsColorKeySet() : false;
+        m_bridge->SetColorKeyState(m_colorKeyEnabled && textureHasColorKey);
 
         return D3D_OK;
+      }
 
       case D3DRENDERSTATE_ALPHABLENDENABLE_OLD:
         State9 = d3d9::D3DRS_ALPHABLENDENABLE;
