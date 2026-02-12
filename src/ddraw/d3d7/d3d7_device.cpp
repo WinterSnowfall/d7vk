@@ -527,16 +527,14 @@ namespace dxvk {
         State9 = d3d9::D3DRS_ANTIALIASEDLINEENABLE;
         break;
 
-      // TODO:
-      case D3DRENDERSTATE_COLORKEYENABLE:
-        static bool s_colorKeyEnableErrorShown;
+      case D3DRENDERSTATE_COLORKEYENABLE: {
+        m_colorKeyEnabled = dwRenderState;
 
-        if (dwRenderState && !std::exchange(s_colorKeyEnableErrorShown, true))
-          Logger::warn("D3D7Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_COLORKEYENABLE");
-
-        m_commonIntf->SetColorKeyState(dwRenderState);
+        const bool textureHasColorKey = m_textures[0] != nullptr ? m_textures[0]->GetCommonSurface()->IsColorKeySet() : false;
+        m_bridge->SetColorKeyState(m_colorKeyEnabled && textureHasColorKey);
 
         return D3D_OK;
+      }
 
       case D3DRENDERSTATE_ZBIAS:
         State9         = d3d9::D3DRS_DEPTHBIAS;
@@ -614,9 +612,8 @@ namespace dxvk {
         State9 = d3d9::D3DRS_ANTIALIASEDLINEENABLE;
         break;
 
-      // TODO:
       case D3DRENDERSTATE_COLORKEYENABLE:
-        *lpdwRenderState = m_commonIntf->GetColorKeyState();
+        *lpdwRenderState = m_colorKeyEnabled;
         return D3D_OK;
 
       case D3DRENDERSTATE_ZBIAS: {
@@ -1193,6 +1190,9 @@ namespace dxvk {
         Logger::warn("D3D7Device::SetTexture: Failed to bind D3D9 texture");
         return hr;
       }
+
+      if (likely(stage == 0))
+        m_bridge->SetColorKeyState(m_colorKeyEnabled && surface7->GetCommonSurface()->IsColorKeySet());
     } else {
       d3d9::IDirect3DCubeTexture9* cube9 = surface7->GetD3D9CubeTexture();
 
