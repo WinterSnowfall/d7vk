@@ -154,7 +154,8 @@ const uint SpecFFTextureStage4AlphaArg0 = 86;
 const uint SpecFFTextureStage5AlphaArg0 = 87;
 const uint SpecFFTextureStage6AlphaArg0 = 88;
 const uint SpecFFTextureStage7AlphaArg0 = 89;
-const uint SpecConstantCount = 90;
+const uint SpecFFColorKeyEnabled = 90;
+const uint SpecConstantCount = 91;
 
 struct BitfieldPosition {
     uint dwordOffset;
@@ -271,6 +272,8 @@ BitfieldPosition SpecConstLayout[SpecConstantCount] = {
     { 16,  5, 5 },  // FFTextureStage5AlphaArg0
     { 16, 10, 5 },  // FFTextureStage6AlphaArg0
     { 16, 15, 5 },  // FFTextureStage7AlphaArg0
+
+    { 16, 20, 1 },  // FFColorKeyEnable
 };
 
 bool specIsOptimized() {

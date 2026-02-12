@@ -239,12 +239,14 @@ namespace dxvk {
     DWORD           m_handle         = 0;
     std::unordered_map<DWORD, D3D7StateBlock> m_stateBlocks;
 
+    // Value of D3DRENDERSTATE_COLORKEYENABLE
+    DWORD           m_colorKeyEnabled = 0;
     // Value of D3DRENDERSTATE_ANTIALIAS
-    DWORD           m_antialias     = D3DANTIALIAS_NONE;
+    DWORD           m_antialias       = D3DANTIALIAS_NONE;
     // Value of D3DRENDERSTATE_LINEPATTERN
-    D3DLINEPATTERN  m_linePattern   = { };
+    D3DLINEPATTERN  m_linePattern     = { };
     // Value of D3DRENDERSTATE_ZVISIBLE (although the RS is not supported, its value is stored)
-    DWORD           m_zVisible      = 0;
+    DWORD           m_zVisible        = 0;
 
     FilpRT7Flags    m_flipRTFlags;
 

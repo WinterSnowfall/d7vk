@@ -142,6 +142,7 @@ namespace dxvk {
 
         uint32_t LightCount : 4;
         uint32_t SpecularEnabled : 1;
+        uint32_t ColorKeyEnabled : 1;
 
         // End of uint32_t
 

@@ -237,6 +237,8 @@ namespace dxvk {
     Com<D3D5Viewport>               m_currentViewport;
     std::vector<Com<D3D5Viewport>>  m_viewports;
 
+    // Value of D3DRENDERSTATE_COLORKEYENABLE
+    DWORD           m_colorKeyEnabled = 0;
     // Value of D3DRENDERSTATE_ANTIALIAS
     DWORD           m_antialias       = D3DANTIALIAS_NONE;
     // Value of D3DRENDERSTATE_LINEPATTERN

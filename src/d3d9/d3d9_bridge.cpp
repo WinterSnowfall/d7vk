@@ -98,6 +98,10 @@ namespace dxvk {
     return m_device->ResetSwapChain(Params, nullptr);
   }
 
+  HRESULT DxvkD3D8Bridge::SetColorKeyState(bool colorKeyState) {
+    return m_device->SetColorKeyState(colorKeyState);
+  }
+
   DxvkD3D8InterfaceBridge::DxvkD3D8InterfaceBridge(D3D9InterfaceEx* pObject)
     : m_interface(pObject) {
   }
