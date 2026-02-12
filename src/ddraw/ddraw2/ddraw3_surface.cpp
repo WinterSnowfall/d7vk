@@ -46,7 +46,7 @@ namespace dxvk {
       m_commonSurf = new DDrawCommonSurface(m_commonIntf);
 
     // Retrieve and cache the proxy surface desc
-    if (!m_commonSurf->IsDescSet()) {
+    if (unlikely(!m_commonSurf->IsDescSet())) {
       DDSURFACEDESC desc;
       desc.dwSize = sizeof(DDSURFACEDESC);
       HRESULT hr = m_proxy->GetSurfaceDesc(&desc);
@@ -56,6 +56,16 @@ namespace dxvk {
       } else {
         m_commonSurf->SetDesc(desc);
       }
+    }
+
+    // Retrieve and cache the proxy surface color key
+    if (unlikely(m_commonSurf->HasColorKey() && !m_commonSurf->IsColorKeySet())) {
+      DDCOLORKEY colorKey;
+
+      HRESULT hr = m_proxy->GetColorKey(DDCKEY_SRCBLT, &colorKey);
+      // Can return DDERR_NOCOLORKEY
+      if (SUCCEEDED(hr))
+        m_commonSurf->SetColorKey(&colorKey);
     }
 
     m_commonSurf->SetDD3Surface(this);
@@ -715,7 +725,21 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColorKey) {
     Logger::debug("<<< DDraw3Surface::SetColorKey: Proxy");
-    return m_proxy->SetColorKey(dwFlags, lpDDColorKey);
+
+    HRESULT hr = m_proxy->SetColorKey(dwFlags, lpDDColorKey);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (dwFlags == DDCKEY_SRCBLT) {
+      Logger::debug("DDraw3Surface::SetColorKey: Updating DDCKEY_SRCBLT color key");
+      m_commonSurf->SetColorKey(lpDDColorKey);
+
+      if (unlikely(lpDDColorKey->dwColorSpaceLowValue  != 0 ||
+                   lpDDColorKey->dwColorSpaceHighValue != 0))
+        Logger::debug("DDraw3Surface::SetColorKey: Use of non-black color key");
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::SetOverlayPosition(LONG lX, LONG lY) {
