@@ -195,6 +195,8 @@ namespace dxvk {
     m_dirty.set(D3D9DeviceDirtyFlag::DepthBounds);
     m_dirty.set(D3D9DeviceDirtyFlag::PointScale);
 
+    m_dirty.set(D3D9DeviceDirtyFlag::FFColorKeyState);
+
     m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
 
     m_specInfo.set<SpecDrefScaling, uint32_t>(m_d3d9Options.drefScaling);
@@ -3990,6 +3992,7 @@ namespace dxvk {
         dirty |= m_specInfo.set(static_cast<D3D9SpecConstantId>(D3D9SpecConstantId::SpecFFTextureStage0ColorArg0 + i), 0u);
         dirty |= m_specInfo.set(static_cast<D3D9SpecConstantId>(D3D9SpecConstantId::SpecFFTextureStage0AlphaArg0 + i), 0u);
       }
+      dirty |= m_specInfo.set<D3D9SpecConstantId::SpecFFColorKeyEnabled>(0u);
       if (dirty) {
         m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
       }
@@ -6931,6 +6934,14 @@ namespace dxvk {
   }
 
 
+  void D3D9DeviceEx::UpdateColorKey() {
+    m_dirty.clr(D3D9DeviceDirtyFlag::FFColorKeyState);
+
+    if (m_specInfo.set<SpecFFColorKeyEnabled>(m_colorKeyEnabled))
+      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
+  }
+
+
   void D3D9DeviceEx::BindFramebuffer() {
     m_dirty.clr(D3D9DeviceDirtyFlag::Framebuffer);
 
@@ -7658,6 +7669,9 @@ namespace dxvk {
 
     UpdateFog();
 
+    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFColorKeyState)))
+      UpdateColorKey();
+
     if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::Framebuffer)))
       BindFramebuffer();
 
@@ -8375,6 +8389,7 @@ namespace dxvk {
     key.Data.Contents.EmissiveSource   = m_state.renderStates[D3DRS_EMISSIVEMATERIALSOURCE] & mask;
 
     key.Data.Contents.SpecularEnabled  = m_state.renderStates[D3DRS_SPECULARENABLE];
+    key.Data.Contents.ColorKeyEnabled  = m_colorKeyEnabled;
 
     uint32_t lightCount = 0;
 
