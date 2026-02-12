@@ -79,14 +79,6 @@ namespace dxvk {
       return m_waitForVBlank;
     }
 
-    void SetColorKeyState(bool state) {
-      m_isColorKeyEnabled = state;
-    }
-
-    bool GetColorKeyState () const {
-      return m_isColorKeyEnabled;
-    }
-
     void SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
       m_hWnd = hWnd;
       m_cooperativeLevel = dwFlags;
@@ -163,7 +155,6 @@ namespace dxvk {
   private:
 
     bool                              m_waitForVBlank      = true;
-    bool                              m_isColorKeyEnabled  = false;
 
     DWORD                             m_cooperativeLevel   = 0;
 
