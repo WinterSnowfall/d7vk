@@ -82,6 +82,8 @@ namespace dxvk {
     DepthBounds,
     PointScale,
 
+    FFColorKeyState,
+
     SpecializationEntries,
   };
 
@@ -955,6 +957,8 @@ namespace dxvk {
 
     void UpdateFog();
 
+    void UpdateColorKey();
+
     void BindFramebuffer();
 
     void BindViewportAndScissor();
@@ -1441,6 +1445,15 @@ namespace dxvk {
         : GetHelper(m_state.psConsts);
     }
 
+    HRESULT SetColorKeyState(bool colorKeyState) {
+      if (likely(m_colorKeyEnabled != colorKeyState)) {
+        m_dirty.set(D3D9DeviceDirtyFlag::FFColorKeyState);
+        m_colorKeyEnabled = colorKeyState;
+      }
+
+      return D3D_OK;
+    }
+
     void UpdateFixedFunctionVS();
 
     void UpdateFixedFunctionPS();
@@ -1638,6 +1651,9 @@ namespace dxvk {
     bool                            m_isD3D7Compatible;
     bool                            m_isD3D8Compatible;
     bool                            m_ffZTest          = false;
+
+    // D3D7 and earlier color key transparency state
+    bool                            m_colorKeyEnabled  = false;
 
     // the enablement of below features is tracked independently
     // of render states both due to complexity and to avoid
