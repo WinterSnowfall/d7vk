@@ -76,6 +76,20 @@ namespace dxvk {
       return &m_desc;
     }
 
+    bool IsColorKeySet() const {
+      return m_isColorKeySet;
+    }
+
+    void SetColorKey(DDCOLORKEY* colorKey) {
+      m_colorKey.dwColorSpaceLowValue  = colorKey->dwColorSpaceLowValue;
+      m_colorKey.dwColorSpaceHighValue = colorKey->dwColorSpaceHighValue;
+      m_isColorKeySet = true;
+    }
+
+    const DDCOLORKEY* GetColorKey() const {
+      return &m_colorKey;
+    }
+
     d3d9::D3DFORMAT GetD3D9Format() const {
       return m_format9;
     }
@@ -226,8 +240,8 @@ namespace dxvk {
     }
 
     bool HasColorKey() const {
-      return m_desc2.dwFlags & DDSD_CKSRCBLT
-          || m_desc.dwFlags  & DDSD_CKSRCBLT;
+      return (m_desc2.dwFlags & DDSD_CKSRCBLT ||
+              m_desc.dwFlags  & DDSD_CKSRCBLT);
     }
 
     bool IsTextureOrCubeMap() const {
@@ -252,9 +266,10 @@ namespace dxvk {
 
   private:
 
-    bool                      m_dirtyMipMaps = false;
-    bool                      m_isDesc2Set   = false;
-    bool                      m_isDescSet    = false;
+    bool                      m_dirtyMipMaps  = false;
+    bool                      m_isDesc2Set    = false;
+    bool                      m_isDescSet     = false;
+    bool                      m_isColorKeySet = false;
 
     bool                      m_isTextureOrCubeMap      = false;
     bool                      m_isBackBufferOrFlippable = false;
@@ -266,6 +281,7 @@ namespace dxvk {
 
     DDSURFACEDESC             m_desc  = { };
     DDSURFACEDESC2            m_desc2 = { };
+    DDCOLORKEY                m_colorKey = { };
     d3d9::D3DFORMAT           m_format9 = d3d9::D3DFMT_UNKNOWN;
 
     Com<DDrawClipper>         m_clipper;

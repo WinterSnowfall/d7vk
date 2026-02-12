@@ -1575,6 +1575,10 @@ namespace dxvk {
     { R"(\\S4_Main\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Spider-Man (2001) - broken cutscenes       */
+    { R"(\\SpideyPC\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "30" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */

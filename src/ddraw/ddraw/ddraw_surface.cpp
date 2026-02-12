@@ -54,6 +54,16 @@ namespace dxvk {
       }
     }
 
+    // Retrieve and cache the proxy surface color key
+    if (m_commonSurf->HasColorKey() && !m_commonSurf->IsColorKeySet()) {
+      DDCOLORKEY colorKey;
+
+      HRESULT hr = m_proxy->GetColorKey(DDCKEY_SRCBLT, &colorKey);
+      // Can return DDERR_NOCOLORKEY
+      if (SUCCEEDED(hr))
+        m_commonSurf->SetColorKey(&colorKey);
+    }
+
     m_commonSurf->SetDDSurface(this);
 
     if (m_parent != nullptr && m_isChildObject)
@@ -822,7 +832,21 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColorKey) {
     Logger::debug("<<< DDrawSurface::SetColorKey: Proxy");
-    return m_proxy->SetColorKey(dwFlags, lpDDColorKey);
+
+    HRESULT hr = m_proxy->SetColorKey(dwFlags, lpDDColorKey);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (dwFlags == DDCKEY_SRCBLT) {
+      Logger::debug("DDrawSurface::SetColorKey: Updating DDCKEY_SRCBLT color key");
+      m_commonSurf->SetColorKey(lpDDColorKey);
+
+      if (unlikely(lpDDColorKey->dwColorSpaceLowValue  != 0 ||
+                   lpDDColorKey->dwColorSpaceHighValue != 0))
+        Logger::debug("DDrawSurface::SetColorKey: Use of non-black color key");
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::SetOverlayPosition(LONG lX, LONG lY) {
