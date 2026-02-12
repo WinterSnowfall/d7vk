@@ -220,10 +220,11 @@ namespace dxvk {
       Logger::debug(str::format("   Format:      ", m_commonSurf->GetD3D9Format()));
       Logger::debug(str::format("   IsComplex:   ", m_commonSurf->IsComplex() ? "yes" : "no"));
       Logger::debug(str::format("   HasMipMaps:  ", desc2->dwMipMapCount ? "yes" : "no"));
-      Logger::debug(str::format("   HasColorKey: ", m_commonSurf->HasColorKey() ? "yes" : "no"));
       Logger::debug(str::format("   IsAttached:  ", m_parentSurf != nullptr ? "yes" : "no"));
       if (m_commonSurf->IsFrontBuffer())
         Logger::debug(str::format("   BackBuffers: ", desc2->dwBackBufferCount));
+      if (m_commonSurf->HasColorKey())
+        Logger::debug(str::format("   ColorKey:    ", m_commonSurf->GetColorKey()->dwColorSpaceLowValue));
     }
 
     bool             m_isChildObject = false;
