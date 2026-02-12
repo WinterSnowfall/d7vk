@@ -50,6 +50,13 @@ IDxvkD3D8Bridge : public IUnknown {
    * \param [in] Params D3DPRESENT_PARAMETERS* value to be used
    */
   virtual HRESULT ResetSwapChain(D3DPRESENT_PARAMETERS* Params) = 0;
+
+  /**
+   * \brief Updates the color key transparency state in D3D9
+   *
+   * \param [in] Params bool value to be used
+   */
+  virtual HRESULT SetColorKeyState(bool colorKeyState) = 0;
 };
 
 /**
@@ -118,6 +125,8 @@ namespace dxvk {
     bool IsSupportedSurfaceFormat(D3DFORMAT Format);
 
     HRESULT ResetSwapChain(D3DPRESENT_PARAMETERS* Params);
+
+    HRESULT SetColorKeyState(bool colorKeyState);
 
   private:
 
