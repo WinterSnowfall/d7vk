@@ -66,12 +66,12 @@ namespace dxvk {
     if (unlikely(lpRampData == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    RefreshD3D5Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_parent->GetCommonInterface()->GetD3D9Device();
     // For proxied pesentation we need to rely on ddraw to handle gamma
-    if (likely(m_d3d5Device != nullptr && !m_parent->GetOptions()->forceProxiedPresent)) {
+    if (likely(d3d9Device != nullptr && !m_parent->GetOptions()->forceProxiedPresent)) {
       Logger::debug("DDrawGammaControl::GetGammaRamp: Getting gamma ramp via D3D9");
       d3d9::D3DGAMMARAMP rampData = { };
-      m_d3d5Device->GetD3D9()->GetGammaRamp(0, &rampData);
+      d3d9Device->GetGammaRamp(0, &rampData);
       // Both gamma structs are identical in content/size
       memcpy(static_cast<void*>(lpRampData), static_cast<const void*>(&rampData), sizeof(DDGAMMARAMP));
     } else {
@@ -89,12 +89,12 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     if (likely(!m_parent->GetOptions()->ignoreGammaRamp)) {
-      RefreshD3D5Device();
+      d3d9::IDirect3DDevice9* d3d9Device = m_parent->GetCommonInterface()->GetD3D9Device();
       // For proxied pesentation we need to rely on ddraw to handle gamma
-      if (likely(m_d3d5Device != nullptr && !m_parent->GetOptions()->forceProxiedPresent)) {
+      if (likely(d3d9Device != nullptr && !m_parent->GetOptions()->forceProxiedPresent)) {
         Logger::debug("DDrawGammaControl::SetGammaRamp: Setting gamma ramp via D3D9");
-        m_d3d5Device->GetD3D9()->SetGammaRamp(0, D3DSGR_NO_CALIBRATION,
-                                              reinterpret_cast<const d3d9::D3DGAMMARAMP*>(lpRampData));
+        d3d9Device->SetGammaRamp(0, D3DSGR_NO_CALIBRATION,
+                                 reinterpret_cast<const d3d9::D3DGAMMARAMP*>(lpRampData));
       } else {
         Logger::debug("DDrawGammaControl::SetGammaRamp: Setting gamma ramp via DDraw");
         return m_proxy->SetGammaRamp(dwFlags, lpRampData);
