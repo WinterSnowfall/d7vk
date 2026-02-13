@@ -1518,11 +1518,9 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                 "-60" },
       { "d3d7.emulateFSAA",                 "True" },
     }} },
-    /* Wizardry 8 - Broken input handling and     *
-     * crashing during intro / cutscene playback  */
+    /* Wizardry 8 - Fixes broken input handling   */
     { R"(\\Wiz8\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.proxiedLegacySurfaces",      "True" },
     }} },
     /* Giants: Citizen Kabuto                     *
      * Broken input handling at high framerates   */
@@ -1578,6 +1576,10 @@ namespace dxvk {
     /* Spider-Man (2001) - broken cutscenes       */
     { R"(\\SpideyPC\.exe$)", {{
       { "d3d9.maxFrameRate",                  "30" },
+    }} },
+    /* Wizards & Warriors                         */
+    { R"(\\deep6\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
 
     /**********************************************/

@@ -1618,9 +1618,15 @@ namespace dxvk {
 
   HRESULT D3D6Device::ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params) {
     Logger::info("D3D6Device::ResetD3D9Swapchain: Resetting the D3D9 swapchain");
+
     HRESULT hr = m_bridge->ResetSwapChain(params);
-    if (unlikely(FAILED(hr)))
+    if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::ResetD3D9Swapchain: Failed to reset the D3D9 swapchain");
+    } else {
+      // TODO: Cache and reset all surfaces tied to the D3D9 backbuffers
+      m_rt->SetD3D9(nullptr);
+    }
+
     return hr;
   }
 
