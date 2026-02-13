@@ -821,11 +821,16 @@ namespace dxvk {
 
     if (dwFlags == DDCKEY_SRCBLT) {
       Logger::debug("DDraw7Surface::SetColorKey: Updating DDCKEY_SRCBLT color key");
-      m_commonSurf->SetColorKey(lpDDColorKey);
 
-      if (unlikely(lpDDColorKey->dwColorSpaceLowValue  != 0 ||
-                   lpDDColorKey->dwColorSpaceHighValue != 0))
-        Logger::debug("DDraw7Surface::SetColorKey: Use of non-black color key");
+      if (lpDDColorKey != nullptr) {
+        m_commonSurf->SetColorKey(lpDDColorKey);
+
+        if (unlikely(lpDDColorKey->dwColorSpaceLowValue  != 0 ||
+                    lpDDColorKey->dwColorSpaceHighValue != 0))
+          Logger::debug("DDraw7Surface::SetColorKey: Use of non-black color key");
+      } else {
+        m_commonSurf->ClearColorKey();
+      }
     }
 
     return DD_OK;
