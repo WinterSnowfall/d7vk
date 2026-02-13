@@ -251,11 +251,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE *lplpDDSurface, IUnknown *pUnkOuter) {
-    if (unlikely(m_commonIntf->GetOptions()->proxiedLegacySurfaces)) {
-      Logger::debug("<<< DDrawInterface::CreateSurface: Proxy");
-      return m_proxy->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
-    }
-
     Logger::debug(">>> DDrawInterface::CreateSurface");
 
     // The cooperative level is always checked first

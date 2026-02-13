@@ -56,10 +56,6 @@ namespace dxvk {
     /// does presentation through blits directly onto the front/back buffers.
     bool forceProxiedPresent;
 
-    /// Proxy legacy surfaces on creation. Sometimes needed for proper
-    /// intro/cutscene playback in some D3D7/D3D6 applications.
-    bool proxiedLegacySurfaces;
-
     /// Ignore any application set gamma ramp
     bool ignoreGammaRamp;
 
@@ -97,7 +93,6 @@ namespace dxvk {
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);
       this->forceProxiedPresent   = config.getOption<bool>   ("ddraw.forceProxiedPresent",   false);
-      this->proxiedLegacySurfaces = config.getOption<bool>   ("ddraw.proxiedLegacySurfaces", false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("ddraw.ignoreGammaRamp",       false);
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
       this->autoGenMipMaps        = config.getOption<bool>   ("ddraw.autoGenMipMaps",        false);
