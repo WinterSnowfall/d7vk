@@ -102,6 +102,14 @@ namespace dxvk {
       m_mipCount = mipCount;
     }
 
+    uint32_t GetBackBufferIndex() const {
+      return m_backBufferIndex;
+    }
+
+    void IncrementBackBufferIndex(uint32_t index) {
+      m_backBufferIndex = index + 1;
+    }
+
     bool HasDirtyMipMaps() const {
       return m_dirtyMipMaps;
     }
@@ -278,6 +286,7 @@ namespace dxvk {
     bool                      m_isGuardableSurface      = false;
 
     uint8_t                   m_mipCount = 1;
+    uint32_t                  m_backBufferIndex = 0;
 
     DDSURFACEDESC             m_desc  = { };
     DDSURFACEDESC2            m_desc2 = { };
