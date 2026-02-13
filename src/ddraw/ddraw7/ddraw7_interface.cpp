@@ -493,13 +493,13 @@ namespace dxvk {
     if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
       // Switch to a default presentation interval when an application
       // tries to wait for vertical blank, if we're not already doing so
-      D3D7Device* d3d7Device = m_commonIntf->GetD3D7Device();
-      if (unlikely(d3d7Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
+      d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
+      if (unlikely(d3d9Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
         Logger::info("DDraw7Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
 
-        d3d9::D3DPRESENT_PARAMETERS resetParams = d3d7Device->GetPresentParameters();
+        d3d9::D3DPRESENT_PARAMETERS resetParams = m_commonIntf->GetPresentParameters();
         resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
-        HRESULT hrReset = d3d7Device->Reset(&resetParams);
+        HRESULT hrReset = m_commonIntf->ResetD3D9Swapchain(&resetParams);
         if (unlikely(FAILED(hrReset))) {
           Logger::warn("DDraw7Interface::WaitForVerticalBlank: Failed D3D9 swapchain reset");
         } else {
@@ -519,12 +519,12 @@ namespace dxvk {
 
     constexpr DWORD Megabytes = 1024 * 1024;
 
-    D3D7Device* d3d7Device = m_commonIntf->GetD3D7Device();
-    if (likely(d3d7Device != nullptr)) {
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
+    if (likely(d3d9Device != nullptr)) {
       Logger::debug("DDraw7Interface::GetAvailableVidMem: Getting memory stats from D3D9");
 
       const DWORD total9 = static_cast<DWORD>(m_commonIntf->GetOptions()->maxAvailableMemory) * Megabytes;
-      const DWORD free9  = static_cast<DWORD>(d3d7Device->GetD3D9()->GetAvailableTextureMem());
+      const DWORD free9  = static_cast<DWORD>(d3d9Device->GetAvailableTextureMem());
 
       Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: Total: ", total9));
       Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: Free : ", free9));

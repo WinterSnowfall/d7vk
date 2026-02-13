@@ -34,10 +34,6 @@ namespace dxvk {
 
     m_rtOrig = m_rt.ptr();
 
-    HRESULT hr = EnumerateBackBuffers(m_rt->GetProxied());
-    if(unlikely(FAILED(hr)))
-      throw DxvkError("D3D7Device: ERROR! Failed to retrieve D3D9 back buffers!");
-
     // Textures
     m_textures.fill(nullptr);
     // Common D3D9 index buffers
@@ -248,15 +244,16 @@ namespace dxvk {
       if (m_parent->GetOptions()->forceProxiedPresent) {
         // If we have drawn anything, we need to make sure we blit back
         // the results onto the D3D7 render target before we flip it
-        if (m_hasDrawn) {
+        if (m_commonIntf->HasDrawn()) {
           if (unlikely(!m_rt->IsInitialized()))
             m_rt->InitializeD3D9RenderTarget();
           BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(m_rt->GetProxied(), m_rt->GetD3D9());
         }
-        m_rt->GetProxied()->Flip(m_flipRTFlags.surf, m_flipRTFlags.flags);
+        m_rt->GetProxied()->Flip(static_cast<IDirectDrawSurface7*>(m_commonIntf->GetFlipRTSurface()),
+                                 m_commonIntf->GetFlipRTFlags());
 
         if (likely(m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
-          m_hasDrawn = false;
+          m_commonIntf->ResetDrawTracking();
       }
 
       m_inScene = false;
@@ -841,8 +838,7 @@ namespace dxvk {
       return hr;
     }
 
-    if (unlikely(!m_hasDrawn))
-      m_hasDrawn = true;
+    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -879,8 +875,7 @@ namespace dxvk {
       return hr;
     }
 
-    if (unlikely(!m_hasDrawn))
-      m_hasDrawn = true;
+    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -952,8 +947,7 @@ namespace dxvk {
       return hr;
     }
 
-    if (unlikely(!m_hasDrawn))
-      m_hasDrawn = true;
+    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -990,8 +984,7 @@ namespace dxvk {
       return hr;
     }
 
-    if (unlikely(!m_hasDrawn))
-      m_hasDrawn = true;
+    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -1028,8 +1021,7 @@ namespace dxvk {
       return hr;
     }
 
-    if (unlikely(!m_hasDrawn))
-      m_hasDrawn = true;
+    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -1092,8 +1084,7 @@ namespace dxvk {
       return hr;
     }
 
-    if (unlikely(!m_hasDrawn))
-      m_hasDrawn = true;
+    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -1367,27 +1358,11 @@ namespace dxvk {
     }
   }
 
-  d3d9::IDirect3DSurface9* D3D7Device::GetD3D9BackBuffer(IDirectDrawSurface7* surface) const {
-    if (unlikely(surface == nullptr))
-      return nullptr;
-
-    auto it = m_backBuffers.find(surface);
-    if (likely(it != m_backBuffers.end()))
-      return it->second.ptr();
-
-    // Return the first back buffer if no other match is found
-    return m_fallBackBuffer.ptr();
-  }
-
-  HRESULT D3D7Device::Reset(d3d9::D3DPRESENT_PARAMETERS* params) {
-    Logger::info("D3D7Device::Reset: Resetting the D3D9 swapchain");
+  HRESULT D3D7Device::ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params) {
+    Logger::info("D3D7Device::ResetD3D9Swapchain: Resetting the D3D9 swapchain");
     HRESULT hr = m_bridge->ResetSwapChain(params);
     if (unlikely(FAILED(hr)))
-      Logger::err("D3D7Device::Reset: Failed to reset the D3D9 swapchain");
-    // Reset the current render target, so that it gets
-    // re-associated with the regenerated back buffers
-    m_rt->SetD3D9(nullptr);
-    EnumerateBackBuffers(m_rtOrig->GetProxied());
+      Logger::err("D3D7Device::ResetD3D9Swapchain: Failed to reset the D3D9 swapchain");
     return hr;
   }
 
@@ -1405,61 +1380,6 @@ namespace dxvk {
         Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize D3D9 index buffer");
         return hr;
       }
-    }
-
-    return D3D_OK;
-  }
-
-  inline HRESULT D3D7Device::EnumerateBackBuffers(IDirectDrawSurface7* origin) {
-    m_fallBackBuffer = nullptr;
-    m_backBuffers.clear();
-
-    Logger::debug("EnumerateBackBuffers: Enumerating back buffers");
-
-    uint32_t backBufferCount = 0;
-    IDirectDrawSurface7* parentSurface = origin;
-
-    // Always retrieve a fallback back buffer for use with
-    // plain offscreen surfaces and overlays (even when no front buffer exists)
-    HRESULT hrFallback = m_d3d9->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &m_fallBackBuffer);
-    if (unlikely(FAILED(hrFallback)))
-      return hrFallback;
-
-    while (parentSurface != nullptr) {
-      Com<d3d9::IDirect3DSurface9> surf9;
-
-      DDSURFACEDESC2 desc;
-      desc.dwSize = sizeof(DDSURFACEDESC2);
-      parentSurface->GetSurfaceDesc(&desc);
-
-      if (desc.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER) {
-        Logger::debug("EnumerateBackBuffers: Added front buffer");
-        // Always map the front buffer on top of the first back buffer to ensure that
-        // direct front buffer blits some applications do are visible on screen
-        HRESULT hr = m_d3d9->GetBackBuffer(0, 0, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf9);
-        if (unlikely(FAILED(hr)))
-          return hr;
-      } else {
-        Logger::debug(str::format("EnumerateBackBuffers: Added back buffer nr. ", backBufferCount + 1));
-        const UINT backBuffer = !m_parent->GetOptions()->forceSingleBackBuffer ? backBufferCount : 0;
-        HRESULT hr = m_d3d9->GetBackBuffer(0, backBuffer, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf9);
-        if (unlikely(FAILED(hr)))
-          return hr;
-        backBufferCount++;
-      }
-
-      m_backBuffers.emplace(std::piecewise_construct,
-                            std::forward_as_tuple(parentSurface),
-                            std::forward_as_tuple(std::move(surf9)));
-
-      IDirectDrawSurface7* nextBackBuffer = nullptr;
-      parentSurface->EnumAttachedSurfaces(&nextBackBuffer, ListBackBufferSurfaces7Callback);
-
-      // the swapchain will eventually return to its origin
-      if (nextBackBuffer == origin)
-        break;
-
-      parentSurface = nextBackBuffer;
     }
 
     return D3D_OK;
