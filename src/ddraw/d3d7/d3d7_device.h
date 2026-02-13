@@ -18,11 +18,6 @@
 
 namespace dxvk {
 
-  struct FilpRT7Flags {
-    IDirectDrawSurface7* surf  = nullptr;
-    DWORD                flags = 0;
-  };
-
   class DDrawCommonInterface;
   class DDraw7Surface;
   class D3D7StateBlock;
@@ -142,9 +137,7 @@ namespace dxvk {
 
     void InitializeDS();
 
-    d3d9::IDirect3DSurface9* GetD3D9BackBuffer(IDirectDrawSurface7* surface) const;
-
-    HRESULT Reset(d3d9::D3DPRESENT_PARAMETERS* params);
+    HRESULT ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params);
 
     D3D7DeviceLock LockDevice() {
       return m_multithread.AcquireLock();
@@ -170,28 +163,9 @@ namespace dxvk {
       return m_isMixedHWVP && m_parent->GetOptions()->deviceTypeOverride != D3DDeviceTypeOverride::SWVPMixed;
     }
 
-    bool HasDrawn() const {
-      // Returning true here means we skip all proxied back buffer blits,
-      // whereas returning false means we allow all proxied back buffer blits
-      return m_parent->GetOptions()->backBufferGuard == D3DBackBufferGuard::Strict   ? true :
-             m_parent->GetOptions()->backBufferGuard == D3DBackBufferGuard::Disabled ? false : m_hasDrawn;
-    }
-
-    void ResetDrawTracking() {
-      if (likely(m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
-        m_hasDrawn = false;
-    }
-
-    void SetFlipRTFlags(IDirectDrawSurface7* surf, DWORD flags) {
-      m_flipRTFlags.surf  = surf;
-      m_flipRTFlags.flags = flags;
-    }
-
   private:
 
     inline HRESULT InitializeIndexBuffers();
-
-    inline HRESULT EnumerateBackBuffers(IDirectDrawSurface7* surface);
 
     inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
 
@@ -209,28 +183,24 @@ namespace dxvk {
         m_commonIntf->SetD3D7Device(this);
     }
 
-    bool                          m_isMixedHWVP = false;
-    bool                          m_hasDrawn    = false;
-    bool                          m_inScene     = false;
+    bool                        m_isMixedHWVP = false;
+    bool                        m_inScene     = false;
 
-    static uint32_t               s_deviceCount;
-    uint32_t                      m_deviceCount = 0;
+    static uint32_t             s_deviceCount;
+    uint32_t                    m_deviceCount = 0;
 
-    DDrawCommonInterface*         m_commonIntf  = nullptr;
+    DDrawCommonInterface*       m_commonIntf  = nullptr;
 
-    Com<DxvkD3D8Bridge>           m_bridge;
+    Com<DxvkD3D8Bridge>         m_bridge;
 
-    D3D7Multithread               m_multithread;
+    D3D7Multithread             m_multithread;
 
-    d3d9::D3DPRESENT_PARAMETERS   m_params9;
+    d3d9::D3DPRESENT_PARAMETERS m_params9;
 
-    D3DDEVICEDESC7                m_desc;
-    Com<DDraw7Surface>            m_rt;
-    Com<DDraw7Surface, false>     m_rtOrig;
-    DDraw7Surface*                m_ds = nullptr;
-
-    Com<d3d9::IDirect3DSurface9>  m_fallBackBuffer;
-    std::unordered_map<IDirectDrawSurface7*, Com<d3d9::IDirect3DSurface9>> m_backBuffers;
+    D3DDEVICEDESC7              m_desc;
+    Com<DDraw7Surface>          m_rt;
+    Com<DDraw7Surface, false>   m_rtOrig;
+    DDraw7Surface*              m_ds = nullptr;
 
     std::array<Com<DDraw7Surface, false>, ddrawCaps::TextureStageCount> m_textures;
 
@@ -247,8 +217,6 @@ namespace dxvk {
     D3DLINEPATTERN  m_linePattern     = { };
     // Value of D3DRENDERSTATE_ZVISIBLE (although the RS is not supported, its value is stored)
     DWORD           m_zVisible        = 0;
-
-    FilpRT7Flags    m_flipRTFlags;
 
     // Common index buffers used for indexed draws, split up into five sizes:
     // XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb
