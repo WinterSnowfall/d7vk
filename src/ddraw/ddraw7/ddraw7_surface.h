@@ -8,8 +8,6 @@
 
 #include "ddraw7_interface.h"
 
-#include "../d3d7/d3d7_device.h"
-
 #include <array>
 #include <unordered_map>
 
@@ -138,11 +136,6 @@ namespace dxvk {
       return m_commonIntf->GetOptions();
     }
 
-    D3D7Device* GetD3D7Device() {
-      RefreshD3D7Device();
-      return m_d3d7Device;
-    }
-
     d3d9::IDirect3DTexture9* GetD3D9Texture() const {
       return m_texture.ptr();
     }
@@ -183,17 +176,17 @@ namespace dxvk {
 
     inline HRESULT UploadSurfaceData();
 
-    inline void RefreshD3D7Device() {
-      D3D7Device* d3d7Device = m_commonIntf->GetD3D7Device();
-      if (unlikely(m_d3d7Device != d3d7Device)) {
+    inline void RefreshD3D9Device() {
+      d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
+      if (unlikely(m_d3d9Device != d3d9Device)) {
         // Check if the device has been recreated and reset all D3D9 resources
-        if (unlikely(m_d3d7Device != nullptr)) {
+        if (m_d3d9Device != nullptr) {
           Logger::debug("DDraw7Surface: Device context has changed, clearing all D3D9 resources");
           m_cubeMap = nullptr;
           m_texture = nullptr;
           m_d3d9 = nullptr;
         }
-        m_d3d7Device = d3d7Device;
+        m_d3d9Device = d3d9Device;
       }
     }
 
@@ -239,7 +232,7 @@ namespace dxvk {
 
     IUnknown*                           m_origin     = nullptr;
 
-    D3D7Device*                         m_d3d7Device = nullptr;
+    d3d9::IDirect3DDevice9*             m_d3d9Device = nullptr;
 
     Com<d3d9::IDirect3DCubeTexture9>    m_cubeMap;
     std::array<IDirectDrawSurface7*, 6> m_cubeMapSurfaces;

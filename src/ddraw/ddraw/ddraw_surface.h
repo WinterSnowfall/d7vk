@@ -7,7 +7,6 @@
 
 #include "ddraw_interface.h"
 
-#include "../d3d5/d3d5_device.h"
 #include "../d3d5/d3d5_texture.h"
 
 #include <unordered_map>
@@ -114,11 +113,6 @@ namespace dxvk {
       return m_commonIntf->GetOptions();
     }
 
-    D3D5Device* GetD3D5Device() {
-      RefreshD3D5Device();
-      return m_d3d5Device;
-    }
-
     d3d9::IDirect3DTexture9* GetD3D9Texture() const {
       return m_texture.ptr();
     }
@@ -150,16 +144,16 @@ namespace dxvk {
 
     inline HRESULT UploadSurfaceData();
 
-    inline void RefreshD3D5Device() {
-      D3D5Device* d3d5Device = m_commonIntf->GetD3D5Device();
-      if (unlikely(m_d3d5Device != d3d5Device)) {
+    inline void RefreshD3D9Device() {
+      d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
+      if (unlikely(m_d3d9Device != d3d9Device)) {
         // Check if the device has been recreated and reset all D3D9 resources
-        if (unlikely(m_d3d5Device != nullptr)) {
+        if (m_d3d9Device != nullptr) {
           Logger::debug("DDrawSurface: Device context has changed, clearing all D3D9 resources");
           m_texture = nullptr;
           m_d3d9 = nullptr;
         }
-        m_d3d5Device = d3d5Device;
+        m_d3d9Device = d3d9Device;
       }
     }
 
@@ -192,10 +186,10 @@ namespace dxvk {
         Logger::debug(str::format("   ColorKey:    ", m_commonSurf->GetColorKey()->dwColorSpaceLowValue));
     }
 
-    bool             m_isChildObject = true;
+    bool             m_isChildObject   = true;
 
     static uint32_t  s_surfCount;
-    uint32_t         m_surfCount = 0;
+    uint32_t         m_surfCount       = 0;
 
     Com<DDrawCommonSurface>             m_commonSurf;
     DDrawCommonInterface*               m_commonIntf = nullptr;
@@ -204,7 +198,7 @@ namespace dxvk {
 
     IUnknown*                           m_origin     = nullptr;
 
-    D3D5Device*                         m_d3d5Device = nullptr;
+    d3d9::IDirect3DDevice9*             m_d3d9Device = nullptr;
 
     Com<d3d9::IDirect3DTexture9>        m_texture;
 
