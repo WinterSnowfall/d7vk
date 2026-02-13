@@ -7,8 +7,6 @@
 
 #include "../ddraw/ddraw_surface.h"
 
-#include "../d3d5/d3d5_device.h"
-
 namespace dxvk {
 
   class DDraw7Surface;
@@ -125,16 +123,16 @@ namespace dxvk {
 
   private:
 
-    inline void RefreshD3D5Device() {
+    inline void RefreshD3D9Device() {
       if (likely(m_parent != nullptr)) {
-        D3D5Device* d3d5Device = m_parent->GetD3D5Device();
-        if (unlikely(m_d3d5Device != d3d5Device)) {
+        d3d9::IDirect3DDevice9* d3d9Device = m_parent->GetCommonInterface()->GetD3D9Device();
+        if (unlikely(m_d3d9Device != d3d9Device)) {
           // Check if the device has been recreated and reset all D3D9 resources
-          if (unlikely(m_d3d5Device != nullptr)) {
+          if (m_d3d9Device != nullptr) {
             Logger::debug("DDrawSurface: Device context has changed, clearing all D3D9 resources");
             m_d3d9 = nullptr;
           }
-          m_d3d5Device = d3d5Device;
+          m_d3d9Device = d3d9Device;
         }
       }
     }
@@ -149,7 +147,7 @@ namespace dxvk {
 
     IUnknown*               m_origin     = nullptr;
 
-    D3D5Device*             m_d3d5Device = nullptr;
+    d3d9::IDirect3DDevice9* m_d3d9Device = nullptr;
 
   };
 

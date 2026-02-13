@@ -21,11 +21,6 @@
 
 namespace dxvk {
 
-  struct FilpRT6Flags {
-    IDirectDrawSurface4* surf  = nullptr;
-    DWORD                flags = 0;
-  };
-
   class DDrawCommonInterface;
   class DDraw4Surface;
   class DDraw4Interface;
@@ -131,9 +126,7 @@ namespace dxvk {
 
     void InitializeDS();
 
-    d3d9::IDirect3DSurface9* GetD3D9BackBuffer(IDirectDrawSurface4* surface) const;
-
-    HRESULT Reset(d3d9::D3DPRESENT_PARAMETERS* params);
+    HRESULT ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params);
 
     D3D6DeviceLock LockDevice() {
       return m_multithread.AcquireLock();
@@ -163,28 +156,9 @@ namespace dxvk {
       return m_materialHandle;
     }
 
-    bool HasDrawn() const {
-      // Returning true here means we skip all proxied back buffer blits,
-      // whereas returning false means we allow all proxied back buffer blits
-      return m_parent->GetOptions()->backBufferGuard == D3DBackBufferGuard::Strict   ? true :
-             m_parent->GetOptions()->backBufferGuard == D3DBackBufferGuard::Disabled ? false : m_hasDrawn;
-    }
-
-    void ResetDrawTracking() {
-      if (likely(m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
-        m_hasDrawn = false;
-    }
-
-    void SetFlipRTFlags(IDirectDrawSurface4* surf, DWORD flags) {
-      m_flipRTFlags.surf  = surf;
-      m_flipRTFlags.flags = flags;
-    }
-
   private:
 
     inline HRESULT InitializeIndexBuffers();
-
-    inline HRESULT EnumerateBackBuffers(IDirectDrawSurface4* surface);
 
     inline void AddViewportInternal(IDirect3DViewport3* viewport);
 
@@ -227,38 +201,34 @@ namespace dxvk {
       }
     }
 
-    bool                          m_hasDrawn    = false;
-    bool                          m_inScene     = false;
+    bool                           m_inScene     = false;
 
-    static uint32_t               s_deviceCount;
-    uint32_t                      m_deviceCount = 0;
+    static uint32_t                s_deviceCount;
+    uint32_t                       m_deviceCount = 0;
 
-    DWORD                         m_lighting    = FALSE;
+    DWORD                          m_lighting    = FALSE;
 
-    DDrawCommonInterface*         m_commonIntf  = nullptr;
+    DDrawCommonInterface*          m_commonIntf  = nullptr;
 
-    Com<DxvkD3D8Bridge>           m_bridge;
+    Com<DxvkD3D8Bridge>            m_bridge;
 
-    D3D6Multithread               m_multithread;
+    D3D6Multithread                m_multithread;
 
-    d3d9::D3DPRESENT_PARAMETERS   m_params9;
+    d3d9::D3DPRESENT_PARAMETERS    m_params9;
 
-    D3DMATERIALHANDLE             m_materialHandle = 0;
+    D3DMATERIALHANDLE              m_materialHandle = 0;
 
-    D3DDEVICEDESC                 m_desc;
-    GUID                          m_deviceGUID;
+    D3DDEVICEDESC                  m_desc;
+    GUID                           m_deviceGUID;
 
-    Com<DDraw4Surface>            m_rt;
-    Com<DDraw4Surface, false>     m_rtOrig;
-    DDraw4Surface*                m_ds = nullptr;
+    Com<DDraw4Surface>             m_rt;
+    Com<DDraw4Surface, false>      m_rtOrig;
+    DDraw4Surface*                 m_ds = nullptr;
 
-    Com<d3d9::IDirect3DSurface9>  m_fallBackBuffer;
-    std::unordered_map<IDirectDrawSurface4*, Com<d3d9::IDirect3DSurface9>> m_backBuffers;
+    Com<D3D6Viewport>              m_currentViewport;
+    std::vector<Com<D3D6Viewport>> m_viewports;
 
     std::array<Com<D3D6Texture, false>, ddrawCaps::TextureStageCount> m_textures;
-
-    Com<D3D6Viewport>               m_currentViewport;
-    std::vector<Com<D3D6Viewport>>  m_viewports;
 
     // Value of D3DRENDERSTATE_COLORKEYENABLE
     DWORD           m_colorKeyEnabled = 0;
@@ -270,8 +240,6 @@ namespace dxvk {
     DWORD           m_zVisible        = 0;
     // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
     DWORD           m_textureMapBlend = D3DTBLEND_MODULATE;
-
-    FilpRT6Flags    m_flipRTFlags;
 
     // Common index buffers used for indexed draws, split up into five sizes:
     // XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb

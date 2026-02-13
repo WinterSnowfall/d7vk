@@ -2,6 +2,14 @@
 
 #include <algorithm>
 
+#include "ddraw/ddraw_surface.h"
+#include "ddraw4/ddraw4_surface.h"
+#include "ddraw7/ddraw7_surface.h"
+
+#include "d3d5/d3d5_device.h"
+#include "d3d6/d3d6_device.h"
+#include "d3d7/d3d7_device.h"
+
 namespace dxvk {
 
   DDrawCommonInterface::DDrawCommonInterface(const D3DOptions& options)
@@ -174,6 +182,62 @@ namespace dxvk {
         Logger::warn("DDrawCommonInterface::RemoveWrappedSurface: Surface not found");
       }
     }
+  }
+
+  d3d9::IDirect3DDevice9* DDrawCommonInterface::GetD3D9Device() {
+    if (m_device7 != nullptr) {
+      return m_device7->GetD3D9();
+    } else if (m_device6 != nullptr) {
+      return m_device6->GetD3D9();
+    } else if (m_device5 != nullptr) {
+      return m_device5->GetD3D9();
+    }
+
+    return nullptr;
+  }
+
+  d3d9::D3DMULTISAMPLE_TYPE DDrawCommonInterface::GetMultiSampleType() {
+    if (m_device7 != nullptr) {
+      return m_device7->GetMultiSampleType();
+    } else if (m_device6 != nullptr) {
+      return m_device6->GetMultiSampleType();
+    } else if (m_device5 != nullptr) {
+      return m_device5->GetMultiSampleType();
+    }
+
+    return d3d9::D3DMULTISAMPLE_NONE;
+  }
+
+  d3d9::D3DPRESENT_PARAMETERS DDrawCommonInterface::GetPresentParameters() {
+    if (m_device7 != nullptr) {
+      return m_device7->GetPresentParameters();
+    } else if (m_device6 != nullptr) {
+      return m_device6->GetPresentParameters();
+    }
+
+    return d3d9::D3DPRESENT_PARAMETERS();
+  }
+
+  HRESULT DDrawCommonInterface::ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params) {
+    if (m_device7 != nullptr) {
+      return m_device7->ResetD3D9Swapchain(params);
+    } else if (m_device6 != nullptr) {
+      return m_device6->ResetD3D9Swapchain(params);
+    }
+
+    return DDERR_GENERIC;
+  }
+
+  bool DDrawCommonInterface::IsCurrentRenderTarget(DDrawSurface* surface) const {
+    return m_device5 != nullptr ? m_device5->GetRenderTarget() == surface : false;
+  }
+
+  bool DDrawCommonInterface::IsCurrentRenderTarget(DDraw4Surface* surface) const {
+    return m_device6 != nullptr ? m_device6->GetRenderTarget() == surface : false;
+  }
+
+  bool DDrawCommonInterface::IsCurrentRenderTarget(DDraw7Surface* surface) const {
+    return m_device7 != nullptr ? m_device7->GetRenderTarget() == surface : false;
   }
 
 }
