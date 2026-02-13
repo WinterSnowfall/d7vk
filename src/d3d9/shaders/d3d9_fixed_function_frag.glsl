@@ -287,6 +287,16 @@ vec4 sampleTexture(uint stage, vec4 texcoord, vec4 previousStageTextureVal) {
                 texcoord.z = adjustDref(texcoord.z, stage);
                 texVal = texture(sampler2DShadow(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), texcoord.xyz).xxxx;
             } else {
+                if (specBool(SpecFFColorKeyEnabled)) {
+                    const ivec2 texSize = textureSize(sampler2D(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), 0);
+                    const ivec2 pixelCoord = ivec2(texcoord.xy * vec2(texSize));
+                    texVal = texelFetch(sampler2D(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), pixelCoord, 0);
+                    const ivec3 key = ivec3(0, 0, 0); // Check only against black for now
+                    const ivec3 src = ivec3(texVal.rgb * 255.0 + 0.5);
+                    if (src == key) {
+                        discard;
+                    }
+                }
                 texVal = texture(sampler2D(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), texcoord.xy);
             }
             break;
@@ -306,13 +316,6 @@ vec4 sampleTexture(uint stage, vec4 texcoord, vec4 previousStageTextureVal) {
             // Produce a value that's obviously wrong to make it obvious when it somehow does happen.
             texVal = vec4(999.9);
             break;
-    }
-
-    if (specBool(SpecFFColorKeyEnabled)) {
-        // Check only against black for now
-        if (texVal.x == 0.0 && texVal.y == 0.0 && texVal.z == 0.0) {
-            discard;
-        }
     }
 
     if (stage != 0 && previousStageColorOp == D3DTOP_BUMPENVMAPLUMINANCE) {
