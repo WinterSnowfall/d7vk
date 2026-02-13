@@ -66,6 +66,13 @@ namespace dxvk {
 
     m_commonSurf->SetDDSurface(this);
 
+    if (m_parentSurf != nullptr && !m_commonSurf->IsFrontBuffer()
+     && m_parentSurf->GetCommonSurface()->IsBackBufferOrFlippable()
+     && !m_commonIntf->GetOptions()->forceSingleBackBuffer) {
+      const uint32_t index = m_parentSurf->GetCommonSurface()->GetBackBufferIndex();
+      m_commonSurf->IncrementBackBufferIndex(index);
+    }
+
     if (m_parent != nullptr && m_isChildObject)
       m_parent->AddRef();
 
@@ -295,22 +302,20 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawSurface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
     Logger::debug("<<< DDrawSurface::Blt: Proxy");
 
-    RefreshD3D5Device();
-    if (likely(m_d3d5Device != nullptr)) {
-      D3D5DeviceLock lock = m_d3d5Device->LockDevice();
-
+    RefreshD3D9Device();
+    if (likely(m_d3d9Device != nullptr)) {
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
                               && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
 
       // Eclusive mode back buffer guard
-      if (exclusiveMode && m_d3d5Device->HasDrawn() &&
+      if (exclusiveMode && m_commonIntf->HasDrawn() &&
           m_commonSurf->IsGuardableSurface() &&
           m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
         return DD_OK;
       // Windowed mode presentation path
-      } else if (!exclusiveMode && m_d3d5Device->HasDrawn() && m_commonSurf->IsPrimarySurface()) {
-        m_d3d5Device->ResetDrawTracking();
-        m_d3d5Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
+      } else if (!exclusiveMode && m_commonIntf->HasDrawn() && m_commonSurf->IsPrimarySurface()) {
+        m_commonIntf->ResetDrawTracking();
+        m_d3d9Device->Present(NULL, NULL, NULL, NULL);
         return DD_OK;
       }
     }
@@ -356,22 +361,20 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawSurface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDrawSurface::BltFast: Proxy");
 
-    RefreshD3D5Device();
-    if (likely(m_d3d5Device != nullptr)) {
-      D3D5DeviceLock lock = m_d3d5Device->LockDevice();
-
+    RefreshD3D9Device();
+    if (likely(m_d3d9Device != nullptr)) {
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
                               && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
 
       // Eclusive mode back buffer guard
-      if (exclusiveMode && m_d3d5Device->HasDrawn() &&
+      if (exclusiveMode && m_commonIntf->HasDrawn() &&
           m_commonSurf->IsGuardableSurface() &&
           m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
         return DD_OK;
       // Windowed mode presentation path
-      } else if (!exclusiveMode && m_d3d5Device->HasDrawn() && m_commonSurf->IsPrimarySurface()) {
-        m_d3d5Device->ResetDrawTracking();
-        m_d3d5Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
+      } else if (!exclusiveMode && m_commonIntf->HasDrawn() && m_commonSurf->IsPrimarySurface()) {
+        m_commonIntf->ResetDrawTracking();
+        m_d3d9Device->Present(NULL, NULL, NULL, NULL);
         return DD_OK;
       }
     }
@@ -515,38 +518,32 @@ namespace dxvk {
       }
     }
 
-    RefreshD3D5Device();
-    if (likely(m_d3d5Device != nullptr)) {
+    RefreshD3D9Device();
+    if (likely(m_d3d9Device != nullptr)) {
       Logger::debug("*** DDrawSurface::Flip: Presenting");
 
-      D3D5DeviceLock lock = m_d3d5Device->LockDevice();
-
-      m_d3d5Device->ResetDrawTracking();
+      m_commonIntf->ResetDrawTracking();
 
       if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
         if (unlikely(!IsInitialized()))
-          InitializeD3D9(m_d3d5Device->GetRenderTarget() == this);
-        // Also ensure the D3D5 device render target is initialized
-        DDrawSurface* rt5 = m_d3d5Device->GetRenderTarget();
-        if (unlikely(!rt5->IsInitialized()))
-          rt5->InitializeD3D9RenderTarget();
+          InitializeD3D9(m_commonIntf->IsCurrentRenderTarget(this));
 
-        BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_proxy.ptr(), rt5->GetD3D9());
+        BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_proxy.ptr(), m_d3d9.ptr());
 
         if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
           if (unlikely(lpDDSurfaceTargetOverride != nullptr))
             Logger::debug("DDrawSurface::Flip: Received unwrapped surface");
-          if (likely(m_d3d5Device->GetRenderTarget() == this))
-            m_d3d5Device->SetFlipRTFlags(lpDDSurfaceTargetOverride, dwFlags);
+          if (likely(m_commonIntf->IsCurrentRenderTarget(this)))
+            m_commonIntf->SetFlipRTSurfaceAndFlags(lpDDSurfaceTargetOverride, dwFlags);
           return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
         } else {
-          if (likely(m_d3d5Device->GetRenderTarget() == this))
-            m_d3d5Device->SetFlipRTFlags(lpDDSurfaceTargetOverride, dwFlags);
+          if (likely(m_commonIntf->IsCurrentRenderTarget(this)))
+            m_commonIntf->SetFlipRTSurfaceAndFlags(lpDDSurfaceTargetOverride, dwFlags);
           return m_proxy->Flip(surf->GetProxied(), dwFlags);
         }
       }
 
-      m_d3d5Device->GetD3D9()->Present(NULL, NULL, NULL, NULL);
+      m_d3d9Device->Present(NULL, NULL, NULL, NULL);
     // If we don't have a valid D3D5 device, this means a D3D3 application
     // is trying to flip the surface. Allow that for compatibility reasons.
     } else {
@@ -568,9 +565,13 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     if (lpDDSCaps->dwCaps & DDSCAPS_PRIMARYSURFACE)
+      Logger::debug("DDrawSurface::GetAttachedSurface: Querying for the primary surface");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_FRONTBUFFER)
       Logger::debug("DDrawSurface::GetAttachedSurface: Querying for the front buffer");
-    else if (lpDDSCaps->dwCaps & (DDSCAPS_BACKBUFFER | DDSCAPS_FLIP))
+    else if (lpDDSCaps->dwCaps & DDSCAPS_BACKBUFFER)
       Logger::debug("DDrawSurface::GetAttachedSurface: Querying for the back buffer");
+    else if (lpDDSCaps->dwCaps & DDSCAPS_FLIP)
+      Logger::debug("DDrawSurface::GetAttachedSurface: Querying for a flippable surface");
     else if (lpDDSCaps->dwCaps & DDSCAPS_OFFSCREENPLAIN)
       Logger::debug("DDrawSurface::GetAttachedSurface: Querying for an offscreen plain surface");
     else if (lpDDSCaps->dwCaps & DDSCAPS_ZBUFFER)
@@ -673,8 +674,8 @@ namespace dxvk {
     }
 
     // Proxy GetDC calls if we haven't yet drawn and the surface is flippable
-    RefreshD3D5Device();
-    if (m_d3d5Device != nullptr && !(m_d3d5Device->HasDrawn() &&
+    RefreshD3D9Device();
+    if (m_d3d9Device != nullptr && !(m_commonIntf->HasDrawn() &&
                                      m_commonSurf->IsGuardableSurface())) {
       Logger::debug("DDrawSurface::GetDC: Not yet drawn flippable surface");
       return m_proxy->GetDC(lphDC);
@@ -785,8 +786,8 @@ namespace dxvk {
     }
 
     // Proxy ReleaseDC calls if we haven't yet drawn and the surface is flippable
-    RefreshD3D5Device();
-    if (m_d3d5Device != nullptr && !(m_d3d5Device->HasDrawn() &&
+    RefreshD3D9Device();
+    if (m_d3d9Device != nullptr && !(m_commonIntf->HasDrawn() &&
                                      m_commonSurf->IsGuardableSurface())) {
       Logger::debug("DDrawSurface::ReleaseDC: Not yet drawn flippable surface");
       if (m_commonSurf->IsTexture() && !m_commonIntf->GetOptions()->apitraceMode)
@@ -928,7 +929,7 @@ namespace dxvk {
   HRESULT DDrawSurface::InitializeD3D9RenderTarget() {
     HRESULT hr = DD_OK;
 
-    RefreshD3D5Device();
+    RefreshD3D9Device();
 
     if (unlikely(!IsInitialized()))
       hr = InitializeD3D9(true);
@@ -939,7 +940,7 @@ namespace dxvk {
   HRESULT DDrawSurface::InitializeOrUploadD3D9() {
     HRESULT hr = DD_OK;
 
-    RefreshD3D5Device();
+    RefreshD3D9Device();
 
     if (likely(IsInitialized())) {
       hr = UploadSurfaceData();
@@ -951,14 +952,14 @@ namespace dxvk {
   }
 
   HRESULT DDrawSurface::InitializeD3D9(const bool initRT) {
-    if (unlikely(m_d3d5Device == nullptr)) {
+    if (unlikely(m_d3d9Device == nullptr)) {
       Logger::debug("DDrawSurface::InitializeD3D9: Null device, can't initialize right now");
       return DD_OK;
     }
 
     Logger::debug(str::format("DDrawSurface::InitializeD3D9: Initializing nr. [[1-", m_surfCount, "]]"));
 
-    const DDSURFACEDESC* desc  = m_commonSurf->GetDesc();
+    const DDSURFACEDESC* desc    = m_commonSurf->GetDesc();
     const d3d9::D3DFORMAT format = m_commonSurf->GetD3D9Format();
 
     if (unlikely(desc->dwHeight == 0 || desc->dwWidth == 0)) {
@@ -1080,7 +1081,8 @@ namespace dxvk {
     Logger::debug(str::format("DDrawSurface::InitializeD3D9: Placing in: ", poolPlacement));
 
     // Use the MSAA type that was determined to be supported during device creation
-    const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = m_d3d5Device->GetMultiSampleType();
+    const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = m_commonIntf->GetMultiSampleType();
+    const uint32_t index = m_commonSurf->GetBackBufferIndex();
 
     Com<d3d9::IDirect3DSurface9> surf;
 
@@ -1090,7 +1092,7 @@ namespace dxvk {
     if (m_commonSurf->IsFrontBuffer()) {
       Logger::debug("DDrawSurface::InitializeD3D9: Initializing front buffer...");
 
-      surf = m_d3d5Device->GetD3D9BackBuffer(m_proxy.ptr());
+      m_d3d9Device->GetBackBuffer(0, index, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
 
       if (unlikely(surf == nullptr)) {
         Logger::err("DDrawSurface::InitializeD3D9: Failed to retrieve front buffer");
@@ -1104,7 +1106,7 @@ namespace dxvk {
     } else if (m_commonSurf->IsBackBufferOrFlippable()) {
       Logger::debug("DDrawSurface::InitializeD3D9: Initializing back buffer...");
 
-      surf = m_d3d5Device->GetD3D9BackBuffer(m_proxy.ptr());
+      m_d3d9Device->GetBackBuffer(0, index, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
 
       if (unlikely(surf == nullptr)) {
         Logger::err("DDrawSurface::InitializeD3D9: Failed to retrieve back buffer");
@@ -1120,7 +1122,7 @@ namespace dxvk {
 
       Com<d3d9::IDirect3DTexture9> tex;
 
-      hr = m_d3d5Device->GetD3D9()->CreateTexture(
+      hr = m_d3d9Device->CreateTexture(
         desc->dwWidth, desc->dwHeight, m_commonSurf->GetMipCount(), usage,
         format, pool, &tex, nullptr);
 
@@ -1144,7 +1146,7 @@ namespace dxvk {
     } else if (m_commonSurf->IsDepthStencil()) {
       Logger::debug("DDrawSurface::InitializeD3D9: Initializing depth stencil...");
 
-      hr = m_d3d5Device->GetD3D9()->CreateDepthStencilSurface(
+      hr = m_d3d9Device->CreateDepthStencilSurface(
         desc->dwWidth, desc->dwHeight, format,
         multiSampleType, 0, FALSE, &surf, nullptr);
 
@@ -1164,10 +1166,10 @@ namespace dxvk {
 
       // Sometimes we get passed offscreen plain surfaces which should be tied to the back buffer,
       // either as existing RTs or during SetRenderTarget() calls, which are tracked with initRT
-      if (unlikely(m_d3d5Device->GetRenderTarget() == this || initRT)) {
+      if (unlikely(m_commonIntf->IsCurrentRenderTarget(this) || initRT)) {
         Logger::debug("DDrawSurface::InitializeD3D9: Offscreen plain surface is the RT");
 
-        surf = m_d3d5Device->GetD3D9BackBuffer(m_proxy.ptr());
+        m_d3d9Device->GetBackBuffer(0, index, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
 
         if (unlikely(surf == nullptr)) {
           Logger::err("DDrawSurface::InitializeD3D9: Failed to retrieve offscreen plain surface");
@@ -1175,7 +1177,7 @@ namespace dxvk {
           return hr;
         }
       } else {
-        hr = m_d3d5Device->GetD3D9()->CreateOffscreenPlainSurface(
+        hr = m_d3d9Device->CreateOffscreenPlainSurface(
           desc->dwWidth, desc->dwHeight, format,
           pool, &surf, nullptr);
 
@@ -1192,8 +1194,8 @@ namespace dxvk {
     } else if (m_commonSurf->IsOverlay()) {
       Logger::debug("DDrawSurface::InitializeD3D9: Initializing overlay...");
 
-      // Always link overlays to the current render target
-      surf = m_d3d5Device->GetD3D9BackBuffer(m_proxy.ptr());
+      // Always link overlays to the back buffer
+      m_d3d9Device->GetBackBuffer(0, index, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
 
       if (unlikely(surf == nullptr)) {
         Logger::err("DDrawSurface::InitializeD3D9: Failed to retrieve overlay surface");
@@ -1210,7 +1212,7 @@ namespace dxvk {
       // Must be lockable for blitting to work. Note that
       // D3D9 does not allow the creation of lockable RTs when
       // using MSAA, but we have a D3D7 exception in place.
-      hr = m_d3d5Device->GetD3D9()->CreateRenderTarget(
+      hr = m_d3d9Device->CreateRenderTarget(
         desc->dwWidth, desc->dwHeight, format,
         multiSampleType, usage, TRUE, &surf, nullptr);
 
@@ -1226,7 +1228,7 @@ namespace dxvk {
     } else if (!m_commonSurf->IsNotKnown()) {
       Logger::debug("DDrawSurface::InitializeD3D9: Initializing generic surface...");
 
-      hr = m_d3d5Device->GetD3D9()->CreateOffscreenPlainSurface(
+      hr = m_d3d9Device->CreateOffscreenPlainSurface(
           desc->dwWidth, desc->dwHeight, format,
           pool, &surf, nullptr);
 
@@ -1251,7 +1253,7 @@ namespace dxvk {
   inline HRESULT DDrawSurface::UploadSurfaceData() {
     Logger::debug(str::format("DDrawSurface::UploadSurfaceData: Uploading nr. [[1-", m_surfCount, "]]"));
 
-    if (unlikely(m_d3d5Device->HasDrawn() && m_commonSurf->IsGuardableSurface())) {
+    if (unlikely(m_commonIntf->HasDrawn() && m_commonSurf->IsGuardableSurface())) {
       Logger::debug("DDrawSurface::UploadSurfaceData: Skipping upload");
       return DD_OK;
     }
