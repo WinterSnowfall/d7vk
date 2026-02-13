@@ -86,6 +86,12 @@ namespace dxvk {
       m_isColorKeySet = true;
     }
 
+    void ClearColorKey() {
+      m_colorKey.dwColorSpaceLowValue  = 0;
+      m_colorKey.dwColorSpaceHighValue = 0;
+      m_isColorKeySet = false;
+    }
+
     const DDCOLORKEY* GetColorKey() const {
       return &m_colorKey;
     }
