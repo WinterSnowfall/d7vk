@@ -268,13 +268,27 @@ namespace dxvk {
     }
 
     if (unlikely(m_commonSurf->IsDepthStencil())) {
-      if (lpDDSrcSurface == nullptr)
-        Logger::debug("DDraw2Surface::Blt: Null blit on depth stencil");
+      // Forward DDBLT_DEPTHFILL clears to D3D9 if done on the current depth stencil
+      if (lpDDSrcSurface == nullptr &&
+          (dwFlags & DDBLT_DEPTHFILL) &&
+           lpDDBltFx != nullptr &&
+           m_d3d9Device != nullptr &&
+           m_commonIntf->IsCurrentDepthStencil(m_parent)) {
+        Logger::debug("DDraw2Surface::Blt: Clearing D3D9 depth stencil");
 
-      static bool s_depthStencilWarningShown;
+        if (lpDestRect == nullptr) {
+          m_d3d9Device->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, lpDDBltFx->dwFillDepth, 0);
+        } else {
+          D3DRECT rect9;
+          memcpy(&rect9, lpDestRect, sizeof(D3DRECT));
+          m_d3d9Device->Clear(1, &rect9, D3DCLEAR_ZBUFFER, 0, lpDDBltFx->dwFillDepth, 0);
+        }
+      } else {
+        static bool s_depthStencilWarningShown;
 
-      if (!std::exchange(s_depthStencilWarningShown, true))
-        Logger::warn("DDraw2Surface::Blt: Surface is a depth stencil");
+        if (!std::exchange(s_depthStencilWarningShown, true))
+          Logger::warn("DDraw2Surface::Blt: Surface is a depth stencil");
+      }
     }
 
     HRESULT hr;
@@ -329,9 +343,6 @@ namespace dxvk {
     }
 
     if (unlikely(m_commonSurf->IsDepthStencil())) {
-      if (lpDDSrcSurface == nullptr)
-        Logger::debug("DDraw2Surface::BltFast: Null blit on depth stencil");
-
       static bool s_depthStencilWarningShown;
 
       if (!std::exchange(s_depthStencilWarningShown, true))
