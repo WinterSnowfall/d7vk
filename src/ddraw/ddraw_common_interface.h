@@ -72,6 +72,12 @@ namespace dxvk {
 
     bool IsCurrentRenderTarget(DDraw7Surface* surface) const;
 
+    bool IsCurrentDepthStencil(DDrawSurface* surface) const;
+
+    bool IsCurrentDepthStencil(DDraw4Surface* surface) const;
+
+    bool IsCurrentDepthStencil(DDraw7Surface* surface) const;
+
     void SetFlipRTSurfaceAndFlags(IUnknown* surf, DWORD flags) {
       m_flipRTSurf  = surf;
       m_flipRTFlags = flags;
