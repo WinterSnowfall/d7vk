@@ -351,8 +351,6 @@ namespace dxvk {
           ddraw3Surface->GetProxied()->QueryInterface(__uuidof(IDirectDrawSurface), reinterpret_cast<void**>(&surface));
           rt = new DDrawSurface(nullptr, std::move(surface), m_parent, nullptr, nullptr, false);
         }
-        // The depth stencil can be an attached IDirectDrawSurface3 surface too, so play it safe
-        rt->SetAttachedDepthStencil(m_parent->GetLastDepthStencil());
       } else {
         Logger::err("D3D5Interface::CreateDevice: Unwrapped surface passed as RT");
         return DDERR_GENERIC;
