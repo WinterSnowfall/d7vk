@@ -119,7 +119,9 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D3Interface(std::move(ppvProxyObject), this));
+      Com<D3D3Interface> d3d3Intf = new D3D3Interface(std::move(ppvProxyObject), this);
+      m_commonIntf->SetD3D3Interface(d3d3Intf.ptr());
+      *ppvObject = d3d3Intf.ref();
 
       return S_OK;
     }

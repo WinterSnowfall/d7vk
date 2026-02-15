@@ -3,6 +3,8 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
+#include "../ddraw_common_interface.h"
+
 namespace dxvk {
 
   class DDrawInterface;
@@ -37,8 +39,8 @@ namespace dxvk {
 
   private:
 
-    static uint32_t               s_intfCount;
-    uint32_t                      m_intfCount = 0;
+    static uint32_t           s_intfCount;
+    uint32_t                  m_intfCount = 0;
 
   };
 

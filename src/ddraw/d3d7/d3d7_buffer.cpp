@@ -151,6 +151,7 @@ namespace dxvk {
 
     HandlePreProcessVerticesFlags(dwVertexOp);
 
+    device->GetD3D9()->SetFVF(m_desc.dwFVF);
     device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
     HRESULT hr = device->GetD3D9()->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_d3d9.ptr(), nullptr, dwFlags);
     if (unlikely(FAILED(hr))) {

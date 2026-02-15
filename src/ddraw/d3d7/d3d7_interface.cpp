@@ -345,7 +345,7 @@ namespace dxvk {
     }*/
 
     // We need to delay the D3D9 vertex buffer creation as long as possible, to ensure
-    // that (ideally) we actually have a valid d3d7 device in place when that happens
+    // that (ideally) we actually have a valid D3D7 device in place when that happens
     *ppVertexBuffer = ref(new D3D7VertexBuffer(std::move(vertexBuffer7), nullptr, this, *desc));
 
     return D3D_OK;
