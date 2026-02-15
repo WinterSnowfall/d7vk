@@ -240,4 +240,16 @@ namespace dxvk {
     return m_device7 != nullptr ? m_device7->GetRenderTarget() == surface : false;
   }
 
+  bool DDrawCommonInterface::IsCurrentDepthStencil(DDrawSurface* surface) const {
+    return m_device5 != nullptr ? m_device5->GetDepthStencil() == surface : false;
+  }
+
+  bool DDrawCommonInterface::IsCurrentDepthStencil(DDraw4Surface* surface) const {
+    return m_device6 != nullptr ? m_device6->GetDepthStencil() == surface : false;
+  }
+
+  bool DDrawCommonInterface::IsCurrentDepthStencil(DDraw7Surface* surface) const {
+    return m_device7 != nullptr ? m_device7->GetDepthStencil() == surface : false;
+  }
+
 }
