@@ -159,6 +159,10 @@ namespace dxvk {
       return m_rt.ptr();
     }
 
+    DDraw7Surface* GetDepthStencil() const {
+      return m_ds;
+    }
+
     bool IsMixedHWVP() const {
       return m_isMixedHWVP && m_parent->GetOptions()->deviceTypeOverride != D3DDeviceTypeOverride::SWVPMixed;
     }
