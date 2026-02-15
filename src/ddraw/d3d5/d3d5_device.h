@@ -128,6 +128,10 @@ namespace dxvk {
       return m_rt.ptr();
     }
 
+    DDrawSurface* GetDepthStencil() const {
+      return m_ds;
+    }
+
     D3D5Viewport* GetCurrentViewportInternal() const {
       return m_currentViewport.ptr();
     }
