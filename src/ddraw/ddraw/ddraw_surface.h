@@ -117,13 +117,21 @@ namespace dxvk {
       return m_texture.ptr();
     }
 
-    DDrawSurface* GetAttachedDepthStencil() const {
-      return m_depthStencil.ptr();
-    }
+    DDrawSurface* GetAttachedDepthStencil() {
+      // Fast path, since in most cases we already store the required surface
+      if (likely(m_depthStencil.ptr() != nullptr))
+        return m_depthStencil.ptr();
 
-    void SetAttachedDepthStencil(DDrawSurface* ds) {
-      ds->SetParentSurface(this);
-      m_depthStencil = ds;
+      DDSCAPS caps;
+      caps.dwCaps = DDSCAPS_ZBUFFER;
+      IDirectDrawSurface* surface = nullptr;
+      HRESULT hr = GetAttachedSurface(&caps, &surface);
+      if (unlikely(FAILED(hr)))
+        return nullptr;
+
+      m_depthStencil = reinterpret_cast<DDrawSurface*>(surface);
+
+      return m_depthStencil.ptr();
     }
 
     void SetParentSurface(DDrawSurface* surface) {
