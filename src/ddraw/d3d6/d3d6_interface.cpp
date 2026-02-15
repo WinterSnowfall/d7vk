@@ -487,7 +487,7 @@ namespace dxvk {
     }*/
 
     // We need to delay the D3D9 vertex buffer creation as long as possible, to ensure
-    // that (ideally) we actually have a valid d3d7 device in place when that happens
+    // that (ideally) we actually have a valid D3D6 device in place when that happens
     *lpD3DVertexBuffer = ref(new D3D6VertexBuffer(std::move(vertexBuffer), nullptr, this, dwFlags, *lpVBDesc));
 
     return D3D_OK;

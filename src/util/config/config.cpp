@@ -1627,6 +1627,10 @@ namespace dxvk {
     { R"(\\deep6\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Age of Wonders: Shadow Magic               */
+    { R"(\\AoWSM(Compat)?\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
