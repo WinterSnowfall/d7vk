@@ -83,7 +83,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg) {
-    Logger::debug(">>> D3D6Interface::EnumDevices");
+    Logger::debug(">>> D3D5Interface::EnumDevices");
 
     if (unlikely(lpEnumDevicesCallback == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -473,7 +473,7 @@ namespace dxvk {
     );
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6Interface::CreateDevice: Failed to create the D3D9 device");
+      Logger::err("D3D5Interface::CreateDevice: Failed to create the D3D9 device");
       return hr;
     }
 

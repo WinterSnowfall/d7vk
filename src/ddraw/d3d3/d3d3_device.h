@@ -3,10 +3,11 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
+#include "../ddraw_common_interface.h"
+
 namespace dxvk {
 
   class DDrawSurface;
-  class D3D5Device;
 
   /**
   * \brief Minimal D3D3 device implementation
@@ -14,10 +15,7 @@ namespace dxvk {
   class D3D3Device final : public DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9> {
 
   public:
-    D3D3Device(
-        Com<IDirect3DDevice>&& d3d3DeviceProxy,
-        DDrawSurface* pParent,
-        D3D5Device* origin);
+    D3D3Device(Com<IDirect3DDevice>&& d3d3DeviceProxy, DDrawSurface* pParent);
 
     ~D3D3Device();
 
@@ -63,12 +61,8 @@ namespace dxvk {
 
   private:
 
-    // D3D5 (and possibly D3D6) applications that intend to use execute buffers,
-    // need to query for an a D3D3 device in order to create them
-    D3D5Device*     m_origin = nullptr;
-
-    static uint32_t s_deviceCount;
-    uint32_t        m_deviceCount = 0;
+    static uint32_t       s_deviceCount;
+    uint32_t              m_deviceCount = 0;
 
   };
 

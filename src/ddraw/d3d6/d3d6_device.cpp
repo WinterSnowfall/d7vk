@@ -595,7 +595,7 @@ namespace dxvk {
         *lpdwRenderState = m_textureMapBlend;
         return D3D_OK;
 
-      // Not supported by D3D7 either, but its value is stored.
+      // Not supported by D3D6 either, but its value is stored.
       case D3DRENDERSTATE_ZVISIBLE:
         *lpdwRenderState = m_zVisible;
         return D3D_OK;
@@ -745,7 +745,7 @@ namespace dxvk {
         return D3D_OK;
 
       // Always enabled on later APIs, so it can't really be turned off
-      // Even the D3D7 docs state: "Note that many 3-D adapters
+      // Even the D3D6 docs state: "Note that many 3-D adapters
       // apply texture perspective correction unconditionally."
       case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
         static bool s_texturePerspectiveErrorShown;
@@ -912,7 +912,7 @@ namespace dxvk {
 
         return D3D_OK;
 
-      // Not supported by D3D7 either, but its value is stored.
+      // Not supported by D3D6 either, but its value is stored.
       case D3DRENDERSTATE_ZVISIBLE:
         m_zVisible = dwRenderState;
         return D3D_OK;
@@ -1542,7 +1542,7 @@ namespace dxvk {
     if (unlikely(lpdwState == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // In the case of D3DTSS_ADDRESS, which is D3D7 specific,
+    // In the case of D3DTSS_ADDRESS, which is D3D6 specific,
     // simply return based on D3DTSS_ADDRESSU
     if (d3dTexStageStateType == D3DTSS_ADDRESS) {
       return m_d3d9->GetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSU, lpdwState);
@@ -1561,7 +1561,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Device::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGESTATETYPE d3dTexStageStateType, DWORD dwState) {
     Logger::debug(">>> D3D6Device::SetTextureStageState");
 
-    // In the case of D3DTSS_ADDRESS, which is D3D7 specific,
+    // In the case of D3DTSS_ADDRESS, which is D3D6 specific,
     // we need to set up both D3DTSS_ADDRESSU and D3DTSS_ADDRESSV
     if (d3dTexStageStateType == D3DTSS_ADDRESS) {
       m_d3d9->SetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSU, dwState);

@@ -31,7 +31,7 @@ namespace dxvk {
   }
 
   D3D6VertexBuffer::~D3D6VertexBuffer() {
-    Logger::debug(str::format("D3D7VertexBuffer: Buffer nr. {{7-", m_buffCount, "}} bites the dust"));
+    Logger::debug(str::format("D3D6VertexBuffer: Buffer nr. {{1-", m_buffCount, "}} bites the dust"));
   }
 
   template<>
@@ -146,6 +146,7 @@ namespace dxvk {
 
     HandlePreProcessVerticesFlags(dwVertexOp);
 
+    device->GetD3D9()->SetFVF(m_desc.dwFVF);
     device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
     HRESULT hr = device->GetD3D9()->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_d3d9.ptr(), nullptr, dwFlags);
     if (unlikely(FAILED(hr))) {

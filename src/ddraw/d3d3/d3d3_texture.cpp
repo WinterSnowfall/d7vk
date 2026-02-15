@@ -1,8 +1,8 @@
 #include "d3d3_texture.h"
 
-#include "../ddraw/ddraw_surface.h"
-
 #include "d3d3_device.h"
+
+#include "../ddraw/ddraw_surface.h"
 
 namespace dxvk {
 
