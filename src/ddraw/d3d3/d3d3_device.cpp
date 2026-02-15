@@ -1,21 +1,18 @@
 #include "d3d3_device.h"
 
-#include "../ddraw/ddraw_surface.h"
-
-#include "../d3d5/d3d5_device.h"
-
+#include "d3d3_execute_buffer.h"
 #include "d3d3_viewport.h"
+
+#include "../ddraw/ddraw_surface.h"
 
 namespace dxvk {
 
   uint32_t D3D3Device::s_deviceCount = 0;
 
   D3D3Device::D3D3Device(
-      Com<IDirect3DDevice>&& d3d5DeviceProxy,
-      DDrawSurface* pParent,
-      D3D5Device* origin)
-    : DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9>(pParent, std::move(d3d5DeviceProxy), nullptr)
-    , m_origin ( origin ) {
+      Com<IDirect3DDevice>&& d3d3DeviceProxy,
+      DDrawSurface* pParent)
+    : DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9>(pParent, std::move(d3d3DeviceProxy), nullptr) {
     m_deviceCount = ++s_deviceCount;
 
     Logger::debug(str::format("D3D3Device: Created a new device nr. ((1-", m_deviceCount, "))"));
@@ -77,11 +74,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::AddViewport(IDirect3DViewport *viewport) {
-    if (unlikely(m_origin != nullptr)) {
-      Logger::debug(">>> D3D3Device::AddViewport: Forwarded");
-      return m_origin->AddViewport(reinterpret_cast<IDirect3DViewport2*>(viewport));
-    }
-
     Logger::debug("<<< D3D3Device::AddViewport: Proxy");
 
     if (unlikely(viewport == nullptr))
@@ -92,11 +84,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::DeleteViewport(IDirect3DViewport *viewport) {
-    if (unlikely(m_origin != nullptr)) {
-      Logger::debug(">>> D3D3Device::DeleteViewport: Forwarded");
-      return m_origin->DeleteViewport(reinterpret_cast<IDirect3DViewport2*>(viewport));
-    }
-
     Logger::debug("<<< D3D3Device::DeleteViewport: Proxy");
 
     if (unlikely(viewport == nullptr))
@@ -127,8 +114,14 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::GetDirect3D(IDirect3D **d3d) {
-    Logger::warn("<<< D3D3Device::GetDirect3D: Proxy");
-    return m_proxy->GetDirect3D(d3d);
+    Logger::debug(">>> D3D3Device::GetDirect3D");
+
+    if (unlikely(d3d == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    *d3d = m_parent->GetCommonInterface()->GetD3D3Interface();
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::Initialize(IDirect3D *d3d, GUID *lpGUID, D3DDEVICEDESC *desc) {
@@ -137,28 +130,40 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::CreateExecuteBuffer(D3DEXECUTEBUFFERDESC *desc, IDirect3DExecuteBuffer **buffer, IUnknown *pkOuter) {
-    Logger::warn("<<< D3D3Device::CreateExecuteBuffer: Proxy");
-    return m_proxy->CreateExecuteBuffer(desc, buffer, pkOuter);
+    Logger::warn(">>> D3D3Device::CreateExecuteBuffer");
+
+    Com<IDirect3DExecuteBuffer> bufferProxy;
+    HRESULT hr = m_proxy->CreateExecuteBuffer(desc, &bufferProxy, pkOuter);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    InitReturnPtr(buffer);
+
+    *buffer = ref(new D3D3ExecuteBuffer(std::move(bufferProxy), this));
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::Execute(IDirect3DExecuteBuffer *buffer, IDirect3DViewport *viewport, DWORD flags) {
-    Logger::warn("<<< D3D3Device::Execute: Proxy");
+    Logger::debug("<<< D3D3Device::Execute: Proxy");
 
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    D3D3ExecuteBuffer* d3d3ExecuteBuffer = static_cast<D3D3ExecuteBuffer*>(buffer);
     D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
-    return m_proxy->Execute(buffer, d3d3Viewport->GetProxied(), flags);
+    return m_proxy->Execute(d3d3ExecuteBuffer->GetProxied(), d3d3Viewport->GetProxied(), flags);
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::Pick(IDirect3DExecuteBuffer *buffer, IDirect3DViewport *viewport, DWORD flags, D3DRECT *rect) {
-    Logger::warn("<<< D3D3Device::Pick: Proxy");
+    Logger::debug("<<< D3D3Device::Pick: Proxy");
 
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    D3D3ExecuteBuffer* d3d3ExecuteBuffer = static_cast<D3D3ExecuteBuffer*>(buffer);
     D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
-    return m_proxy->Pick(buffer, d3d3Viewport->GetProxied(), flags, rect);
+    return m_proxy->Pick(d3d3ExecuteBuffer->GetProxied(), d3d3Viewport->GetProxied(), flags, rect);
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::GetPickRecords(DWORD *count, D3DPICKRECORD *records) {
