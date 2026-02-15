@@ -279,6 +279,16 @@ namespace dxvk {
       }
     }
 
+    if (unlikely(m_commonSurf->IsDepthStencil())) {
+      if (lpDDSrcSurface == nullptr)
+        Logger::debug("DDraw4Surface::Blt: Null blit on depth stencil");
+
+      static bool s_depthStencilWarningShown;
+
+      if (!std::exchange(s_depthStencilWarningShown, true))
+        Logger::warn("DDraw4Surface::Blt: Surface is a depth stencil");
+    }
+
     HRESULT hr;
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
@@ -287,13 +297,6 @@ namespace dxvk {
       hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     } else {
       DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
-
-      static bool s_depthStencilWarningShown;
-
-      if (unlikely(ddraw4Surface->GetCommonSurface()->IsDepthStencil() &&
-                   !std::exchange(s_depthStencilWarningShown, true)))
-        Logger::warn("DDraw4Surface::Blt: Source surface is a depth stencil");
-
       hr = m_proxy->Blt(lpDestRect, ddraw4Surface->GetProxied(), lpSrcRect, dwFlags, lpDDBltFx);
     }
 
@@ -338,6 +341,16 @@ namespace dxvk {
       }
     }
 
+    if (unlikely(m_commonSurf->IsDepthStencil())) {
+      if (lpDDSrcSurface == nullptr)
+        Logger::debug("DDraw4Surface::BltFast: Null blit on depth stencil");
+
+      static bool s_depthStencilWarningShown;
+
+      if (!std::exchange(s_depthStencilWarningShown, true))
+        Logger::warn("DDraw4Surface::BltFast: Surface is a depth stencil");
+    }
+
     HRESULT hr;
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
@@ -346,13 +359,6 @@ namespace dxvk {
       hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
     } else {
       DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
-
-      static bool s_depthStencilWarningShown;
-
-      if (unlikely(ddraw4Surface->GetCommonSurface()->IsDepthStencil() &&
-                   !std::exchange(s_depthStencilWarningShown, true)))
-        Logger::warn("DDraw4Surface::BltFast: Source surface is a depth stencil");
-
       hr = m_proxy->BltFast(dwX, dwY, ddraw4Surface->GetProxied(), lpSrcRect, dwTrans);
     }
 
