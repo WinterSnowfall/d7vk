@@ -13,7 +13,7 @@
 #include <algorithm>
 
 // Supress warnings about D3DRENDERSTATE_ALPHABLENDENABLE_OLD
-// not being in the shipped D3D6 enum (thanks a lot, MS)
+// not being in the shipped D3D5 enum (thanks a lot, MS)
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wswitch"
 #endif
@@ -97,7 +97,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D3Device(std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new D3D3Device(std::move(ppvProxyObject), nullptr));
 
       return S_OK;
     }
@@ -321,7 +321,7 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       if (m_parent->GetOptions()->forceProxiedPresent) {
         // If we have drawn anything, we need to make sure we blit back
-        // the results onto the D3D6 render target before we flip it
+        // the results onto the D3D5 render target before we flip it
         if (m_commonIntf->HasDrawn()) {
           if (unlikely(!m_rt->IsInitialized()))
             m_rt->InitializeD3D9RenderTarget();
@@ -579,7 +579,7 @@ namespace dxvk {
         return D3D_OK;
 
       // Always enabled on later APIs, so it can't really be turned off
-      // Even the D3D6 docs state: "Note that many 3-D adapters apply texture perspective correction unconditionally."
+      // Even the D3D5 docs state: "Note that many 3-D adapters apply texture perspective correction unconditionally."
       case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
         *lpdwRenderState = TRUE;
         return D3D_OK;
@@ -790,7 +790,7 @@ namespace dxvk {
         static bool s_texturePerspectiveErrorShown;
 
         if (!dwRenderState && !std::exchange(s_texturePerspectiveErrorShown, true))
-          Logger::debug("D3D6Device::SetRenderState: Disabling of D3DRENDERSTATE_TEXTUREPERSPECTIVE is not supported");
+          Logger::debug("D3D5Device::SetRenderState: Disabling of D3DRENDERSTATE_TEXTUREPERSPECTIVE is not supported");
 
         return D3D_OK;
 
@@ -799,7 +799,7 @@ namespace dxvk {
         static bool s_wrapUVErrorShown;
 
         if (dwRenderState && !std::exchange(s_wrapUVErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_WRAPU/V");
+          Logger::warn("D3D5Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_WRAPU/V");
 
         return D3D_OK;
 
@@ -809,7 +809,7 @@ namespace dxvk {
         static bool s_linePatternErrorShown;
 
         if (!std::exchange(s_linePatternErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRS_LINEPATTERN");
+          Logger::warn("D3D5Device::SetRenderState: Unimplemented render state D3DRS_LINEPATTERN");
 
         m_linePattern = bit::cast<D3DLINEPATTERN>(dwRenderState);
         return D3D_OK;
@@ -818,7 +818,7 @@ namespace dxvk {
         static bool s_monoEnableErrorShown;
 
         if (dwRenderState && !std::exchange(s_monoEnableErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_MONOENABLE");
+          Logger::warn("D3D5Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_MONOENABLE");
 
         return D3D_OK;
 
@@ -826,7 +826,7 @@ namespace dxvk {
         static bool s_ROP2ErrorShown;
 
         if (!std::exchange(s_ROP2ErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_ROP2");
+          Logger::warn("D3D5Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_ROP2");
 
         return D3D_OK;
 
@@ -961,7 +961,7 @@ namespace dxvk {
         static bool s_zVisibleErrorShown;
 
         if (dwRenderState && !std::exchange(s_zVisibleErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_ZVISIBLE");
+          Logger::warn("D3D5Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_ZVISIBLE");
 
         return D3D_OK;
 
@@ -977,7 +977,7 @@ namespace dxvk {
         static bool s_stippledAlphaErrorShown;
 
         if (dwRenderState && !std::exchange(s_stippledAlphaErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEDALPHA");
+          Logger::warn("D3D5Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEDALPHA");
 
         return D3D_OK;
 
@@ -986,7 +986,7 @@ namespace dxvk {
         static bool s_stippleEnableErrorShown;
 
         if (dwRenderState && !std::exchange(s_stippleEnableErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEENABLE");
+          Logger::warn("D3D5Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEENABLE");
 
         return D3D_OK;
 
@@ -1073,7 +1073,7 @@ namespace dxvk {
         static bool s_stipplePatternErrorShown;
 
         if (!std::exchange(s_stipplePatternErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEPATTERNXX");
+          Logger::warn("D3D5Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEPATTERNXX");
 
         return D3D_OK;
     }
@@ -1152,7 +1152,7 @@ namespace dxvk {
         break;
       case D3DLIGHTSTATE_COLORMODEL:
         if (unlikely(dwLightState != D3DCOLOR_RGB))
-          Logger::warn("D3D6Device::SetLightState: Unsupported D3DLIGHTSTATE_COLORMODEL");
+          Logger::warn("D3D5Device::SetLightState: Unsupported D3DLIGHTSTATE_COLORMODEL");
         break;
       case D3DLIGHTSTATE_FOGMODE:
         m_d3d9->SetRenderState(d3d9::D3DRS_FOGVERTEXMODE, dwLightState);
@@ -1467,7 +1467,7 @@ namespace dxvk {
     if (likely(tex9 != nullptr)) {
       hr = m_d3d9->SetTexture(0, tex9);
       if (unlikely(FAILED(hr))) {
-        Logger::warn("D3D6Device::SetTextureInternal: Failed to bind D3D9 texture");
+        Logger::warn("D3D5Device::SetTextureInternal: Failed to bind D3D9 texture");
         return hr;
       }
     }
