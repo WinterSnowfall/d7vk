@@ -7,6 +7,8 @@
 
 namespace dxvk {
 
+  class D3D3Interface;
+
   class DDraw7Interface;
   class DDraw4Interface;
   class DDraw2Interface;
@@ -150,6 +152,14 @@ namespace dxvk {
       return &m_modeSize;
     }
 
+    void SetD3D3Interface(D3D3Interface* d3d3Intf) {
+      m_d3d3Intf = d3d3Intf;
+    }
+
+    D3D3Interface* GetD3D3Interface() const {
+      return m_d3d3Intf;
+    }
+
     void SetDD7Interface(DDraw7Interface* intf7) {
       m_intf7 = intf7;
     }
@@ -225,6 +235,8 @@ namespace dxvk {
     d3d9::D3DADAPTER_IDENTIFIER9      m_adapterIdentifier9 = { };
 
     D3DOptions                        m_options;
+
+    D3D3Interface*                    m_d3d3Intf           = nullptr;
 
     // Track all possible last used D3D devices
     D3D7Device*                       m_device7            = nullptr;

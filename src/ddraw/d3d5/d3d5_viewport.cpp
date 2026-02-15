@@ -280,7 +280,7 @@ namespace dxvk {
 
     HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, m_backgroundColor, 1.0f, 0);
     if (unlikely(FAILED(hr9)))
-      Logger::err("D3D6Viewport::Clear: Failed D3D9 Clear call");
+      Logger::err("D3D5Viewport::Clear: Failed D3D9 Clear call");
 
     // Restore the previously active viewport
     if (!m_isCurrentViewport) {
