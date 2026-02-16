@@ -102,6 +102,10 @@ namespace dxvk {
 
     bool IsD3D8Compatible() const;
 
+    bool IsD3D7Compatible() const;
+
+    void RefreshFormatsTable() const;
+
   private:
 
     // used as a global filter when mode count compatibility is enabled
@@ -153,7 +157,7 @@ namespace dxvk {
     std::vector<D3DDISPLAYMODEEX>            m_modes;
     D3D9Format                               m_modeCacheFormat;
 
-    std::unique_ptr<const D3D9VkFormatTable> m_d3d9Formats;
+    std::unique_ptr<D3D9VkFormatTable>       m_d3d9Formats;
 
   };
 

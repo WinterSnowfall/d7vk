@@ -163,28 +163,35 @@ namespace dxvk {
       m_isD3D7Compatible = true;
       // D3D8 specific limitations and quirks are also very much in effect
       m_isD3D8Compatible = true;
+      RefreshAdapterFormatTables();
       Logger::info("The D3D9 interface is now operating in D3D5 compatibility mode.");
     }
 
     void EnableD3D6CompatibilityMode() {
+      // D3D5 compatibility may have been previously set by a legacy interface
+      m_isD3D5Compatible = false;
       m_isD3D6Compatible = true;
       m_isD3D7Compatible = true;
       // D3D8 specific limitations and quirks are also very much in effect
       m_isD3D8Compatible = true;
+      RefreshAdapterFormatTables();
       Logger::info("The D3D9 interface is now operating in D3D6 compatibility mode.");
     }
 
     void EnableD3D7CompatibilityMode() {
-      // D3D6 compatibility may have been previously set by a legacy interface
+      // D3D6/5 compatibility may have been previously set by a legacy interface
+      m_isD3D5Compatible = false;
       m_isD3D6Compatible = false;
       m_isD3D7Compatible = true;
       // D3D8 specific limitations and quirks are also very much in effect
       m_isD3D8Compatible = true;
+      RefreshAdapterFormatTables();
       Logger::info("The D3D9 interface is now operating in D3D7 compatibility mode.");
     }
 
     void EnableD3D8CompatibilityMode() {
       m_isD3D8Compatible = true;
+      RefreshAdapterFormatTables();
       Logger::info("The D3D9 interface is now operating in D3D8 compatibility mode.");
     }
 
@@ -193,10 +200,15 @@ namespace dxvk {
     bool HasFormatsUnlocked() const { return m_unlockAdditionalFormats; }
 
     void EnableAdditionalFormats() {
-            m_unlockAdditionalFormats = true;
+      m_unlockAdditionalFormats = true;
     }
 
   private:
+
+    inline void RefreshAdapterFormatTables() {
+      for (auto& adapter : m_adapters)
+        adapter.RefreshFormatsTable();
+    }
 
     Rc<DxvkInstance>              m_instance;
 
