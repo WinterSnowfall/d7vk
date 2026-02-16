@@ -41,6 +41,11 @@ namespace dxvk {
     /// presentation on Wayland, or in other situations when back buffer dimensions get altered in-flight.
     bool backBufferResize;
 
+    /// Determines if the currently set D3D9 Z buffer is written back
+    /// during blits/locks on DDraw surfaces. Default disabled, as it
+    /// negatively affects performance, but is sometimes needed for corectness.
+    bool depthWriteBack;
+
     /// Replaces any use of D32 with D24X8. Needed for games such as
     /// Sacrifice, which won't enable 32-bit modes without D32 support.
     bool useD24X8forD32;
@@ -92,6 +97,7 @@ namespace dxvk {
       // DDraw options
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);
+      this->depthWriteBack        = config.getOption<bool>   ("ddraw.depthWriteBack",        false);
       this->forceProxiedPresent   = config.getOption<bool>   ("ddraw.forceProxiedPresent",   false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("ddraw.ignoreGammaRamp",       false);
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);

@@ -97,6 +97,12 @@ namespace dxvk {
     }
 
     d3d9::D3DFORMAT GetD3D9Format() const {
+      const D3DOptions* options = m_commonIntf->GetOptions();
+
+      // Use D16_LOCKABLE instead of D16 if depth write backs are needed
+      if (unlikely(options->depthWriteBack && m_format9 == d3d9::D3DFMT_D16))
+        return d3d9::D3DFMT_D16_LOCKABLE;
+
       return m_format9;
     }
 

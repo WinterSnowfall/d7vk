@@ -649,8 +649,15 @@ namespace dxvk {
 
   void D3D9VkFormatTable::RefreshFormatSupport(
     const D3D9Adapter*          pParent) {
+
+    const uint32_t vendorId = pParent->GetVendorId();
+    const bool     isAmd    = vendorId == uint32_t(DxvkGpuVendor::Amd);
+
     // W11V11U10 is only supported by D3D8
     m_w11v11u10Support = pParent->IsD3D8Compatible();
+    // Only AMD supports D16_LOCKABLE natively,
+    // however expose support universailly for D3D7
+    m_d16lockableSupport = isAmd || pParent->IsD3D7Compatible();
   }
 
 }

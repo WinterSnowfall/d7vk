@@ -104,6 +104,8 @@ namespace dxvk {
 
     bool IsD3D8Compatible() const;
 
+    bool IsD3D7Compatible() const;
+
   private:
 
     // used as a global filter when mode count compatibility is enabled
