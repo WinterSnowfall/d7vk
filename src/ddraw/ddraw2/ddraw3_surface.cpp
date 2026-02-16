@@ -292,11 +292,17 @@ namespace dxvk {
           memcpy(&rect9, lpDestRect, sizeof(D3DRECT));
           m_d3d9Device->Clear(1, &rect9, D3DCLEAR_ZBUFFER, 0, lpDDBltFx->dwFillDepth, 0);
         }
-      } else {
+      }
+    }
+
+    // It's highly unlikely anyone would do depth blits with IDirectDrawSurface3
+    if (likely(m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
+      DDraw3Surface* ddraw3Depth = static_cast<DDraw3Surface*>(lpDDSrcSurface);
+      if (unlikely(ddraw3Depth != nullptr && ddraw3Depth->GetCommonSurface()->IsDepthStencil())) {
         static bool s_depthStencilWarningShown;
 
         if (!std::exchange(s_depthStencilWarningShown, true))
-          Logger::warn("DDraw3Surface::Blt: Surface is a depth stencil");
+          Logger::warn("DDraw3Surface::Blt: Source surface is a depth stencil");
       }
     }
 
@@ -351,11 +357,15 @@ namespace dxvk {
       }
     }
 
-    if (unlikely(m_commonSurf->IsDepthStencil())) {
-      static bool s_depthStencilWarningShown;
+    // It's highly unlikely anyone would do depth blits with IDirectDrawSurface3
+    if (likely(m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
+      DDraw3Surface* ddraw3Depth = static_cast<DDraw3Surface*>(lpDDSrcSurface);
+      if (unlikely(ddraw3Depth != nullptr && ddraw3Depth->GetCommonSurface()->IsDepthStencil())) {
+        static bool s_depthStencilWarningShown;
 
-      if (!std::exchange(s_depthStencilWarningShown, true))
-        Logger::warn("DDraw3Surface::BltFast: Surface is a depth stencil");
+        if (!std::exchange(s_depthStencilWarningShown, true))
+          Logger::warn("DDraw3Surface::BltFast: Source surface is a depth stencil");
+      }
     }
 
     HRESULT hr;
@@ -669,11 +679,13 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent) {
     Logger::debug("<<< DDraw3Surface::Lock: Proxy");
 
-    static bool s_depthStencilWarningShown;
+    // It's highly unlikely anyone would do depth locks with IDirectDrawSurface3
+    if (unlikely(m_commonSurf->IsDepthStencil())) {
+      static bool s_depthStencilWarningShown;
 
-    if (unlikely(m_commonSurf->IsDepthStencil() &&
-                 !std::exchange(s_depthStencilWarningShown, true)))
-      Logger::warn("DDraw3Surface::Lock: Surface is a depth stencil");
+      if (!std::exchange(s_depthStencilWarningShown, true))
+        Logger::warn("DDraw3Surface::Lock: Surface is a depth stencil");
+    }
 
     return m_proxy->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
   }
