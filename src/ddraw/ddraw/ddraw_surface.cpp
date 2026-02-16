@@ -336,11 +336,26 @@ namespace dxvk {
           memcpy(&rect9, lpDestRect, sizeof(D3DRECT));
           m_d3d9Device->Clear(1, &rect9, D3DCLEAR_ZBUFFER, 0, lpDDBltFx->dwFillDepth, 0);
         }
-      } else {
-        static bool s_depthStencilWarningShown;
+      }
+    }
 
-        if (!std::exchange(s_depthStencilWarningShown, true))
-          Logger::warn("DDrawSurface::Blt: Surface is a depth stencil");
+    if (likely(m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
+      DDrawSurface* ddrawDepth = static_cast<DDrawSurface*>(lpDDSrcSurface);
+      if (unlikely(ddrawDepth != nullptr && ddrawDepth->GetCommonSurface()->IsDepthStencil())) {
+        if (m_commonIntf->GetOptions()->depthWriteBack && m_commonIntf->IsCurrentDepthStencil(ddrawDepth)) {
+          if (unlikely(!ddrawDepth->IsInitialized())) {
+            HRESULT hrInit = ddrawDepth->InitializeOrUploadD3D9();
+            if (unlikely(FAILED(hrInit)))
+              Logger::warn("DDrawSurface::Blt: Failed to initialize d3d9 depth surface");
+          }
+          if (likely(IsInitialized()))
+            BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(ddrawDepth->GetProxied(), ddrawDepth->GetD3D9());
+        } else {
+          static bool s_depthStencilWarningShown;
+
+          if (!std::exchange(s_depthStencilWarningShown, true))
+            Logger::warn("DDrawSurface::Blt: Source surface is a depth stencil");
+        }
       }
     }
 
@@ -396,11 +411,24 @@ namespace dxvk {
       }
     }
 
-    if (unlikely(m_commonSurf->IsDepthStencil())) {
-      static bool s_depthStencilWarningShown;
+    if (likely(m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
+      DDrawSurface* ddrawDepth = static_cast<DDrawSurface*>(lpDDSrcSurface);
+      if (unlikely(ddrawDepth != nullptr && ddrawDepth->GetCommonSurface()->IsDepthStencil())) {
+        if (m_commonIntf->GetOptions()->depthWriteBack && m_commonIntf->IsCurrentDepthStencil(ddrawDepth)) {
+          if (unlikely(!ddrawDepth->IsInitialized())) {
+            HRESULT hrInit = ddrawDepth->InitializeOrUploadD3D9();
+            if (unlikely(FAILED(hrInit)))
+              Logger::warn("DDrawSurface::BltFast: Failed to initialize d3d9 depth surface");
+          }
+          if (likely(IsInitialized()))
+            BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(ddrawDepth->GetProxied(), ddrawDepth->GetD3D9());
+        } else {
+          static bool s_depthStencilWarningShown;
 
-      if (!std::exchange(s_depthStencilWarningShown, true))
-        Logger::warn("DDrawSurface::BltFast: Surface is a depth stencil");
+          if (!std::exchange(s_depthStencilWarningShown, true))
+            Logger::warn("DDrawSurface::BltFast: Source surface is a depth stencil");
+        }
+      }
     }
 
     HRESULT hr;
@@ -779,11 +807,22 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawSurface::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent) {
     Logger::debug("<<< DDrawSurface::Lock: Proxy");
 
-    static bool s_depthStencilWarningShown;
+    if (unlikely(m_commonSurf->IsDepthStencil())) {
+      if (m_commonIntf->GetOptions()->depthWriteBack && m_commonIntf->IsCurrentDepthStencil(this)) {
+        if (unlikely(!IsInitialized())) {
+          HRESULT hrInit = InitializeOrUploadD3D9();
+          if (unlikely(FAILED(hrInit)))
+            Logger::warn("DDrawSurface::Lock: Failed to initialize d3d9 depth surface");
+        }
+        if (likely(IsInitialized()))
+          BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_proxy.ptr(), m_d3d9.ptr());
+      } else {
+        static bool s_depthStencilWarningShown;
 
-    if (unlikely(m_commonSurf->IsDepthStencil() &&
-                 !std::exchange(s_depthStencilWarningShown, true)))
-      Logger::warn("DDrawSurface::Lock: Surface is a depth stencil");
+        if (!std::exchange(s_depthStencilWarningShown, true))
+          Logger::warn("DDrawSurface::Lock: Surface is a depth stencil");
+      }
+    }
 
     return m_proxy->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
   }

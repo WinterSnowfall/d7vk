@@ -105,6 +105,8 @@ namespace dxvk {
 
     bool IsD3D8Compatible() const;
 
+    bool IsD3D7Compatible() const;
+
     force_inline void incRef() {
       m_refCount.fetch_add(1u, std::memory_order_acquire);
     }
