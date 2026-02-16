@@ -295,11 +295,26 @@ namespace dxvk {
           memcpy(&rect9, lpDestRect, sizeof(D3DRECT));
           m_d3d9Device->Clear(1, &rect9, D3DCLEAR_ZBUFFER, 0, lpDDBltFx->dwFillDepth, 0);
         }
-      } else {
-        static bool s_depthStencilWarningShown;
+      }
+    }
 
-        if (!std::exchange(s_depthStencilWarningShown, true))
-          Logger::warn("DDraw7Surface::Blt: Surface is a depth stencil");
+    if (likely(m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
+      DDraw7Surface* ddraw7Depth = static_cast<DDraw7Surface*>(lpDDSrcSurface);
+      if (unlikely(ddraw7Depth != nullptr && ddraw7Depth->GetCommonSurface()->IsDepthStencil())) {
+        if (m_commonIntf->GetOptions()->depthWriteBack && m_commonIntf->IsCurrentDepthStencil(ddraw7Depth)) {
+          if (unlikely(!ddraw7Depth->IsInitialized())) {
+            HRESULT hrInit = ddraw7Depth->InitializeOrUploadD3D9();
+            if (unlikely(FAILED(hrInit)))
+              Logger::warn("DDraw7Surface::Blt: Failed to initialize d3d9 depth surface");
+          }
+          if (likely(IsInitialized()))
+            BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(ddraw7Depth->GetProxied(), ddraw7Depth->GetD3D9());
+        } else {
+          static bool s_depthStencilWarningShown;
+
+          if (!std::exchange(s_depthStencilWarningShown, true))
+            Logger::warn("DDraw7Surface::Blt: Source surface is a depth stencil");
+        }
       }
     }
 
@@ -356,11 +371,24 @@ namespace dxvk {
       }
     }
 
-    if (unlikely(m_commonSurf->IsDepthStencil())) {
-      static bool s_depthStencilWarningShown;
+    if (likely(m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
+      DDraw7Surface* ddraw7Depth = static_cast<DDraw7Surface*>(lpDDSrcSurface);
+      if (unlikely(ddraw7Depth != nullptr && ddraw7Depth->GetCommonSurface()->IsDepthStencil())) {
+        if (m_commonIntf->GetOptions()->depthWriteBack && m_commonIntf->IsCurrentDepthStencil(ddraw7Depth)) {
+          if (unlikely(!ddraw7Depth->IsInitialized())) {
+            HRESULT hrInit = ddraw7Depth->InitializeOrUploadD3D9();
+            if (unlikely(FAILED(hrInit)))
+              Logger::warn("DDraw7Surface::BltFast: Failed to initialize d3d9 depth surface");
+          }
+          if (likely(IsInitialized()))
+            BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(ddraw7Depth->GetProxied(), ddraw7Depth->GetD3D9());
+        } else {
+          static bool s_depthStencilWarningShown;
 
-      if (!std::exchange(s_depthStencilWarningShown, true))
-        Logger::warn("DDraw7Surface::BltFast: Surface is a depth stencil");
+          if (!std::exchange(s_depthStencilWarningShown, true))
+            Logger::warn("DDraw7Surface::BltFast: Source surface is a depth stencil");
+        }
+      }
     }
 
     HRESULT hr;
@@ -760,11 +788,22 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent) {
     Logger::debug("<<< DDraw7Surface::Lock: Proxy");
 
-    static bool s_depthStencilWarningShown;
+    if (unlikely(m_commonSurf->IsDepthStencil())) {
+      if (m_commonIntf->GetOptions()->depthWriteBack && m_commonIntf->IsCurrentDepthStencil(this)) {
+        if (unlikely(!IsInitialized())) {
+          HRESULT hrInit = InitializeOrUploadD3D9();
+          if (unlikely(FAILED(hrInit)))
+            Logger::warn("DDraw7Surface::Lock: Failed to initialize d3d9 depth surface");
+        }
+        if (likely(IsInitialized()))
+          BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(m_proxy.ptr(), m_d3d9.ptr());
+      } else {
+        static bool s_depthStencilWarningShown;
 
-    if (unlikely(m_commonSurf->IsDepthStencil() &&
-                 !std::exchange(s_depthStencilWarningShown, true)))
-        Logger::warn("DDraw7Surface::Lock: Surface is a depth stencil");
+        if (!std::exchange(s_depthStencilWarningShown, true))
+          Logger::warn("DDraw7Surface::Lock: Surface is a depth stencil");
+      }
+    }
 
     return m_proxy->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
   }
