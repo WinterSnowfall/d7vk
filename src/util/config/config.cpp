@@ -1721,6 +1721,10 @@ namespace dxvk {
     { R"(\\KINGDOMS\.icd$)", {{
       { "d3d7.emulateFSAA",                 "True" },
     }} },
+    /* Star Wars Episode I: Racer                 */
+    { R"(\\SWEP1RCR\.exe$)", {{
+      { "ddraw.depthWriteBack",             "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */
