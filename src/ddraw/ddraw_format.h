@@ -858,4 +858,36 @@ namespace dxvk {
     }
   }
 
+  inline uint8_t GetColorChannel(DWORD pixel, DWORD mask) {
+    uint32_t shift = 0;
+    DWORD cmask = mask;
+    while ((cmask & 1) == 0) {
+      cmask >>= 1;
+      shift++;
+    }
+
+    uint32_t bits = 0;
+    cmask = mask;
+    while (cmask) {
+    if (cmask & 1)
+      bits++;
+      cmask >>= 1;
+    }
+
+    DWORD value = (pixel & mask) >> shift;
+    DWORD max = (1 << bits) - 1;
+    return static_cast<uint8_t>(value * 255.0 / max);
+  }
+
+  inline DWORD ColorKeyToRGB(const DDPIXELFORMAT* fmt, DWORD colorKey) {
+    if (unlikely(!(fmt->dwFlags & DDPF_RGB)))
+      return 0;
+
+    uint8_t r = GetColorChannel(colorKey, fmt->dwRBitMask);
+    uint8_t g = GetColorChannel(colorKey, fmt->dwGBitMask);
+    uint8_t b = GetColorChannel(colorKey, fmt->dwBBitMask);
+
+    return r | (g << 8) | (b << 16);
+  }
+
 }

@@ -142,7 +142,6 @@ namespace dxvk {
 
         uint32_t LightCount : 4;
         uint32_t SpecularEnabled : 1;
-        uint32_t ColorKeyEnabled : 1;
 
         // End of uint32_t
 
@@ -409,6 +408,8 @@ namespace dxvk {
     std::array<DWORD, caps::MaxEnabledLights>           enabledLightIndices;
 
     float                                               nPatchSegments = 0.0f;
+
+    DWORD                                               colorKey = 0;
 
     bool IsLightEnabled(DWORD Index) const {
       const auto& enabledIndices = enabledLightIndices;

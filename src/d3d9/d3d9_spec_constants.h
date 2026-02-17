@@ -119,8 +119,10 @@ namespace dxvk {
     SpecFFTextureStage5AlphaArg0, // Range: 0 -> 6 + 2 flags  | Bits: 5
     SpecFFTextureStage6AlphaArg0, // Range: 0 -> 6 + 2 flags  | Bits: 5
     SpecFFTextureStage7AlphaArg0, // Range: 0 -> 6 + 2 flags  | Bits: 5
-
     SpecFFColorKeyEnabled,        // Range: 0 -> 1            | Bits: 1
+    SpecFFColorKeyPrecision,      // Range: 0 -> 1            | Bits: 1
+
+    SpecFFColorKey,               // Range: 8 bits * 3        | Bits: 24
 
     SpecConstantCount,
   };
@@ -137,7 +139,7 @@ namespace dxvk {
 
   struct D3D9SpecializationInfo {
     // Spec const word 0 determines whether the other spec constants are used rather than the spec const UBO
-    static constexpr uint32_t MaxSpecDwords = 17;
+    static constexpr uint32_t MaxSpecDwords = 18;
 
     static constexpr size_t UBOSize = MaxSpecDwords * sizeof(uint32_t);
 
@@ -251,8 +253,10 @@ namespace dxvk {
       { 16,  5, 5 },  // FFTextureStage5AlphaArg0
       { 16, 10, 5 },  // FFTextureStage6AlphaArg0
       { 16, 15, 5 },  // FFTextureStage7AlphaArg0
-
       { 16, 20, 1 },  // FFColorKeyEnable
+      { 16, 21, 1 },  // FFColorKeyPrecision
+
+      { 17,  0, 24 }, // FFColorKey
     }};
 
     template <D3D9SpecConstantId Id, typename T>

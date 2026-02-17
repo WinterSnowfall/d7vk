@@ -31,6 +31,9 @@ layout(location = 0) out vec4 out_Color0;
 const uint TextureArgCount = 3;
 const uint MaxSharedPushDataSize = 64;
 
+const float ColorKeyLowPrecision  = 0.02;
+const float ColorKeyHighPrecision = 0.0001;
+
 #include "d3d9_fixed_function_common.glsl"
 
 struct D3D9FFTextureStage {
@@ -287,16 +290,6 @@ vec4 sampleTexture(uint stage, vec4 texcoord, vec4 previousStageTextureVal) {
                 texcoord.z = adjustDref(texcoord.z, stage);
                 texVal = texture(sampler2DShadow(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), texcoord.xyz).xxxx;
             } else {
-                if (specBool(SpecFFColorKeyEnabled)) {
-                    const ivec2 texSize = textureSize(sampler2D(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), 0);
-                    const ivec2 pixelCoord = ivec2(texcoord.xy * vec2(texSize));
-                    texVal = texelFetch(sampler2D(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), pixelCoord, 0);
-                    const ivec3 key = ivec3(0, 0, 0); // Check only against black for now
-                    const ivec3 src = ivec3(texVal.rgb * 255.0 + 0.5);
-                    if (src == key) {
-                        discard;
-                    }
-                }
                 texVal = texture(sampler2D(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), texcoord.xy);
             }
             break;
@@ -316,6 +309,17 @@ vec4 sampleTexture(uint stage, vec4 texcoord, vec4 previousStageTextureVal) {
             // Produce a value that's obviously wrong to make it obvious when it somehow does happen.
             texVal = vec4(999.9);
             break;
+    }
+
+    if (specBool(SpecFFColorKeyEnabled)) {
+        const float ckr = bitfieldExtract(specUint(SpecFFColorKey), 0,  8) / 255.0;
+        const float ckg = bitfieldExtract(specUint(SpecFFColorKey), 8,  8) / 255.0;
+        const float ckb = bitfieldExtract(specUint(SpecFFColorKey), 16, 8) / 255.0;
+        const float tolerance = specBool(SpecFFColorKeyPrecision) ? ColorKeyHighPrecision : ColorKeyLowPrecision;
+        if (texVal.x <= ckr + tolerance && texVal.y <= ckg + tolerance && texVal.z <= ckb + tolerance &&
+            texVal.x >= ckr - tolerance && texVal.y >= ckg - tolerance && texVal.z >= ckb - tolerance) {
+            discard;
+        }
     }
 
     if (stage != 0 && previousStageColorOp == D3DTOP_BUMPENVMAPLUMINANCE) {
