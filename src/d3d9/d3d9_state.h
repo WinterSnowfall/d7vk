@@ -348,6 +348,8 @@ namespace dxvk {
 
     float                                               nPatchSegments = 0.0f;
 
+    DWORD                                               colorKey = 0;
+
     bool IsLightEnabled(DWORD Index) const {
       const auto& enabledIndices = enabledLightIndices;
       return std::find(enabledIndices.begin(), enabledIndices.end(), Index) != enabledIndices.end();
