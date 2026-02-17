@@ -527,8 +527,10 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYENABLE: {
         m_colorKeyEnabled = dwRenderState;
 
-        const bool textureHasColorKey = m_textures[0] != nullptr ? m_textures[0]->GetCommonSurface()->IsColorKeySet() : false;
-        m_bridge->SetColorKeyState(m_colorKeyEnabled && textureHasColorKey);
+        const bool validColorKey = m_textures[0] != nullptr ? m_textures[0]->GetCommonSurface()->HasValidColorKey() : false;
+        m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
+        if (m_colorKeyEnabled && validColorKey)
+          m_bridge->SetColorKey(m_textures[0]->GetCommonSurface()->GetColorKeyNormalized());
 
         return D3D_OK;
       }
@@ -1138,6 +1140,9 @@ namespace dxvk {
         if (m_textures[stage] != nullptr) {
           Logger::debug("D3D7Device::SetTexture: Unbinding local texture");
           m_textures[stage] = nullptr;
+
+          if (likely(stage == 0))
+            m_bridge->SetColorKeyState(false);
         }
       } else {
         Logger::err("D3D7Device::SetTexture: Failed to unbind D3D9 texture");
@@ -1182,8 +1187,12 @@ namespace dxvk {
         return hr;
       }
 
-      if (likely(stage == 0))
-        m_bridge->SetColorKeyState(m_colorKeyEnabled && surface7->GetCommonSurface()->IsColorKeySet());
+      if (likely(stage == 0)) {
+        const bool colorKeyState = m_colorKeyEnabled && surface7->GetCommonSurface()->HasValidColorKey();
+        m_bridge->SetColorKeyState(colorKeyState);
+        if (colorKeyState)
+          m_bridge->SetColorKey(surface7->GetCommonSurface()->GetColorKeyNormalized());
+      }
     } else {
       d3d9::IDirect3DCubeTexture9* cube9 = surface7->GetD3D9CubeTexture();
 

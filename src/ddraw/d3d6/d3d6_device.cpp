@@ -957,8 +957,10 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYENABLE: {
         m_colorKeyEnabled = dwRenderState;
 
-        const bool textureHasColorKey = m_textures[0] != nullptr ? m_textures[0]->GetParent()->GetCommonSurface()->IsColorKeySet() : false;
-        m_bridge->SetColorKeyState(m_colorKeyEnabled && textureHasColorKey);
+        const bool validColorKey = m_textures[0] != nullptr ? m_textures[0]->GetParent()->GetCommonSurface()->HasValidColorKey() : false;
+        m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
+        if (m_colorKeyEnabled && validColorKey)
+          m_bridge->SetColorKey(m_textures[0]->GetParent()->GetCommonSurface()->GetColorKeyNormalized());
 
         return D3D_OK;
       }
@@ -1495,6 +1497,9 @@ namespace dxvk {
         if (m_textures[stage] != nullptr) {
           Logger::debug("D3D6Device::SetTexture: Unbinding local texture");
           m_textures[stage] = nullptr;
+
+          if (likely(stage == 0))
+            m_bridge->SetColorKeyState(false);
         }
       } else {
         Logger::err("D3D6Device::SetTexture: Failed to unbind D3D9 texture");
@@ -1543,7 +1548,10 @@ namespace dxvk {
           m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
         }
 
-        m_bridge->SetColorKeyState(m_colorKeyEnabled && texture6->GetParent()->GetCommonSurface()->IsColorKeySet());
+        const bool colorKeyState = m_colorKeyEnabled && surface6->GetCommonSurface()->HasValidColorKey();
+        m_bridge->SetColorKeyState(colorKeyState);
+        if (colorKeyState)
+          m_bridge->SetColorKey(surface6->GetCommonSurface()->GetColorKeyNormalized());
       }
     }
 

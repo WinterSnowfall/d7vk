@@ -765,6 +765,9 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
+        if (unlikely(texture5 == nullptr))
+          m_bridge->SetColorKeyState(false);
+
         break;
       }
 
@@ -1003,12 +1006,11 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYENABLE: {
         m_colorKeyEnabled = dwRenderState;
 
-        D3D5Texture* texture5 = nullptr;
-        if (likely(m_textureHandle != 0))
-          texture5 = m_parent->GetParent()->GetTextureFromHandle(m_textureHandle);
-
-        const bool textureHasColorKey = texture5 != nullptr ? texture5->GetParent()->GetCommonSurface()->IsColorKeySet() : false;
-        m_bridge->SetColorKeyState(m_colorKeyEnabled && textureHasColorKey);
+        D3D5Texture* texture5 = m_textureHandle != 0 ? m_DDIntfParent->GetTextureFromHandle(m_textureHandle) : nullptr;
+        const bool validColorKey = texture5 != nullptr ? texture5->GetParent()->GetCommonSurface()->HasValidColorKey() : false;
+        m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
+        if (m_colorKeyEnabled && validColorKey)
+          m_bridge->SetColorKey(texture5->GetParent()->GetCommonSurface()->GetColorKeyNormalized());
 
         return D3D_OK;
       }
@@ -1484,7 +1486,10 @@ namespace dxvk {
         m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
       }
 
-      m_bridge->SetColorKeyState(m_colorKeyEnabled && texture5->GetParent()->GetCommonSurface()->IsColorKeySet());
+      const bool colorKeyState = texture5->GetParent()->GetCommonSurface()->HasValidColorKey();
+      m_bridge->SetColorKeyState(m_colorKeyEnabled && colorKeyState);
+      if (m_colorKeyEnabled && colorKeyState)
+        m_bridge->SetColorKey(texture5->GetParent()->GetCommonSurface()->GetColorKeyNormalized());
     }
 
     m_textureHandle = texture5->GetHandle();
