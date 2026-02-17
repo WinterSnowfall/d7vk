@@ -85,6 +85,7 @@ namespace dxvk {
     PointScale,
 
     FFColorKeyState,
+    FFColorKey,
 
     SpecializationEntries,
   };
@@ -998,6 +999,8 @@ namespace dxvk {
 
     void UpdateFog();
 
+    void UpdateColorKeyState();
+
     void UpdateColorKey();
 
     void BindFramebuffer();
@@ -1483,6 +1486,15 @@ namespace dxvk {
       if (likely(m_colorKeyEnabled != colorKeyState)) {
         m_dirty.set(D3D9DeviceDirtyFlag::FFColorKeyState);
         m_colorKeyEnabled = colorKeyState;
+      }
+
+      return D3D_OK;
+    }
+
+    HRESULT SetColorKey(DWORD colorKey) {
+      if (likely(m_state.colorKey != colorKey)) {
+        m_dirty.set(D3D9DeviceDirtyFlag::FFColorKey);
+        m_state.colorKey = colorKey;
       }
 
       return D3D_OK;

@@ -85,6 +85,10 @@ namespace dxvk {
       return m_isColorKeySet;
     }
 
+    bool HasValidColorKey() const {
+      return m_isColorKeySet && m_colorKey.dwColorSpaceLowValue == m_colorKey.dwColorSpaceHighValue;
+    }
+
     void SetColorKey(DDCOLORKEY* colorKey) {
       m_colorKey.dwColorSpaceLowValue  = colorKey->dwColorSpaceLowValue;
       m_colorKey.dwColorSpaceHighValue = colorKey->dwColorSpaceHighValue;
@@ -99,6 +103,12 @@ namespace dxvk {
 
     const DDCOLORKEY* GetColorKey() const {
       return &m_colorKey;
+    }
+
+    DWORD GetColorKeyNormalized() const {
+      const DDPIXELFORMAT* pixelFormat = (m_desc2.dwFlags & DDSD_PIXELFORMAT) ? &m_desc2.ddpfPixelFormat : &m_desc.ddpfPixelFormat;
+
+      return ColorKeyToRGB(pixelFormat, m_colorKey.dwColorSpaceHighValue);
     }
 
     d3d9::D3DFORMAT GetD3D9Format() const {

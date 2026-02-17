@@ -1585,6 +1585,10 @@ namespace dxvk {
     { R"(\\AoWSM(Compat)?\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Hard Truck 2: King of the Road             */
+    { R"(\\king\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
@@ -1678,6 +1682,10 @@ namespace dxvk {
     /* Star Wars Episode I: Racer                 */
     { R"(\\SWEP1RCR\.exe$)", {{
       { "ddraw.depthWriteBack",             "True" },
+    }} },
+    /* Dino Crisis - fixes color keying artifacts */
+    { R"(\\dino\.exe$)", {{
+      { "d3d7.colorKeyHighPrecision",      "False" },
     }} },
 
     /**********************************************/
