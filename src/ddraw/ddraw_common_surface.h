@@ -76,6 +76,11 @@ namespace dxvk {
       return &m_desc;
     }
 
+    bool IsAlphaFormat() const {
+      return ((m_desc2.dwFlags & DDSD_ALPHABITDEPTH) && m_desc2.dwAlphaBitDepth != 0)
+          || ((m_desc.dwFlags  & DDSD_ALPHABITDEPTH) && m_desc.dwAlphaBitDepth  != 0);
+    }
+
     bool IsColorKeySet() const {
       return m_isColorKeySet;
     }
