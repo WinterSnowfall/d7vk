@@ -475,8 +475,9 @@ namespace dxvk {
 
     InitReturnPtr(lpD3DVertexBuffer);
 
-    if (unlikely(lpVBDesc->dwSize != sizeof(D3DVERTEXBUFFERDESC)))
-      return DDERR_INVALIDPARAMS;
+    // TODO: This, apparently, isn't validated by native D3D6 (to check)
+    //if (unlikely(lpVBDesc->dwSize != sizeof(D3DVERTEXBUFFERDESC)))
+      //return DDERR_INVALIDPARAMS;
 
     Com<IDirect3DVertexBuffer> vertexBuffer;
     // We don't really need a proxy buffer any longer
