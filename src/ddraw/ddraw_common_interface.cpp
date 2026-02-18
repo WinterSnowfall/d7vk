@@ -213,6 +213,8 @@ namespace dxvk {
       return m_device7->GetPresentParameters();
     } else if (m_device6 != nullptr) {
       return m_device6->GetPresentParameters();
+    } else if (m_device5 != nullptr) {
+      return m_device5->GetPresentParameters();
     }
 
     return d3d9::D3DPRESENT_PARAMETERS();
@@ -224,6 +226,7 @@ namespace dxvk {
     } else if (m_device6 != nullptr) {
       return m_device6->ResetD3D9Swapchain(params);
     }
+    // D3D5 has no way of disabling/re-enabling VSync
 
     return DDERR_GENERIC;
   }
