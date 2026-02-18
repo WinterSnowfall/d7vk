@@ -288,12 +288,13 @@ namespace dxvk {
            m_commonIntf->IsCurrentDepthStencil(this)) {
         Logger::debug("DDraw4Surface::Blt: Clearing D3D9 depth stencil");
 
+        const float zClear = m_commonSurf->GetNormalizedFloatDepth(lpDDBltFx->dwFillDepth);
         if (lpDestRect == nullptr) {
-          m_d3d9Device->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, lpDDBltFx->dwFillDepth, 0);
+          m_d3d9Device->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, zClear, 0);
         } else {
           D3DRECT rect9;
           memcpy(&rect9, lpDestRect, sizeof(D3DRECT));
-          m_d3d9Device->Clear(1, &rect9, D3DCLEAR_ZBUFFER, 0, lpDDBltFx->dwFillDepth, 0);
+          m_d3d9Device->Clear(1, &rect9, D3DCLEAR_ZBUFFER, 0, zClear, 0);
         }
       }
     }

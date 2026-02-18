@@ -1687,6 +1687,10 @@ namespace dxvk {
     { R"(\\dino\.exe$)", {{
       { "d3d7.colorKeyHighPrecision",      "False" },
     }} },
+    /* Gorky 17 - Fixes crash on game start       */
+    { R"(\\gorky17\.exe$)", {{
+      { "ddraw.depthWriteBack",             "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */

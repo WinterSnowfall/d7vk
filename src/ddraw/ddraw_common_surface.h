@@ -121,6 +121,12 @@ namespace dxvk {
       return m_format9;
     }
 
+    float GetNormalizedFloatDepth(DWORD input) const {
+      DWORD max = m_format9 != d3d9::D3DFMT_D16 ? std::numeric_limits<uint32_t>::max()
+                                                : std::numeric_limits<uint16_t>::max();
+      return static_cast<float>(input / max);
+    }
+
     uint8_t GetMipCount() const {
       return m_mipCount;
     }
