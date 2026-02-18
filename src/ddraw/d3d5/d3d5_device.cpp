@@ -54,6 +54,14 @@ namespace dxvk {
       m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
     }
 
+    // The default value of D3DRENDERSTATE_TEXTUREMAPBLEND in D3D5 is D3DTBLEND_MODULATE
+    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
+    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
+    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
+    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+
     m_deviceCount = ++s_deviceCount;
 
     Logger::debug(str::format("D3D5Device: Created a new device nr. ((2-", m_deviceCount, "))"));
@@ -751,8 +759,6 @@ namespace dxvk {
           texture5 = m_DDIntfParent->GetTextureFromHandle(dwRenderState);
           if (unlikely(texture5 == nullptr))
             return DDERR_INVALIDPARAMS;
-
-          m_bridge->SetColorKeyState(m_colorKeyEnabled && texture5->GetParent()->GetCommonSurface()->IsColorKeySet());
         }
 
         HRESULT hr = SetTextureInternal(texture5);
@@ -893,9 +899,9 @@ namespace dxvk {
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_SELECTARG1);
-				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
-				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_CURRENT);
-				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_CURRENT);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_CURRENT);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_CURRENT);
             break;
           // "In this mode, the RGB values of the texture are multiplied with the RGB values
           //  that would have been used with no texturing. Any alpha values in the texture
@@ -906,10 +912,9 @@ namespace dxvk {
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
-            // TODO: Or D3DTOP_MODULATE for no alpha; patch it during SetTexture on stage 0
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
-				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
             break;
           // "In this mode, the RGB and alpha values of the texture are blended with the colors
           //  that would have been used with no texturing, according to the following formulas [...]"
@@ -918,8 +923,8 @@ namespace dxvk {
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_BLENDTEXTUREALPHA);
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG2);
-				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
             break;
           // "In this mode, the RGB values of the texture are multiplied with the RGB values that
           //  would have been used with no texturing, and the alpha values of the texture
@@ -929,8 +934,8 @@ namespace dxvk {
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_MODULATE);
-				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
             break;
           // "Add the Gouraud interpolants to the texture lookup with saturation semantics
           //  (that is, if the color value overflows it is set to the maximum possible value)."
@@ -939,8 +944,8 @@ namespace dxvk {
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_ADD);
             m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG2);
-				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-				    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+            m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
             break;
           // Unsupported
           default:
@@ -1470,6 +1475,16 @@ namespace dxvk {
         Logger::warn("D3D5Device::SetTextureInternal: Failed to bind D3D9 texture");
         return hr;
       }
+
+      // "Any alpha values in the texture replace the alpha values in the colors that would
+      //  have been used with no texturing; if the texture does not contain an alpha component,
+      //  alpha values at the vertices in the source are interpolated between vertices."
+      if (m_textureMapBlend == D3DTBLEND_MODULATE) {
+        const DWORD textureOp = texture5->GetParent()->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_MODULATE;
+        m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
+      }
+
+      m_bridge->SetColorKeyState(m_colorKeyEnabled && texture5->GetParent()->GetCommonSurface()->IsColorKeySet());
     }
 
     m_textureHandle = texture5->GetHandle();
