@@ -333,8 +333,9 @@ namespace dxvk {
 
     InitReturnPtr(ppVertexBuffer);
 
-    if (unlikely(desc->dwSize != sizeof(D3DVERTEXBUFFERDESC)))
-      return DDERR_INVALIDPARAMS;
+    // TODO: This, apparently, isn't validated by native D3D7 (to check)
+    //if (unlikely(desc->dwSize != sizeof(D3DVERTEXBUFFERDESC)))
+      //return DDERR_INVALIDPARAMS;
 
     Com<IDirect3DVertexBuffer7> vertexBuffer7;
     // We don't really need a proxy buffer any longer
