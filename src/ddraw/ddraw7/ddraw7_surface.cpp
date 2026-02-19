@@ -26,9 +26,15 @@ namespace dxvk {
     , m_commonSurf ( commonSurf )
     , m_parentSurf ( pParentSurf )
     , m_origin ( origin ) {
-    // IDirectDrawSurface7 will always have a parent but we need to be careful
-    // about legacy interfaces, which will get it from the common surface
-    m_commonIntf = m_parent->GetCommonInterface();
+    if (m_parent != nullptr) {
+      m_commonIntf = m_parent->GetCommonInterface();
+    } else if (m_parentSurf != nullptr) {
+      m_commonIntf = m_parentSurf->GetCommonInterface();
+    } else if (m_commonSurf != nullptr) {
+      m_commonIntf = m_commonSurf->GetCommonInterface();
+    } else {
+      throw DxvkError("DDraw7Surface: ERROR! Failed to retrieve the common interface!");
+    }
 
     m_commonIntf->AddWrappedSurface(this);
 
