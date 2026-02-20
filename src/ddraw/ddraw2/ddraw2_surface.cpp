@@ -200,21 +200,32 @@ namespace dxvk {
 
       D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
       Com<D3D5Texture> texture5 = new D3D5Texture(std::move(ppvProxyObject), m_parent, nextHandle);
-      m_parent->GetParent()->EmplaceTexture(texture5.ptr(), nextHandle);
+      D3DCommonTexture* commonTex = texture5->GetCommonTexture();
+      m_parent->GetParent()->EmplaceTexture(commonTex, nextHandle);
 
       *ppvObject = texture5.ref();
 
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DTexture))) {
-      Logger::warn("DDraw2Surface::QueryInterface: Query for IDirect3DTexture");
+      if (m_parent == nullptr) {
+        Logger::warn("DDraw2Surface::QueryInterface: Query for IDirect3DTexture");
+        return m_proxy->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("DDraw2Surface::QueryInterface: Query for IDirect3DTexture");
 
       Com<IDirect3DTexture> ppvProxyObject;
       HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D3Texture(std::move(ppvProxyObject), m_commonSurf->GetDDSurface()));
+      D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
+      Com<D3D3Texture> texture3 = new D3D3Texture(std::move(ppvProxyObject), m_parent, nextHandle);
+      D3DCommonTexture* commonTex = texture3->GetCommonTexture();
+      m_parent->GetParent()->EmplaceTexture(commonTex, nextHandle);
+
+      *ppvObject = texture3.ref();
 
       return S_OK;
     }
@@ -273,7 +284,7 @@ namespace dxvk {
           (dwFlags & DDBLT_DEPTHFILL) &&
            lpDDBltFx != nullptr &&
            m_d3d9Device != nullptr &&
-           m_commonIntf->IsCurrentDepthStencil(m_parent)) {
+           m_commonIntf->IsCurrentD3D9DepthStencil(m_parent->GetD3D9())) {
         Logger::debug("DDraw2Surface::Blt: Clearing D3D9 depth stencil");
 
         const float zClear = m_commonSurf->GetNormalizedFloatDepth(lpDDBltFx->dwFillDepth);

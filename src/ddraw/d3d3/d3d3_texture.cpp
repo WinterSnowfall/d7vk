@@ -8,9 +8,11 @@ namespace dxvk {
 
   uint32_t D3D3Texture::s_texCount = 0;
 
-  D3D3Texture::D3D3Texture(Com<IDirect3DTexture>&& proxyTexture, DDrawSurface* pParent)
+  D3D3Texture::D3D3Texture(Com<IDirect3DTexture>&& proxyTexture, DDrawSurface* pParent, D3DTEXTUREHANDLE handle)
     : DDrawWrappedObject<DDrawSurface, IDirect3DTexture, IUnknown>(pParent, std::move(proxyTexture), nullptr) {
     m_parent->AddRef();
+
+    m_commonTex = new D3DCommonTexture(m_parent->GetCommonSurface(), handle);
 
     m_texCount = ++s_texCount;
 
@@ -74,13 +76,33 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Texture::GetHandle(LPDIRECT3DDEVICE lpDirect3DDevice, LPD3DTEXTUREHANDLE lpHandle) {
-    Logger::debug("<<< D3D3Texture::GetHandle: Proxy");
+    if (likely(m_parent->GetCommonInterface()->GetD3D5Device() == nullptr)) {
+      Logger::debug("<<< D3D3Texture::GetHandle: Proxy");
+
+      if(unlikely(lpDirect3DDevice == nullptr || lpHandle == nullptr))
+        return DDERR_INVALIDPARAMS;
+
+      D3D3Device* d3d3Device = static_cast<D3D3Device*>(lpDirect3DDevice);
+      return m_proxy->GetHandle(d3d3Device->GetProxied(), lpHandle);
+    }
+
+    // Frogger gets texture handles from IDirect3DTexture objects
+    // and uses them in calls on a IDirect3DDevice2
+    Logger::debug(">>> D3D3Texture::GetHandle");
 
     if(unlikely(lpDirect3DDevice == nullptr || lpHandle == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D3Device* d3d3Device = static_cast<D3D3Device*>(lpDirect3DDevice);
-    return m_proxy->GetHandle(d3d3Device->GetProxied(), lpHandle);
+    D3DTEXTUREHANDLE texHandle = m_commonTex->GetTextureHandle();
+
+    if (unlikely(!texHandle)) {
+      Logger::warn("D3D3Texture::GetHandle: Null handle returned");
+      return m_proxy->GetHandle(lpDirect3DDevice, lpHandle);
+    }
+
+    *lpHandle = texHandle;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Texture::PaletteChanged(DWORD dwStart, DWORD dwCount) {
@@ -92,7 +114,18 @@ namespace dxvk {
     Logger::debug("<<< D3D3Texture::Load: Proxy");
 
     Com<D3D3Texture> d3d3Texture = static_cast<D3D3Texture*>(lpD3DTexture);
-    return m_proxy->Load(d3d3Texture->GetProxied());
+
+    HRESULT hr = m_proxy->Load(d3d3Texture->GetProxied());
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (likely(!m_parent->GetOptions()->apitraceMode)) {
+      m_parent->GetCommonSurface()->DirtyMipMaps();
+    } else {
+      m_parent->InitializeOrUploadD3D9();
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Texture::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIRECTDRAWSURFACE lpDDSurface) {
