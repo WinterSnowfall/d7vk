@@ -74,7 +74,7 @@ namespace dxvk {
       }
 
       Com<IDirectDraw7> DDraw7IntfProxied = static_cast<IDirectDraw7*>(lplpDDProxied);
-      *lplpDD = ref(new DDraw7Interface(nullptr, std::move(DDraw7IntfProxied), nullptr, needsInitialization));
+      *lplpDD = ref(new DDraw7Interface(nullptr, std::move(DDraw7IntfProxied), needsInitialization));
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;
@@ -118,7 +118,7 @@ namespace dxvk {
       }
 
       Com<IDirectDraw> DDrawIntfProxied = static_cast<IDirectDraw*>(lplpDDProxied);
-      *lplpDD = ref(new DDrawInterface(nullptr, std::move(DDrawIntfProxied), nullptr, needsInitialization));
+      *lplpDD = ref(new DDrawInterface(nullptr, std::move(DDrawIntfProxied), needsInitialization));
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;

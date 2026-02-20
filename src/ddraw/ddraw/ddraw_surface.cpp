@@ -19,13 +19,11 @@ namespace dxvk {
         Com<IDirectDrawSurface>&& surfProxy,
         DDrawInterface* pParent,
         DDrawSurface* pParentSurf,
-        IUnknown* origin,
         bool isChildObject)
     : DDrawWrappedObject<DDrawInterface, IDirectDrawSurface, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
     , m_isChildObject ( isChildObject )
     , m_commonSurf ( commonSurf )
-    , m_parentSurf ( pParentSurf )
-    , m_origin ( origin ) {
+    , m_parentSurf ( pParentSurf ) {
     if (m_parent != nullptr) {
       m_commonIntf = m_parent->GetCommonInterface();
     } else if (m_parentSurf != nullptr) {
@@ -63,6 +61,9 @@ namespace dxvk {
       if (SUCCEEDED(hr))
         m_commonSurf->SetColorKey(&colorKey);
     }
+
+    if (m_commonSurf->GetOrigin() == nullptr)
+      m_commonSurf->SetOrigin(this);
 
     m_commonSurf->SetDDSurface(this);
 
@@ -166,7 +167,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nullptr, this));
+      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nullptr));
 
       return S_OK;
     }
@@ -183,7 +184,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nullptr, this));
+      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nullptr));
 
       return S_OK;
     }
@@ -200,7 +201,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD4Interface(), nullptr, this, false));
+      *ppvObject = ref(new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD4Interface(), nullptr, false));
 
       return S_OK;
     }
@@ -217,7 +218,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw7Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD7Interface(), nullptr, this, false));
+      *ppvObject = ref(new DDraw7Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD7Interface(), nullptr, false));
 
       return S_OK;
     }
@@ -521,7 +522,7 @@ namespace dxvk {
 
       auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
       if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
-        Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), m_parent, this, nullptr, false);
+        Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), m_parent, this, false);
         m_attachedSurfaces.emplace(std::piecewise_construct,
                                    std::forward_as_tuple(ddrawSurface->GetProxied()),
                                    std::forward_as_tuple(ddrawSurface.ptr()));
@@ -660,7 +661,7 @@ namespace dxvk {
       try {
         auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
         if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
-          Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), m_parent, this, nullptr, false);
+          Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), m_parent, this, false);
           m_attachedSurfaces.emplace(std::piecewise_construct,
                                      std::forward_as_tuple(ddrawSurface->GetProxied()),
                                      std::forward_as_tuple(ddrawSurface.ptr()));

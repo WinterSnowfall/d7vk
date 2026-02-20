@@ -24,7 +24,6 @@ namespace dxvk {
     DDrawInterface(
       DDrawCommonInterface* commonIntf,
       Com<IDirectDraw>&& proxyIntf,
-      IUnknown* origin,
       bool needsInitialization);
 
     ~DDrawInterface();
@@ -104,8 +103,6 @@ namespace dxvk {
     uint32_t                  m_intfCount  = 0;
 
     Com<DDrawCommonInterface> m_commonIntf;
-
-    IUnknown*                 m_origin = nullptr;
 
     Com<D3D5Interface, false> m_d3d5Intf;
 

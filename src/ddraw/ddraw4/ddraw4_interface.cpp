@@ -18,12 +18,10 @@ namespace dxvk {
       DDrawCommonInterface* commonIntf,
       Com<IDirectDraw4>&& proxyIntf,
       DDrawInterface* pParent,
-      IUnknown* origin,
       bool needsInitialization)
     : DDrawWrappedObject<DDrawInterface, IDirectDraw4, IUnknown>(pParent, std::move(proxyIntf), nullptr)
     , m_needsInitialization ( needsInitialization )
-    , m_commonIntf ( commonIntf )
-    , m_origin ( origin ) {
+    , m_commonIntf ( commonIntf ) {
     // We need a temporary D3D9 interface at this point to retrieve the adapter identifier
     Com<d3d9::IDirect3D9> d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
 
@@ -34,6 +32,9 @@ namespace dxvk {
     }
 
     m_commonIntf->SetAdapterIdentifier(adapterIdentifier9);
+
+    if (m_commonIntf->GetOrigin() == nullptr)
+      m_commonIntf->SetOrigin(this);
 
     m_commonIntf->SetDD4Interface(this);
 
@@ -49,6 +50,9 @@ namespace dxvk {
   }
 
   DDraw4Interface::~DDraw4Interface() {
+    if (m_commonIntf->GetOrigin() == this)
+      m_commonIntf->SetOrigin(nullptr);
+
     m_commonIntf->SetDD4Interface(nullptr);
 
     Logger::debug(str::format("DDraw4Interface: Interface nr. <<4-", m_intfCount, ">> bites the dust"));
@@ -104,8 +108,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                          nullptr, m_needsInitialization));
+      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_needsInitialization));
 
       return S_OK;
     }
@@ -124,7 +127,7 @@ namespace dxvk {
         return hr;
 
       *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           m_commonIntf->GetDDInterface(), nullptr, m_needsInitialization));
+                                           m_commonIntf->GetDDInterface(), m_needsInitialization));
 
       return S_OK;
     }
@@ -142,8 +145,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           this, m_needsInitialization));
+      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_needsInitialization));
 
       return S_OK;
     }
@@ -293,7 +295,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       try{
-        Com<DDraw4Surface> surface4 = new DDraw4Surface(nullptr, std::move(ddrawSurface4Proxied), this, nullptr, nullptr, true);
+        Com<DDraw4Surface> surface4 = new DDraw4Surface(nullptr, std::move(ddrawSurface4Proxied), this, nullptr, true);
 
         if (unlikely(surface4->GetCommonSurface()->IsDepthStencil()))
           m_lastDepthStencil = surface4.ptr();
@@ -323,7 +325,7 @@ namespace dxvk {
       HRESULT hr = m_proxy->DuplicateSurface(ddraw4Surface->GetProxied(), &dupSurface4);
       if (likely(SUCCEEDED(hr))) {
         try {
-          *lplpDupDDSurface = ref(new DDraw4Surface(nullptr, std::move(dupSurface4), this, nullptr, nullptr, false));
+          *lplpDupDDSurface = ref(new DDraw4Surface(nullptr, std::move(dupSurface4), this, nullptr, false));
         } catch (const DxvkError& e) {
           Logger::err(e.message());
           return DDERR_GENERIC;
@@ -359,7 +361,7 @@ namespace dxvk {
     while (surfaceIt != attachedSurfaces.end() && hr != DDENUMRET_CANCEL) {
       Com<IDirectDrawSurface4> surface4 = surfaceIt->surface4;
 
-      Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface4), this, nullptr, nullptr, false);
+      Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface4), this, nullptr, false);
       hr = lpEnumSurfacesCallback(ddraw4Surface.ref(), &surfaceIt->surface4Desc, lpContext);
 
       ++surfaceIt;
@@ -434,7 +436,7 @@ namespace dxvk {
     } else {
       Logger::debug("DDraw4Interface::GetGDISurface: Received a non-wrapped GDI surface");
       try {
-        *lplpGDIDDSurface = ref(new DDraw4Surface(nullptr, std::move(gdiSurface), this, nullptr, nullptr, false));
+        *lplpGDIDDSurface = ref(new DDraw4Surface(nullptr, std::move(gdiSurface), this, nullptr, false));
       } catch (const DxvkError& e) {
         Logger::err(e.message());
         return DDERR_GENERIC;
@@ -616,7 +618,7 @@ namespace dxvk {
     }
 
     try {
-      *pSurf = ref(new DDraw4Surface(nullptr, std::move(surface), this, nullptr, nullptr, false));
+      *pSurf = ref(new DDraw4Surface(nullptr, std::move(surface), this, nullptr, false));
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;

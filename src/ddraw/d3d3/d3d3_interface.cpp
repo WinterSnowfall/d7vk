@@ -26,12 +26,28 @@ namespace dxvk {
 
   // Interlocked refcount with the parent IDirectDraw
   ULONG STDMETHODCALLTYPE D3D3Interface::AddRef() {
-    return m_parent->AddRef();
+    if (likely(m_parent != nullptr)) {
+      IUnknown* origin = m_parent->GetCommonInterface()->GetOrigin();
+      if (likely(origin != nullptr))
+        return origin->AddRef();
+      else
+        return m_parent->AddRef();
+    } else {
+      return ComObjectClamp::AddRef();
+    }
   }
 
   // Interlocked refcount with the parent IDirectDraw
   ULONG STDMETHODCALLTYPE D3D3Interface::Release() {
-    return m_parent->Release();
+    if (likely(m_parent != nullptr)) {
+      IUnknown* origin = m_parent->GetCommonInterface()->GetOrigin();
+      if (likely(origin != nullptr))
+        return origin->Release();
+      else
+        return m_parent->Release();
+    } else {
+      return ComObjectClamp::Release();
+    }
   }
 
   template<>

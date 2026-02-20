@@ -36,12 +36,28 @@ namespace dxvk {
 
   // Interlocked refcount with the parent IDirectDraw
   ULONG STDMETHODCALLTYPE D3D5Interface::AddRef() {
-    return m_parent->AddRef();
+    if (likely(m_parent != nullptr)) {
+      IUnknown* origin = m_parent->GetCommonInterface()->GetOrigin();
+      if (likely(origin != nullptr))
+        return origin->AddRef();
+      else
+        return m_parent->AddRef();
+    } else {
+      return ComObjectClamp::AddRef();
+    }
   }
 
   // Interlocked refcount with the parent IDirectDraw
   ULONG STDMETHODCALLTYPE D3D5Interface::Release() {
-    return m_parent->Release();
+    if (likely(m_parent != nullptr)) {
+      IUnknown* origin = m_parent->GetCommonInterface()->GetOrigin();
+      if (likely(origin != nullptr))
+        return origin->Release();
+      else
+        return m_parent->Release();
+    } else {
+      return ComObjectClamp::Release();
+    }
   }
 
   template<>
@@ -349,7 +365,7 @@ namespace dxvk {
         if (unlikely(rt == nullptr)) {
           Com<IDirectDrawSurface> surface;
           ddraw3Surface->GetProxied()->QueryInterface(__uuidof(IDirectDrawSurface), reinterpret_cast<void**>(&surface));
-          rt = new DDrawSurface(nullptr, std::move(surface), m_parent, nullptr, nullptr, false);
+          rt = new DDrawSurface(nullptr, std::move(surface), m_parent, nullptr, false);
         }
       } else {
         Logger::err("D3D5Interface::CreateDevice: Unwrapped surface passed as RT");
