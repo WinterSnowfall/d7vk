@@ -229,17 +229,19 @@ namespace dxvk {
 
       Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture2");
 
-      Com<IDirect3DTexture2> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
+      if (unlikely(m_texture5 == nullptr)) {
+        Com<IDirect3DTexture2> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
 
-      D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
-      Com<D3D5Texture> texture5 = new D3D5Texture(std::move(ppvProxyObject), this, nextHandle);
-      D3DCommonTexture* commonTex = texture5->GetCommonTexture();
-      m_parent->EmplaceTexture(commonTex, nextHandle);
+        D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
+        m_texture5 = new D3D5Texture(std::move(ppvProxyObject), this, nextHandle);
+        D3DCommonTexture* commonTex = m_texture5->GetCommonTexture();
+        m_parent->EmplaceTexture(commonTex, nextHandle);
+      }
 
-      *ppvObject = texture5.ref();
+      *ppvObject = m_texture5.ref();
 
       return S_OK;
     }
@@ -251,17 +253,19 @@ namespace dxvk {
 
       Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture");
 
-      Com<IDirect3DTexture> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
+      if (unlikely(m_texture3 == nullptr)) {
+        Com<IDirect3DTexture> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
 
-      D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
-      Com<D3D3Texture> texture3 = new D3D3Texture(std::move(ppvProxyObject), this, nextHandle);
-      D3DCommonTexture* commonTex = texture3->GetCommonTexture();
-      m_parent->EmplaceTexture(commonTex, nextHandle);
+        D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
+        m_texture3 = new D3D3Texture(std::move(ppvProxyObject), this, nextHandle);
+        D3DCommonTexture* commonTex = m_texture3->GetCommonTexture();
+        m_parent->EmplaceTexture(commonTex, nextHandle);
+      }
 
-      *ppvObject = texture3.ref();
+      *ppvObject = m_texture3.ref();
 
       return S_OK;
     }
@@ -1201,7 +1205,7 @@ namespace dxvk {
 
       if (unlikely(FAILED(hr))) {
         Logger::err("DDrawSurface::InitializeD3D9: Failed to create texture");
-        m_texture = nullptr;
+        m_texture9 = nullptr;
         return hr;
       }
 
@@ -1213,7 +1217,7 @@ namespace dxvk {
       m_d3d9 = (std::move(surf));
 
       Logger::debug("DDrawSurface::InitializeD3D9: Created texture");
-      m_texture = std::move(tex);
+      m_texture9 = std::move(tex);
 
     // Depth Stencil
     } else if (m_commonSurf->IsDepthStencil()) {
@@ -1334,7 +1338,7 @@ namespace dxvk {
     const d3d9::D3DFORMAT format = m_commonSurf->GetD3D9Format();
 
     if (m_commonSurf->IsTexture()) {
-      BlitToD3D9Texture<IDirectDrawSurface, DDSURFACEDESC>(m_texture.ptr(), format,
+      BlitToD3D9Texture<IDirectDrawSurface, DDSURFACEDESC>(m_texture9.ptr(), format,
                                                            m_proxy.ptr(), m_commonSurf->GetMipCount());
     // Depth stencil do not need uploads (nor are they possible in D3D9)
     } else if (unlikely(m_commonSurf->IsDepthStencil())) {

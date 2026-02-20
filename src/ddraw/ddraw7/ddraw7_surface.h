@@ -8,6 +8,8 @@
 
 #include "ddraw7_interface.h"
 
+#include "../d3d6/d3d6_texture.h"
+
 #include <array>
 #include <unordered_map>
 
@@ -137,7 +139,7 @@ namespace dxvk {
     }
 
     d3d9::IDirect3DTexture9* GetD3D9Texture() const {
-      return m_texture.ptr();
+      return m_texture9.ptr();
     }
 
     d3d9::IDirect3DCubeTexture9* GetD3D9CubeTexture() const {
@@ -191,7 +193,7 @@ namespace dxvk {
         if (m_d3d9Device != nullptr) {
           Logger::debug("DDraw7Surface: Device context has changed, clearing all D3D9 resources");
           m_cubeMap = nullptr;
-          m_texture = nullptr;
+          m_texture9 = nullptr;
           m_d3d9 = nullptr;
         }
         m_d3d9Device = d3d9Device;
@@ -245,7 +247,9 @@ namespace dxvk {
     Com<d3d9::IDirect3DCubeTexture9>    m_cubeMap;
     std::array<IDirectDrawSurface7*, 6> m_cubeMapSurfaces;
 
-    Com<d3d9::IDirect3DTexture9>        m_texture;
+    Com<D3D6Texture, false>             m_texture6;
+
+    Com<d3d9::IDirect3DTexture9>        m_texture9;
 
     // Back buffers will have depth stencil surfaces as attachments (in practice
     // I have never seen more than one depth stencil being attached at a time)

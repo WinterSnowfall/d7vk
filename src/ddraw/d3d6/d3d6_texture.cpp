@@ -1,13 +1,13 @@
 #include "d3d6_texture.h"
 
+#include "../ddraw4/ddraw4_surface.h"
+
 namespace dxvk {
 
   uint32_t D3D6Texture::s_texCount = 0;
 
   D3D6Texture::D3D6Texture(Com<IDirect3DTexture2>&& proxyTexture, DDraw4Surface* pParent, D3DTEXTUREHANDLE handle)
     : DDrawWrappedObject<DDraw4Surface, IDirect3DTexture2, IUnknown>(pParent, std::move(proxyTexture), nullptr) {
-    m_parent->AddRef();
-
     m_commonTex = new D3DCommonTexture(m_parent->GetCommonSurface(), handle);
 
     m_texCount = ++s_texCount;
@@ -16,9 +16,17 @@ namespace dxvk {
   }
 
   D3D6Texture::~D3D6Texture() {
-    m_parent->Release();
-
     Logger::debug(str::format("D3D6Texture: Texture nr. [[2-", m_texCount, "]] bites the dust"));
+  }
+
+  // Interlocked refcount with the parent IDirectDrawSurface4
+  ULONG STDMETHODCALLTYPE D3D6Texture::AddRef() {
+    return m_parent->AddRef();
+  }
+
+  // Interlocked refcount with the parent IDirectDrawSurface4
+  ULONG STDMETHODCALLTYPE D3D6Texture::Release() {
+    return m_parent->Release();
   }
 
   template<>
