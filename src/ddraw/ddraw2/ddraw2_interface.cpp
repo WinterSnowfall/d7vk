@@ -18,14 +18,15 @@ namespace dxvk {
       DDrawCommonInterface* commonIntf,
       Com<IDirectDraw2>&& proxyIntf,
       DDrawInterface* pParent,
-      IUnknown* origin,
       bool needsInitialization)
     : DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown>(pParent, std::move(proxyIntf), nullptr)
     , m_needsInitialization ( needsInitialization )
     , m_commonIntf ( commonIntf )
-    , m_parentIntf ( pParent )
-    , m_origin ( origin ) {
-    // m_commonIntf can never be null for IDirectDraw2
+    , m_parentIntf ( pParent ) {
+
+    if (m_commonIntf->GetOrigin() == nullptr)
+      m_commonIntf->SetOrigin(this);
+
     m_commonIntf->SetDD2Interface(this);
 
     static bool s_apitraceModeWarningShown;
@@ -40,6 +41,9 @@ namespace dxvk {
   }
 
   DDraw2Interface::~DDraw2Interface() {
+    if (m_commonIntf->GetOrigin() == this)
+      m_commonIntf->SetOrigin(nullptr);
+
     m_commonIntf->SetDD2Interface(nullptr);
 
     Logger::debug(str::format("DDraw2Interface: Interface nr. <<2-", m_intfCount, ">> bites the dust"));
@@ -87,8 +91,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                          nullptr, m_needsInitialization));
+      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_needsInitialization));
 
       return S_OK;
     }
@@ -107,7 +110,7 @@ namespace dxvk {
         return hr;
 
       *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           m_commonIntf->GetDDInterface(), nullptr, m_needsInitialization));
+                                           m_commonIntf->GetDDInterface(), m_needsInitialization));
 
       return S_OK;
     }
@@ -125,8 +128,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           this, m_needsInitialization));
+      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_needsInitialization));
 
       return S_OK;
     }
@@ -270,7 +272,7 @@ namespace dxvk {
       try{
         // Surfaces created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
         Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied),
-                                                     m_commonIntf->GetDDInterface(), nullptr, nullptr, false);
+                                                     m_commonIntf->GetDDInterface(), nullptr, false);
 
         if (unlikely(surface->GetCommonSurface()->IsDepthStencil())) {
           m_lastDepthStencil = surface.ptr();
@@ -304,7 +306,7 @@ namespace dxvk {
       if (likely(SUCCEEDED(hr))) {
         try {
           *lplpDupDDSurface = ref(new DDrawSurface(nullptr, std::move(dupSurface),
-                                                   m_commonIntf->GetDDInterface(), nullptr, nullptr, false));
+                                                   m_commonIntf->GetDDInterface(), nullptr, false));
         } catch (const DxvkError& e) {
           Logger::err(e.message());
           return DDERR_GENERIC;
