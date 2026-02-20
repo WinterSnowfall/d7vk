@@ -29,7 +29,6 @@ namespace dxvk {
         Com<IDirectDrawSurface>&& surfProxy,
         DDrawInterface* pParent,
         DDrawSurface* pParentSurf,
-        IUnknown* origin,
         bool isChildObject);
 
     ~DDrawSurface();
@@ -220,8 +219,6 @@ namespace dxvk {
     DDrawCommonInterface*               m_commonIntf = nullptr;
 
     DDrawSurface*                       m_parentSurf = nullptr;
-
-    IUnknown*                           m_origin     = nullptr;
 
     d3d9::IDirect3DDevice9*             m_d3d9Device = nullptr;
 

@@ -19,13 +19,11 @@ namespace dxvk {
         Com<IDirectDrawSurface7>&& surfProxy,
         DDraw7Interface* pParent,
         DDraw7Surface* pParentSurf,
-        IUnknown* origin,
         bool isChildObject)
     : DDrawWrappedObject<DDraw7Interface, IDirectDrawSurface7, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
     , m_isChildObject ( isChildObject )
     , m_commonSurf ( commonSurf )
-    , m_parentSurf ( pParentSurf )
-    , m_origin ( origin ) {
+    , m_parentSurf ( pParentSurf ) {
     if (m_parent != nullptr) {
       m_commonIntf = m_parent->GetCommonInterface();
     } else if (m_parentSurf != nullptr) {
@@ -64,6 +62,9 @@ namespace dxvk {
         m_commonSurf->SetColorKey(&colorKey);
     }
 
+    if (m_commonSurf->GetOrigin() == nullptr)
+      m_commonSurf->SetOrigin(this);
+
     m_commonSurf->SetDD7Surface(this);
 
     if (m_parentSurf != nullptr && !m_commonSurf->IsFrontBuffer()
@@ -73,7 +74,7 @@ namespace dxvk {
       m_commonSurf->IncrementBackBufferIndex(index);
     }
 
-    if (likely(m_isChildObject))
+    if (m_parent != nullptr && m_isChildObject)
       m_parent->AddRef();
 
     // Cube map face surfaces
@@ -87,7 +88,7 @@ namespace dxvk {
   DDraw7Surface::~DDraw7Surface() {
     m_commonIntf->RemoveWrappedSurface(this);
 
-    if (likely(m_isChildObject))
+    if (m_parent != nullptr && m_isChildObject)
       m_parent->Release();
 
     m_commonSurf->SetDD7Surface(nullptr);
@@ -142,7 +143,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawSurface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDDInterface(), nullptr, this, false));
+      *ppvObject = ref(new DDrawSurface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDDInterface(), nullptr, false));
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
@@ -158,7 +159,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), nullptr, this));
+      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), nullptr));
 
       return S_OK;
     }
@@ -175,7 +176,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), nullptr, this));
+      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), nullptr));
 
       return S_OK;
     }
@@ -192,7 +193,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD4Interface(), nullptr, this, false));
+      *ppvObject = ref(new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD4Interface(), nullptr, false));
 
       return S_OK;
     }
@@ -477,7 +478,7 @@ namespace dxvk {
 
       auto attachedSurfaceIter = m_attachedSurfaces.find(surface7.ptr());
       if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
-        Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7), m_parent, this, nullptr, false);
+        Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7), m_parent, this, false);
         m_attachedSurfaces.emplace(std::piecewise_construct,
                                    std::forward_as_tuple(ddraw7Surface->GetProxied()),
                                    std::forward_as_tuple(ddraw7Surface.ptr()));
@@ -636,7 +637,7 @@ namespace dxvk {
       try {
         auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
         if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
-          Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface), m_parent, this, nullptr, false);
+          Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface), m_parent, this, false);
           m_attachedSurfaces.emplace(std::piecewise_construct,
                                      std::forward_as_tuple(ddraw7Surface->GetProxied()),
                                      std::forward_as_tuple(ddraw7Surface.ptr()));
@@ -1140,7 +1141,7 @@ namespace dxvk {
     if (likely(!m_commonIntf->IsWrappedSurface(surf))) {
       Com<IDirectDrawSurface7> wrappedFace = surf;
       try {
-        face7 = new DDraw7Surface(nullptr, std::move(wrappedFace), m_parent, this, nullptr, false);
+        face7 = new DDraw7Surface(nullptr, std::move(wrappedFace), m_parent, this, false);
       } catch (const DxvkError& e) {
         Logger::err("InitializeAndAttachCubeFace: Failed to create wrapped cube face surface");
         Logger::err(e.message());

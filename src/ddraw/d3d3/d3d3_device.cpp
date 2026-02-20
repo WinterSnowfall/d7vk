@@ -1,5 +1,6 @@
 #include "d3d3_device.h"
 
+#include "d3d3_interface.h"
 #include "d3d3_execute_buffer.h"
 #include "d3d3_viewport.h"
 
@@ -126,7 +127,12 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D3Device::Initialize(IDirect3D *d3d, GUID *lpGUID, D3DDEVICEDESC *desc) {
     Logger::debug("<<< D3D3Device::Initialize: Proxy");
-    return m_proxy->Initialize(d3d, lpGUID, desc);
+
+    if (unlikely(d3d == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    D3D3Interface* d3d3Intf = static_cast<D3D3Interface*>(d3d);
+    return m_proxy->Initialize(d3d3Intf->GetProxied(), lpGUID, desc);
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::CreateExecuteBuffer(D3DEXECUTEBUFFERDESC *desc, IDirect3DExecuteBuffer **buffer, IUnknown *pkOuter) {
