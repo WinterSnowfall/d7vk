@@ -205,21 +205,23 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D6Texture(std::move(ppvProxyObject), m_commonSurf->GetDD4Surface()));
+      D3DTEXTUREHANDLE nextHandle = 0;
+      if (likely(m_commonIntf->GetDDInterface() != nullptr))
+        nextHandle = m_commonIntf->GetDDInterface()->GetNextTextureHandle();
+      Com<D3D6Texture> texture6 = new D3D6Texture(std::move(ppvProxyObject), m_commonSurf->GetDD4Surface(), nextHandle);
+      if (likely(m_commonIntf->GetDDInterface() != nullptr)) {
+        D3DCommonTexture* commonTex = texture6->GetCommonTexture();
+        m_commonIntf->GetDDInterface()->EmplaceTexture(commonTex, nextHandle);
+      }
+
+      *ppvObject = texture6.ref();
 
       return S_OK;
     }
+    // Shouldn't ever be called in practice
     if (unlikely(riid == __uuidof(IDirect3DTexture))) {
       Logger::warn("DDraw7Surface::QueryInterface: Query for IDirect3DTexture");
-
-      Com<IDirect3DTexture> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      *ppvObject = ref(new D3D3Texture(std::move(ppvProxyObject), m_commonSurf->GetDDSurface()));
-
-      return S_OK;
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
 
     try {
@@ -291,7 +293,7 @@ namespace dxvk {
           (dwFlags & DDBLT_DEPTHFILL) &&
            lpDDBltFx != nullptr &&
            m_d3d9Device != nullptr &&
-           m_commonIntf->IsCurrentDepthStencil(this)) {
+           m_commonIntf->IsCurrentD3D9DepthStencil(m_d3d9.ptr())) {
         Logger::debug("DDraw7Surface::Blt: Clearing D3D9 depth stencil");
 
         const float zClear = m_commonSurf->GetNormalizedFloatDepth(lpDDBltFx->dwFillDepth);

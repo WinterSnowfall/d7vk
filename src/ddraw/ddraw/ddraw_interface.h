@@ -4,6 +4,7 @@
 #include "../ddraw_wrapped_object.h"
 
 #include "../ddraw_common_interface.h"
+#include "../d3d_common_texture.h"
 
 #include "../../d3d9/d3d9_bridge.h"
 
@@ -12,7 +13,6 @@
 namespace dxvk {
 
   class D3D5Interface;
-  class D3D5Texture;
   class DDrawSurface;
 
   /**
@@ -71,7 +71,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent);
 
-    D3D5Texture* GetTextureFromHandle(D3DTEXTUREHANDLE handle);
+    DDrawSurface* GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle);
 
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf.ptr();
@@ -81,10 +81,10 @@ namespace dxvk {
       return ++m_textureHandle;
     }
 
-    void EmplaceTexture(D3D5Texture* texture, D3DTEXTUREHANDLE handle) {
+    void EmplaceTexture(D3DCommonTexture* commonTex, D3DTEXTUREHANDLE handle) {
       m_textures.emplace(std::piecewise_construct,
                          std::forward_as_tuple(handle),
-                         std::forward_as_tuple(texture));
+                         std::forward_as_tuple(commonTex));
     }
 
     void SetLastDepthStencil(DDrawSurface* lastDepthStencil) {
@@ -112,7 +112,7 @@ namespace dxvk {
     DDrawSurface*             m_lastDepthStencil = nullptr;
 
     D3DTEXTUREHANDLE          m_textureHandle = 0;
-    std::unordered_map<D3DTEXTUREHANDLE, D3D5Texture*> m_textures;
+    std::unordered_map<D3DTEXTUREHANDLE, D3DCommonTexture*> m_textures;
 
   };
 

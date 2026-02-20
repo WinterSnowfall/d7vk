@@ -3,6 +3,10 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
+#include "../d3d_common_texture.h"
+
+#include "../ddraw/ddraw_surface.h"
+
 namespace dxvk {
 
   class DDrawSurface;
@@ -11,7 +15,7 @@ namespace dxvk {
 
   public:
 
-    D3D3Texture(Com<IDirect3DTexture>&& proxyTexture, DDrawSurface* pParent);
+    D3D3Texture(Com<IDirect3DTexture>&& proxyTexture, DDrawSurface* pParent, D3DTEXTUREHANDLE handle);
 
     ~D3D3Texture();
 
@@ -27,10 +31,16 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE Unload();
 
+    D3DCommonTexture* GetCommonTexture() const {
+      return m_commonTex.ptr();
+    }
+
   private:
 
-    static uint32_t   s_texCount;
-    uint32_t          m_texCount = 0;
+    static uint32_t       s_texCount;
+    uint32_t              m_texCount = 0;
+
+    Com<D3DCommonTexture> m_commonTex;
 
   };
 
