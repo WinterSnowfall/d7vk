@@ -519,7 +519,7 @@ namespace dxvk {
     return hr;
   }
 
-  D3D5Texture* DDrawInterface::GetTextureFromHandle(D3DTEXTUREHANDLE handle) {
+  DDrawSurface* DDrawInterface::GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle) {
     auto texturesIter = m_textures.find(handle);
 
     if (unlikely(texturesIter == m_textures.end())) {
@@ -527,7 +527,7 @@ namespace dxvk {
       return nullptr;
     }
 
-    return texturesIter->second;
+    return texturesIter->second->GetDDSurface();
   }
 
 }

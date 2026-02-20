@@ -80,6 +80,8 @@ namespace dxvk {
 
     bool IsCurrentDepthStencil(DDraw7Surface* surface) const;
 
+    bool IsCurrentD3D9DepthStencil(d3d9::IDirect3DSurface9* surface) const;
+
     void SetFlipRTSurfaceAndFlags(IUnknown* surf, DWORD flags) {
       m_flipRTSurf  = surf;
       m_flipRTFlags = flags;
