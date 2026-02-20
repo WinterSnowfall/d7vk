@@ -5,9 +5,9 @@
 
 #include "../d3d_common_texture.h"
 
-#include "../ddraw4/ddraw4_surface.h"
-
 namespace dxvk {
+
+  class DDraw4Surface;
 
   class D3D6Texture final : public DDrawWrappedObject<DDraw4Surface, IDirect3DTexture2, IUnknown> {
 
@@ -16,6 +16,10 @@ namespace dxvk {
     D3D6Texture(Com<IDirect3DTexture2>&& proxyTexture, DDraw4Surface* pParent, D3DTEXTUREHANDLE handle);
 
     ~D3D6Texture();
+
+    ULONG STDMETHODCALLTYPE AddRef();
+
+    ULONG STDMETHODCALLTYPE Release();
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
