@@ -4,9 +4,11 @@ namespace dxvk {
 
   uint32_t D3D6Texture::s_texCount = 0;
 
-  D3D6Texture::D3D6Texture(Com<IDirect3DTexture2>&& proxyTexture, DDraw4Surface* pParent)
+  D3D6Texture::D3D6Texture(Com<IDirect3DTexture2>&& proxyTexture, DDraw4Surface* pParent, D3DTEXTUREHANDLE handle)
     : DDrawWrappedObject<DDraw4Surface, IDirect3DTexture2, IUnknown>(pParent, std::move(proxyTexture), nullptr) {
     m_parent->AddRef();
+
+    m_commonTex = new D3DCommonTexture(m_parent->GetCommonSurface(), handle);
 
     m_texCount = ++s_texCount;
 
@@ -77,9 +79,23 @@ namespace dxvk {
     }
   }
 
+  // This shouldn't, in theory, ever be called on D3D6Texture
   HRESULT STDMETHODCALLTYPE D3D6Texture::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3DTEXTUREHANDLE lpHandle) {
-    Logger::warn("<<< D3D6Texture::GetHandle: Proxy");
-    return m_proxy->GetHandle(lpDirect3DDevice2, lpHandle);
+    Logger::debug(">>> D3D6Texture::GetHandle");
+
+    if(unlikely(lpDirect3DDevice2 == nullptr || lpHandle == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    D3DTEXTUREHANDLE texHandle = m_commonTex->GetTextureHandle();
+
+    if (unlikely(!texHandle)) {
+      Logger::warn("D3D6Texture::GetHandle: Null handle returned");
+      return m_proxy->GetHandle(lpDirect3DDevice2, lpHandle);
+    }
+
+    *lpHandle = texHandle;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Texture::PaletteChanged(DWORD dwStart, DWORD dwCount) {

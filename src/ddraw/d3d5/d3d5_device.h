@@ -22,7 +22,6 @@ namespace dxvk {
   class DDrawCommonInterface;
   class DDrawSurface;
   class DDrawInterface;
-  class D3D5Texture;
 
   /**
   * \brief D3D5 device implementation
@@ -152,7 +151,7 @@ namespace dxvk {
 
     inline float GetZBiasFactor();
 
-    inline HRESULT SetTextureInternal(D3D5Texture* texture);
+    inline HRESULT SetTextureInternal(DDrawSurface* surface, DWORD textureHandle);
 
     inline void RefreshLastUsedDevice() {
       if (unlikely(m_commonIntf->GetD3D5Device() != this))

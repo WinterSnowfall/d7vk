@@ -255,4 +255,16 @@ namespace dxvk {
     return m_device7 != nullptr ? m_device7->GetDepthStencil() == surface : false;
   }
 
+  bool DDrawCommonInterface::IsCurrentD3D9DepthStencil(d3d9::IDirect3DSurface9* surface) const {
+    if (m_device7 != nullptr) {
+      return surface == m_device7->GetDepthStencil()->GetD3D9();
+    } else if (m_device6 != nullptr) {
+      return surface == m_device6->GetDepthStencil()->GetD3D9();
+    } else if (m_device5 != nullptr) {
+      return surface == m_device5->GetDepthStencil()->GetD3D9();
+    }
+
+    return false;
+  }
+
 }

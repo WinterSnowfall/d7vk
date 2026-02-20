@@ -19,6 +19,7 @@ ddraw_src = [
   'ddraw7/ddraw7_gamma.cpp',
   'ddraw7/ddraw7_interface.cpp',
   'ddraw7/ddraw7_surface.cpp',
+  'd3d_common_texture.cpp',
   'd3d3/d3d3_device.cpp',
   'd3d3/d3d3_execute_buffer.cpp',
   'd3d3/d3d3_interface.cpp',
