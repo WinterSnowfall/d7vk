@@ -193,17 +193,20 @@ namespace dxvk {
 
       Logger::debug("DDraw3Surface::QueryInterface: Query for IDirect3DTexture2");
 
-      Com<IDirect3DTexture2> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
+      if (unlikely(m_parent->GetD3D5Texture() == nullptr)) {
+        Com<IDirect3DTexture2> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
 
-      D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
-      Com<D3D5Texture> texture5 = new D3D5Texture(std::move(ppvProxyObject), m_parent, nextHandle);
-      D3DCommonTexture* commonTex = texture5->GetCommonTexture();
-      m_parent->GetParent()->EmplaceTexture(commonTex, nextHandle);
+        D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
+        Com<D3D5Texture> texture5 = new D3D5Texture(std::move(ppvProxyObject), m_parent, nextHandle);
+        D3DCommonTexture* commonTex = texture5->GetCommonTexture();
+        m_parent->SetD3D5Texture(texture5.ptr());
+        m_parent->GetParent()->EmplaceTexture(commonTex, nextHandle);
+      }
 
-      *ppvObject = texture5.ref();
+      *ppvObject = ref(m_parent->GetD3D5Texture());
 
       return S_OK;
     }
@@ -215,17 +218,20 @@ namespace dxvk {
 
       Logger::debug("DDraw3Surface::QueryInterface: Query for IDirect3DTexture");
 
-      Com<IDirect3DTexture> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
+      if (unlikely(m_parent->GetD3D3Texture() == nullptr)) {
+        Com<IDirect3DTexture> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
 
-      D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
-      Com<D3D3Texture> texture3 = new D3D3Texture(std::move(ppvProxyObject), m_parent, nextHandle);
-      D3DCommonTexture* commonTex = texture3->GetCommonTexture();
-      m_parent->GetParent()->EmplaceTexture(commonTex, nextHandle);
+        D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
+        Com<D3D3Texture> texture3 = new D3D3Texture(std::move(ppvProxyObject), m_parent, nextHandle);
+        D3DCommonTexture* commonTex = texture3->GetCommonTexture();
+        m_parent->SetD3D3Texture(texture3.ptr());
+        m_parent->GetParent()->EmplaceTexture(commonTex, nextHandle);
+      }
 
-      *ppvObject = texture3.ref();
+      *ppvObject = ref(m_parent->GetD3D3Texture());
 
       return S_OK;
     }
