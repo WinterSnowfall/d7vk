@@ -22,8 +22,7 @@ namespace dxvk {
         DDrawCommonSurface* commonSurf,
         Com<IDirectDrawSurface2>&& surfProxy,
         DDrawSurface* pParent,
-        DDraw2Surface* pParentSurf,
-        IUnknown* origin);
+        DDraw2Surface* pParentSurf);
 
     ~DDraw2Surface();
 
@@ -140,14 +139,14 @@ namespace dxvk {
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
 
-    Com<DDrawCommonSurface> m_commonSurf;
-    DDrawCommonInterface*   m_commonIntf = nullptr;
+    Com<DDrawCommonSurface>  m_commonSurf;
+    DDrawCommonInterface*    m_commonIntf = nullptr;
 
-    DDraw2Surface*          m_parentSurf = nullptr;
+    Com<DDrawSurface, false> m_originSurf;
 
-    IUnknown*               m_origin     = nullptr;
+    DDraw2Surface*           m_parentSurf = nullptr;
 
-    d3d9::IDirect3DDevice9* m_d3d9Device = nullptr;
+    d3d9::IDirect3DDevice9*  m_d3d9Device = nullptr;
 
   };
 
