@@ -1797,6 +1797,10 @@ namespace dxvk {
     { R"(\\DD_CD\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-30" },
     }} },
+    /* FIFA '99                                   */
+    { R"(\\fifa99\.exe$)", {{
+      { "d3d7.emulateFSAA",                 "True" },
+    }} },
 
   };
 
