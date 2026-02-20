@@ -5,9 +5,10 @@ namespace dxvk {
   uint32_t D3D5Texture::s_texCount = 0;
 
   D3D5Texture::D3D5Texture(Com<IDirect3DTexture2>&& proxyTexture, DDrawSurface* pParent, D3DTEXTUREHANDLE handle)
-    : DDrawWrappedObject<DDrawSurface, IDirect3DTexture2, IUnknown>(pParent, std::move(proxyTexture), nullptr)
-    , m_textureHandle ( handle ) {
+    : DDrawWrappedObject<DDrawSurface, IDirect3DTexture2, IUnknown>(pParent, std::move(proxyTexture), nullptr) {
     m_parent->AddRef();
+
+    m_commonTex = new D3DCommonTexture(m_parent->GetCommonSurface(), handle);
 
     m_texCount = ++s_texCount;
 
@@ -81,7 +82,14 @@ namespace dxvk {
     if(unlikely(lpDirect3DDevice2 == nullptr || lpHandle == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *lpHandle = m_textureHandle;
+    D3DTEXTUREHANDLE texHandle = m_commonTex->GetTextureHandle();
+
+    if (unlikely(!texHandle)) {
+      Logger::warn("D3D5Texture::GetHandle: Null handle returned");
+      return m_proxy->GetHandle(lpDirect3DDevice2, lpHandle);
+    }
+
+    *lpHandle = texHandle;
 
     return D3D_OK;
   }

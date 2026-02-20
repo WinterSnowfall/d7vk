@@ -2,8 +2,6 @@
 
 #include "../ddraw_util.h"
 
-#include "d3d5_texture.h"
-
 #include "../d3d3/d3d3_device.h"
 
 #include "../ddraw/ddraw_interface.h"
@@ -753,19 +751,19 @@ namespace dxvk {
 
       // Replacement for later implemented SetTexture calls
       case D3DRENDERSTATE_TEXTUREHANDLE: {
-        D3D5Texture* texture5 = nullptr;
+        DDrawSurface* surface = nullptr;
 
         if (likely(dwRenderState != 0)) {
-          texture5 = m_DDIntfParent->GetTextureFromHandle(dwRenderState);
-          if (unlikely(texture5 == nullptr))
+          surface = m_DDIntfParent->GetSurfaceFromTextureHandle(dwRenderState);
+          if (unlikely(surface == nullptr))
             return DDERR_INVALIDPARAMS;
         }
 
-        HRESULT hr = SetTextureInternal(texture5);
+        HRESULT hr = SetTextureInternal(surface, dwRenderState);
         if (unlikely(FAILED(hr)))
           return hr;
 
-        if (unlikely(texture5 == nullptr))
+        if (unlikely(surface == nullptr))
           m_bridge->SetColorKeyState(false);
 
         break;
@@ -1006,11 +1004,11 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYENABLE: {
         m_colorKeyEnabled = dwRenderState;
 
-        D3D5Texture* texture5 = m_textureHandle != 0 ? m_DDIntfParent->GetTextureFromHandle(m_textureHandle) : nullptr;
-        const bool validColorKey = texture5 != nullptr ? texture5->GetParent()->GetCommonSurface()->HasValidColorKey() : false;
+        DDrawSurface* surface = m_textureHandle != 0 ? m_DDIntfParent->GetSurfaceFromTextureHandle(m_textureHandle) : nullptr;
+        const bool validColorKey = surface != nullptr ? surface->GetCommonSurface()->HasValidColorKey() : false;
         m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
         if (m_colorKeyEnabled && validColorKey)
-          m_bridge->SetColorKey(texture5->GetParent()->GetCommonSurface()->GetColorKeyNormalized());
+          m_bridge->SetColorKey(surface->GetCommonSurface()->GetColorKeyNormalized());
 
         return D3D_OK;
       }
@@ -1425,13 +1423,13 @@ namespace dxvk {
     ib9->Unlock();
   }
 
-  inline HRESULT D3D5Device::SetTextureInternal(D3D5Texture* texture5) {
+  inline HRESULT D3D5Device::SetTextureInternal(DDrawSurface* surface, DWORD textureHandle) {
     Logger::debug(">>> D3D5Device::SetTextureInternal");
 
     HRESULT hr;
 
     // Unbinding texture stages
-    if (texture5 == nullptr) {
+    if (surface == nullptr) {
       Logger::debug("D3D5Device::SetTextureInternal: Unbiding D3D9 texture");
 
       hr = m_d3d9->SetTexture(0, nullptr);
@@ -1450,26 +1448,24 @@ namespace dxvk {
 
     Logger::debug("D3D5Device::SetTextureInternal: Binding D3D9 texture");
 
-    DDrawSurface* surface5 = texture5->GetParent();
-
     // Only upload textures if any sort of blit/lock operation
     // has been performed on them since the last SetTexture call
-    if (surface5->GetCommonSurface()->HasDirtyMipMaps()) {
-      hr = surface5->InitializeOrUploadD3D9();
+    if (surface->GetCommonSurface()->HasDirtyMipMaps()) {
+      hr = surface->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D5Device::SetTextureInternal: Failed to initialize/upload D3D9 texture");
         return hr;
       }
 
-      surface5->GetCommonSurface()->UnDirtyMipMaps();
+      surface->GetCommonSurface()->UnDirtyMipMaps();
     } else {
       Logger::debug("D3D5Device::SetTextureInternal: Skipping upload of texture and mip maps");
     }
 
-    if (unlikely(m_textureHandle == texture5->GetHandle()))
+    if (unlikely(m_textureHandle == textureHandle))
       return D3D_OK;
 
-    d3d9::IDirect3DTexture9* tex9 = surface5->GetD3D9Texture();
+    d3d9::IDirect3DTexture9* tex9 = surface->GetD3D9Texture();
 
     if (likely(tex9 != nullptr)) {
       hr = m_d3d9->SetTexture(0, tex9);
@@ -1482,17 +1478,17 @@ namespace dxvk {
       //  have been used with no texturing; if the texture does not contain an alpha component,
       //  alpha values at the vertices in the source are interpolated between vertices."
       if (m_textureMapBlend == D3DTBLEND_MODULATE) {
-        const DWORD textureOp = texture5->GetParent()->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_MODULATE;
+        const DWORD textureOp = surface->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_MODULATE;
         m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
       }
 
-      const bool colorKeyState = texture5->GetParent()->GetCommonSurface()->HasValidColorKey();
+      const bool colorKeyState = surface->GetCommonSurface()->HasValidColorKey();
       m_bridge->SetColorKeyState(m_colorKeyEnabled && colorKeyState);
       if (m_colorKeyEnabled && colorKeyState)
-        m_bridge->SetColorKey(texture5->GetParent()->GetCommonSurface()->GetColorKeyNormalized());
+        m_bridge->SetColorKey(surface->GetCommonSurface()->GetColorKeyNormalized());
     }
 
-    m_textureHandle = texture5->GetHandle();
+    m_textureHandle = textureHandle;
 
     return D3D_OK;
   }

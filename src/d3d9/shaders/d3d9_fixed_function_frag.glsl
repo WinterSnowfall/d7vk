@@ -32,7 +32,9 @@ const uint TextureArgCount = 3;
 const uint MaxSharedPushDataSize = 64;
 
 const float ColorKeyLowPrecision  = 0.02;
-const float ColorKeyHighPrecision = 0.0001;
+// Lower values (for high precision) work well on Nvidia,
+// but not on AMD for some reason...
+const float ColorKeyHighPrecision = 0.003;
 
 #include "d3d9_fixed_function_common.glsl"
 
@@ -315,10 +317,18 @@ vec4 sampleTexture(uint stage, vec4 texcoord, vec4 previousStageTextureVal) {
         const float ckr = bitfieldExtract(specUint(SpecFFColorKey), 0,  8) / 255.0;
         const float ckg = bitfieldExtract(specUint(SpecFFColorKey), 8,  8) / 255.0;
         const float ckb = bitfieldExtract(specUint(SpecFFColorKey), 16, 8) / 255.0;
-        const float tolerance = specBool(SpecFFColorKeyPrecision) ? ColorKeyHighPrecision : ColorKeyLowPrecision;
-        if (texVal.x <= ckr + tolerance && texVal.y <= ckg + tolerance && texVal.z <= ckb + tolerance &&
-            texVal.x >= ckr - tolerance && texVal.y >= ckg - tolerance && texVal.z >= ckb - tolerance) {
-            discard;
+        // Equality comparisons in case of black color keying
+        if (ckr == 0.0 && ckg == 0.0 && ckb == 0.0) {
+            if (texVal.x == ckr && texVal.y == ckg && texVal.z == ckb) {
+                discard;
+            }
+        // Margin of tolerance comparisons for non-zero/non-black color keying
+        } else {
+            const float epsilon = specBool(SpecFFColorKeyPrecision) ? ColorKeyHighPrecision : ColorKeyLowPrecision;
+            if (texVal.x <= ckr + epsilon && texVal.y <= ckg + epsilon && texVal.z <= ckb + epsilon &&
+                texVal.x >= ckr - epsilon && texVal.y >= ckg - epsilon && texVal.z >= ckb - epsilon) {
+                discard;
+            }
         }
     }
 

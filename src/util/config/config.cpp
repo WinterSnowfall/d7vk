@@ -129,7 +129,7 @@ namespace dxvk {
     }} },
     /* Fifa '19+: Binds typed buffer SRV to shader *
      * that expects raw/structured buffer SRV      */
-    { R"(\\FIFA(19|[2-9][0-9])(_demo)?\.exe$)", {{
+    { R"(\\FIFA(19|20|21|22)(_demo)?\.exe$)", {{
       { "dxvk.useRawSsbo",                  "True" },
     }} },
     /* Resident Evil 2/3: Ignore WaW hazards      */
@@ -1744,6 +1744,10 @@ namespace dxvk {
      * Accelerated menu animations above 30 FPS   */
     { R"(\\DD_CD\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-30" },
+    }} },
+    /* FIFA '99                                   */
+    { R"(\\fifa99\.exe$)", {{
+      { "d3d7.emulateFSAA",                 "True" },
     }} },
 
   };
