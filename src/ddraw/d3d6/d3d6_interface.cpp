@@ -36,10 +36,12 @@ namespace dxvk {
 
   // Interlocked refcount with the parent IDirectDraw4
   ULONG STDMETHODCALLTYPE D3D6Interface::AddRef() {
-    // We sometimes get this instantiated from IDirectDraw
-    // by applications doing simple API support checks...
     if (likely(m_parent != nullptr)) {
-      return m_parent->AddRef();
+      IUnknown* origin = m_parent->GetCommonInterface()->GetOrigin();
+      if (likely(origin != nullptr))
+        return origin->AddRef();
+      else
+        return m_parent->AddRef();
     } else {
       return ComObjectClamp::AddRef();
     }
@@ -47,10 +49,12 @@ namespace dxvk {
 
   // Interlocked refcount with the parent IDirectDraw4
   ULONG STDMETHODCALLTYPE D3D6Interface::Release() {
-    // We sometimes get this instantiated from IDirectDraw
-    // by applications doing simple API support checks...
     if (likely(m_parent != nullptr)) {
-      return m_parent->Release();
+      IUnknown* origin = m_parent->GetCommonInterface()->GetOrigin();
+      if (likely(origin != nullptr))
+        return origin->Release();
+      else
+        return m_parent->Release();
     } else {
       return ComObjectClamp::Release();
     }
