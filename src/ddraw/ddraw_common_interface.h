@@ -194,6 +194,18 @@ namespace dxvk {
       return m_intf;
     }
 
+    void SetOrigin(IUnknown* origin) {
+      m_origin = origin;
+    }
+
+    IUnknown* GetOrigin() const {
+      return m_origin;
+    }
+
+    bool IsOrigin(IUnknown* origin) const {
+      return m_origin == origin;
+    }
+
     void SetD3D7Device(D3D7Device* device7) {
       m_device7 = device7;
     }
@@ -250,6 +262,10 @@ namespace dxvk {
     DDraw4Interface*                  m_intf4              = nullptr;
     DDraw2Interface*                  m_intf2              = nullptr;
     DDrawInterface*                   m_intf               = nullptr;
+
+    // Track the origin surface, as in the DDraw surface
+    // that gets created through a DirectDrawCreate(Ex) call
+    IUnknown*                         m_origin             = nullptr;
 
     std::vector<IDirectDrawSurface7*> m_surfaces7;
     std::vector<IDirectDrawSurface4*> m_surfaces4;
