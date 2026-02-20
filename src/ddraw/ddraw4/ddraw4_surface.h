@@ -8,6 +8,9 @@
 
 #include "ddraw4_interface.h"
 
+#include "../d3d3/d3d3_texture.h"
+#include "../d3d6/d3d6_texture.h"
+
 #include <unordered_map>
 
 namespace dxvk {
@@ -130,7 +133,7 @@ namespace dxvk {
     }
 
     d3d9::IDirect3DTexture9* GetD3D9Texture() const {
-      return m_texture.ptr();
+      return m_texture9.ptr();
     }
 
     DDraw4Surface* GetAttachedDepthStencil() {
@@ -174,7 +177,7 @@ namespace dxvk {
         // Check if the device has been recreated and reset all D3D9 resources
         if (m_d3d9Device != nullptr) {
           Logger::debug("DDraw4Surface: Device context has changed, clearing all D3D9 resources");
-          m_texture = nullptr;
+          m_texture9 = nullptr;
           m_d3d9 = nullptr;
         }
         m_d3d9Device = d3d9Device;
@@ -224,7 +227,9 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9*             m_d3d9Device = nullptr;
 
-    Com<d3d9::IDirect3DTexture9>        m_texture;
+    Com<D3D6Texture, false>             m_texture6;
+
+    Com<d3d9::IDirect3DTexture9>        m_texture9;
 
     // Back buffers will have depth stencil surfaces as attachments (in practice
     // I have never seen more than one depth stencil being attached at a time)
