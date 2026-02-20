@@ -211,6 +211,18 @@ namespace dxvk {
       return m_surf;
     }
 
+    void SetOrigin(IUnknown* origin) {
+      m_origin = origin;
+    }
+
+    IUnknown* GetOrigin() const {
+      return m_origin;
+    }
+
+    bool IsOrigin(IUnknown* origin) const {
+      return m_origin == origin;
+    }
+
     bool IsComplex() const {
       return m_desc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX
           || m_desc.ddsCaps.dwCaps  & DDSCAPS_COMPLEX;
@@ -337,6 +349,10 @@ namespace dxvk {
     DDraw3Surface*            m_surf3        = nullptr;
     DDraw2Surface*            m_surf2        = nullptr;
     DDrawSurface*             m_surf         = nullptr;
+
+    // Track the origin surface, as in the DDraw surface
+    // that gets created through a CreateSurface call
+    IUnknown*                 m_origin       = nullptr;
 
   };
 

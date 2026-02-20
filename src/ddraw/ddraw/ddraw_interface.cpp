@@ -19,13 +19,12 @@ namespace dxvk {
   DDrawInterface::DDrawInterface(
       DDrawCommonInterface* commonIntf,
       Com<IDirectDraw>&& proxyIntf,
-      IUnknown* origin,
       bool needsInitialization)
     : DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
     , m_needsInitialization ( needsInitialization )
-    , m_commonIntf ( commonIntf )
-    , m_origin ( origin ) {
-    if (m_origin == nullptr) {
+    , m_commonIntf ( commonIntf ) {
+
+    if (m_commonIntf == nullptr) {
       // We need a temporary D3D9 interface at this point to retrieve the options,
       // even if we're only proxying and we don't yet have any child D3D interfaces
       Com<d3d9::IDirect3D9> d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
@@ -35,9 +34,11 @@ namespace dxvk {
         throw DxvkError("DDrawInterface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
       }
 
-      if (m_commonIntf == nullptr)
-        m_commonIntf = new DDrawCommonInterface(D3DOptions(*d3d9Bridge->GetConfig()));
+      m_commonIntf = new DDrawCommonInterface(D3DOptions(*d3d9Bridge->GetConfig()));
     }
+
+    if (m_commonIntf->GetOrigin() == nullptr)
+      m_commonIntf->SetOrigin(this);
 
     m_commonIntf->SetDDInterface(this);
 
@@ -53,6 +54,9 @@ namespace dxvk {
   }
 
   DDrawInterface::~DDrawInterface() {
+    if (m_commonIntf->GetOrigin() == this)
+      m_commonIntf->SetOrigin(nullptr);
+
     m_commonIntf->SetDDInterface(nullptr);
 
     Logger::debug(str::format("DDrawInterface: Interface nr. <<1-", m_intfCount, ">> bites the dust"));
@@ -140,7 +144,7 @@ namespace dxvk {
         return hr;
 
       *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           this, nullptr, m_needsInitialization));
+                                           this, m_needsInitialization));
 
       return S_OK;
     }
@@ -159,7 +163,7 @@ namespace dxvk {
         return hr;
 
       *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           this, nullptr, m_needsInitialization));
+                                           this, m_needsInitialization));
 
       return S_OK;
     }
@@ -177,8 +181,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           this, m_needsInitialization));
+      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_needsInitialization));
 
       return S_OK;
     }
@@ -293,8 +296,7 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       try{
         // Surfaces created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
-        Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied),
-                                                     this, nullptr, nullptr, false);
+        Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied), this, nullptr, false);
 
         if (unlikely(surface->GetCommonSurface()->IsDepthStencil()))
           m_lastDepthStencil = surface.ptr();
@@ -323,8 +325,7 @@ namespace dxvk {
       HRESULT hr = m_proxy->DuplicateSurface(ddrawSurface->GetProxied(), &dupSurface);
       if (likely(SUCCEEDED(hr))) {
         try {
-          *lplpDupDDSurface = ref(new DDrawSurface(nullptr, std::move(dupSurface),
-                                                   this, nullptr, nullptr, false));
+          *lplpDupDDSurface = ref(new DDrawSurface(nullptr, std::move(dupSurface), this, nullptr, false));
         } catch (const DxvkError& e) {
           Logger::err(e.message());
           return DDERR_GENERIC;
@@ -360,7 +361,7 @@ namespace dxvk {
     while (surfaceIt != attachedSurfaces.end() && hr != DDENUMRET_CANCEL) {
       Com<IDirectDrawSurface> surface = surfaceIt->surface;
 
-      Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), this, nullptr, nullptr, false);
+      Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), this, nullptr, false);
       hr = lpEnumSurfacesCallback(ddrawSurface.ref(), &surfaceIt->surfaceDesc, lpContext);
 
       ++surfaceIt;
@@ -462,7 +463,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawInterface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP) {
     Logger::debug("<<< DDrawInterface::SetDisplayMode: Proxy");
 
-    Logger::debug(str::format("DDrawInterface::SetDisplayMode: ", dwWidth, "x", dwHeight));
+    Logger::debug(str::format("DDrawInterface::SetDisplayMode: ", dwWidth, "x", dwHeight, ":", dwBPP));
 
     HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP);
     if (unlikely(FAILED(hr)))
