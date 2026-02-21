@@ -290,8 +290,6 @@ namespace dxvk {
 
     DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
 
-    // We could technically allow unwrapped RTs when forcing proxied present,
-    // however that doesn't get us anything, so simply don't bother with it
     if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
       HRESULT hrRT7 = m_proxy->SetRenderTarget(rt7->GetProxied(), flags);
       if (unlikely(FAILED(hrRT7))) {
@@ -1266,43 +1264,39 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    IDirectDrawSurface7* loadSource      = src_surface;
-    IDirectDrawSurface7* loadDestination = dst_surface;
+    DDraw7Surface* ddraw7SurfaceSrc = nullptr;
+    DDraw7Surface* ddraw7SurfaceDst = nullptr;
 
     if (likely(m_commonIntf->IsWrappedSurface(src_surface))) {
-      DDraw7Surface* ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
-      loadSource = ddraw7SurfaceSrc->GetProxied();
+      ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
     } else {
       Logger::warn("D3D7Device::Load: Unwrapped surface source");
+      return DDERR_GENERIC;
     }
 
     if (likely(m_commonIntf->IsWrappedSurface(dst_surface))) {
-      DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
-      loadDestination = ddraw7SurfaceDst->GetProxied();
+      ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
     } else {
       Logger::warn("D3D7Device::Load: Unwrapped surface destination");
+      return DDERR_GENERIC;
     }
 
-    HRESULT hr = m_proxy->Load(loadDestination, dst_point, loadSource, src_rect, flags);
+    HRESULT hr = m_proxy->Load(ddraw7SurfaceDst->GetProxied(), dst_point,
+                               ddraw7SurfaceSrc->GetProxied(), src_rect, flags);
     if (unlikely(FAILED(hr))) {
       Logger::warn("D3D7Device::Load: Failed to load surfaces");
       return hr;
     }
 
-    // Only upload the destination surface
-    if (likely(m_commonIntf->IsWrappedSurface(dst_surface))) {
-      DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
-
-      // Textures and cubemaps get uploaded during SetTexture calls
-      if (!ddraw7SurfaceDst->GetCommonSurface()->IsTextureOrCubeMap()
-        || m_parent->GetOptions()->apitraceMode) {
-        HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
-        if (unlikely(FAILED(hrInitDst))) {
-          Logger::err("D3D7Device::Load: Failed to upload D3D9 destination surface data");
-        }
-      } else {
-        ddraw7SurfaceDst->GetCommonSurface()->DirtyMipMaps();
+    // Textures and cubemaps get uploaded during SetTexture calls
+    if (!ddraw7SurfaceDst->GetCommonSurface()->IsTextureOrCubeMap()
+      || m_parent->GetOptions()->apitraceMode) {
+      HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
+      if (unlikely(FAILED(hrInitDst))) {
+        Logger::err("D3D7Device::Load: Failed to upload D3D9 destination surface data");
       }
+    } else {
+      ddraw7SurfaceDst->GetCommonSurface()->DirtyMipMaps();
     }
 
     return hr;

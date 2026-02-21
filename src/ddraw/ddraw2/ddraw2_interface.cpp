@@ -314,8 +314,10 @@ namespace dxvk {
       }
       return hr;
     } else {
-      if (unlikely(lpDDSurface != nullptr))
+      if (unlikely(lpDDSurface != nullptr)) {
         Logger::warn("DDraw2Interface::DuplicateSurface: Received an unwrapped source surface");
+        return DDERR_GENERIC;
+      }
       return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
     }
 
