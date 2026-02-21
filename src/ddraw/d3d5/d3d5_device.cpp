@@ -434,8 +434,6 @@ namespace dxvk {
 
     DDrawSurface* rt5 = static_cast<DDrawSurface*>(surface);
 
-    // We could technically allow unwrapped RTs when forcing proxied present,
-    // however that doesn't get us anything, so simply don't bother with it
     if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
       HRESULT hrRT = m_proxy->SetRenderTarget(rt5->GetProxied(), flags);
       if (unlikely(FAILED(hrRT))) {
