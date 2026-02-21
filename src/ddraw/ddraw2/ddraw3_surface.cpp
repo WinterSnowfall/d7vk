@@ -257,8 +257,8 @@ namespace dxvk {
     }
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
-      Logger::warn("DDraw3Surface::AddAttachedSurface: Attaching unwrapped surface");
-      return m_proxy->AddAttachedSurface(lpDDSAttachedSurface);
+      Logger::warn("DDraw3Surface::AddAttachedSurface: Received an unwrapped surface");
+      return DDERR_GENERIC;
     }
 
     DDraw3Surface* ddraw3Surface = static_cast<DDraw3Surface*>(lpDDSAttachedSurface);
@@ -332,8 +332,10 @@ namespace dxvk {
       ddrawSurface->GetProxied()->QueryInterface(__uuidof(IDirectDrawSurface3), reinterpret_cast<void**>(&surface3));
       hr = m_proxy->Blt(lpDestRect, surface3.ptr(), lpSrcRect, dwFlags, lpDDBltFx);
     } else if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
-      if (unlikely(lpDDSrcSurface != nullptr))
-        Logger::debug("DDraw3Surface::Blt: Received an unwrapped source surface");
+      if (unlikely(lpDDSrcSurface != nullptr)) {
+        Logger::warn("DDraw3Surface::Blt: Received an unwrapped source surface");
+        return DDERR_GENERIC;
+      }
       hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     } else {
       DDraw3Surface* ddraw3Surface = static_cast<DDraw3Surface*>(lpDDSrcSurface);
@@ -394,8 +396,10 @@ namespace dxvk {
     HRESULT hr;
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
-      if (unlikely(lpDDSrcSurface != nullptr))
+      if (unlikely(lpDDSrcSurface != nullptr)) {
         Logger::warn("DDraw3Surface::BltFast: Received an unwrapped source surface");
+        return DDERR_GENERIC;
+      }
       hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
     } else {
       DDraw3Surface* ddraw3Surface = static_cast<DDraw3Surface*>(lpDDSrcSurface);
@@ -848,8 +852,8 @@ namespace dxvk {
     Logger::debug("<<< DDraw3Surface::UpdateOverlay: Proxy");
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDDestSurface))) {
-      Logger::warn("DDraw3Surface::UpdateOverlay: Called with an unwrapped surface");
-      return m_proxy->UpdateOverlay(lpSrcRect, lpDDDestSurface, lpDestRect, dwFlags, lpDDOverlayFx);
+      Logger::warn("DDraw3Surface::UpdateOverlay: Received an unwrapped surface");
+      return DDERR_GENERIC;
     }
 
     DDraw3Surface* ddraw3Surface = static_cast<DDraw3Surface*>(lpDDDestSurface);
@@ -865,8 +869,8 @@ namespace dxvk {
     Logger::debug("<<< DDraw3Surface::UpdateOverlayZOrder: Proxy");
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSReference))) {
-      Logger::warn("DDraw3Surface::UpdateOverlayZOrder: Called with an unwrapped surface");
-      return m_proxy->UpdateOverlayZOrder(dwFlags, lpDDSReference);
+      Logger::warn("DDraw3Surface::UpdateOverlayZOrder: Received an unwrapped surface");
+      return DDERR_GENERIC;
     }
 
     DDraw3Surface* ddraw3Surface = static_cast<DDraw3Surface*>(lpDDSReference);
