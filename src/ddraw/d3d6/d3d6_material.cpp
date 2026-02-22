@@ -58,17 +58,15 @@ namespace dxvk {
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    m_material = *data;
-
-    m_material9.Diffuse  = m_material.dcvDiffuse;
-    m_material9.Ambient  = m_material.dcvAmbient;
-    m_material9.Specular = m_material.dcvSpecular;
-    m_material9.Emissive = m_material.dcvEmissive;
-    m_material9.Power    = m_material.dvPower;
+    m_material9.Diffuse  = data->dcvDiffuse;
+    m_material9.Ambient  = data->dcvAmbient;
+    m_material9.Specular = data->dcvSpecular;
+    m_material9.Emissive = data->dcvEmissive;
+    m_material9.Power    = data->dvPower;
 
     Logger::debug(str::format(">>> D3D6Material::SetMaterial: Updated material nr. ", m_materialHandle));
-    Logger::debug(str::format("   Diffuse:  ", m_material9.Diffuse.r, " ", m_material9.Diffuse.g, " ", m_material9.Diffuse.b));
-    Logger::debug(str::format("   Ambient:  ", m_material9.Ambient.r, " ", m_material9.Ambient.g, " ", m_material9.Ambient.b));
+    Logger::debug(str::format("   Diffuse:  ", m_material9.Diffuse.r,  " ", m_material9.Diffuse.g, " ", m_material9.Diffuse.b));
+    Logger::debug(str::format("   Ambient:  ", m_material9.Ambient.r,  " ", m_material9.Ambient.g, " ", m_material9.Ambient.b));
     Logger::debug(str::format("   Specular: ", m_material9.Specular.r, " ", m_material9.Specular.g, " ", m_material9.Specular.b));
     Logger::debug(str::format("   Emissive: ", m_material9.Emissive.r, " ", m_material9.Emissive.g, " ", m_material9.Emissive.b));
     Logger::debug(str::format("   Power:    ", m_material9.Power));
@@ -92,7 +90,11 @@ namespace dxvk {
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *data = m_material;
+    data->dcvDiffuse  = m_material9.Diffuse;
+    data->dcvAmbient  = m_material9.Ambient;
+    data->dcvSpecular = m_material9.Specular;
+    data->dcvEmissive = m_material9.Emissive;
+    data->dvPower     = m_material9.Power;
 
     return D3D_OK;
   }
