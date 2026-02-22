@@ -1092,8 +1092,10 @@ namespace dxvk {
 
     switch (dwLightStateType) {
       case D3DLIGHTSTATE_MATERIAL: {
-        if (unlikely(!dwLightState))
+        if (unlikely(!dwLightState)) {
+          m_materialHandle = dwLightState;
           return D3D_OK;
+        }
 
         D3D6Material* material6 = m_parent->GetMaterialFromHandle(dwLightState);
         if (unlikely(material6 == nullptr))

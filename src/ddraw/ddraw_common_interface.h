@@ -146,6 +146,11 @@ namespace dxvk {
       return m_cooperativeLevel;
     }
 
+    bool IsCooperativeLevelSet() const {
+      return (m_cooperativeLevel & DDSCL_NORMAL) ||
+             (m_cooperativeLevel & DDSCL_EXCLUSIVE);
+    }
+
     HWND GetHWND() const {
       return m_hWnd;
     }
