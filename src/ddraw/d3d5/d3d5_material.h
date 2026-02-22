@@ -27,6 +27,13 @@ namespace dxvk {
       return &m_material9;
     }
 
+    D3DCOLOR GetMaterialColor() const {
+      return D3DCOLOR_RGBA(static_cast<BYTE>(m_material.dcvDiffuse.r * 255.0f),
+                           static_cast<BYTE>(m_material.dcvDiffuse.g * 255.0f),
+                           static_cast<BYTE>(m_material.dcvDiffuse.b * 255.0f),
+                           static_cast<BYTE>(m_material.dcvDiffuse.a * 255.0f));
+    }
+
   private:
 
     static uint32_t    s_materialCount;

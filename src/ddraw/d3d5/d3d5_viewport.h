@@ -4,9 +4,9 @@
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_util.h"
 
-#include "d3d5_interface.h"
+#include "../d3d_common_viewport.h"
 
-#include "../d3d3/d3d3_viewport.h"
+#include "d3d5_interface.h"
 
 #include <vector>
 
@@ -21,7 +21,7 @@ namespace dxvk {
 
   public:
 
-    D3D5Viewport(Com<IDirect3DViewport2>&& proxyViewport, D3D5Interface* pParent, IUnknown* origin);
+    D3D5Viewport(D3DCommonViewport* commonViewport, Com<IDirect3DViewport2>&& proxyViewport, D3D5Interface* pParent);
 
     ~D3D5Viewport();
 
@@ -63,48 +63,24 @@ namespace dxvk {
 
     HRESULT ApplyAndActivateLight(DWORD index, D3D5Light* light5);
 
-    d3d9::D3DVIEWPORT9 GetD3D9Viewport() const {
-      return m_viewport9;
+    D3DCommonViewport* GetCommonViewport() const {
+      return m_commonViewport.ptr();
     }
 
     void SetDevice(D3D5Device* device) {
       m_device = device;
     }
 
-    void SetIsCurrentViewport(bool isCurrentViewport) {
-      m_isCurrentViewport = isCurrentViewport;
-    }
-
-    D3DMATERIALHANDLE GetCurrentMaterialHandle() const {
-      return m_materialHandle;
-    }
-
-    bool IsCurrentViewport() const {
-      return m_isCurrentViewport;
-    }
-
   private:
 
-    bool               m_isCurrentViewport = false;
+    static uint32_t          s_viewportCount;
+    uint32_t                 m_viewportCount   = 0;
 
-    static uint32_t    s_viewportCount;
-    uint32_t           m_viewportCount   = 0;
+    Com<D3DCommonViewport>   m_commonViewport;
 
-    IUnknown*          m_origin = nullptr;
+    D3D5Device*              m_device = nullptr;
 
-    BOOL               m_materialIsSet   = FALSE;
-    D3DMATERIALHANDLE  m_materialHandle  = 0;
-    D3DCOLOR           m_backgroundColor = D3DCOLOR_RGBA(0, 0, 0, 0);
-
-    BOOL               m_viewportIsSet = FALSE;
-    D3DVIEWPORT        m_viewport      = { };
-    D3DVIEWPORT2       m_viewport2     = { };
-
-    d3d9::D3DVIEWPORT9 m_viewport9 = { };
-
-    D3D5Device*        m_device = nullptr;
-
-    std::vector<D3D5Light*> m_lights;
+    std::vector<D3D5Light*>  m_lights;
 
   };
 
