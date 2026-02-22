@@ -4,6 +4,8 @@
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_util.h"
 
+#include "../d3d_common_viewport.h"
+
 #include "d3d6_interface.h"
 
 #include <vector>
@@ -19,7 +21,7 @@ namespace dxvk {
 
   public:
 
-    D3D6Viewport(Com<IDirect3DViewport3>&& proxyViewport, D3D6Interface* pParent);
+    D3D6Viewport(D3DCommonViewport* commonViewport, Com<IDirect3DViewport3>&& proxyViewport, D3D6Interface* pParent);
 
     ~D3D6Viewport();
 
@@ -67,46 +69,24 @@ namespace dxvk {
 
     HRESULT ApplyAndActivateLight(DWORD index, D3D6Light* light6);
 
-    d3d9::D3DVIEWPORT9 GetD3D9Viewport() const {
-      return m_viewport9;
+    D3DCommonViewport* GetCommonViewport() const {
+      return m_commonViewport.ptr();
     }
 
     void SetDevice(D3D6Device* device) {
       m_device = device;
     }
 
-    void SetIsCurrentViewport(bool isCurrentViewport) {
-      m_isCurrentViewport = isCurrentViewport;
-    }
-
-    D3DMATERIALHANDLE GetCurrentMaterialHandle() const {
-      return m_materialHandle;
-    }
-
-    bool IsCurrentViewport() const {
-      return m_isCurrentViewport;
-    }
-
   private:
 
-    bool               m_isCurrentViewport = false;
+    static uint32_t          s_viewportCount;
+    uint32_t                 m_viewportCount   = 0;
 
-    static uint32_t    s_viewportCount;
-    uint32_t           m_viewportCount   = 0;
+    Com<D3DCommonViewport>   m_commonViewport;
 
-    BOOL               m_materialIsSet   = FALSE;
-    D3DMATERIALHANDLE  m_materialHandle  = 0;
-    D3DCOLOR           m_backgroundColor = D3DCOLOR_RGBA(0, 0, 0, 0);
+    D3D6Device*              m_device = nullptr;
 
-    BOOL               m_viewportIsSet = FALSE;
-    D3DVIEWPORT        m_viewport      = { };
-    D3DVIEWPORT2       m_viewport2     = { };
-
-    d3d9::D3DVIEWPORT9 m_viewport9 = { };
-
-    D3D6Device*        m_device = nullptr;
-
-    std::vector<D3D6Light*> m_lights;
+    std::vector<D3D6Light*>  m_lights;
 
   };
 
