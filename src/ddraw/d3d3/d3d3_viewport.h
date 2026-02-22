@@ -3,6 +3,8 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
+#include "../d3d_common_viewport.h"
+
 #include "d3d3_interface.h"
 
 namespace dxvk {
@@ -11,7 +13,7 @@ namespace dxvk {
 
   public:
 
-    D3D3Viewport(Com<IDirect3DViewport>&& proxyViewport, D3D3Interface* pParent, IUnknown* origin);
+    D3D3Viewport(D3DCommonViewport* commonViewport, Com<IDirect3DViewport>&& proxyViewport, D3D3Interface* pParent);
 
     ~D3D3Viewport();
 
@@ -45,10 +47,10 @@ namespace dxvk {
 
   private:
 
-    IUnknown*          m_origin;
+    static uint32_t        s_viewportCount;
+    uint32_t               m_viewportCount   = 0;
 
-    static uint32_t    s_viewportCount;
-    uint32_t           m_viewportCount   = 0;
+    Com<D3DCommonViewport> m_commonViewport;
 
   };
 
