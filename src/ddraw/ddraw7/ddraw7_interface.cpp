@@ -223,7 +223,7 @@ namespace dxvk {
     Logger::debug(">>> DDraw7Interface::CreateSurface");
 
     // The cooperative level is always checked first
-    if (unlikely(!m_commonIntf->GetCooperativeLevel()))
+    if (unlikely(!m_commonIntf->IsCooperativeLevelSet()))
       return DDERR_NOCOOPERATIVELEVELSET;
 
     if (unlikely(lpDDSurfaceDesc == nullptr || lplpDDSurface == nullptr))

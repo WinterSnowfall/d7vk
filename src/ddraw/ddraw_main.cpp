@@ -177,7 +177,34 @@ namespace dxvk {
       return CLASS_E_NOAGGREGATION;
 
     GUID intfGUID = __uuidof(IDirectDraw);
-    return CreateDirectDraw(&intfGUID, reinterpret_cast<IDirectDraw**>(ppvObject), NULL, true);
+    IDirectDraw* ppvObjectProxy = nullptr;
+    HRESULT hr = CreateDirectDraw(&intfGUID, &ppvObjectProxy, NULL, true);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    // ClassFactoryCreateDirectDraw can be used to construct objects
+    // ranging from IDirectDraw to IDirectDraw2 and IDirectDraw4
+    if (riid == __uuidof(IDirectDraw)) {
+      *ppvObject = static_cast<void*>(ppvObjectProxy);
+    } else if (riid == __uuidof(IDirectDraw2)) {
+      void* directDraw2 = nullptr;
+      hr = ppvObjectProxy->QueryInterface(__uuidof(IDirectDraw2), &directDraw2);
+      if (unlikely(FAILED(hr)))
+        return hr;
+      *ppvObject = directDraw2;
+      ppvObjectProxy->Release();
+    } else if (riid == __uuidof(IDirectDraw4)) {
+      void* directDraw4 = nullptr;
+      hr = ppvObjectProxy->QueryInterface(__uuidof(IDirectDraw4), &directDraw4);
+      if (unlikely(FAILED(hr)))
+        return hr;
+      *ppvObject = directDraw4;
+      ppvObjectProxy->Release();
+    } else {
+      return CLASS_E_CLASSNOTAVAILABLE;
+    }
+
+    return S_OK;
   }
 
   HRESULT ClassFactoryCreateDirectDrawEx(IUnknown *pUnkOuter, REFIID riid, void **ppvObject) {
@@ -190,6 +217,9 @@ namespace dxvk {
 
     if (unlikely(pUnkOuter != nullptr))
       return CLASS_E_NOAGGREGATION;
+
+    if (unlikely(riid != __uuidof(IDirectDraw7)))
+      return CLASS_E_CLASSNOTAVAILABLE;
 
     GUID intfGUID = __uuidof(IDirectDraw7);
     return CreateDirectDrawEx(&intfGUID, ppvObject, __uuidof(IDirectDraw7), NULL, true);
@@ -205,6 +235,9 @@ namespace dxvk {
 
     if (unlikely(pUnkOuter != nullptr))
       return CLASS_E_NOAGGREGATION;
+
+    if (unlikely(riid != __uuidof(IDirectDrawClipper)))
+      return CLASS_E_CLASSNOTAVAILABLE;
 
     return CreateDirectDrawClipper(0, reinterpret_cast<IDirectDrawClipper**>(ppvObject), NULL, true);
   }
