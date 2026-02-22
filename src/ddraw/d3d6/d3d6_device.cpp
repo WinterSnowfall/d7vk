@@ -378,11 +378,11 @@ namespace dxvk {
       return hr;
 
     if (likely(m_currentViewport != nullptr))
-      m_currentViewport->SetIsCurrentViewport(false);
+      m_currentViewport->GetCommonViewport()->SetIsCurrentViewport(false);
 
     m_currentViewport = d3d6Viewport.ptr();
 
-    m_currentViewport->SetIsCurrentViewport(true);
+    m_currentViewport->GetCommonViewport()->SetIsCurrentViewport(true);
     m_currentViewport->ApplyViewport();
     m_currentViewport->ApplyAndActivateLights();
 

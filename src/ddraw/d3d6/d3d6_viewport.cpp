@@ -5,6 +5,7 @@
 #include "d3d6_material.h"
 
 #include "../ddraw4/ddraw4_surface.h"
+
 #include "../d3d5/d3d5_viewport.h"
 #include "../d3d3/d3d3_viewport.h"
 
@@ -14,8 +15,18 @@ namespace dxvk {
 
   uint32_t D3D6Viewport::s_viewportCount = 0;
 
-  D3D6Viewport::D3D6Viewport(Com<IDirect3DViewport3>&& proxyViewport, D3D6Interface* pParent)
-    : DDrawWrappedObject<D3D6Interface, IDirect3DViewport3, IUnknown>(pParent, std::move(proxyViewport), nullptr) {
+  D3D6Viewport::D3D6Viewport(D3DCommonViewport* commonViewport, Com<IDirect3DViewport3>&& proxyViewport, D3D6Interface* pParent)
+    : DDrawWrappedObject<D3D6Interface, IDirect3DViewport3, IUnknown>(pParent, std::move(proxyViewport), nullptr)
+    , m_commonViewport ( commonViewport ) {
+
+    if (m_commonViewport == nullptr)
+      m_commonViewport = new D3DCommonViewport();
+
+    if (m_commonViewport->GetOrigin() == nullptr)
+      m_commonViewport->SetOrigin(this);
+
+    m_commonViewport->SetD3D6Viewport(this);
+
     m_viewportCount = ++s_viewportCount;
 
     Logger::debug(str::format("D3D6Viewport: Created a new viewport nr. [[3-", m_viewportCount, "]]"));
@@ -26,6 +37,8 @@ namespace dxvk {
     for (auto light : m_lights) {
       light->SetViewport(nullptr);
     }
+
+    m_commonViewport->SetD3D6Viewport(nullptr);
 
     Logger::debug(str::format("D3D6Viewport: Viewport nr. [[3-", m_viewportCount, "]] bites the dust"));
   }
@@ -50,6 +63,11 @@ namespace dxvk {
 
     // Some games query for legacy viewport interfaces
     if (unlikely(riid == __uuidof(IDirect3DViewport))) {
+      if (m_commonViewport->GetD3D3Viewport() != nullptr) {
+        Logger::debug("D3D6Viewport::QueryInterface: Query for existing IDirect3DViewport");
+        return m_commonViewport->GetD3D3Viewport()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("D3D6Viewport::QueryInterface: Query for IDirect3DViewport");
 
       Com<IDirect3DViewport> ppvProxyObject;
@@ -57,11 +75,16 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D3Viewport(std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new D3D3Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr));
 
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DViewport2))) {
+      if (m_commonViewport->GetD3D5Viewport() != nullptr) {
+        Logger::debug("D3D6Viewport::QueryInterface: Query for existing IDirect3DViewport2");
+        return m_commonViewport->GetD3D5Viewport()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("D3D6Viewport::QueryInterface: Query for IDirect3DViewport2");
 
       Com<IDirect3DViewport2> ppvProxyObject;
@@ -69,7 +92,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D5Viewport(std::move(ppvProxyObject), nullptr, this));
+      *ppvObject = ref(new D3D5Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr));
 
       return S_OK;
     }
@@ -90,7 +113,6 @@ namespace dxvk {
     return DDERR_ALREADYINITIALIZED;
   }
 
-  // Legacy call, technically should not be very common
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetViewport(D3DVIEWPORT *data) {
     Logger::debug(">>> D3D6Viewport::GetViewport");
 
@@ -100,20 +122,24 @@ namespace dxvk {
     if (unlikely(data->dwSize != sizeof(D3DVIEWPORT)))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(!m_viewportIsSet))
+    if (unlikely(!m_commonViewport->IsViewportSet()))
       return D3DERR_VIEWPORTDATANOTSET;
 
-    data->dwX      = m_viewport.dwX;
-    data->dwY      = m_viewport.dwY;
-    data->dwWidth  = m_viewport.dwWidth;
-    data->dwHeight = m_viewport.dwHeight;
-    data->dvMinZ   = m_viewport.dvMinZ;
-    data->dvMaxZ   = m_viewport.dvMaxZ;
-    // D3DVIEWPORT specific
-    data->dvMaxX   = m_viewport.dvMaxX;
-    data->dvMaxY   = m_viewport.dvMaxY;
-    data->dvScaleX = m_viewport.dvScaleX;
-    data->dvScaleY = m_viewport.dvScaleY;
+    d3d9::D3DVIEWPORT9* viewport9 = m_commonViewport->GetD3D9Viewport();
+
+    data->dwX      = viewport9->X;
+    data->dwY      = viewport9->Y;
+    data->dwWidth  = viewport9->Width;
+    data->dwHeight = viewport9->Height;
+    data->dvMinZ   = viewport9->MinZ;
+    data->dvMaxZ   = viewport9->MaxZ;
+    // Docs state: "Values of the D3DVALUE type describing the maximum and minimum
+    // nonhomogeneous coordinates of x, y, and z. Again, the relevant coordinates
+    // are the nonhomogeneous coordinates that result from the perspective division."
+    data->dvMaxX   = 1.0f;
+    data->dvMaxY   = 1.0f;
+    data->dvScaleX = 1.0f;
+    data->dvScaleY = 1.0f;
 
     return D3D_OK;
   }
@@ -136,23 +162,20 @@ namespace dxvk {
 
     // TODO: Check viewport dimensions against the currently set RT
 
+    d3d9::D3DVIEWPORT9* viewport9 = m_commonViewport->GetD3D9Viewport();
+
     // The docs state: "The method ignores the values in the dvMaxX, dvMaxY,
     // dvMinZ, and dvMaxZ members.", which appears correct.
-    m_viewport9.X      = m_viewport.dwX      = data->dwX;
-    m_viewport9.Y      = m_viewport.dwY      = data->dwY;
-    m_viewport9.Width  = m_viewport.dwWidth  = data->dwWidth;
-    m_viewport9.Height = m_viewport.dwHeight = data->dwHeight;
-    m_viewport9.MinZ   = m_viewport.dvMinZ   = 0.0f;
-    m_viewport9.MaxZ   = m_viewport.dvMaxZ   = 1.0f;
-    // D3DVIEWPORT specific
-    m_viewport.dvScaleX = data->dvScaleX;
-    m_viewport.dvScaleY = data->dvScaleY;
-    m_viewport.dvMaxX   = 1.0f;
-    m_viewport.dvMaxY   = 1.0f;
+    viewport9->X      = data->dwX;
+    viewport9->Y      = data->dwY;
+    viewport9->Width  = data->dwWidth;
+    viewport9->Height = data->dwHeight;
+    viewport9->MinZ   = 0.0f;
+    viewport9->MaxZ   = 1.0f;
 
-    m_viewportIsSet = TRUE;
+    m_commonViewport->MarkViewportAsSet();
 
-    if (m_isCurrentViewport)
+    if (m_commonViewport->IsCurrentViewport())
       ApplyViewport();
 
     return D3D_OK;
@@ -173,7 +196,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackground(D3DMATERIALHANDLE hMat) {
     Logger::debug(">>> D3D6Viewport::SetBackground");
 
-    if (unlikely(m_materialHandle == hMat))
+    if (unlikely(m_commonViewport->GetMaterialHandle() == hMat))
       return D3D_OK;
 
     D3D6Material* material6 = m_parent->GetMaterialFromHandle(hMat);
@@ -181,19 +204,14 @@ namespace dxvk {
     if (unlikely(material6 == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    m_materialHandle = hMat;
-    m_materialIsSet = TRUE;
+    m_commonViewport->MarkMaterialAsSet();
 
+    m_commonViewport->SetMaterialHandle(hMat);
     // The viewport will be set to the diffuse values of
     // the material/background when cleared. It is not used
     // in any other way as far as I can tell, certainly
     // not as a standard D3D9 material (see D3DLIGHTSTATE_MATERIAL).
-    D3DMATERIAL material;
-    material6->GetMaterial(&material);
-    m_backgroundColor = D3DCOLOR_RGBA(static_cast<BYTE>(material.dcvDiffuse.r * 255.0f),
-                                      static_cast<BYTE>(material.dcvDiffuse.g * 255.0f),
-                                      static_cast<BYTE>(material.dcvDiffuse.b * 255.0f),
-                                      static_cast<BYTE>(material.dcvDiffuse.a * 255.0f));
+    m_commonViewport->SetBackgroundColor(material6->GetMaterialColor());
 
     return D3D_OK;
   }
@@ -204,9 +222,9 @@ namespace dxvk {
     if (unlikely(material == nullptr || valid == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (likely(m_materialIsSet))
-      *material = m_materialHandle;
-    *valid = m_materialIsSet;
+    if (likely(m_commonViewport->IsMaterialSet()))
+      *material = m_commonViewport->GetMaterialHandle();
+    *valid = m_commonViewport->IsMaterialSet();
 
     return D3D_OK;
   }
@@ -232,7 +250,6 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // Legacy call, technically should not be very common
   HRESULT STDMETHODCALLTYPE D3D6Viewport::Clear(DWORD count, D3DRECT *rects, DWORD flags) {
     Logger::debug("<<< D3D6Viewport::Clear: Proxy");
 
@@ -249,22 +266,22 @@ namespace dxvk {
 
     // Temporarily activate this viewport in order to clear it
     d3d9::D3DVIEWPORT9 currentViewport9;
-    if (!m_isCurrentViewport) {
+    if (!m_commonViewport->IsCurrentViewport()) {
       D3D6Viewport* currentViewport = m_device->GetCurrentViewportInternal();
       if (currentViewport != nullptr) {
-        currentViewport9 = currentViewport->GetD3D9Viewport();
+        currentViewport9 = *currentViewport->GetCommonViewport()->GetD3D9Viewport();
       } else {
         m_device->GetD3D9()->GetViewport(&currentViewport9);
       }
-      m_device->GetD3D9()->SetViewport(&m_viewport9);
+      m_device->GetD3D9()->SetViewport(m_commonViewport->GetD3D9Viewport());
     }
 
-    HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, m_backgroundColor, 1.0f, 0);
+    HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, m_commonViewport->GetBackgroundColor(), 1.0f, 0.0f);
     if (unlikely(FAILED(hr9)))
       Logger::err("D3D6Viewport::Clear: Failed D3D9 Clear call");
 
     // Restore the previously active viewport
-    if (!m_isCurrentViewport) {
+    if (!m_commonViewport->IsCurrentViewport()) {
       m_device->GetD3D9()->SetViewport(&currentViewport9);
     }
 
@@ -290,7 +307,7 @@ namespace dxvk {
       light6->SetViewport(this);
     }
 
-    if (m_device != nullptr && m_isCurrentViewport)
+    if (m_device != nullptr && m_commonViewport->IsCurrentViewport())
       ApplyAndActivateLight(light6->GetIndex(), light6);
 
     return D3D_OK;
@@ -307,7 +324,7 @@ namespace dxvk {
     auto it = std::find(m_lights.begin(), m_lights.end(), light6);
     if (likely(it != m_lights.end())) {
       const DWORD light6Index = light6->GetIndex();
-      if (m_device != nullptr && m_isCurrentViewport && light6->IsActive()) {
+      if (m_device != nullptr && m_commonViewport->IsCurrentViewport() && light6->IsActive()) {
         Logger::debug(str::format("D3D6Viewport: Disabling light nr. ", light6Index));
         m_device->GetD3D9()->LightEnable(light6Index, FALSE);
       }
@@ -335,20 +352,28 @@ namespace dxvk {
     if (unlikely(data->dwSize != sizeof(D3DVIEWPORT2)))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(!m_viewportIsSet))
+    if (unlikely(!m_commonViewport->IsViewportSet()))
       return D3DERR_VIEWPORTDATANOTSET;
 
-    data->dwX      = m_viewport2.dwX;
-    data->dwY      = m_viewport2.dwY;
-    data->dwWidth  = m_viewport2.dwWidth;
-    data->dwHeight = m_viewport2.dwHeight;
-    data->dvMinZ   = m_viewport2.dvMinZ;
-    data->dvMaxZ   = m_viewport2.dvMaxZ;
-    // D3DVIEWPORT2 specific
-    data->dvClipX      = m_viewport2.dvClipX;
-    data->dvClipY      = m_viewport2.dvClipY;
-    data->dvClipWidth  = m_viewport2.dvClipWidth;
-    data->dvClipHeight = m_viewport2.dvClipHeight;
+    d3d9::D3DVIEWPORT9* viewport9 = m_commonViewport->GetD3D9Viewport();
+
+    data->dwX          = viewport9->X;
+    data->dwY          = viewport9->Y;
+    data->dwWidth      = viewport9->Width;
+    data->dwHeight     = viewport9->Height;
+    data->dvMinZ       = viewport9->MinZ;
+    data->dvMaxZ       = viewport9->MaxZ;
+    // Docs state: "In most cases, dvClipX is set to -1.0 and dvClipY is set
+    // to the inverse of the viewport's aspect ratio on the target surface,
+    // which can be calculated by dividing the dwHeight member by dwWidth.
+    // Similarly, the dvClipWidth member is typically 2.0 and dvClipHeight is
+    // set to twice the aspect ratio set in dwClipY. The dvMinZ and dvMaxZ
+    // are usually set to 0.0 and 1.0."
+    data->dvClipX      = -1.0f;
+    data->dvClipY      = -1.0f * (static_cast<float>(viewport9->Height) /
+                                  static_cast<float>(viewport9->Width));
+    data->dvClipWidth  =  2.0f;
+    data->dvClipHeight = -2.0f * data->dvClipY;
 
     return D3D_OK;
   }
@@ -371,22 +396,18 @@ namespace dxvk {
 
     // TODO: Check viewport dimensions against the currently set RT
 
-    m_viewport9.X      = m_viewport2.dwX      = data->dwX;
-    m_viewport9.Y      = m_viewport2.dwY      = data->dwY;
-    m_viewport9.Width  = m_viewport2.dwWidth  = data->dwWidth;
-    m_viewport9.Height = m_viewport2.dwHeight = data->dwHeight;
-    // TODO: Check if they should also be 0.0f & 1.0f here
-    m_viewport9.MinZ   = m_viewport2.dvMinZ   = data->dvMinZ;
-    m_viewport9.MaxZ   = m_viewport2.dvMaxZ   = data->dvMaxZ;
-    // D3DVIEWPORT2 specific
-    m_viewport2.dvClipX      = data->dvClipX;
-    m_viewport2.dvClipY      = data->dvClipY;
-    m_viewport2.dvClipWidth  = data->dvClipWidth;
-    m_viewport2.dvClipHeight = data->dvClipHeight;
+    d3d9::D3DVIEWPORT9* viewport9 = m_commonViewport->GetD3D9Viewport();
 
-    m_viewportIsSet = TRUE;
+    viewport9->X      = data->dwX;
+    viewport9->Y      = data->dwY;
+    viewport9->Width  = data->dwWidth;
+    viewport9->Height = data->dwHeight;
+    viewport9->MinZ   = data->dvMinZ;
+    viewport9->MaxZ   = data->dvMaxZ;
 
-    if (m_isCurrentViewport)
+    m_commonViewport->MarkViewportAsSet();
+
+    if (m_commonViewport->IsCurrentViewport())
       ApplyViewport();
 
     return D3D_OK;
@@ -429,14 +450,14 @@ namespace dxvk {
 
     // Temporarily activate this viewport in order to clear it
     d3d9::D3DVIEWPORT9 currentViewport9;
-    if (!m_isCurrentViewport) {
+    if (!m_commonViewport->IsCurrentViewport()) {
       D3D6Viewport* currentViewport = m_device->GetCurrentViewportInternal();
       if (currentViewport != nullptr) {
-        currentViewport9 = currentViewport->GetD3D9Viewport();
+        currentViewport9 = *currentViewport->GetCommonViewport()->GetD3D9Viewport();
       }  else {
         m_device->GetD3D9()->GetViewport(&currentViewport9);
       }
-      m_device->GetD3D9()->SetViewport(&m_viewport9);
+      m_device->GetD3D9()->SetViewport(m_commonViewport->GetD3D9Viewport());
     }
 
     HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, color, z, stencil);
@@ -444,7 +465,7 @@ namespace dxvk {
       Logger::err("D3D6Viewport::Clear2: Failed D3D9 Clear call");
 
     // Restore the previously active viewport
-    if (!m_isCurrentViewport) {
+    if (!m_commonViewport->IsCurrentViewport()) {
       m_device->GetD3D9()->SetViewport(&currentViewport9);
     }
 
@@ -452,12 +473,12 @@ namespace dxvk {
   }
 
   HRESULT D3D6Viewport::ApplyViewport() {
-    if (!m_viewportIsSet)
+    if (!m_commonViewport->IsViewportSet())
       return D3D_OK;
 
     Logger::debug("D3D6Viewport: Applying viewport to D3D9");
 
-    HRESULT hr = m_device->GetD3D9()->SetViewport(&m_viewport9);
+    HRESULT hr = m_device->GetD3D9()->SetViewport(m_commonViewport->GetD3D9Viewport());
     if(unlikely(FAILED(hr)))
       Logger::err("D3D6Viewport: Failed to set the D3D9 viewport");
 

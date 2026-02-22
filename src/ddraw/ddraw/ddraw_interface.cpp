@@ -174,7 +174,7 @@ namespace dxvk {
         return m_commonIntf->GetDD7Interface()->QueryInterface(riid, ppvObject);
       }
 
-      Logger::warn("DDrawInterface::QueryInterface: Query for IDirectDraw7");
+      Logger::debug("DDrawInterface::QueryInterface: Query for IDirectDraw7");
 
       Com<IDirectDraw7> ppvProxyObject;
       HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));

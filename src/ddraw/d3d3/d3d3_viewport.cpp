@@ -1,14 +1,22 @@
 #include "d3d3_viewport.h"
 
+#include "../d3d6/d3d6_viewport.h"
+
 namespace dxvk {
 
   uint32_t D3D3Viewport::s_viewportCount = 0;
 
-  D3D3Viewport::D3D3Viewport(Com<IDirect3DViewport>&& proxyViewport, D3D3Interface* pParent, IUnknown* origin)
+  D3D3Viewport::D3D3Viewport(D3DCommonViewport* commonViewport, Com<IDirect3DViewport>&& proxyViewport, D3D3Interface* pParent)
     : DDrawWrappedObject<D3D3Interface, IDirect3DViewport, IUnknown>(pParent, std::move(proxyViewport), nullptr)
-    , m_origin ( origin ) {
-    if (m_origin != nullptr)
-      m_origin->AddRef();
+    , m_commonViewport ( commonViewport ) {
+
+    if (m_commonViewport == nullptr)
+      m_commonViewport = new D3DCommonViewport();
+
+    if (m_commonViewport->GetOrigin() == nullptr)
+      m_commonViewport->SetOrigin(this);
+
+    m_commonViewport->SetD3D3Viewport(this);
 
     m_viewportCount = ++s_viewportCount;
 
@@ -16,8 +24,7 @@ namespace dxvk {
   }
 
   D3D3Viewport::~D3D3Viewport() {
-    if (m_origin != nullptr)
-      m_origin->Release();
+    m_commonViewport->SetD3D3Viewport(nullptr);
 
     Logger::debug(str::format("D3D3Viewport: Viewport nr. [[1-", m_viewportCount, "]] bites the dust"));
   }
@@ -87,6 +94,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Viewport::SetBackground(D3DMATERIALHANDLE hMat) {
+    // Workaround: Revenant sets the background on a IDirect3DViewport viewport
+    if (unlikely(m_commonViewport->GetD3D6Viewport() != nullptr)) {
+      Logger::debug(">>> D3D3Viewport::SetBackground");
+      return m_commonViewport->GetD3D6Viewport()->SetBackground(hMat);
+    }
+
     Logger::debug("<<< D3D3Viewport::SetBackground: Proxy");
     return m_proxy->SetBackground(hMat);
   }
