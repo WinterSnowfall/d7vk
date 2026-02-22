@@ -117,7 +117,7 @@ namespace dxvk {
     if (unlikely(riid == __uuidof(IUnknown)
               || riid == __uuidof(IDirectDrawSurface))) {
       if (m_commonSurf->GetDDSurface() != nullptr) {
-        Logger::warn("DDraw3Surface::QueryInterface: Query for existing IDirectDrawSurface");
+        Logger::debug("DDraw3Surface::QueryInterface: Query for existing IDirectDrawSurface");
         return m_commonSurf->GetDDSurface()->QueryInterface(riid, ppvObject);
       }
 
@@ -134,7 +134,7 @@ namespace dxvk {
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
       if (m_commonSurf->GetDD2Surface() != nullptr) {
-        Logger::warn("DDraw3Surface::QueryInterface: Query for existing IDirectDrawSurface2");
+        Logger::debug("DDraw3Surface::QueryInterface: Query for existing IDirectDrawSurface2");
         return m_commonSurf->GetDD2Surface()->QueryInterface(riid, ppvObject);
       }
 
@@ -151,7 +151,7 @@ namespace dxvk {
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface4))) {
       if (m_commonSurf->GetDD4Surface() != nullptr) {
-        Logger::warn("DDraw3Surface::QueryInterface: Query for existing IDirectDrawSurface4");
+        Logger::debug("DDraw3Surface::QueryInterface: Query for existing IDirectDrawSurface4");
         return m_commonSurf->GetDD4Surface()->QueryInterface(riid, ppvObject);
       }
 
@@ -168,7 +168,7 @@ namespace dxvk {
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface7))) {
       if (m_commonSurf->GetDD7Surface() != nullptr) {
-        Logger::warn("DDraw3Surface::QueryInterface: Query for existing IDirectDrawSurface7");
+        Logger::debug("DDraw3Surface::QueryInterface: Query for existing IDirectDrawSurface7");
         return m_commonSurf->GetDD7Surface()->QueryInterface(riid, ppvObject);
       }
 

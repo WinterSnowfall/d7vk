@@ -29,7 +29,8 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    if (unlikely(riid == __uuidof(IDirectDrawSurface))) {
+    if (unlikely(riid == __uuidof(IUnknown)
+              || riid == __uuidof(IDirectDrawSurface))) {
       Logger::debug("DDraw4GammaControl::QueryInterface: Query for IDirectDrawSurface");
       return m_parent->QueryInterface(riid, ppvObject);
     }

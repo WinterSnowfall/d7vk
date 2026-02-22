@@ -114,7 +114,7 @@ namespace dxvk {
     Logger::debug(str::format("   Phi:          ", m_light9.Phi));
 
     // Update the D3D9 light directly if it's actively being used
-    if (m_viewport != nullptr && m_viewport->IsCurrentViewport())
+    if (m_viewport != nullptr && m_viewport->GetCommonViewport()->IsCurrentViewport())
       m_viewport->ApplyAndActivateLight(m_lightCount, this);
 
     return D3D_OK;

@@ -1691,6 +1691,10 @@ namespace dxvk {
     { R"(\\gorky17\.exe$)", {{
       { "ddraw.depthWriteBack",             "True" },
     }} },
+    /* Revenant                                   */
+    { R"(\\Revenant\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */
