@@ -41,25 +41,19 @@ namespace dxvk {
     }
 
     bool IsActive() const {
-      return m_light.dwFlags & D3DLIGHT_ACTIVE;
+      return m_isActive;
     }
 
   private:
 
-    inline bool HasSpecular() const {
-      return !(m_light.dwFlags & D3DLIGHT_NO_SPECULAR);
-    }
+    bool             m_isActive    = false;
 
     static uint32_t  s_lightCount;
-    uint32_t         m_lightCount = 0;
+    uint32_t         m_lightCount  = 0;
 
-    D3D5Viewport*    m_viewport = nullptr;
+    D3D5Viewport*    m_viewport    = nullptr;
 
-    D3DLIGHT2        m_light = { };
-
-    DWORD            m_index9 = 0;
-
-    d3d9::D3DLIGHT9  m_light9 = { };
+    d3d9::D3DLIGHT9  m_light9      = { };
 
   };
 

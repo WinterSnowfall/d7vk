@@ -71,27 +71,29 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
+    const bool hasSpecular = data->dwSize == sizeof(D3DLIGHT2) ? !(reinterpret_cast<D3DLIGHT2*>(data)->dwFlags & D3DLIGHT_NO_SPECULAR)
+                                                               : true;
+
     // Docs: "Although this method's declaration specifies the lpLight parameter as being
     // the address of a D3DLIGHT structure, that structure is not normally used. Rather,
     // the D3DLIGHT2 structure is recommended to achieve the best lighting effects."
-    memcpy(&m_light, data, data->dwSize);
-    // D3DLIGHT structure lights are, apparently, considered to be active by default
-    m_light.dwFlags = data->dwSize == sizeof(D3DLIGHT2) ? reinterpret_cast<D3DLIGHT2*>(data)->dwFlags : D3DLIGHT_ACTIVE;
-
-    m_light9.Type         = d3d9::D3DLIGHTTYPE(m_light.dltType);
-    m_light9.Diffuse      = m_light.dcvColor;
-    m_light9.Specular     = HasSpecular() ? m_light.dcvColor : noLight;
+    m_light9.Type         = d3d9::D3DLIGHTTYPE(data->dltType);
+    m_light9.Diffuse      = data->dcvColor;
+    m_light9.Specular     = hasSpecular ? data->dcvColor : noLight;
     // Ambient light comes from the material
     m_light9.Ambient      = noLight;
-    m_light9.Position     = m_light.dvPosition;
-    m_light9.Direction    = m_light.dvDirection;
-    m_light9.Range        = m_light.dvRange;
-    m_light9.Falloff      = m_light.dvFalloff;
-    m_light9.Attenuation0 = m_light.dvAttenuation0;
-    m_light9.Attenuation1 = m_light.dvAttenuation1;
-    m_light9.Attenuation2 = m_light.dvAttenuation2;
-    m_light9.Theta        = m_light.dvTheta;
-    m_light9.Phi          = m_light.dvPhi;
+    m_light9.Position     = data->dvPosition;
+    m_light9.Direction    = data->dvDirection;
+    m_light9.Range        = data->dvRange;
+    m_light9.Falloff      = data->dvFalloff;
+    m_light9.Attenuation0 = data->dvAttenuation0;
+    m_light9.Attenuation1 = data->dvAttenuation1;
+    m_light9.Attenuation2 = data->dvAttenuation2;
+    m_light9.Theta        = data->dvTheta;
+    m_light9.Phi          = data->dvPhi;
+    // D3DLIGHT structure lights are, apparently, considered to be active by default
+    m_isActive            = data->dwSize == sizeof(D3DLIGHT2) ? (reinterpret_cast<D3DLIGHT2*>(data)->dwFlags & D3DLIGHT_ACTIVE)
+                                                              : true;
 
     Logger::debug(str::format(">>> D3D6Light::SetLight: Updated light nr. ", m_lightCount));
     Logger::debug(str::format("   Type:         ", m_light9.Type));
@@ -121,10 +123,21 @@ namespace dxvk {
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(!data->dwSize))
-      return DDERR_INVALIDPARAMS;
+    data->dltType         = D3DLIGHTTYPE(m_light9.Type);
+    data->dcvColor        = m_light9.Diffuse;
+    data->dcvColor        = m_light9.Specular;
+    data->dvPosition      = m_light9.Position;
+    data->dvDirection     = m_light9.Direction;
+    data->dvRange         = m_light9.Range;
+    data->dvFalloff       = m_light9.Falloff;
+    data->dvAttenuation0  = m_light9.Attenuation0;
+    data->dvAttenuation1  = m_light9.Attenuation1;
+    data->dvAttenuation2  = m_light9.Attenuation2;
+    data->dvTheta         = m_light9.Theta;
+    data->dvPhi           = m_light9.Phi;
 
-    memcpy(data, &m_light, data->dwSize);
+    if (data->dwSize == sizeof(D3DLIGHT2))
+      reinterpret_cast<D3DLIGHT2*>(data)->dwFlags = m_isActive;
 
     return D3D_OK;
   }
