@@ -77,8 +77,8 @@ namespace dxvk {
     }
 
     bool IsAlphaFormat() const {
-      return ((m_desc2.dwFlags & DDSD_ALPHABITDEPTH) && m_desc2.dwAlphaBitDepth != 0)
-          || ((m_desc.dwFlags  & DDSD_ALPHABITDEPTH) && m_desc.dwAlphaBitDepth  != 0);
+      return ((m_desc2.dwFlags & DDSD_PIXELFORMAT) && (m_desc2.ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS))
+          || ((m_desc.dwFlags  & DDSD_PIXELFORMAT) && (m_desc.ddpfPixelFormat.dwFlags  & DDPF_ALPHAPIXELS));
     }
 
     bool IsColorKeySet() const {
