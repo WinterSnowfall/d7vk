@@ -1734,6 +1734,14 @@ namespace dxvk {
     { R"(\\Revenant\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Re-Volt                                    */
+    { R"(\\revolt\.exe$)", {{
+      { "d3d7.emulateFSAA",                 "True" },
+    }} },
+    /* Sea Dogs                                   */
+    { R"(\\Sea Dogs\\ENGINE\.exe$)", {{
+      { "d3d7.emulateFSAA",                 "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */
