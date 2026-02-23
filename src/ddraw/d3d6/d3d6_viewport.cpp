@@ -276,7 +276,7 @@ namespace dxvk {
       m_device->GetD3D9()->SetViewport(m_commonViewport->GetD3D9Viewport());
     }
 
-    HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, m_commonViewport->GetBackgroundColor(), 1.0f, 0.0f);
+    HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, m_commonViewport->GetBackgroundColor(), 1.0f, 0u);
     if (unlikely(FAILED(hr9)))
       Logger::err("D3D6Viewport::Clear: Failed D3D9 Clear call");
 
@@ -461,12 +461,17 @@ namespace dxvk {
     }
 
     HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, color, z, stencil);
-    if (unlikely(FAILED(hr9)))
-      Logger::err("D3D6Viewport::Clear2: Failed D3D9 Clear call");
 
     // Restore the previously active viewport
     if (!m_commonViewport->IsCurrentViewport()) {
       m_device->GetD3D9()->SetViewport(&currentViewport9);
+    }
+
+    if (unlikely(FAILED(hr9))) {
+      Logger::err("D3D6Viewport::Clear2: Failed D3D9 Clear call");
+      // Unlike Clear(), Clear2() is supposed to error out on
+      // z/stencil clears and no z/stencil attachments
+      return hr;
     }
 
     return D3D_OK;

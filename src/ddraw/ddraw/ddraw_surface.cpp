@@ -732,35 +732,33 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::GetDC(HDC *lphDC) {
-    Logger::debug(">>> DDrawSurface::GetDC");
+    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      if (unlikely(lphDC == nullptr))
+        return DDERR_INVALIDPARAMS;
 
-    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent))
-      return m_proxy->GetDC(lphDC);
+      InitReturnPtr(lphDC);
 
-    if (unlikely(!IsInitialized())) {
-      Logger::debug("DDrawSurface::GetDC: Not yet initialized");
-      return m_proxy->GetDC(lphDC);
+      // Foward GetDC calls if we have drawn and the surface is flippable
+      RefreshD3D9Device();
+      if (m_d3d9Device != nullptr && (m_commonIntf->HasDrawn() &&
+                                      m_commonSurf->IsGuardableSurface())) {
+        Logger::debug(">>> DDrawSurface::GetDC");
+
+        if (unlikely(!IsInitialized())) {
+          HRESULT hrUpload = InitializeOrUploadD3D9();
+          if (unlikely(FAILED(hrUpload)))
+            Logger::warn("DDrawSurface::GetDC: Failed to initialize d3d9 surface");
+        }
+
+        HRESULT hr9 = m_d3d9->GetDC(lphDC);
+        if (unlikely(FAILED(hr9)))
+          Logger::warn("DDrawSurface::GetDC: Failed D3D9 call");
+        return hr9;
+      }
     }
 
-    // Proxy GetDC calls if we haven't yet drawn and the surface is flippable
-    RefreshD3D9Device();
-    if (m_d3d9Device != nullptr && !(m_commonIntf->HasDrawn() &&
-                                     m_commonSurf->IsGuardableSurface())) {
-      Logger::debug("DDrawSurface::GetDC: Not yet drawn flippable surface");
-      return m_proxy->GetDC(lphDC);
-    }
-
-    if (unlikely(lphDC == nullptr))
-      return DDERR_INVALIDPARAMS;
-
-    InitReturnPtr(lphDC);
-
-    HRESULT hr = m_d3d9->GetDC(lphDC);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("DDrawSurface::GetDC: Failed to get D3D9 DC");
-    }
-
-    return hr;
+    Logger::debug("<<< DDrawSurface::GetDC: Proxy");
+    return m_proxy->GetDC(lphDC);
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::GetFlipStatus(DWORD dwFlags) {
@@ -852,32 +850,42 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::ReleaseDC(HDC hDC) {
-    Logger::debug(">>> DDrawSurface::ReleaseDC");
+    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      // Foward ReleaseDC calls if we have drawn and the surface is flippable
+      RefreshD3D9Device();
+      if (m_d3d9Device != nullptr && (m_commonIntf->HasDrawn() &&
+                                      m_commonSurf->IsGuardableSurface())) {
+        Logger::debug(">>> DDrawSurface::ReleaseDC");
 
-    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
-      if (m_commonSurf->IsTexture() && !m_commonIntf->GetOptions()->apitraceMode)
+        if (unlikely(!IsInitialized())) {
+          HRESULT hrUpload = InitializeOrUploadD3D9();
+          if (unlikely(FAILED(hrUpload)))
+            Logger::warn("DDrawSurface::ReleaseDC: Failed to initialize d3d9 surface");
+        }
+
+        HRESULT hr9 = m_d3d9->ReleaseDC(hDC);
+        if (unlikely(FAILED(hr9)))
+          Logger::warn("DDrawSurface::ReleaseDC: Failed D3D9 call");
+        return hr9;
+      }
+    }
+
+    Logger::debug("<<< DDrawSurface::ReleaseDC: Proxy");
+
+    HRESULT hr = m_proxy->ReleaseDC(hDC);
+
+    if (likely(SUCCEEDED(hr))) {
+      // Textures and cubemaps get uploaded during SetTexture calls
+      if (m_commonSurf->IsTexture() || !m_commonIntf->GetOptions()->apitraceMode) {
         m_commonSurf->DirtyMipMaps();
-      return m_proxy->ReleaseDC(hDC);
-    }
-
-    if (unlikely(!IsInitialized())) {
-      Logger::debug("DDrawSurface::ReleaseDC: Not yet initialized");
-      return m_proxy->ReleaseDC(hDC);
-    }
-
-    // Proxy ReleaseDC calls if we haven't yet drawn and the surface is flippable
-    RefreshD3D9Device();
-    if (m_d3d9Device != nullptr && !(m_commonIntf->HasDrawn() &&
-                                     m_commonSurf->IsGuardableSurface())) {
-      Logger::debug("DDrawSurface::ReleaseDC: Not yet drawn flippable surface");
-      if (m_commonSurf->IsTexture() && !m_commonIntf->GetOptions()->apitraceMode)
-        m_commonSurf->DirtyMipMaps();
-      return m_proxy->ReleaseDC(hDC);
-    }
-
-    HRESULT hr = m_d3d9->ReleaseDC(hDC);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("DDrawSurface::ReleaseDC: Failed to release d3d9 DC");
+      } else if (unlikely(m_commonIntf->GetOptions()->apitraceMode)) {
+        // We should ideally upload the surface contents here at all times,
+        // however some games are amazing, and do hundreds of locks on the same
+        // surface per frame, so this would absolutely tank performance
+        HRESULT hrUpload = InitializeOrUploadD3D9();
+        if (unlikely(FAILED(hrUpload)))
+          Logger::warn("DDrawSurface::ReleaseDC: Failed upload to d3d9 surface");
+      }
     }
 
     return hr;
