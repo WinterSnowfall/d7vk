@@ -81,34 +81,20 @@ namespace dxvk {
           || ((m_desc.dwFlags  & DDSD_PIXELFORMAT) && (m_desc.ddpfPixelFormat.dwFlags  & DDPF_ALPHAPIXELS));
     }
 
-    bool IsColorKeySet() const {
-      return m_isColorKeySet;
-    }
-
     bool HasValidColorKey() const {
-      return m_isColorKeySet && m_colorKey.dwColorSpaceLowValue == m_colorKey.dwColorSpaceHighValue;
-    }
-
-    void SetColorKey(DDCOLORKEY* colorKey) {
-      m_colorKey.dwColorSpaceLowValue  = colorKey->dwColorSpaceLowValue;
-      m_colorKey.dwColorSpaceHighValue = colorKey->dwColorSpaceHighValue;
-      m_isColorKeySet = true;
-    }
-
-    void ClearColorKey() {
-      m_colorKey.dwColorSpaceLowValue  = 0;
-      m_colorKey.dwColorSpaceHighValue = 0;
-      m_isColorKeySet = false;
+      return (m_desc2.dwFlags & DDSD_CKSRCBLT) || (m_desc.dwFlags & DDSD_CKSRCBLT);
     }
 
     const DDCOLORKEY* GetColorKey() const {
-      return &m_colorKey;
+      return (m_desc2.dwFlags & DDSD_CKSRCBLT) ? &m_desc2.ddckCKSrcBlt : &m_desc.ddckCKSrcBlt;
     }
 
-    DWORD GetColorKeyNormalized() const {
+    DDCOLORKEY GetColorKeyNormalized() const {
       const DDPIXELFORMAT* pixelFormat = (m_desc2.dwFlags & DDSD_PIXELFORMAT) ? &m_desc2.ddpfPixelFormat : &m_desc.ddpfPixelFormat;
+      const DDCOLORKEY*    colorKey    = (m_desc2.dwFlags & DDSD_CKSRCBLT) ? &m_desc2.ddckCKSrcBlt : &m_desc.ddckCKSrcBlt;
 
-      return ColorKeyToRGB(pixelFormat, m_colorKey.dwColorSpaceHighValue);
+      // Empire of the Ants relies on us using the "Low" color space DWORD
+      return ColorKeyToRGB(pixelFormat, colorKey->dwColorSpaceLowValue);
     }
 
     d3d9::D3DFORMAT GetD3D9Format() const {
@@ -322,7 +308,6 @@ namespace dxvk {
     bool                      m_dirtyMipMaps  = false;
     bool                      m_isDesc2Set    = false;
     bool                      m_isDescSet     = false;
-    bool                      m_isColorKeySet = false;
 
     bool                      m_isTextureOrCubeMap      = false;
     bool                      m_isBackBufferOrFlippable = false;
@@ -335,7 +320,6 @@ namespace dxvk {
 
     DDSURFACEDESC             m_desc  = { };
     DDSURFACEDESC2            m_desc2 = { };
-    DDCOLORKEY                m_colorKey = { };
     d3d9::D3DFORMAT           m_format9 = d3d9::D3DFMT_UNKNOWN;
 
     Com<DDrawClipper>         m_clipper;

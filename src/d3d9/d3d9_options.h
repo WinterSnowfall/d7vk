@@ -174,8 +174,8 @@ namespace dxvk {
     /// Use the uber shader for fixed function fragment shaders.
     bool ffUbershaderFS;
 
-    /// Use high or low precision for color key matching (D3D7 quirk).
-    bool colorKeyHighPrecision;
+    /// Circumvents the texelFetch color key shader path.
+    bool colorKeyCompatibility;
 
   };
 
