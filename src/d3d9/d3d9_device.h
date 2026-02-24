@@ -1490,10 +1490,11 @@ namespace dxvk {
       return D3D_OK;
     }
 
-    HRESULT SetColorKey(DWORD colorKey) {
-      if (likely(m_state.colorKey != colorKey)) {
+    HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh) {
+      if (likely(m_state.colorKeyLow != colorKeyLow || m_state.colorKeyHigh != colorKeyHigh)) {
         m_dirty.set(D3D9DeviceDirtyFlag::FFColorKey);
-        m_state.colorKey = colorKey;
+        m_state.colorKeyLow = colorKeyLow;
+        m_state.colorKeyHigh = colorKeyHigh;
       }
 
       return D3D_OK;

@@ -31,11 +31,6 @@ layout(location = 0) out vec4 out_Color0;
 const uint TextureArgCount = 3;
 const uint MaxSharedPushDataSize = 64;
 
-const float ColorKeyLowPrecision  = 0.02;
-// Lower values (for high precision) work well on Nvidia,
-// but not on AMD for some reason...
-const float ColorKeyHighPrecision = 0.003;
-
 #include "d3d9_fixed_function_common.glsl"
 
 struct D3D9FFTextureStage {
@@ -292,6 +287,23 @@ vec4 sampleTexture(uint stage, vec4 texcoord, vec4 previousStageTextureVal) {
                 texcoord.z = adjustDref(texcoord.z, stage);
                 texVal = texture(sampler2DShadow(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), texcoord.xyz).xxxx;
             } else {
+                if (!specBool(SpecFFColorKeyCompatibility) && specBool(SpecFFColorKeyEnabled)) {
+                    const ivec2 texSize = textureSize(sampler2D(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), 0);
+                    const ivec2 pixelCoord = ivec2(texcoord.xy * vec2(texSize));
+                    texVal = texelFetch(sampler2D(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), pixelCoord, 0);
+                    const float ckrl = bitfieldExtract(specUint(SpecFFColorKeyLow),  0,  8);
+                    const float ckgl = bitfieldExtract(specUint(SpecFFColorKeyLow),  8,  8);
+                    const float ckbl = bitfieldExtract(specUint(SpecFFColorKeyLow),  16, 8);
+                    const float ckrh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 0,  8);
+                    const float ckgh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 8,  8);
+                    const float ckbh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 16, 8);
+                    const ivec3 src = ivec3(texVal.rgb * 255.0);
+                    if (src.r >= ckrl && src.g >= ckgl && src.b >= ckbl &&
+                        src.r <= ckrh && src.g <= ckgh && src.b <= ckbh) {
+                        discard;
+                    }
+                }
+
                 texVal = texture(sampler2D(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), texcoord.xy);
             }
             break;
@@ -313,22 +325,17 @@ vec4 sampleTexture(uint stage, vec4 texcoord, vec4 previousStageTextureVal) {
             break;
     }
 
-    if (specBool(SpecFFColorKeyEnabled)) {
-        const float ckr = bitfieldExtract(specUint(SpecFFColorKey), 0,  8) / 255.0;
-        const float ckg = bitfieldExtract(specUint(SpecFFColorKey), 8,  8) / 255.0;
-        const float ckb = bitfieldExtract(specUint(SpecFFColorKey), 16, 8) / 255.0;
-        // Equality comparisons in case of black color keying
-        if (ckr == 0.0 && ckg == 0.0 && ckb == 0.0) {
-            if (texVal.x == ckr && texVal.y == ckg && texVal.z == ckb) {
-                discard;
-            }
-        // Margin of tolerance comparisons for non-zero/non-black color keying
-        } else {
-            const float epsilon = specBool(SpecFFColorKeyPrecision) ? ColorKeyHighPrecision : ColorKeyLowPrecision;
-            if (texVal.x <= ckr + epsilon && texVal.y <= ckg + epsilon && texVal.z <= ckb + epsilon &&
-                texVal.x >= ckr - epsilon && texVal.y >= ckg - epsilon && texVal.z >= ckb - epsilon) {
-                discard;
-            }
+    if (specBool(SpecFFColorKeyCompatibility) && specBool(SpecFFColorKeyEnabled)) {
+        const float ckrl = bitfieldExtract(specUint(SpecFFColorKeyLow),  0,  8);
+        const float ckgl = bitfieldExtract(specUint(SpecFFColorKeyLow),  8,  8);
+        const float ckbl = bitfieldExtract(specUint(SpecFFColorKeyLow),  16, 8);
+        const float ckrh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 0,  8);
+        const float ckgh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 8,  8);
+        const float ckbh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 16, 8);
+        const ivec3 src = ivec3(texVal.rgb * 255.0);
+        if (src.r >= ckrl && src.g >= ckgl && src.b >= ckbl &&
+            src.r <= ckrh && src.g <= ckgh && src.b <= ckbh) {
+            discard;
         }
     }
 

@@ -61,9 +61,9 @@ IDxvkD3D8Bridge : public IUnknown {
   /**
    * \brief Updates the color key transparency value in D3D9
    *
-   * \param [in] Params DWORD value to be used
+   * \param [in] Params DWORD, DWORD low and high values to be used
    */
-  virtual HRESULT SetColorKey(DWORD colorKey) = 0;
+  virtual HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh) = 0;
 };
 
 /**
@@ -135,7 +135,7 @@ namespace dxvk {
 
     HRESULT SetColorKeyState(bool colorKeyState);
 
-    HRESULT SetColorKey(DWORD colorKey);
+    HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh);
 
   private:
 

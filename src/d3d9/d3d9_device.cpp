@@ -200,7 +200,7 @@ namespace dxvk {
 
     m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
 
-    m_specInfo.set<SpecFFColorKeyPrecision>(m_d3d9Options.colorKeyHighPrecision ? true : false);
+    m_specInfo.set<SpecFFColorKeyCompatibility>(m_d3d9Options.colorKeyCompatibility ? true : false);
     m_specInfo.set<SpecDrefScaling, uint32_t>(m_d3d9Options.drefScaling);
 
     BindFFUbershader<D3D9ShaderType::VertexShader>();
@@ -6943,7 +6943,10 @@ namespace dxvk {
   void D3D9DeviceEx::UpdateColorKey() {
     m_dirty.clr(D3D9DeviceDirtyFlag::FFColorKey);
 
-    if (m_specInfo.set<SpecFFColorKey>(m_state.colorKey))
+    bool dirty = m_specInfo.set<SpecFFColorKeyLow>(m_state.colorKeyLow);
+         dirty|= m_specInfo.set<SpecFFColorKeyHigh>(m_state.colorKeyHigh);
+
+    if (dirty)
       m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
   }
 

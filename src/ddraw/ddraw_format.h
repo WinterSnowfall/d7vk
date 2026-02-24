@@ -858,7 +858,7 @@ namespace dxvk {
     }
   }
 
-  inline uint8_t GetColorChannel(DWORD pixel, DWORD mask) {
+  inline DDCOLORKEY GetColorChannel(DWORD pixel, DWORD mask) {
     uint32_t shift = 0;
     DWORD cmask = mask;
     while ((cmask & 1) == 0) {
@@ -876,18 +876,36 @@ namespace dxvk {
 
     DWORD value = (pixel & mask) >> shift;
     DWORD max = (1 << bits) - 1;
-    return static_cast<uint8_t>(value * 255.0 / max);
+    float cvalue = (float)value * 255.0 / (float)max;
+    float half = 255.0 / (2.0 * (float)max);
+    float minRange = cvalue - half;
+    float maxRange = cvalue + half;
+
+    DDCOLORKEY colorKey = { };
+    colorKey.dwColorSpaceLowValue  = std::floor(std::max(0.0f, floorf(minRange - 0.5)));
+    colorKey.dwColorSpaceHighValue = std::ceil(std::min(255.0f, floorf(maxRange + 0.5)));
+
+    return colorKey;
   }
 
-  inline DWORD ColorKeyToRGB(const DDPIXELFORMAT* fmt, DWORD colorKey) {
+  inline DDCOLORKEY ColorKeyToRGB(const DDPIXELFORMAT* fmt, DWORD colorKey) {
+    DDCOLORKEY rgbColorKey = { };
+
     if (unlikely(!(fmt->dwFlags & DDPF_RGB)))
-      return 0;
+      return rgbColorKey;
 
-    uint8_t r = GetColorChannel(colorKey, fmt->dwRBitMask);
-    uint8_t g = GetColorChannel(colorKey, fmt->dwGBitMask);
-    uint8_t b = GetColorChannel(colorKey, fmt->dwBBitMask);
+    DDCOLORKEY r = GetColorChannel(colorKey, fmt->dwRBitMask);
+    DDCOLORKEY g = GetColorChannel(colorKey, fmt->dwGBitMask);
+    DDCOLORKEY b = GetColorChannel(colorKey, fmt->dwBBitMask);
 
-    return r | (g << 8) | (b << 16);
+    rgbColorKey.dwColorSpaceLowValue  = r.dwColorSpaceLowValue |
+                                       (g.dwColorSpaceLowValue << 8) |
+                                       (b.dwColorSpaceLowValue << 16);
+    rgbColorKey.dwColorSpaceHighValue = r.dwColorSpaceHighValue |
+                                       (g.dwColorSpaceHighValue << 8) |
+                                       (b.dwColorSpaceHighValue << 16);
+
+    return rgbColorKey;
   }
 
 }
