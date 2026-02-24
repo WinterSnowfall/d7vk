@@ -102,8 +102,8 @@ namespace dxvk {
     return m_device->SetColorKeyState(colorKeyState);
   }
 
-  HRESULT DxvkD3D8Bridge::SetColorKey(DWORD colorKey) {
-    return m_device->SetColorKey(colorKey);
+  HRESULT DxvkD3D8Bridge::SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh) {
+    return m_device->SetColorKey(colorKeyLow, colorKeyHigh);
   }
 
   DxvkD3D8InterfaceBridge::DxvkD3D8InterfaceBridge(D3D9InterfaceEx* pObject)

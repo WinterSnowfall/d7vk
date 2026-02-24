@@ -53,16 +53,6 @@ namespace dxvk {
       }
     }
 
-    // Retrieve and cache the proxy surface color key
-    if (m_commonSurf->HasColorKey() && !m_commonSurf->IsColorKeySet()) {
-      DDCOLORKEY colorKey;
-
-      HRESULT hr = m_proxy->GetColorKey(DDCKEY_SRCBLT, &colorKey);
-      // Can return DDERR_NOCOLORKEY
-      if (SUCCEEDED(hr))
-        m_commonSurf->SetColorKey(&colorKey);
-    }
-
     if (m_commonSurf->GetOrigin() == nullptr)
       m_commonSurf->SetOrigin(this);
 
@@ -897,18 +887,15 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (dwFlags == DDCKEY_SRCBLT) {
-      Logger::debug("DDraw4Surface::SetColorKey: Updating DDCKEY_SRCBLT color key");
+    // Retrieve and cache the updated proxy surface desc
+    DDSURFACEDESC2 desc2;
+    desc2.dwSize = sizeof(DDSURFACEDESC2);
+    hr = m_proxy->GetSurfaceDesc(&desc2);
 
-      if (lpDDColorKey != nullptr) {
-        m_commonSurf->SetColorKey(lpDDColorKey);
-
-        if (unlikely(lpDDColorKey->dwColorSpaceLowValue  != 0 ||
-                    lpDDColorKey->dwColorSpaceHighValue != 0))
-          Logger::debug("DDraw4Surface::SetColorKey: Use of non-black color key");
-      } else {
-        m_commonSurf->ClearColorKey();
-      }
+    if (unlikely(FAILED(hr))) {
+      Logger::err("DDraw4Surface::SetColorKey: Failed to retrieve updated surface desc");
+    } else {
+      m_commonSurf->SetDesc2(desc2);
     }
 
     return DD_OK;
