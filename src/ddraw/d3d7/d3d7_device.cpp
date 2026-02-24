@@ -527,8 +527,11 @@ namespace dxvk {
 
         const bool validColorKey = m_textures[0] != nullptr ? m_textures[0]->GetCommonSurface()->HasValidColorKey() : false;
         m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
-        if (m_colorKeyEnabled && validColorKey)
-          m_bridge->SetColorKey(m_textures[0]->GetCommonSurface()->GetColorKeyNormalized());
+        if (m_colorKeyEnabled && validColorKey) {
+          DDCOLORKEY normalizedColorKey = m_textures[0]->GetCommonSurface()->GetColorKeyNormalized();
+          m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
+                                normalizedColorKey.dwColorSpaceHighValue);
+        }
 
         return D3D_OK;
       }
@@ -1186,10 +1189,13 @@ namespace dxvk {
       }
 
       if (likely(stage == 0)) {
-        const bool colorKeyState = m_colorKeyEnabled && surface7->GetCommonSurface()->HasValidColorKey();
-        m_bridge->SetColorKeyState(colorKeyState);
-        if (colorKeyState)
-          m_bridge->SetColorKey(surface7->GetCommonSurface()->GetColorKeyNormalized());
+        const bool validColorKey = surface7->GetCommonSurface()->HasValidColorKey();
+        m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
+        if (m_colorKeyEnabled && validColorKey) {
+          DDCOLORKEY normalizedColorKey = surface7->GetCommonSurface()->GetColorKeyNormalized();
+          m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
+                                normalizedColorKey.dwColorSpaceHighValue);
+        }
       }
     } else {
       d3d9::IDirect3DCubeTexture9* cube9 = surface7->GetD3D9CubeTexture();

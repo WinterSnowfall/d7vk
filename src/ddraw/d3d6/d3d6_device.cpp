@@ -957,8 +957,11 @@ namespace dxvk {
 
         const bool validColorKey = m_textures[0] != nullptr ? m_textures[0]->GetParent()->GetCommonSurface()->HasValidColorKey() : false;
         m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
-        if (m_colorKeyEnabled && validColorKey)
-          m_bridge->SetColorKey(m_textures[0]->GetParent()->GetCommonSurface()->GetColorKeyNormalized());
+        if (m_colorKeyEnabled && validColorKey) {
+          DDCOLORKEY normalizedColorKey = m_textures[0]->GetParent()->GetCommonSurface()->GetColorKeyNormalized();
+          m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
+                                normalizedColorKey.dwColorSpaceHighValue);
+        }
 
         return D3D_OK;
       }
@@ -1548,10 +1551,13 @@ namespace dxvk {
           m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
         }
 
-        const bool colorKeyState = m_colorKeyEnabled && surface6->GetCommonSurface()->HasValidColorKey();
-        m_bridge->SetColorKeyState(colorKeyState);
-        if (colorKeyState)
-          m_bridge->SetColorKey(surface6->GetCommonSurface()->GetColorKeyNormalized());
+        const bool validColorKey = surface6->GetCommonSurface()->HasValidColorKey();
+        m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
+        if (m_colorKeyEnabled && validColorKey) {
+          DDCOLORKEY normalizedColorKey = surface6->GetCommonSurface()->GetColorKeyNormalized();
+          m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
+                                normalizedColorKey.dwColorSpaceHighValue);
+        }
       }
     }
 
