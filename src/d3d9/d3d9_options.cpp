@@ -81,7 +81,7 @@ namespace dxvk {
     this->drefScaling                   = config.getOption<int32_t>     ("d3d8.scaleDref",                     0);
 
     // D3D7 options
-    this->colorKeyHighPrecision         = config.getOption<bool>        ("d3d7.colorKeyHighPrecision",         true);
+    this->colorKeyCompatibility         = config.getOption<bool>        ("d3d7.colorKeyCompatibility",         false);
 
     // Clamp the shader model value between 0 and 3
     this->shaderModel    = dxvk::clamp(this->shaderModel, 0u, 3u);

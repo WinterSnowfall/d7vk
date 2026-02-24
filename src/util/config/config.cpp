@@ -1633,6 +1633,7 @@ namespace dxvk {
     }} },
     /* Hard Truck 2: King of the Road             */
     { R"(\\king\.exe$)", {{
+      { "d3d7.colorKeyCompatibility",       "True" },
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
 
@@ -1729,10 +1730,6 @@ namespace dxvk {
     { R"(\\SWEP1RCR\.exe$)", {{
       { "ddraw.depthWriteBack",             "True" },
     }} },
-    /* Dino Crisis - fixes color keying artifacts */
-    { R"(\\dino\.exe$)", {{
-      { "d3d7.colorKeyHighPrecision",      "False" },
-    }} },
     /* Gorky 17 - Fixes crash on game start       */
     { R"(\\gorky17\.exe$)", {{
       { "ddraw.depthWriteBack",             "True" },
@@ -1748,6 +1745,15 @@ namespace dxvk {
     /* Sea Dogs                                   */
     { R"(\\Sea Dogs\\ENGINE\.exe$)", {{
       { "d3d7.emulateFSAA",                 "True" },
+    }} },
+    /* Empire of the Ants                         */
+    { R"(\\Empire of the Ants\\Game\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Slave Zero - will not start in 32-bit      *
+     * color mode without D32 support             */
+    { R"(\\SlaveZero\.exe$)", {{
+      { "d3d7.useD24X8forD32",              "True" },
     }} },
 
     /**********************************************/
@@ -1806,6 +1812,10 @@ namespace dxvk {
     /* FIFA '99                                   */
     { R"(\\fifa99\.exe$)", {{
       { "d3d7.emulateFSAA",                 "True" },
+    }} },
+    /* The Longest Journey                        */
+    { R"(\\The Longest Journey\\game.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
 
   };
