@@ -263,6 +263,23 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE3 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
     Logger::debug("<<< DDraw3Surface::Blt: Proxy");
 
+    // It's highly unlikely anyone would do depth blits with IDirectDrawSurface3
+    if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
+      DDraw3Surface* sourceSurface = static_cast<DDraw3Surface*>(lpDDSrcSurface);
+      if (unlikely(sourceSurface->GetCommonSurface()->IsGuardableSurface())) {
+        static bool s_swapchainSurfaceWarningShown;
+
+        if (!std::exchange(s_swapchainSurfaceWarningShown, true))
+          Logger::warn("DDraw3Surface::Blt: Source surface is a swapchain surface");
+
+      } else if (unlikely(sourceSurface->GetCommonSurface()->IsDepthStencil())) {
+        static bool s_depthStencilWarningShown;
+
+        if (!std::exchange(s_depthStencilWarningShown, true))
+          Logger::warn("DDraw3Surface::Blt: Source surface is a depth stencil");
+      }
+    }
+
     RefreshD3D9Device();
     if (likely(m_d3d9Device != nullptr)) {
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
@@ -281,35 +298,23 @@ namespace dxvk {
       }
     }
 
-    if (unlikely(m_commonSurf->IsDepthStencil())) {
-      // Forward DDBLT_DEPTHFILL clears to D3D9 if done on the current depth stencil
-      if (lpDDSrcSurface == nullptr &&
-          (dwFlags & DDBLT_DEPTHFILL) &&
-           lpDDBltFx != nullptr &&
-           m_d3d9Device != nullptr &&
-           m_commonIntf->IsCurrentD3D9DepthStencil(m_parent->GetD3D9())) {
-        Logger::debug("DDraw3Surface::Blt: Clearing D3D9 depth stencil");
+    // Forward DDBLT_DEPTHFILL clears to D3D9 if done on the current depth stencil
+    if (unlikely(lpDDSrcSurface == nullptr &&
+                 (dwFlags & DDBLT_DEPTHFILL) &&
+                 lpDDBltFx != nullptr &&
+                 m_commonIntf->IsCurrentD3D9DepthStencil(m_d3d9.ptr()))) {
+      Logger::debug("DDraw3Surface::Blt: Clearing d3d9 depth stencil");
 
-        const float zClear = m_commonSurf->GetNormalizedFloatDepth(lpDDBltFx->dwFillDepth);
-        if (lpDestRect == nullptr) {
-          m_d3d9Device->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, zClear, 0);
-        } else {
-          D3DRECT rect9;
-          memcpy(&rect9, lpDestRect, sizeof(D3DRECT));
-          m_d3d9Device->Clear(1, &rect9, D3DCLEAR_ZBUFFER, 0, zClear, 0);
-        }
+      HRESULT hrClear;
+      const float zClear = m_commonSurf->GetNormalizedFloatDepth(lpDDBltFx->dwFillDepth);
+
+      if (lpDestRect == nullptr) {
+        hrClear = m_d3d9Device->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, zClear, 0);
+      } else {
+        hrClear = m_d3d9Device->Clear(1, reinterpret_cast<D3DRECT*>(lpDestRect), D3DCLEAR_ZBUFFER, 0, zClear, 0);
       }
-    }
-
-    // It's highly unlikely anyone would do depth blits with IDirectDrawSurface3
-    if (likely(m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
-      DDraw3Surface* ddraw3Depth = static_cast<DDraw3Surface*>(lpDDSrcSurface);
-      if (unlikely(ddraw3Depth != nullptr && ddraw3Depth->GetCommonSurface()->IsDepthStencil())) {
-        static bool s_depthStencilWarningShown;
-
-        if (!std::exchange(s_depthStencilWarningShown, true))
-          Logger::warn("DDraw3Surface::Blt: Source surface is a depth stencil");
-      }
+      if (unlikely(FAILED(hrClear)))
+        Logger::warn("DDraw3Surface::Blt: Failed to clear d3d9 depth");
     }
 
     HRESULT hr;
@@ -354,6 +359,23 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw3Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE3 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDraw3Surface::BltFast: Proxy");
 
+    // It's highly unlikely anyone would do depth blits with IDirectDrawSurface3
+    if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
+      DDraw3Surface* sourceSurface = static_cast<DDraw3Surface*>(lpDDSrcSurface);
+      if (unlikely(sourceSurface->GetCommonSurface()->IsGuardableSurface())) {
+        static bool s_swapchainSurfaceWarningShown;
+
+        if (!std::exchange(s_swapchainSurfaceWarningShown, true))
+          Logger::warn("DDraw3Surface::BltFast: Source surface is a swapchain surface");
+
+      } else if (unlikely(sourceSurface->GetCommonSurface()->IsDepthStencil())) {
+        static bool s_depthStencilWarningShown;
+
+        if (!std::exchange(s_depthStencilWarningShown, true))
+          Logger::warn("DDraw3Surface::BltFast: Source surface is a depth stencil");
+      }
+    }
+
     RefreshD3D9Device();
     if (likely(m_d3d9Device != nullptr)) {
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
@@ -369,17 +391,6 @@ namespace dxvk {
         m_commonIntf->ResetDrawTracking();
         m_d3d9Device->Present(NULL, NULL, NULL, NULL);
         return DD_OK;
-      }
-    }
-
-    // It's highly unlikely anyone would do depth blits with IDirectDrawSurface3
-    if (likely(m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
-      DDraw3Surface* ddraw3Depth = static_cast<DDraw3Surface*>(lpDDSrcSurface);
-      if (unlikely(ddraw3Depth != nullptr && ddraw3Depth->GetCommonSurface()->IsDepthStencil())) {
-        static bool s_depthStencilWarningShown;
-
-        if (!std::exchange(s_depthStencilWarningShown, true))
-          Logger::warn("DDraw3Surface::BltFast: Source surface is a depth stencil");
       }
     }
 
