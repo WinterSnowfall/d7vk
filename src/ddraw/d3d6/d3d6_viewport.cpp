@@ -367,8 +367,7 @@ namespace dxvk {
     // to the inverse of the viewport's aspect ratio on the target surface,
     // which can be calculated by dividing the dwHeight member by dwWidth.
     // Similarly, the dvClipWidth member is typically 2.0 and dvClipHeight is
-    // set to twice the aspect ratio set in dwClipY. The dvMinZ and dvMaxZ
-    // are usually set to 0.0 and 1.0."
+    // set to twice the aspect ratio set in dwClipY."
     data->dvClipX      = -1.0f;
     data->dvClipY      = -1.0f * (static_cast<float>(viewport9->Height) /
                                   static_cast<float>(viewport9->Width));
@@ -402,8 +401,10 @@ namespace dxvk {
     viewport9->Y      = data->dwY;
     viewport9->Width  = data->dwWidth;
     viewport9->Height = data->dwHeight;
-    viewport9->MinZ   = data->dvMinZ;
-    viewport9->MaxZ   = data->dvMaxZ;
+    // Empire of the Ants uses 1.0f and 1000000.0f, so the expectation
+    // is most likely for these values to be normalized to [0.0f, 1.0f]
+    viewport9->MinZ   = data->dvMaxZ <= 1.0f ? data->dvMinZ : data->dvMinZ / data->dvMaxZ;
+    viewport9->MaxZ   = data->dvMaxZ <= 1.0f ? data->dvMaxZ : 1.0f;
 
     m_commonViewport->MarkViewportAsSet();
 

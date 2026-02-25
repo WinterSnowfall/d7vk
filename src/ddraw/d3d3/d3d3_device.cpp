@@ -41,11 +41,11 @@ namespace dxvk {
 
     if (unlikely(riid == __uuidof(IDirect3DDevice2))) {
       if (likely(m_parent != nullptr)) {
-        Logger::debug("D3D3Device::QueryInterface: Query for IDirect3DDevice 2");
+        Logger::debug("D3D3Device::QueryInterface: Query for IDirect3DDevice2");
         m_parent->QueryInterface(riid, ppvObject);
       }
 
-      Logger::warn("D3D3Device::QueryInterface: Query for IDirect3DDevice 2");
+      Logger::warn("D3D3Device::QueryInterface: Query for IDirect3DDevice2");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
 

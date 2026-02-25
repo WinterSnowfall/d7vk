@@ -1629,6 +1629,10 @@ namespace dxvk {
       { "d3d7.colorKeyCompatibility",       "True" },
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Anno 1503                                  */
+    { R"(\\1503Startup\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */

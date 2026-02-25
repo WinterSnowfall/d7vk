@@ -456,8 +456,10 @@ namespace dxvk {
 
     // As opposed to D3D8/9, D3D7 actually validates and
     // errors out in case of unknown/invalid render states
-    if (unlikely(!IsValidD3D7RenderStateType(dwRenderStateType)))
+    if (unlikely(!IsValidD3D7RenderStateType(dwRenderStateType))) {
+      Logger::warn(str::format("D3D7Device::SetRenderState: Invalid render state ", dwRenderStateType));
       return DDERR_INVALIDPARAMS;
+    }
 
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
 
@@ -574,8 +576,10 @@ namespace dxvk {
 
     // As opposed to D3D8/9, D3D7 actually validates and
     // errors out in case of unknown/invalid render states
-    if (unlikely(!IsValidD3D7RenderStateType(dwRenderStateType)))
+    if (unlikely(!IsValidD3D7RenderStateType(dwRenderStateType))) {
+      Logger::warn(str::format("D3D7Device::GetRenderState: Invalid render state ", dwRenderStateType));
       return DDERR_INVALIDPARAMS;
+    }
 
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
 
