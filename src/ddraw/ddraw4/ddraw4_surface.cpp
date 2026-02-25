@@ -1408,11 +1408,11 @@ namespace dxvk {
     if (m_commonSurf->IsTexture()) {
       BlitToD3D9Texture<IDirectDrawSurface4, DDSURFACEDESC2>(m_texture9.ptr(), format,
                                                              m_proxy.ptr(), m_commonSurf->GetMipCount());
-    // Depth stencil do not need uploads (nor are they possible in D3D9)
-    } else if (unlikely(m_commonSurf->IsDepthStencil())) {
-      Logger::debug("DDraw4Surface::UploadSurfaceData: Skipping upload of depth stencil");
     // Blit surfaces directly
     } else {
+      if (unlikely(m_commonSurf->IsDepthStencil()))
+        Logger::debug("DDraw4Surface::UploadSurfaceData: Uploading depth stencil");
+
       BlitToD3D9Surface<IDirectDrawSurface4, DDSURFACEDESC2>(m_d3d9.ptr(), format, m_proxy.ptr());
     }
 
