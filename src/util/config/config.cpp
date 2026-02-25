@@ -1737,6 +1737,7 @@ namespace dxvk {
     /* Gorky 17 - Fixes crash on game start       */
     { R"(\\gorky17\.exe$)", {{
       { "ddraw.depthWriteBack",             "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Revenant                                   */
     { R"(\\Revenant\.exe$)", {{
@@ -1758,6 +1759,11 @@ namespace dxvk {
      * color mode without D32 support             */
     { R"(\\SlaveZero\.exe$)", {{
       { "d3d7.useD24X8forD32",              "True" },
+    }} },
+    /* Nocturne                                   */
+    { R"(\\nocturne\.exe$)", {{
+      { "ddraw.depthWriteBack",             "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
 
     /**********************************************/
