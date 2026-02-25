@@ -4434,7 +4434,9 @@ namespace dxvk {
 
     // Because they are always lockable, image surfaces / offscreen plain surfaces
     // are restricted to using lockable depth stencil formats.
-    if (unlikely(IsDepthStencilFormat(desc.Format) && !IsLockableDepthStencilFormat(desc.Format)))
+    if (unlikely(!m_isD3D7Compatible &&
+                 IsDepthStencilFormat(desc.Format) &&
+                 !IsLockableDepthStencilFormat(desc.Format)))
       return D3DERR_INVALIDCALL;
 
     HRESULT hr = D3D9CommonTexture::NormalizeTextureProperties(this, D3DRTYPE_SURFACE, &desc);
@@ -4513,7 +4515,7 @@ namespace dxvk {
     desc.MultisampleQuality = MultisampleQuality;
     desc.IsBackBuffer       = FALSE;
     desc.IsAttachmentOnly   = TRUE;
-    desc.IsLockable         = IsLockableDepthStencilFormat(desc.Format);
+    desc.IsLockable         = !m_isD3D7Compatible ? IsLockableDepthStencilFormat(desc.Format) : true;
 
     HRESULT hr = D3D9CommonTexture::NormalizeTextureProperties(this, D3DRTYPE_SURFACE, &desc);
     if (FAILED(hr))
@@ -9189,7 +9191,7 @@ namespace dxvk {
       desc.MultisampleQuality = pPresentationParameters->MultiSampleQuality;
       desc.IsBackBuffer       = FALSE;
       desc.IsAttachmentOnly   = TRUE;
-      desc.IsLockable         = IsLockableDepthStencilFormat(desc.Format);
+      desc.IsLockable         = !m_isD3D7Compatible ? IsLockableDepthStencilFormat(desc.Format) : true;
 
       if (FAILED(D3D9CommonTexture::NormalizeTextureProperties(this, D3DRTYPE_SURFACE, &desc)))
         return D3DERR_NOTAVAILABLE;
