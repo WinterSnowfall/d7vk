@@ -558,6 +558,7 @@ namespace dxvk {
     // As opposed to D3D7, D3D5 does not error out on
     // unknown or invalid render states.
     if (unlikely(!IsValidD3D5RenderStateType(dwRenderStateType))) {
+      Logger::warn(str::format("D3D5Device::GetRenderState: Invalid render state ", dwRenderStateType));
       *lpdwRenderState = 0;
       return D3D_OK;
     }
@@ -684,6 +685,14 @@ namespace dxvk {
         m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MAXANISOTROPY, lpdwRenderState);
         return D3D_OK;
 
+      // Not mentioned in the D3D5 docs, but seen in the wild. D3D6 docs state:
+      // "Flush any pending DrawPrimitive batches. When rendering with texture handles
+      // (using the IDirect3DDevice2 interface) you must flush batched primitives
+      // after modifying the current texture surface."
+      case D3DRENDERSTATE_FLUSHBATCH:
+        *lpdwRenderState = TRUE;
+        return D3D_OK;
+
       // TODO:
       case D3DRENDERSTATE_STIPPLEPATTERN00:
       case D3DRENDERSTATE_STIPPLEPATTERN01:
@@ -737,8 +746,10 @@ namespace dxvk {
 
     // As opposed to D3D7, D3D5 does not error out on
     // unknown or invalid render states.
-    if (unlikely(!IsValidD3D5RenderStateType(dwRenderStateType)))
+    if (unlikely(!IsValidD3D5RenderStateType(dwRenderStateType))) {
+      Logger::warn(str::format("D3D5Device::SetRenderState: Invalid render state ", dwRenderStateType));
       return D3D_OK;
+    }
 
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
 
@@ -1041,6 +1052,13 @@ namespace dxvk {
 
       case D3DRENDERSTATE_ANISOTROPY:
         m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_MAXANISOTROPY, dwRenderState);
+        return D3D_OK;
+
+      // Not mentioned in the D3D5 docs, but seen in the wild. D3D6 docs state:
+      // "Flush any pending DrawPrimitive batches. When rendering with texture handles
+      // (using the IDirect3DDevice2 interface) you must flush batched primitives
+      // after modifying the current texture surface."
+      case D3DRENDERSTATE_FLUSHBATCH:
         return D3D_OK;
 
       // TODO:

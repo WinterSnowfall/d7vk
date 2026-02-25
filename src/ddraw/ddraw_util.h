@@ -1048,6 +1048,7 @@ namespace dxvk {
         || rs == D3DRENDERSTATE_ZBIAS
         || rs == D3DRENDERSTATE_RANGEFOGENABLE
         || rs == D3DRENDERSTATE_ANISOTROPY
+        || rs == D3DRENDERSTATE_FLUSHBATCH // Not in the docs, but valid in D3D5
         || rs == D3DRENDERSTATE_STIPPLEPATTERN00
         || rs == D3DRENDERSTATE_STIPPLEPATTERN01
         || rs == D3DRENDERSTATE_STIPPLEPATTERN02
