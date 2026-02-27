@@ -343,6 +343,23 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw2Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE2 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDraw2Surface::BltFast: Proxy");
 
+    // It's highly unlikely anyone would do depth blits with IDirectDrawSurface2
+    if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
+      DDraw2Surface* sourceSurface = static_cast<DDraw2Surface*>(lpDDSrcSurface);
+      if (unlikely(sourceSurface->GetCommonSurface()->IsGuardableSurface())) {
+        static bool s_swapchainSurfaceWarningShown;
+
+        if (!std::exchange(s_swapchainSurfaceWarningShown, true))
+          Logger::warn("DDraw2Surface::BltFast: Source surface is a swapchain surface");
+
+      } else if (unlikely(sourceSurface->GetCommonSurface()->IsDepthStencil())) {
+        static bool s_depthStencilWarningShown;
+
+        if (!std::exchange(s_depthStencilWarningShown, true))
+          Logger::warn("DDraw2Surface::BltFast: Source surface is a depth stencil");
+      }
+    }
+
     RefreshD3D9Device();
     if (likely(m_d3d9Device != nullptr)) {
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
@@ -358,23 +375,6 @@ namespace dxvk {
         m_commonIntf->ResetDrawTracking();
         m_d3d9Device->Present(NULL, NULL, NULL, NULL);
         return DD_OK;
-      }
-    }
-
-    // It's highly unlikely anyone would do depth blits with IDirectDrawSurface2
-    if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
-      DDraw2Surface* sourceSurface = static_cast<DDraw2Surface*>(lpDDSrcSurface);
-      if (unlikely(sourceSurface->GetCommonSurface()->IsGuardableSurface())) {
-        static bool s_swapchainSurfaceWarningShown;
-
-        if (!std::exchange(s_swapchainSurfaceWarningShown, true))
-          Logger::warn("DDraw2Surface::BltFast: Source surface is a swapchain surface");
-
-      } else if (unlikely(sourceSurface->GetCommonSurface()->IsDepthStencil())) {
-        static bool s_depthStencilWarningShown;
-
-        if (!std::exchange(s_depthStencilWarningShown, true))
-          Logger::warn("DDraw2Surface::BltFast: Source surface is a depth stencil");
       }
     }
 
