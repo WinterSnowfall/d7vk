@@ -1640,14 +1640,47 @@ namespace dxvk {
     { R"(\\1503Startup\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Knight Rider: The Game                     *
+     * Fixes in-game vehicle environment maps     */
+    { R"(\\(Knight Rider|KR( Demo)?)\.exe$)", {{
+      { "ddraw.backBufferWriteBack",        "True" },
+    }} },
+    /* Knight Rider: The Game 2                   *
+     * Fixes in-game vehicle environment maps     */
+    { R"(\\KR2( Demo)?\.exe$)", {{
+      { "ddraw.backBufferWriteBack",        "True" },
+    }} },
+    /* Real Myst                                  *
+     * Fixes menu and save game backgrounds       */
+    { R"(\\RealMYST\.exe$)", {{
+      { "ddraw.backBufferWriteBack",        "True" },
+    }} },
+    /* Total Club Manager 2003                    *
+     * Fixes in-game blur transition effects      */
+    { R"(\\TCM2003\.exe$)", {{
+      { "ddraw.backBufferWriteBack",        "True" },
+    }} },
+    /* Sim City 4                                 *
+     * Fixes broken overlays and 3D elements      */
+    { R"(\\SimCity 4\.exe$)", {{
+      { "ddraw.depthWriteBack",             "True" },
+      { "ddraw.backBufferWriteBack",        "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
     /**********************************************/
     /* Drakan: Order of the Flame                 *
-     * Fixes physics glitches at over 60 FPS      */
+     * Fixes physics glitches at over 60 FPS and  *
+     * missing pause / save game backgrounds. We  *
+     * also prevent depth stencil uploads to fix  *
+     * performance loss when lens flares are      *
+     * enabled, because that causes depth stencil *
+     * locks for each dynamic light source        */
     { R"(\\Drakan\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
+      { "ddraw.backBufferWriteBack",        "True" },
+      { "ddraw.uploadDepthStencils",       "False" },
     }} },
     /* O.R.B: Off-World Resource Base             *
      * Uses windowed present mode in full-screen  */

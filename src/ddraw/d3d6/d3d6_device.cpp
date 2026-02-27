@@ -538,7 +538,7 @@ namespace dxvk {
     // As opposed to D3D7, D3D6 does not error out on
     // unknown or invalid render states.
     if (unlikely(!IsValidD3D6RenderStateType(dwRenderStateType))) {
-      Logger::warn(str::format("D3D6Device::GetRenderState: Invalid render state ", dwRenderStateType));
+      Logger::debug(str::format("D3D6Device::GetRenderState: Invalid render state ", dwRenderStateType));
       *lpdwRenderState = 0;
       return D3D_OK;
     }
@@ -717,7 +717,7 @@ namespace dxvk {
     // As opposed to D3D7, D3D6 does not error out on
     // unknown or invalid render states.
     if (unlikely(!IsValidD3D6RenderStateType(dwRenderStateType))) {
-      Logger::warn(str::format("D3D6Device::SetRenderState: Invalid render state ", dwRenderStateType));
+      Logger::debug(str::format("D3D6Device::SetRenderState: Invalid render state ", dwRenderStateType));
       return D3D_OK;
     }
 

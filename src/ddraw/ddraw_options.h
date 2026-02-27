@@ -41,10 +41,18 @@ namespace dxvk {
     /// presentation on Wayland, or in other situations when back buffer dimensions get altered in-flight.
     bool backBufferResize;
 
-    /// Determines if the currently set D3D9 Z buffer is written back
-    /// during blits/locks on DDraw surfaces. Default disabled, as it
-    /// negatively affects performance, but is sometimes needed for corectness.
+    /// Determines if D3D9 front/back buffers are written back during blits/locks on DDraw surfaces.
+    /// Default disabled, as it may cause more harm than good, however it is required by certain games
+    /// for overlay correctness and/or in order for save game screenshots to be captured properly.
+    bool backBufferWriteBack;
+
+    /// Determines if D3D9 Z buffers are written back during blits/locks on DDraw surfaces.
+    /// Default disabled, as it negatively affects performance, but is sometimes needed for correctness.
     bool depthWriteBack;
+
+    /// Upload or skip upload of depth stencils. Some games do highly cursed things which will
+    /// destroy performance if we allow depth writes/uploads. Default enabled.
+    bool uploadDepthStencils;
 
     /// Replaces any use of D32 with D24X8. Needed for games such as
     /// Sacrifice, which won't enable 32-bit modes without D32 support.
@@ -97,7 +105,9 @@ namespace dxvk {
       // DDraw options
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);
+      this->backBufferWriteBack   = config.getOption<bool>   ("ddraw.backBufferWriteBack",   false);
       this->depthWriteBack        = config.getOption<bool>   ("ddraw.depthWriteBack",        false);
+      this->uploadDepthStencils   = config.getOption<bool>   ("ddraw.uploadDepthStencils",    true);
       this->forceProxiedPresent   = config.getOption<bool>   ("ddraw.forceProxiedPresent",   false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("ddraw.ignoreGammaRamp",       false);
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
