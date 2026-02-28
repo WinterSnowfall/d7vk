@@ -1742,6 +1742,7 @@ namespace dxvk {
     }} },
     /* Star Trek: Starfleet Command               */
     { R"(\\Starfleet\.exe$)", {{
+      { "d3d7.forceMultiThreaded",          "True" },
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Expendable                                 */
