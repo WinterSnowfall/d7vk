@@ -418,7 +418,13 @@ namespace dxvk {
       return hr;
     }
 
-    return m_d3d9->SetViewport(reinterpret_cast<d3d9::D3DVIEWPORT9*>(data));
+    d3d9::D3DVIEWPORT9* data9 = reinterpret_cast<d3d9::D3DVIEWPORT9*>(data);
+
+    // (The) Summoner sets both to 0.0f and expects to get 0.0f/1.0f
+    if (unlikely(data9->MinZ == 0.0f && data9->MaxZ == 0.0f))
+      data9->MaxZ = 1.0f;
+
+    return m_d3d9->SetViewport(data9);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetViewport(D3DVIEWPORT7 *data) {
