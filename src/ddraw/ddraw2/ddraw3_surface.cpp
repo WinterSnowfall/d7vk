@@ -316,6 +316,22 @@ namespace dxvk {
       if (unlikely(FAILED(hrClear)))
         Logger::warn("DDraw3Surface::Blt: Failed to clear d3d9 depth");
     }
+    // Forward DDBLT_COLORFILL clears to D3D9 if done on the current render target
+    if (unlikely(lpDDSrcSurface == nullptr &&
+                 (dwFlags & DDBLT_COLORFILL) &&
+                 lpDDBltFx != nullptr &&
+                 m_commonIntf->IsCurrentD3D9RenderTarget(m_d3d9.ptr()))) {
+      Logger::debug("DDraw3Surface::Blt: Clearing d3d9 render target");
+
+      HRESULT hrClear;
+      if (lpDestRect == nullptr) {
+        hrClear = m_d3d9Device->Clear(0, NULL, D3DCLEAR_TARGET, lpDDBltFx->dwFillColor, 0.0f, 0);
+      } else {
+        hrClear = m_d3d9Device->Clear(1, reinterpret_cast<D3DRECT*>(lpDestRect), D3DCLEAR_TARGET, lpDDBltFx->dwFillColor, 0.0f, 0);
+      }
+      if (unlikely(FAILED(hrClear)))
+        Logger::warn("DDraw3Surface::Blt: Failed to clear d3d9 render target");
+    }
 
     HRESULT hr;
 
