@@ -243,6 +243,21 @@ namespace dxvk {
     return m_device7 != nullptr ? m_device7->GetRenderTarget() == surface : false;
   }
 
+  bool DDrawCommonInterface::IsCurrentD3D9RenderTarget(d3d9::IDirect3DSurface9* surface) const {
+    if (unlikely(surface == nullptr))
+      return false;
+
+    if (m_device7 != nullptr) {
+      return surface == m_device7->GetRenderTarget()->GetD3D9();
+    } else if (m_device6 != nullptr) {
+      return surface == m_device6->GetRenderTarget()->GetD3D9();
+    } else if (m_device5 != nullptr) {
+      return surface == m_device5->GetRenderTarget()->GetD3D9();
+    }
+
+    return false;
+  }
+
   bool DDrawCommonInterface::IsCurrentDepthStencil(DDrawSurface* surface) const {
     return m_device5 != nullptr ? m_device5->GetDepthStencil() == surface : false;
   }
