@@ -338,6 +338,22 @@ namespace dxvk {
       if (unlikely(FAILED(hrClear)))
         Logger::warn("DDraw7Surface::Blt: Failed to clear d3d9 depth");
     }
+    // Forward DDBLT_COLORFILL clears to D3D9 if done on the current render target
+    if (unlikely(lpDDSrcSurface == nullptr &&
+                 (dwFlags & DDBLT_COLORFILL) &&
+                 lpDDBltFx != nullptr &&
+                 m_commonIntf->IsCurrentD3D9RenderTarget(m_d3d9.ptr()))) {
+      Logger::debug("DDraw7Surface::Blt: Clearing d3d9 render target");
+
+      HRESULT hrClear;
+      if (lpDestRect == nullptr) {
+        hrClear = m_d3d9Device->Clear(0, NULL, D3DCLEAR_TARGET, lpDDBltFx->dwFillColor, 0.0f, 0);
+      } else {
+        hrClear = m_d3d9Device->Clear(1, reinterpret_cast<D3DRECT*>(lpDestRect), D3DCLEAR_TARGET, lpDDBltFx->dwFillColor, 0.0f, 0);
+      }
+      if (unlikely(FAILED(hrClear)))
+        Logger::warn("DDraw7Surface::Blt: Failed to clear d3d9 render target");
+    }
 
     HRESULT hr;
 
@@ -516,10 +532,9 @@ namespace dxvk {
         m_attachedSurfaces.emplace(std::piecewise_construct,
                                    std::forward_as_tuple(ddraw7Surface->GetProxied()),
                                    std::forward_as_tuple(ddraw7Surface.ptr()));
-        // TODO: We should ref here, but somehow we're leaking an interface attached surface if we do...
-        hr = lpEnumSurfacesCallback(ddraw7Surface.ptr(), &surfaceIt->surface7Desc, lpContext);
+        hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &surfaceIt->surface7Desc, lpContext);
       } else {
-        hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ptr(), &surfaceIt->surface7Desc, lpContext);
+        hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->surface7Desc, lpContext);
       }
 
       ++surfaceIt;
@@ -1270,19 +1285,28 @@ namespace dxvk {
     // guessing it was intended more as a hint, not neceesarily a set number.
     if (m_commonSurf->IsTextureOrCubeMap()) {
       IDirectDrawSurface7* mipMap = m_proxy.ptr();
-
+      DDSURFACEDESC2 mipDesc2;
       uint8_t mipCount = 1;
+
       while (mipMap != nullptr) {
         IDirectDrawSurface7* parentSurface = mipMap;
         mipMap = nullptr;
         parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces7Callback);
         if (mipMap != nullptr) {
           mipCount++;
+
+          mipDesc2 = { };
+          mipDesc2.dwSize = sizeof(DDSURFACEDESC2);
+          mipMap->GetSurfaceDesc(&mipDesc2);
+          // Ignore multiple 1x1 mips, which apparently can get generated if the
+          // application gets the dwMipMapCount wrong vs surface dimensions.
+          if (unlikely(mipDesc2.dwWidth == 1 && mipDesc2.dwHeight == 1))
+            break;
         }
       }
 
       // Do not worry about maximum supported mip map levels validation,
-      // because D3D9 will hanlde this for us and cap them appropriately
+      // because D3D9 will handle this for us and cap them appropriately
       if (mipCount > 1) {
         Logger::debug(str::format("DDraw7Surface::InitializeD3D9: Found ", mipCount, " mip levels"));
 

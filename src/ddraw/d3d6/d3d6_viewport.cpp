@@ -406,6 +406,9 @@ namespace dxvk {
     viewport9->MinZ   = data->dvMaxZ <= 1.0f ? data->dvMinZ : data->dvMinZ / data->dvMaxZ;
     viewport9->MaxZ   = data->dvMaxZ <= 1.0f ? data->dvMaxZ : 1.0f;
 
+    if (unlikely(m_parent->GetOptions()->viewportCorrection && viewport9->MinZ == 0.0f && viewport9->MaxZ == 0.0f))
+      viewport9->MaxZ = 1.0f;
+
     m_commonViewport->MarkViewportAsSet();
 
     if (m_commonViewport->IsCurrentViewport())
