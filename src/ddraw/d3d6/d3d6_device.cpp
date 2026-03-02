@@ -1583,9 +1583,18 @@ namespace dxvk {
 
     d3d9::D3DSAMPLERSTATETYPE stateType = ConvertSamplerStateType(d3dTexStageStateType);
 
+    // If the type has been remapped to a sampler state type
     if (stateType != -1u) {
-      // If the type has been remapped to a sampler state type
-      return m_d3d9->GetSamplerState(dwStage, stateType, lpdwState);
+      // MAG/MIN/MIP filter enums are each different than the unified D3D9 D3DTEXTUREFILTERTYPE
+      if (stateType == d3d9::D3DSAMP_MAGFILTER ||
+          stateType == d3d9::D3DSAMP_MINFILTER || stateType == d3d9::D3DSAMP_MIPFILTER) {
+        DWORD dwStateProxy9 = 0;
+        HRESULT hr = m_d3d9->GetSamplerState(dwStage, stateType, &dwStateProxy9);
+        *lpdwState = DecodeD3D9TexFilterValues(d3dTexStageStateType, dwStateProxy9);
+        return hr;
+      } else {
+        return m_d3d9->GetSamplerState(dwStage, stateType, lpdwState);
+      }
     } else {
       return m_d3d9->GetTextureStageState(dwStage, d3d9::D3DTEXTURESTAGESTATETYPE(d3dTexStageStateType), lpdwState);
     }
@@ -1603,9 +1612,16 @@ namespace dxvk {
 
     d3d9::D3DSAMPLERSTATETYPE stateType = ConvertSamplerStateType(d3dTexStageStateType);
 
+    // If the type has been remapped to a sampler state type
     if (stateType != -1u) {
-      // If the type has been remapped to a sampler state type
-      return m_d3d9->SetSamplerState(dwStage, stateType, dwState);
+      // MAG/MIN/MIP filter enums are each different than the unified D3D9 D3DTEXTUREFILTERTYPE
+      if (stateType == d3d9::D3DSAMP_MAGFILTER ||
+          stateType == d3d9::D3DSAMP_MINFILTER || stateType == d3d9::D3DSAMP_MIPFILTER) {
+        const DWORD dwState9 = DecodeD3D7TexFilterValues(d3dTexStageStateType, dwState);
+        return m_d3d9->SetSamplerState(dwStage, stateType, dwState9);
+      } else {
+        return m_d3d9->SetSamplerState(dwStage, stateType, dwState);
+      }
     } else {
       return m_d3d9->SetTextureStageState(dwStage, d3d9::D3DTEXTURESTAGESTATETYPE(d3dTexStageStateType), dwState);
     }

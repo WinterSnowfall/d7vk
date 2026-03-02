@@ -364,7 +364,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures get uploaded during SetTexture calls
-      if (!m_commonSurf->IsTexture() || m_commonIntf->GetOptions()->apitraceMode) {
+      if (!m_commonSurf->IsTexture()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw4Surface::Blt: Failed upload to d3d9 surface");
@@ -458,7 +458,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures get uploaded during SetTexture calls
-      if (!m_commonSurf->IsTexture() || m_commonIntf->GetOptions()->apitraceMode) {
+      if (!m_commonSurf->IsTexture()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw4Surface::BltFast: Failed upload to d3d9 surface");
@@ -911,7 +911,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (m_commonSurf->IsTexture() || !m_commonIntf->GetOptions()->apitraceMode) {
+      if (m_commonSurf->IsTexture()) {
         m_commonSurf->DirtyMipMaps();
       } else if (unlikely(m_commonIntf->GetOptions()->apitraceMode)) {
         // We should ideally upload the surface contents here at all times,
@@ -1010,7 +1010,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!m_commonSurf->IsTexture() || m_commonIntf->GetOptions()->apitraceMode) {
+      if (!m_commonSurf->IsTexture()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw4Surface::Unlock: Failed upload to d3d9 surface");
@@ -1100,7 +1100,7 @@ namespace dxvk {
     // We may need to recreate the d3d9 object based on the new desc
     m_d3d9 = nullptr;
 
-    if (!m_commonSurf->IsTexture() || m_commonIntf->GetOptions()->apitraceMode) {
+    if (!m_commonSurf->IsTexture()) {
       InitializeOrUploadD3D9();
     } else {
       m_commonSurf->DirtyMipMaps();

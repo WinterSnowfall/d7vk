@@ -276,6 +276,78 @@ namespace dxvk {
     }
   }
 
+  inline DWORD DecodeD3D7TexFilterValues(const D3DTEXTURESTAGESTATETYPE StageType, const DWORD FilterType7) {
+    switch (StageType) {
+      case D3DTSS_MAGFILTER: {
+        switch (FilterType7) {
+          default:
+          case D3DTFG_POINT:          return d3d9::D3DTEXF_POINT;
+          case D3DTFG_LINEAR:         return d3d9::D3DTEXF_LINEAR;
+          // 5 in D3DTEXTUREMAGFILTER, 3 in D3DTEXTUREFILTERTYPE
+          case D3DTFG_ANISOTROPIC:    return d3d9::D3DTEXF_ANISOTROPIC;
+        }
+        break;
+      }
+      case D3DTSS_MINFILTER: {
+        switch (FilterType7) {
+          default:
+          case D3DTFN_POINT:          return d3d9::D3DTEXF_POINT;
+          case D3DTFN_LINEAR:         return d3d9::D3DTEXF_LINEAR;
+          case D3DTFN_ANISOTROPIC:    return d3d9::D3DTEXF_ANISOTROPIC;
+        }
+        break;
+      }
+      case D3DTSS_MIPFILTER: {
+        switch (FilterType7) {
+          // All values in D3DTEXTUREMIPFILTER are offset by +1
+          // vs D3DTEXTUREFILTERTYPE...
+          default:
+          case D3DTFP_NONE:           return d3d9::D3DTEXF_NONE;
+          case D3DTFP_POINT:          return d3d9::D3DTEXF_POINT;
+          case D3DTFP_LINEAR:         return d3d9::D3DTEXF_LINEAR;
+        }
+        break;
+      }
+      default: return 0;
+    }
+  }
+
+  inline DWORD DecodeD3D9TexFilterValues(const D3DTEXTURESTAGESTATETYPE StageType, const DWORD FilterType9) {
+    switch (StageType) {
+      case D3DTSS_MAGFILTER: {
+        switch (FilterType9) {
+          default:
+          case d3d9::D3DTEXF_POINT:       return D3DTFG_POINT;
+          case d3d9::D3DTEXF_LINEAR:      return D3DTFG_LINEAR;
+          // 5 in D3DTEXTUREMAGFILTER, 3 in D3DTEXTUREFILTERTYPE
+          case d3d9::D3DTEXF_ANISOTROPIC: return D3DTFG_ANISOTROPIC;
+        }
+        break;
+      }
+      case D3DTSS_MINFILTER: {
+        switch (FilterType9) {
+          default:
+          case d3d9::D3DTEXF_POINT:       return D3DTFN_POINT;
+          case d3d9::D3DTEXF_LINEAR:      return D3DTFN_LINEAR;
+          case d3d9::D3DTEXF_ANISOTROPIC: return D3DTFN_ANISOTROPIC;
+        }
+        break;
+      }
+      case D3DTSS_MIPFILTER: {
+        switch (FilterType9) {
+          // All values in D3DTEXTUREMIPFILTER are offset by +1
+          // vs D3DTEXTUREFILTERTYPE...
+          default:
+          case d3d9::D3DTEXF_NONE:        return D3DTFP_NONE;
+          case d3d9::D3DTEXF_POINT:       return D3DTFP_POINT;
+          case d3d9::D3DTEXF_LINEAR:      return D3DTFP_LINEAR;
+        }
+        break;
+      }
+      default: return 0;
+    }
+  }
+
   inline D3DDEVICEDESC2 GetD3D5Caps(const IID rclsid, bool exposeFSAA) {
     D3DDEVICEDESC2 desc;
 
