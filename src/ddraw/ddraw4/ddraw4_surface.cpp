@@ -260,7 +260,7 @@ namespace dxvk {
     if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
       DDraw4Surface* sourceSurface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
       if (unlikely(sourceSurface->GetCommonSurface()->IsGuardableSurface())) {
-        if (m_commonIntf->GetOptions()->backBufferWriteBack) {
+        if (m_commonIntf->GetOptions()->backBufferWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw4Surface::Blt: Source surface is a swapchain surface");
 
           if (unlikely(!sourceSurface->IsInitialized())) {
@@ -277,7 +277,7 @@ namespace dxvk {
             Logger::warn("DDraw4Surface::Blt: Source surface is a swapchain surface");
         }
       } else if (unlikely(sourceSurface->GetCommonSurface()->IsDepthStencil())) {
-        if (m_commonIntf->GetOptions()->depthWriteBack) {
+        if (m_commonIntf->GetOptions()->depthWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw4Surface::Blt: Source surface is a depth stencil");
 
           if (unlikely(!sourceSurface->IsInitialized())) {
@@ -373,7 +373,7 @@ namespace dxvk {
     if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
       DDraw4Surface* sourceSurface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
       if (unlikely(sourceSurface->GetCommonSurface()->IsGuardableSurface())) {
-        if (m_commonIntf->GetOptions()->backBufferWriteBack) {
+        if (m_commonIntf->GetOptions()->backBufferWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw4Surface::BltFast: Source surface is a swapchain surface");
 
           if (unlikely(!sourceSurface->IsInitialized())) {
@@ -390,7 +390,7 @@ namespace dxvk {
             Logger::warn("DDraw4Surface::BltFast: Source surface is a swapchain surface");
         }
       } else if (unlikely(sourceSurface->GetCommonSurface()->IsDepthStencil())) {
-        if (m_commonIntf->GetOptions()->depthWriteBack) {
+        if (m_commonIntf->GetOptions()->depthWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw4Surface::BltFast: Source surface is a depth stencil");
 
           if (unlikely(!sourceSurface->IsInitialized())) {
@@ -831,7 +831,7 @@ namespace dxvk {
 
     // Write back any flippable surfaces or depth stencils from D3D9
     if (unlikely(m_commonSurf->IsGuardableSurface())) {
-      if (m_commonIntf->GetOptions()->backBufferWriteBack) {
+      if (m_commonIntf->GetOptions()->backBufferWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
         Logger::debug("DDraw4Surface::Lock: Surface is a swapchain surface");
 
         if (unlikely(!IsInitialized())) {
@@ -848,7 +848,7 @@ namespace dxvk {
           Logger::warn("DDraw4Surface::Lock: Surface is a swapchain surface");
       }
     } else if (unlikely(m_commonSurf->IsDepthStencil())) {
-      if (m_commonIntf->GetOptions()->depthWriteBack) {
+      if (m_commonIntf->GetOptions()->depthWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
         Logger::debug("DDraw4Surface::Lock: Surface is a depth stencil");
 
         if (unlikely(!IsInitialized())) {

@@ -61,6 +61,11 @@ namespace dxvk {
     /// Proxies all D3D5 calls, to allow mixed D3D3 execute buffer use
     bool proxiedExecuteBuffers;
 
+    /// Some applications set the viewport MinZ/MaxZ to 0.0f/0.0f and expect
+    /// the behavioral equivalent of settting 0.0f/1.0f. This may have been an early
+    /// D3D quirk, but tests have shown the resulting values are 0.0f/0.001f.
+    bool viewportCorrection;
+
     /// Max available memory override, shared with the D3D9 backend
     uint32_t maxAvailableMemory;
 
@@ -102,6 +107,7 @@ namespace dxvk {
       this->forceMultiThreaded    = config.getOption<bool>   ("d3d7.forceMultiThreaded",     false);
       this->useD24X8forD32        = config.getOption<bool>   ("d3d7.useD24X8forD32",         false);
       this->proxiedExecuteBuffers = config.getOption<bool>   ("d3d7.proxiedExecuteBuffers",  false);
+      this->viewportCorrection    = config.getOption<bool>   ("d3d7.viewportCorrection",     false);
       // DDraw options
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);
