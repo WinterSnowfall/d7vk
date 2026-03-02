@@ -9085,8 +9085,8 @@ namespace dxvk {
       state[D3DSAMP_ADDRESSV]      = D3DTADDRESS_WRAP;
       state[D3DSAMP_ADDRESSW]      = D3DTADDRESS_WRAP;
       state[D3DSAMP_BORDERCOLOR]   = 0x00000000;
-      state[D3DSAMP_MAGFILTER]     = m_isD3D6Compatible ? D3DTEXF_NONE : D3DTEXF_POINT;
-      state[D3DSAMP_MINFILTER]     = m_isD3D6Compatible ? D3DTEXF_NONE : D3DTEXF_POINT;
+      state[D3DSAMP_MAGFILTER]     = D3DTEXF_POINT;
+      state[D3DSAMP_MINFILTER]     = D3DTEXF_POINT;
       state[D3DSAMP_MIPFILTER]     = D3DTEXF_NONE;
       state[D3DSAMP_MIPMAPLODBIAS] = bit::cast<DWORD>(0.0f);
       state[D3DSAMP_MAXMIPLEVEL]   = 0;
