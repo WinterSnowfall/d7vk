@@ -416,7 +416,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures get uploaded during SetTexture calls
-      if (!m_commonSurf->IsTexture() || m_commonIntf->GetOptions()->apitraceMode) {
+      if (!m_commonSurf->IsTexture()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDrawSurface::Blt: Failed upload to d3d9 surface");
@@ -509,7 +509,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures get uploaded during SetTexture calls
-      if (!m_commonSurf->IsTexture() || m_commonIntf->GetOptions()->apitraceMode) {
+      if (!m_commonSurf->IsTexture()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDrawSurface::BltFast: Failed upload to d3d9 surface");
@@ -939,8 +939,8 @@ namespace dxvk {
     HRESULT hr = m_proxy->ReleaseDC(hDC);
 
     if (likely(SUCCEEDED(hr))) {
-      // Textures and cubemaps get uploaded during SetTexture calls
-      if (m_commonSurf->IsTexture() || !m_commonIntf->GetOptions()->apitraceMode) {
+      // Textures get uploaded during SetTexture calls
+      if (m_commonSurf->IsTexture()) {
         m_commonSurf->DirtyMipMaps();
       } else if (unlikely(m_commonIntf->GetOptions()->apitraceMode)) {
         // We should ideally upload the surface contents here at all times,
@@ -1039,7 +1039,7 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       // Textures and cubemaps get uploaded during SetTexture calls
-      if (!m_commonSurf->IsTexture() || m_commonIntf->GetOptions()->apitraceMode) {
+      if (!m_commonSurf->IsTexture()) {
         HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDrawSurface::Unlock: Failed upload to d3d9 surface");
