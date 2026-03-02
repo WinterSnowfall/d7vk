@@ -74,6 +74,8 @@ namespace dxvk {
 
     bool IsCurrentRenderTarget(DDraw7Surface* surface) const;
 
+    bool IsCurrentD3D9RenderTarget(d3d9::IDirect3DSurface9* surface) const;
+
     bool IsCurrentDepthStencil(DDrawSurface* surface) const;
 
     bool IsCurrentDepthStencil(DDraw4Surface* surface) const;
