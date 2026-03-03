@@ -1377,11 +1377,11 @@ namespace dxvk {
      * and broken main menu animations.           */
     { R"(\\(1|I)nsane\\Game\.exe$)", {{
       { "d3d9.maxFrameRate",                "-240" },
-      { "d3d7.deviceTypeOverride",          "SWVP" },
+      { "ddraw.deviceTypeOverride",         "SWVP" },
     }} },
     /* Arx Fatalis                                */
     { R"(\\arx\.exe$)", {{
-      { "d3d7.emulateFSAA",                 "True" },
+      { "ddraw.emulateFSAA",                "True" },
     }} },
     /* Sacrifice - Prevents hitching on asset     *
      * loading and fixes broken AI above 60 FPS.  *
@@ -1389,8 +1389,8 @@ namespace dxvk {
     { R"(\\Sacrifice\.exe$)", {{
       { "d3d9.cachedWriteOnlyBuffers",      "True" },
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.emulateFSAA",                 "True" },
-      { "d3d7.useD24X8forD32",              "True" },
+      { "ddraw.emulateFSAA",                "True" },
+      { "ddraw.useD24X8forD32",             "True" },
     }} },
     /* Battle Isle: The Andosia War - Performance *
      * and black screen prevention on startup,    *
@@ -1468,8 +1468,8 @@ namespace dxvk {
      * Crashes without multithreading protection  */
     { R"(\\SCP - Containment Breach\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
-      { "d3d7.emulateFSAA",                 "True" },
-      { "d3d7.forceMultiThreaded",          "True" },
+      { "ddraw.emulateFSAA",                "True" },
+      { "ddraw.forceMultiThreaded",         "True" },
     }} },
     /* Unreal                                     *
      * Fixes missing mip map uploads and physics  */
@@ -1499,7 +1499,7 @@ namespace dxvk {
      * cutscene playback at high frame rates      */
     { R"(\\Undying\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.autoGenMipMaps",              "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* X-COM: Enforcer                            *
      * Fixes missing mip map uploads and physics  */
@@ -1529,7 +1529,7 @@ namespace dxvk {
      * and cutscene playback / physics            */
     { R"(\\MessiahD3D\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.emulateFSAA",                 "True" },
+      { "ddraw.emulateFSAA",                "True" },
       { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Might and Magic IX / No One Lives Forever  */
@@ -1552,7 +1552,7 @@ namespace dxvk {
      * loading screens / menu transitions         */
     { R"(\\hitman\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.emulateFSAA",                 "True" },
+      { "ddraw.emulateFSAA",                "True" },
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Screamer 4x4 - Broken menu animation speed */
@@ -1563,8 +1563,8 @@ namespace dxvk {
      * and fix for nonsensical viewport values    */
     { R"(\\Sum\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "d3d7.emulateFSAA",                 "True" },
-      { "d3d7.viewportCorrection",          "True" },
+      { "ddraw.emulateFSAA",                "True" },
+      { "ddraw.viewportCorrection",         "True" },
     }} },
     /* Wizardry 8 - Fixes broken input handling   */
     { R"(\\Wiz8\.exe$)", {{
@@ -1610,7 +1610,7 @@ namespace dxvk {
     }} },
     /* Sacred - Fixes transition artifacting      */
     { R"(\\Sacred\.exe$)", {{
-      { "d3d7.emulateFSAA",                 "True" },
+      { "ddraw.emulateFSAA",                "True" },
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* StarLancer                                 */
@@ -1635,7 +1635,7 @@ namespace dxvk {
     }} },
     /* Hard Truck 2: King of the Road             */
     { R"(\\king\.exe$)", {{
-      { "d3d7.colorKeyCompatibility",       "True" },
+      { "ddraw.colorKeyCompatibility",      "True" },
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Anno 1503                                  */
@@ -1649,7 +1649,7 @@ namespace dxvk {
     }} },
     /* Knight Rider: The Game 2                   *
      * Fixes in-game vehicle environment maps     */
-    { R"(\\KR2( Demo)?\.exe$)", {{
+    { R"(\\KR2\.exe$)", {{
       { "ddraw.backBufferWriteBack",        "True" },
     }} },
     /* Real Myst                                  *
@@ -1722,7 +1722,7 @@ namespace dxvk {
     { R"(\\3dmark\.exe$)", {{
       { "d3d9.presentInterval",                "0" },
       { "d3d9.allowDirectBufferMapping",   "False" },
-      { "d3d7.deviceTypeOverride",     "SWVPMixed" },
+      { "ddraw.deviceTypeOverride",    "SWVPMixed" },
     }} },
     /* Hidden & Dangerous (: Action Pack)         *
      * Prevents crashing on startup               */
@@ -1751,12 +1751,12 @@ namespace dxvk {
     }} },
     /* Star Trek: Starfleet Command               */
     { R"(\\Starfleet\.exe$)", {{
-      { "d3d7.forceMultiThreaded",          "True" },
+      { "ddraw.forceMultiThreaded",         "True" },
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Expendable                                 */
     { R"(\\Expendable\\go_start\.exe$)", {{
-      { "d3d7.emulateFSAA",                 "True" },
+      { "ddraw.emulateFSAA",                "True" },
     }} },
     /* F/A-18E Super Hornet                       */
     { R"(\\F18\.exe$)", {{
@@ -1764,7 +1764,7 @@ namespace dxvk {
     }} },
     /* Total Annihilation: Kingdoms               */
     { R"(\\KINGDOMS\.icd$)", {{
-      { "d3d7.emulateFSAA",                 "True" },
+      { "ddraw.emulateFSAA",                "True" },
     }} },
     /* Star Wars Episode I: Racer                 */
     { R"(\\SWEP1RCR\.exe$)", {{
@@ -1781,11 +1781,11 @@ namespace dxvk {
     }} },
     /* Re-Volt                                    */
     { R"(\\revolt\.exe$)", {{
-      { "d3d7.emulateFSAA",                 "True" },
+      { "ddraw.emulateFSAA",                "True" },
     }} },
     /* Sea Dogs                                   */
     { R"(\\Sea Dogs\\ENGINE\.exe$)", {{
-      { "d3d7.emulateFSAA",                 "True" },
+      { "ddraw.emulateFSAA",                "True" },
     }} },
     /* Empire of the Ants                         */
     { R"(\\Empire of the Ants\\Game\.exe$)", {{
@@ -1794,7 +1794,7 @@ namespace dxvk {
     /* Slave Zero - will not start in 32-bit      *
      * color mode without D32 support             */
     { R"(\\SlaveZero\.exe$)", {{
-      { "d3d7.useD24X8forD32",              "True" },
+      { "ddraw.useD24X8forD32",             "True" },
     }} },
     /* Nocturne                                   */
     { R"(\\nocturne\.exe$)", {{
@@ -1824,19 +1824,19 @@ namespace dxvk {
     }} },
     /* Incoming                                   */
     { R"(\\incoming\.exe$)", {{
-      { "d3d7.proxiedExecuteBuffers",       "True" },
+      { "ddraw.proxiedExecuteBuffers",      "True" },
     }} },
     /* Warhammer: Dark Omen                       */
     { R"(\\DarkOmen\.exe$)", {{
-      { "d3d7.proxiedExecuteBuffers",       "True" },
+      { "ddraw.proxiedExecuteBuffers",      "True" },
     }} },
     /* O.D.T.: Escape... Or Die Trying            */
     { R"(\\ODT\.exe$)", {{
-      { "d3d7.proxiedExecuteBuffers",       "True" },
+      { "ddraw.proxiedExecuteBuffers",      "True" },
     }} },
     /* Star Wars: Shadows of the Empire           */
     { R"(\\Shadows\.exe$)", {{
-      { "d3d7.proxiedExecuteBuffers",       "True" },
+      { "ddraw.proxiedExecuteBuffers",      "True" },
     }} },
     /* Mobil 1 Rally Championship                 *
      * Crashes on certain tracks above 30 FPS     */
@@ -1857,7 +1857,7 @@ namespace dxvk {
     }} },
     /* FIFA '99                                   */
     { R"(\\fifa99\.exe$)", {{
-      { "d3d7.emulateFSAA",                 "True" },
+      { "ddraw.emulateFSAA",                "True" },
     }} },
     /* The Longest Journey                        */
     { R"(\\The Longest Journey\\game.exe$)", {{
