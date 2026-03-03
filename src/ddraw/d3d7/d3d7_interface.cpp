@@ -376,11 +376,15 @@ namespace dxvk {
 
     // There are just 3 supported depth stencil formats to worry about
     // in D3D9, so let's just enumerate them liniarly, for better clarity
+    DDPIXELFORMAT depthFormat;
+    HRESULT hr;
 
-    DDPIXELFORMAT depthFormat = GetZBufferFormat(d3d9::D3DFMT_D16);
-    HRESULT hr = cb(&depthFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
-      return D3D_OK;
+    if (likely(m_options.supportD16)) {
+      depthFormat = GetZBufferFormat(d3d9::D3DFMT_D16);
+      hr = cb(&depthFormat, ctx);
+      if (unlikely(hr == D3DENUMRET_CANCEL))
+        return D3D_OK;
+    }
 
     depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
     hr = cb(&depthFormat, ctx);
