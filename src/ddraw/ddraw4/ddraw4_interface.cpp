@@ -296,10 +296,6 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       try{
         Com<DDraw4Surface> surface4 = new DDraw4Surface(nullptr, std::move(ddrawSurface4Proxied), this, nullptr, true);
-
-        if (unlikely(surface4->GetCommonSurface()->IsDepthStencil()))
-          m_lastDepthStencil = surface4.ptr();
-
         *lplpDDSurface = surface4.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());

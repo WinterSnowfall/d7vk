@@ -263,11 +263,6 @@ namespace dxvk {
         if (m_commonIntf->GetOptions()->backBufferWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw4Surface::Blt: Source surface is a swapchain surface");
 
-          if (unlikely(!sourceSurface->IsInitialized())) {
-            HRESULT hrInit = sourceSurface->InitializeOrUploadD3D9();
-            if (unlikely(FAILED(hrInit)))
-              Logger::warn("DDraw4Surface::Blt: Failed to initialize d3d9 flippable surface");
-          }
           if (likely(sourceSurface->IsInitialized()))
             BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(sourceSurface->GetProxied(), sourceSurface->GetD3D9());
         } else {
@@ -280,11 +275,6 @@ namespace dxvk {
         if (m_commonIntf->GetOptions()->depthWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw4Surface::Blt: Source surface is a depth stencil");
 
-          if (unlikely(!sourceSurface->IsInitialized())) {
-            HRESULT hrInit = sourceSurface->InitializeOrUploadD3D9();
-            if (unlikely(FAILED(hrInit)))
-              Logger::warn("DDraw4Surface::Blt: Failed to initialize d3d9 depth surface");
-          }
           if (likely(sourceSurface->IsInitialized()))
             BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(sourceSurface->GetProxied(), sourceSurface->GetD3D9());
         } else {
@@ -392,11 +382,6 @@ namespace dxvk {
         if (m_commonIntf->GetOptions()->backBufferWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw4Surface::BltFast: Source surface is a swapchain surface");
 
-          if (unlikely(!sourceSurface->IsInitialized())) {
-            HRESULT hrInit = sourceSurface->InitializeOrUploadD3D9();
-            if (unlikely(FAILED(hrInit)))
-              Logger::warn("DDraw4Surface::BltFast: Failed to initialize d3d9 flippable surface");
-          }
           if (likely(sourceSurface->IsInitialized()))
             BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(sourceSurface->GetProxied(), sourceSurface->GetD3D9());
         } else {
@@ -409,11 +394,6 @@ namespace dxvk {
         if (m_commonIntf->GetOptions()->depthWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw4Surface::BltFast: Source surface is a depth stencil");
 
-          if (unlikely(!sourceSurface->IsInitialized())) {
-            HRESULT hrInit = sourceSurface->InitializeOrUploadD3D9();
-            if (unlikely(FAILED(hrInit)))
-              Logger::warn("DDraw4Surface::BltFast: Failed to initialize d3d9 depth surface");
-          }
           if (likely(sourceSurface->IsInitialized()))
             BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(sourceSurface->GetProxied(), sourceSurface->GetD3D9());
         } else {
@@ -522,11 +502,16 @@ namespace dxvk {
 
       auto attachedSurfaceIter = m_attachedSurfaces.find(surface4.ptr());
       if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
-        Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface4), m_commonIntf->GetDD4Interface(), this, false);
-        m_attachedSurfaces.emplace(std::piecewise_construct,
-                                   std::forward_as_tuple(ddraw4Surface->GetProxied()),
-                                   std::forward_as_tuple(ddraw4Surface.ptr()));
-        hr = lpEnumSurfacesCallback(ddraw4Surface.ref(), &surfaceIt->surface4Desc, lpContext);
+        // Return the already attached depth surface if it exists
+        if (unlikely(m_depthStencil != nullptr && surface4.ptr() == m_depthStencil->GetProxied())) {
+          hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->surface4Desc, lpContext);
+        } else {
+          Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface4), m_commonIntf->GetDD4Interface(), this, false);
+          m_attachedSurfaces.emplace(std::piecewise_construct,
+                                    std::forward_as_tuple(ddraw4Surface->GetProxied()),
+                                    std::forward_as_tuple(ddraw4Surface.ptr()));
+          hr = lpEnumSurfacesCallback(ddraw4Surface.ref(), &surfaceIt->surface4Desc, lpContext);
+        }
       } else {
         hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->surface4Desc, lpContext);
       }
@@ -678,30 +663,31 @@ namespace dxvk {
       return hr;
     }
 
-    if (likely(!m_commonIntf->IsWrappedSurface(surface.ptr()))) {
-      Logger::debug("DDraw4Surface::GetAttachedSurface: Got a new unwrapped surface");
-      try {
-        auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
-        if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
+    try {
+      auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
+      if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
+        // Return the already attached depth surface if it exists
+        if (unlikely(m_depthStencil != nullptr && surface.ptr() == m_depthStencil->GetProxied())) {
+          *lplpDDAttachedSurface = m_depthStencil.ref();
+        } else {
           Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface), m_commonIntf->GetDD4Interface(), this, false);
           m_attachedSurfaces.emplace(std::piecewise_construct,
-                                     std::forward_as_tuple(ddraw4Surface->GetProxied()),
-                                     std::forward_as_tuple(ddraw4Surface.ptr()));
-          // TODO: We should ref here, but somehow we're leaking an interface attached surface if we do...
-          *lplpDDAttachedSurface = ddraw4Surface.ptr();
-        } else {
-          *lplpDDAttachedSurface = attachedSurfaceIter->second.ptr();
+                                      std::forward_as_tuple(ddraw4Surface->GetProxied()),
+                                      std::forward_as_tuple(ddraw4Surface.ptr()));
+          // TODO: We should ref universally, but somehow the back buffer
+          // is kept alive when it shouldn't be if we do...
+          if (lpDDSCaps->dwCaps & DDSCAPS_BACKBUFFER)
+            *lplpDDAttachedSurface = ddraw4Surface.ptr();
+          else
+            *lplpDDAttachedSurface = ddraw4Surface.ref();
         }
-      } catch (const DxvkError& e) {
-        Logger::err(e.message());
-        *lplpDDAttachedSurface = nullptr;
-        return DDERR_GENERIC;
+      } else {
+        *lplpDDAttachedSurface = attachedSurfaceIter->second.ref();
       }
-    // Can potentially happen with manually attached surfaces
-    } else {
-      Logger::debug("DDraw4Surface::GetAttachedSurface: Got an existing wrapped surface");
-      Com<DDraw4Surface> ddraw4Surface = static_cast<DDraw4Surface*>(surface.ptr());
-      *lplpDDAttachedSurface = ddraw4Surface.ref();
+    } catch (const DxvkError& e) {
+      Logger::err(e.message());
+      *lplpDDAttachedSurface = nullptr;
+      return DDERR_GENERIC;
     }
 
     return DD_OK;
@@ -849,11 +835,6 @@ namespace dxvk {
       if (m_commonIntf->GetOptions()->backBufferWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
         Logger::debug("DDraw4Surface::Lock: Surface is a swapchain surface");
 
-        if (unlikely(!IsInitialized())) {
-          HRESULT hrInit = InitializeOrUploadD3D9();
-          if (unlikely(FAILED(hrInit)))
-            Logger::warn("DDraw4Surface::Lock: Failed to initialize d3d9 flippable surface");
-        }
         if (likely(IsInitialized()))
           BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(m_proxy.ptr(), m_d3d9.ptr());
       } else {
@@ -866,11 +847,6 @@ namespace dxvk {
       if (m_commonIntf->GetOptions()->depthWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
         Logger::debug("DDraw4Surface::Lock: Surface is a depth stencil");
 
-        if (unlikely(!IsInitialized())) {
-          HRESULT hrInit = InitializeOrUploadD3D9();
-          if (unlikely(FAILED(hrInit)))
-            Logger::warn("DDraw4Surface::Lock: Failed to initialize d3d9 depth surface");
-        }
         if (likely(IsInitialized()))
           BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(m_proxy.ptr(), m_d3d9.ptr());
       } else {

@@ -86,10 +86,6 @@ namespace dxvk {
       return m_commonIntf.ptr();
     }
 
-    DDraw7Surface* GetLastDepthStencil() const {
-      return m_lastDepthStencil;
-    }
-
   private:
 
     bool                         m_needsInitialization = false;
@@ -101,8 +97,6 @@ namespace dxvk {
     Com<DDrawCommonInterface>    m_commonIntf;
 
     Com<D3D7Interface, false>    m_d3d7Intf;
-
-    DDraw7Surface*               m_lastDepthStencil = nullptr;
 
   };
 
