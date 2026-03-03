@@ -244,11 +244,9 @@ namespace dxvk {
       if (m_parent->GetOptions()->forceProxiedPresent) {
         // If we have drawn anything, we need to make sure we blit back
         // the results onto the D3D7 render target before we flip it
-        if (m_commonIntf->HasDrawn()) {
-          if (unlikely(!m_rt->IsInitialized()))
-            m_rt->InitializeD3D9RenderTarget();
+        if (m_commonIntf->HasDrawn())
           BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(m_rt->GetProxied(), m_rt->GetD3D9());
-        }
+
         m_rt->GetProxied()->Flip(static_cast<IDirectDrawSurface7*>(m_commonIntf->GetFlipRTSurface()),
                                  m_commonIntf->GetFlipRTFlags());
 
@@ -323,7 +321,7 @@ namespace dxvk {
       if (m_ds != nullptr) {
         Logger::debug("D3D7Device::SetRenderTarget: Found an attached DS");
 
-        hrDS = m_ds->InitializeOrUploadD3D9();
+        hrDS = m_ds->InitializeD3D9DepthStencil();
         if (unlikely(FAILED(hrDS))) {
           Logger::err("D3D7Device::SetRenderTarget: Failed to initialize/upload D3D9 DS");
           return hrDS;
@@ -1361,12 +1359,15 @@ namespace dxvk {
   }
 
   void D3D7Device::InitializeDS() {
+    if (!m_rt->IsInitialized())
+      m_rt->InitializeD3D9RenderTarget();
+
     m_ds = m_rt->GetAttachedDepthStencil();
 
     if (m_ds != nullptr) {
       Logger::debug("D3D7Device::InitializeDS: Found an attached DS");
 
-      HRESULT hrDS = m_ds->InitializeOrUploadD3D9();
+      HRESULT hrDS = m_ds->InitializeD3D9DepthStencil();
       if (unlikely(FAILED(hrDS))) {
         Logger::err("D3D7Device::InitializeDS: Failed to initialize D3D9 DS");
       } else {

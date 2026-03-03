@@ -263,6 +263,9 @@ namespace dxvk {
         if (m_commonIntf->GetOptions()->backBufferWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw4Surface::Blt: Source surface is a swapchain surface");
 
+          if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !sourceSurface->IsInitialized()))
+            sourceSurface->InitializeOrUploadD3D9();
+
           if (likely(sourceSurface->IsInitialized()))
             BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(sourceSurface->GetProxied(), sourceSurface->GetD3D9());
         } else {
@@ -381,6 +384,9 @@ namespace dxvk {
       if (unlikely(sourceSurface->GetCommonSurface()->IsGuardableSurface())) {
         if (m_commonIntf->GetOptions()->backBufferWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw4Surface::BltFast: Source surface is a swapchain surface");
+
+          if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !sourceSurface->IsInitialized()))
+            sourceSurface->InitializeOrUploadD3D9();
 
           if (likely(sourceSurface->IsInitialized()))
             BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(sourceSurface->GetProxied(), sourceSurface->GetD3D9());
@@ -835,6 +841,9 @@ namespace dxvk {
       if (m_commonIntf->GetOptions()->backBufferWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
         Logger::debug("DDraw4Surface::Lock: Surface is a swapchain surface");
 
+        if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !IsInitialized()))
+          InitializeOrUploadD3D9();
+
         if (likely(IsInitialized()))
           BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(m_proxy.ptr(), m_d3d9.ptr());
       } else {
@@ -1117,6 +1126,17 @@ namespace dxvk {
 
     if (unlikely(!IsInitialized()))
       hr = InitializeD3D9(true);
+
+    return hr;
+  }
+
+  HRESULT DDraw4Surface::InitializeD3D9DepthStencil() {
+    HRESULT hr = DD_OK;
+
+    RefreshD3D9Device();
+
+    if (unlikely(!IsInitialized()))
+      hr = InitializeD3D9(false);
 
     return hr;
   }
@@ -1438,7 +1458,9 @@ namespace dxvk {
       Logger::warn("DDraw4Surface::InitializeD3D9: Skipping initialization of unknown surface");
     }
 
-    UploadSurfaceData();
+    // Depth stencils will not need uploads post initialization
+    if (likely(!m_commonSurf->IsDepthStencil()))
+      UploadSurfaceData();
 
     return DD_OK;
   }
