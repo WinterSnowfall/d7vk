@@ -58,6 +58,11 @@ namespace dxvk {
     /// Sacrifice, which won't enable 32-bit modes without D32 support.
     bool useD24X8forD32;
 
+    /// Advertise support for D16. Disabling it may force some games to use a higher
+    /// precision for depth, which may reduce Z-fighting artifacts. In other cases it
+    /// might cause games to crash, so use with caution. Default enabled.
+    bool supportD16;
+
     /// Proxies all D3D5 calls, to allow mixed D3D3 execute buffer use
     bool proxiedExecuteBuffers;
 
@@ -103,12 +108,12 @@ namespace dxvk {
     D3DOptions() {}
 
     D3DOptions(const Config& config) {
-      // D3D7/6/5 options
-      this->forceMultiThreaded    = config.getOption<bool>   ("d3d7.forceMultiThreaded",     false);
-      this->useD24X8forD32        = config.getOption<bool>   ("d3d7.useD24X8forD32",         false);
-      this->proxiedExecuteBuffers = config.getOption<bool>   ("d3d7.proxiedExecuteBuffers",  false);
-      this->viewportCorrection    = config.getOption<bool>   ("d3d7.viewportCorrection",     false);
-      // DDraw options
+      // D3D7/6/5/DDraw options
+      this->forceMultiThreaded    = config.getOption<bool>   ("ddraw.forceMultiThreaded",    false);
+      this->useD24X8forD32        = config.getOption<bool>   ("ddraw.useD24X8forD32",        false);
+      this->supportD16            = config.getOption<bool>   ("ddraw.supportD16",             true);
+      this->proxiedExecuteBuffers = config.getOption<bool>   ("ddraw.proxiedExecuteBuffers", false);
+      this->viewportCorrection    = config.getOption<bool>   ("ddraw.viewportCorrection",    false);
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);
       this->backBufferWriteBack   = config.getOption<bool>   ("ddraw.backBufferWriteBack",   false);
@@ -122,7 +127,7 @@ namespace dxvk {
       // D3D9 options
       this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",      1024);
 
-      std::string emulateFSAAStr = Config::toLower(config.getOption<std::string>("d3d7.emulateFSAA", "auto"));
+      std::string emulateFSAAStr = Config::toLower(config.getOption<std::string>("ddraw.emulateFSAA", "auto"));
       if (emulateFSAAStr == "true") {
         this->emulateFSAA = FSAAEmulation::Enabled;
       } else if (emulateFSAAStr == "forced") {
@@ -131,7 +136,7 @@ namespace dxvk {
         this->emulateFSAA = FSAAEmulation::Disabled;
       }
 
-      std::string deviceTypeOverrideStr = Config::toLower(config.getOption<std::string>("d3d7.deviceTypeOverride", "auto"));
+      std::string deviceTypeOverrideStr = Config::toLower(config.getOption<std::string>("ddraw.deviceTypeOverride", "auto"));
       if (deviceTypeOverrideStr == "swvp") {
         this->deviceTypeOverride = D3DDeviceTypeOverride::SWVP;
       } else if (deviceTypeOverrideStr == "swvpmixed") {

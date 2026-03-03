@@ -8,7 +8,7 @@
 
 namespace dxvk {
 
-  //Logger Logger::s_instance("d3d7.log");
+  //Logger Logger::s_instance("ddraw.log");
 
   HMODULE GetProxiedDDrawModule() {
     static HMODULE hDDraw = nullptr;
