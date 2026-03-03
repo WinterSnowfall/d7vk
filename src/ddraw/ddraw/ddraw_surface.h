@@ -160,6 +160,8 @@ namespace dxvk {
 
     HRESULT InitializeD3D9RenderTarget();
 
+    HRESULT InitializeD3D9DepthStencil();
+
     HRESULT InitializeOrUploadD3D9();
 
     HRESULT InitializeD3D9(const bool initRT);
