@@ -75,10 +75,6 @@ namespace dxvk {
       return m_commonIntf.ptr();
     }
 
-    DDrawSurface* GetLastDepthStencil() const {
-      return m_lastDepthStencil;
-    }
-
   private:
 
     bool                       m_needsInitialization = false;
@@ -92,8 +88,6 @@ namespace dxvk {
     // We can not increase the public ref count on the parent IDirectDraw
     // interface, so keep a private COM reference to it instead
     Com<DDrawInterface, false> m_parentIntf;
-
-    DDrawSurface*              m_lastDepthStencil = nullptr;
 
   };
 

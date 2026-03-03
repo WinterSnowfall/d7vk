@@ -86,14 +86,6 @@ namespace dxvk {
                          std::forward_as_tuple(commonTex));
     }
 
-    void SetLastDepthStencil(DDrawSurface* lastDepthStencil) {
-      m_lastDepthStencil = lastDepthStencil;
-    }
-
-    DDrawSurface* GetLastDepthStencil() const {
-      return m_lastDepthStencil;
-    }
-
   private:
 
     bool                      m_needsInitialization = false;
@@ -105,8 +97,6 @@ namespace dxvk {
     Com<DDrawCommonInterface> m_commonIntf;
 
     Com<D3D5Interface, false> m_d3d5Intf;
-
-    DDrawSurface*             m_lastDepthStencil = nullptr;
 
     D3DTEXTUREHANDLE          m_textureHandle = 0;
     std::unordered_map<D3DTEXTUREHANDLE, D3DCommonTexture*> m_textures;
