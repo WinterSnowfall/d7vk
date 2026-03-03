@@ -529,7 +529,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTDRAWSURFACE3 *lplpDDAttachedSurface) {
-    Logger::debug("<<< DDraw3Surface::GetAttachedSurface: Proxy");
+    Logger::warn("<<< DDraw3Surface::GetAttachedSurface: Proxy");
 
     if (unlikely(lpDDSCaps == nullptr || lplpDDAttachedSurface == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -564,21 +564,13 @@ namespace dxvk {
       return hr;
     }
 
-    if (likely(!m_commonIntf->IsWrappedSurface(surface.ptr()))) {
-      Logger::debug("DDraw3Surface::GetAttachedSurface: Got a new unwrapped surface");
-      try {
-        Com<DDraw3Surface> ddraw3Surface = new DDraw3Surface(nullptr, std::move(surface), nullptr, this);
-        *lplpDDAttachedSurface = ddraw3Surface.ref();
-      } catch (const DxvkError& e) {
-        Logger::err(e.message());
-        *lplpDDAttachedSurface = nullptr;
-        return DDERR_GENERIC;
-      }
-    // Can potentially happen with manually attached surfaces
-    } else {
-      Logger::debug("DDraw3Surface::GetAttachedSurface: Got an existing wrapped surface");
-      Com<DDraw3Surface> ddraw3Surface = static_cast<DDraw3Surface*>(surface.ptr());
+    try {
+      Com<DDraw3Surface> ddraw3Surface = new DDraw3Surface(nullptr, std::move(surface), nullptr, this);
       *lplpDDAttachedSurface = ddraw3Surface.ref();
+    } catch (const DxvkError& e) {
+      Logger::err(e.message());
+      *lplpDDAttachedSurface = nullptr;
+      return DDERR_GENERIC;
     }
 
     return DD_OK;
