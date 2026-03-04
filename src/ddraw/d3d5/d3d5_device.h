@@ -210,6 +210,11 @@ namespace dxvk {
     Com<D3D5Viewport>              m_currentViewport;
     std::vector<Com<D3D5Viewport>> m_viewports;
 
+    VertexStreamInfo               m_vertexStreamInfo;
+    std::vector<D3DVERTEX>         m_vertexStream;
+    std::vector<D3DLVERTEX>        m_lvertexStream;
+    std::vector<D3DTLVERTEX>       m_tlvertexStream;
+
     // Value of D3DRENDERSTATE_COLORKEYENABLE
     DWORD           m_colorKeyEnabled = 0;
     // Value of D3DRENDERSTATE_ANTIALIAS

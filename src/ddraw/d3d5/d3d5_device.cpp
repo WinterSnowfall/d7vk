@@ -516,7 +516,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::Begin(D3DPRIMITIVETYPE d3dptPrimitiveType, D3DVERTEXTYPE dwVertexTypeDesc, DWORD dwFlags) {
-    Logger::warn("!!! D3D5Device::Begin: Stub");
+    Logger::debug(">>> D3D5Device::Begin");
+
+    m_vertexStreamInfo.d3dpt = d3dptPrimitiveType;
+    m_vertexStreamInfo.d3dvt = dwVertexTypeDesc;
+    m_vertexStreamInfo.dwFlags = dwFlags;
+
     return D3D_OK;
   }
 
@@ -526,7 +531,19 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::Vertex(void *vertex) {
-    Logger::warn("!!! D3D5Device::Vertex: Stub");
+    Logger::debug(">>> D3D5Device::Vertex");
+
+    if (m_vertexStreamInfo.d3dvt == D3DVT_VERTEX) {
+      m_vertexStream.push_back(*reinterpret_cast<D3DVERTEX*>(vertex));
+    } else if (m_vertexStreamInfo.d3dvt == D3DVT_LVERTEX) {
+      m_lvertexStream.push_back(*reinterpret_cast<D3DLVERTEX*>(vertex));
+    } else if (m_vertexStreamInfo.d3dvt == D3DVT_TLVERTEX) {
+      m_tlvertexStream.push_back(*reinterpret_cast<D3DTLVERTEX*>(vertex));
+    } else {
+      Logger::warn(">>> D3D5Device::Vertex: Invalid vertex type");
+      return DDERR_INVALIDPARAMS;
+    }
+
     return D3D_OK;
   }
 
@@ -536,8 +553,32 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::End(DWORD dwFlags) {
-    Logger::warn("!!! D3D5Device::End: Stub");
-    return D3D_OK;
+    Logger::debug(">>> D3D5Device::End");
+
+    HRESULT hr;
+    if (m_vertexStreamInfo.d3dvt == D3DVT_VERTEX) {
+      hr = DrawPrimitive(m_vertexStreamInfo.d3dpt, m_vertexStreamInfo.d3dvt, m_vertexStream.data(),
+                         m_vertexStream.size(), m_vertexStreamInfo.dwFlags);
+      m_vertexStream.clear();
+    } else if (m_vertexStreamInfo.d3dvt == D3DVT_LVERTEX) {
+      hr = DrawPrimitive(m_vertexStreamInfo.d3dpt, m_vertexStreamInfo.d3dvt, m_lvertexStream.data(),
+                         m_lvertexStream.size(), m_vertexStreamInfo.dwFlags);
+      m_lvertexStream.clear();
+    } else if (m_vertexStreamInfo.d3dvt == D3DVT_TLVERTEX) {
+      hr = DrawPrimitive(m_vertexStreamInfo.d3dpt, m_vertexStreamInfo.d3dvt, m_tlvertexStream.data(),
+                         m_tlvertexStream.size(), m_vertexStreamInfo.dwFlags);
+      m_tlvertexStream.clear();
+    } else {
+      Logger::warn(">>> D3D5Device::End: Invalid vertex type");
+      return DDERR_INVALIDPARAMS;
+    }
+
+    if (unlikely(FAILED(hr)))
+      Logger::warn(">>> D3D5Device::End: Failed call to DrawPrimitive");
+
+    m_vertexStreamInfo = { };
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType, LPDWORD lpdwRenderState) {
