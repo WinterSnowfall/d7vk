@@ -103,7 +103,9 @@ namespace dxvk {
 
     if (unlikely(!texHandle)) {
       Logger::warn("D3D3Texture::GetHandle: Null handle returned");
-      return m_proxy->GetHandle(lpDirect3DDevice, lpHandle);
+
+      D3D3Device* d3d3Device = static_cast<D3D3Device*>(lpDirect3DDevice);
+      return m_proxy->GetHandle(d3d3Device->GetProxied(), lpHandle);
     }
 
     *lpHandle = texHandle;
@@ -120,7 +122,6 @@ namespace dxvk {
     Logger::debug("<<< D3D3Texture::Load: Proxy");
 
     Com<D3D3Texture> d3d3Texture = static_cast<D3D3Texture*>(lpD3DTexture);
-
     HRESULT hr = m_proxy->Load(d3d3Texture->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
