@@ -533,6 +533,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D5Device::Vertex(void *vertex) {
     Logger::debug(">>> D3D5Device::Vertex");
 
+    if (unlikely(vertex == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     if (m_vertexStreamInfo.d3dvt == D3DVT_VERTEX) {
       m_vertexStream.push_back(*reinterpret_cast<D3DVERTEX*>(vertex));
     } else if (m_vertexStreamInfo.d3dvt == D3DVT_LVERTEX) {

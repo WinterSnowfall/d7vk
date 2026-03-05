@@ -1205,7 +1205,7 @@ namespace dxvk {
     if (m_commonSurf->IsTexture()) {
       IDirectDrawSurface4* mipMap = m_proxy.ptr();
       DDSURFACEDESC2 mipDesc2;
-      uint8_t mipCount = 1;
+      uint16_t mipCount = 1;
 
       while (mipMap != nullptr) {
         IDirectDrawSurface4* parentSurface = mipMap;

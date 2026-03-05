@@ -63,6 +63,10 @@ namespace dxvk {
     /// might cause games to crash, so use with caution. Default enabled.
     bool supportD16;
 
+    /// Respect DISCARD only on DYNAMIC + WRITEONLY buffers. Some applications need
+    /// this for correctness, however it will degrade performance. Default disabled.
+    bool forceLegacyDiscard;
+
     /// Proxies all D3D5 calls, to allow mixed D3D3 execute buffer use
     bool proxiedExecuteBuffers;
 
@@ -112,6 +116,7 @@ namespace dxvk {
       this->forceMultiThreaded    = config.getOption<bool>   ("ddraw.forceMultiThreaded",    false);
       this->useD24X8forD32        = config.getOption<bool>   ("ddraw.useD24X8forD32",        false);
       this->supportD16            = config.getOption<bool>   ("ddraw.supportD16",             true);
+      this->forceLegacyDiscard    = config.getOption<bool>   ("ddraw.forceLegacyDiscard",    false);
       this->proxiedExecuteBuffers = config.getOption<bool>   ("ddraw.proxiedExecuteBuffers", false);
       this->viewportCorrection    = config.getOption<bool>   ("ddraw.viewportCorrection",    false);
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);

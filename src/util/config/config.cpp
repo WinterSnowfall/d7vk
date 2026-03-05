@@ -1661,6 +1661,16 @@ namespace dxvk {
       { "ddraw.depthWriteBack",             "True" },
       { "ddraw.backBufferWriteBack",        "True" },
     }} },
+    /* Radeon's Ark (ATI Radeon 7000 Tech Demo)   *
+     * Needs custom vendor ID to run on anything  *
+     * outside AMD, and a frame cap to not freeze *
+     * or slow down upwards of 500 FPS. Legacy    *
+     * DISCARD handling fixes missing geometry.   */
+    { R"(\\Radeon'sArk1.3\.exe$)", {{
+      { "d3d9.customVendorId",              "1002" },
+      { "d3d9.maxFrameRate",                "-500" },
+      { "ddraw.forceLegacyDiscard",         "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */

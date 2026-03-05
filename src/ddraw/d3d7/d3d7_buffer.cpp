@@ -78,7 +78,7 @@ namespace dxvk {
     if (data_size != nullptr)
       *data_size = m_size;
 
-    HRESULT hr = m_d3d9->Lock(0, 0, data, ConvertLockFlags(flags, false));
+    HRESULT hr = m_d3d9->Lock(0, 0, data, ConvertD3D7LockFlags(flags, m_legacyDiscard, false));
 
     if (likely(SUCCEEDED(hr)))
       m_locked = true;
@@ -234,6 +234,8 @@ namespace dxvk {
     Logger::debug(str::format("D3D7VertexBuffer::InitializeD3D9: Placing in: ", poolPlacement));
 
     const DWORD usage = ConvertD3D7UsageFlags(m_desc.dwCaps, pool);
+    m_legacyDiscard = m_commonIntf->GetOptions()->forceLegacyDiscard &&
+                      (usage & D3DUSAGE_DYNAMIC) && (usage & D3DUSAGE_WRITEONLY);
     HRESULT hr = m_d3d7Device->GetD3D9()->CreateVertexBuffer(m_size, usage, m_desc.dwFVF, pool, &m_d3d9, nullptr);
 
     if (unlikely(FAILED(hr))) {
