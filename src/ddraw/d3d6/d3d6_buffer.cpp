@@ -76,7 +76,7 @@ namespace dxvk {
     if (data_size != nullptr)
       *data_size = m_size;
 
-    HRESULT hr = m_d3d9->Lock(0, 0, data, ConvertLockFlags(flags, false));
+    HRESULT hr = m_d3d9->Lock(0, 0, data, ConvertD3D6LockFlags(flags, false));
 
     if (likely(SUCCEEDED(hr)))
       m_locked = true;

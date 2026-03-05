@@ -49,7 +49,7 @@ namespace dxvk {
     }
   }
 
-  inline DWORD ConvertLockFlags(DWORD lockFlags, bool isSurface) {
+  inline DWORD ConvertD3D6LockFlags(DWORD lockFlags, bool isSurface) {
     DWORD lockFlagsD3D9 = 0;
 
     // DDLOCK_WAIT is default for ddraw7 surfaces, so ignore it
@@ -66,8 +66,34 @@ namespace dxvk {
     if ((lockFlags & DDLOCK_READONLY) && !(lockFlags & DDLOCK_WRITEONLY)) {
       lockFlagsD3D9 |= (DWORD)D3DLOCK_READONLY;
     }
-    // D3D7 only lock flags
-    if (lockFlags & DDLOCK_DISCARDCONTENTS) {
+    if (lockFlags & DDLOCK_NOOVERWRITE) {
+      lockFlagsD3D9 |= (DWORD)D3DLOCK_NOOVERWRITE;
+    }
+
+    return lockFlagsD3D9;
+  }
+
+  inline DWORD ConvertD3D7LockFlags(DWORD lockFlags, bool legacyDiscard, bool isSurface) {
+    DWORD lockFlagsD3D9 = 0;
+
+    // DDLOCK_WAIT is default for ddraw7 surfaces, so ignore it
+    // and only factor in DDLOCK_DONOTWAIT. Buffers locks have
+    // a flipped logic compared to d3d9.
+    if ((!isSurface && !(lockFlags & DDLOCK_WAIT))
+     || (isSurface  &&  (lockFlags & DDLOCK_DONOTWAIT))) {
+      lockFlagsD3D9 |= (DWORD)D3DLOCK_DONOTWAIT;
+    }
+    if (lockFlags & DDLOCK_NOSYSLOCK) {
+      lockFlagsD3D9 |= (DWORD)D3DLOCK_NOSYSLOCK;
+    }
+    // Not sure if both can happen at the same time, but play it safe
+    if ((lockFlags & DDLOCK_READONLY) && !(lockFlags & DDLOCK_WRITEONLY)) {
+      lockFlagsD3D9 |= (DWORD)D3DLOCK_READONLY;
+    }
+    // This is called "legacy DISCARD" in D8VK, which apparently
+    // is expected to be enforced implicitly in D3D7. Earlier
+    // versions of D3D do not feature a DISCARD lock flag.
+    if ((lockFlags & DDLOCK_DISCARDCONTENTS) && !legacyDiscard) {
       lockFlagsD3D9 |= (DWORD)D3DLOCK_DISCARD;
     }
     if (lockFlags & DDLOCK_NOOVERWRITE) {

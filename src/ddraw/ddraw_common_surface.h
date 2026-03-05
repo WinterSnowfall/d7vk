@@ -107,11 +107,11 @@ namespace dxvk {
       return static_cast<float>(input) / static_cast<float>(max);
     }
 
-    uint8_t GetMipCount() const {
+    uint16_t GetMipCount() const {
       return m_mipCount;
     }
 
-    void SetMipCount(uint8_t mipCount) {
+    void SetMipCount(uint16_t mipCount) {
       m_mipCount = mipCount;
     }
 
@@ -309,7 +309,7 @@ namespace dxvk {
     bool                      m_isForwardableSurface    = false;
     bool                      m_isGuardableSurface      = false;
 
-    uint8_t                   m_mipCount = 1;
+    uint16_t                  m_mipCount = 1;
     uint32_t                  m_backBufferIndex = 0;
 
     DDSURFACEDESC             m_desc  = { };
