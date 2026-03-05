@@ -92,6 +92,7 @@ namespace dxvk {
     }
 
     bool                  m_locked  = false;
+    bool                  m_legacyDiscard = false;
 
     static uint32_t       s_buffCount;
     uint32_t              m_buffCount  = 0;
