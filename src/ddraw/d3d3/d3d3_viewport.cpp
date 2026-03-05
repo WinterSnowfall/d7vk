@@ -1,5 +1,7 @@
 #include "d3d3_viewport.h"
 
+#include "d3d3_light.h"
+
 #include "../d3d6/d3d6_viewport.h"
 
 namespace dxvk {
@@ -49,11 +51,11 @@ namespace dxvk {
 
     if (unlikely(riid == __uuidof(IDirect3DViewport2))) {
       Logger::warn("D3D3Viewport::QueryInterface: Query for IDirect3DViewport2");
-      m_proxy->QueryInterface(riid, ppvObject);
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirect3DViewport3))) {
       Logger::warn("D3D3Viewport::QueryInterface: Query for IDirect3DViewport3");
-      m_proxy->QueryInterface(riid, ppvObject);
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
 
     try {
@@ -137,12 +139,22 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D3Viewport::AddLight(IDirect3DLight *light) {
     Logger::debug("<<< D3D3Viewport::AddLight: Proxy");
-    return m_proxy->AddLight(light);
+
+    if (unlikely(light == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    D3D3Light* d3d3Light = static_cast<D3D3Light*>(light);
+    return m_proxy->AddLight(d3d3Light->GetProxied());
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Viewport::DeleteLight(IDirect3DLight *light) {
     Logger::debug("<<< D3D3Viewport::DeleteLight: Proxy");
-    return m_proxy->DeleteLight(light);
+
+    if (unlikely(light == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    D3D3Light* d3d3Light = static_cast<D3D3Light*>(light);
+    return m_proxy->DeleteLight(d3d3Light->GetProxied());
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Viewport::NextLight(IDirect3DLight *ref, IDirect3DLight **light, DWORD flags) {
