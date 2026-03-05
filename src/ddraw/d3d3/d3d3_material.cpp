@@ -68,6 +68,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D3Material::GetHandle(IDirect3DDevice *device, D3DMATERIALHANDLE *handle) {
     Logger::debug("<<< D3D3Material::GetHandle: Proxy");
 
+    if (unlikely(device == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     D3D3Device* d3d3Device = static_cast<D3D3Device*>(device);
     return m_proxy->GetHandle(d3d3Device->GetProxied(), handle);
   }

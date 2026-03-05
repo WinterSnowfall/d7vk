@@ -5,6 +5,8 @@
 #include "d3d5_material.h"
 #include "d3d5_viewport.h"
 
+#include "../d3d3/d3d3_interface.h"
+
 #include "../ddraw/ddraw_interface.h"
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw2/ddraw2_interface.h"
@@ -79,8 +81,16 @@ namespace dxvk {
 
     // Some games query for legacy d3d interfaces
     if (unlikely(riid == __uuidof(IDirect3D))) {
-      Logger::warn("D3D5Interface::QueryInterface: Query for legacy IDirect3D");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::debug("D3D5Interface::QueryInterface: Query for IDirect3D");
+
+      Com<IDirect3D> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      *ppvObject = ref(new D3D3Interface(std::move(ppvProxyObject), nullptr));
+
+      return S_OK;
     }
     // Some games query for ddraw interfaces
     if (unlikely(riid == __uuidof(IDirectDraw))) {
