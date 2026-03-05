@@ -35,6 +35,10 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPD3DEXECUTEBUFFERDESC lpDesc) {
     Logger::debug("<<< D3D3ExecuteBuffer::Initialize: Proxy");
+
+    if (unlikely(lpDirect3DDevice == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     D3D3Device* d3d3Device = static_cast<D3D3Device*>(lpDirect3DDevice);
     return m_proxy->Initialize(d3d3Device->GetProxied(), lpDesc);
   }

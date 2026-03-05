@@ -153,7 +153,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D3Device::Execute(IDirect3DExecuteBuffer *buffer, IDirect3DViewport *viewport, DWORD flags) {
     Logger::debug("<<< D3D3Device::Execute: Proxy");
 
-    if (unlikely(viewport == nullptr))
+    if (unlikely(buffer == nullptr || viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
     D3D3ExecuteBuffer* d3d3ExecuteBuffer = static_cast<D3D3ExecuteBuffer*>(buffer);
@@ -164,7 +164,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D3Device::Pick(IDirect3DExecuteBuffer *buffer, IDirect3DViewport *viewport, DWORD flags, D3DRECT *rect) {
     Logger::debug("<<< D3D3Device::Pick: Proxy");
 
-    if (unlikely(viewport == nullptr))
+    if (unlikely(buffer == nullptr || viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
     D3D3ExecuteBuffer* d3d3ExecuteBuffer = static_cast<D3D3ExecuteBuffer*>(buffer);
