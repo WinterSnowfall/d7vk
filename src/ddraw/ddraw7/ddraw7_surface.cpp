@@ -1282,7 +1282,7 @@ namespace dxvk {
     if (m_commonSurf->IsTextureOrCubeMap()) {
       IDirectDrawSurface7* mipMap = m_proxy.ptr();
       DDSURFACEDESC2 mipDesc2;
-      uint8_t mipCount = 1;
+      uint16_t mipCount = 1;
 
       while (mipMap != nullptr) {
         IDirectDrawSurface7* parentSurface = mipMap;
@@ -1626,7 +1626,7 @@ namespace dxvk {
     if (unlikely(m_commonSurf->IsCubeMap())) {
       // In theory we won't know which faces have been generated,
       // so check them one by one, and upload as needed
-      const uint8_t mipCount = m_commonSurf->GetMipCount();
+      const uint16_t mipCount = m_commonSurf->GetMipCount();
       if (likely(m_cubeMapSurfaces[0] != nullptr)) {
         BlitToD3D9CubeMap(m_cubeMap.ptr(), format, m_cubeMapSurfaces[0], mipCount);
       } else {
