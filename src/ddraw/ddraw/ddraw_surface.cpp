@@ -75,6 +75,14 @@ namespace dxvk {
   DDrawSurface::~DDrawSurface() {
     m_commonIntf->RemoveWrappedSurface(this);
 
+    // Release all public references on all attached surfaces
+    for (auto & attachedSurface : m_attachedSurfaces) {
+      uint32_t ref;
+      do {
+        ref = attachedSurface.second->Release();
+      } while (ref > 0);
+    }
+
     if (m_parent != nullptr && m_isChildObject)
       m_parent->Release();
 
@@ -709,11 +717,6 @@ namespace dxvk {
           m_attachedSurfaces.emplace(std::piecewise_construct,
                                       std::forward_as_tuple(ddrawSurface->GetProxied()),
                                       std::forward_as_tuple(ddrawSurface.ptr()));
-        // TODO: We should ref universally, but somehow the back buffer
-        // is kept alive when it shouldn't be if we do...
-        if (lpDDSCaps->dwCaps & DDSCAPS_BACKBUFFER)
-          *lplpDDAttachedSurface = ddrawSurface.ptr();
-        else
           *lplpDDAttachedSurface = ddrawSurface.ref();
         }
       } else {
