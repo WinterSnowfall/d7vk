@@ -1863,7 +1863,15 @@ namespace dxvk {
       { "ddraw.emulateFSAA",                "True" },
     }} },
     /* The Longest Journey                        */
-    { R"(\\The Longest Journey\\game.exe$)", {{
+    { R"(\\The Longest Journey\\game\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Wing Commander: Prophecy                   */
+    { R"(\\prophecy\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Tom Clancy's Rainbow Six                   */
+    { R"(\\RainbowSix\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
 
