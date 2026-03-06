@@ -1319,6 +1319,17 @@ namespace dxvk {
       return hr;
     }
 
+    // Update the cached destination surface desc
+    DDSURFACEDESC2 desc2;
+    desc2.dwSize = sizeof(DDSURFACEDESC2);
+    HRESULT hrDesc = ddraw7SurfaceDst->GetProxied()->GetSurfaceDesc(&desc2);
+
+    if (unlikely(FAILED(hrDesc))) {
+      Logger::err("D3D7Device::Load: Failed to retrieve updated destination surface desc");
+    } else {
+      ddraw7SurfaceDst->GetCommonSurface()->SetDesc2(desc2);
+    }
+
     // Textures and cubemaps get uploaded during SetTexture calls
     if (!ddraw7SurfaceDst->GetCommonSurface()->IsTextureOrCubeMap()) {
       HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
