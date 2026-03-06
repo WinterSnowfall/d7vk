@@ -120,6 +120,17 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
+    // Update the cached parent surface desc
+    DDSURFACEDESC2 desc2;
+    desc2.dwSize = sizeof(DDSURFACEDESC2);
+    HRESULT hrDesc = m_parent->GetProxied()->GetSurfaceDesc(&desc2);
+
+    if (unlikely(FAILED(hrDesc))) {
+      Logger::err("D3D6Texture::Load: Failed to retrieve updated surface desc");
+    } else {
+      m_parent->GetCommonSurface()->SetDesc2(desc2);
+    }
+
     m_parent->GetCommonSurface()->DirtyMipMaps();
 
     return hr;
