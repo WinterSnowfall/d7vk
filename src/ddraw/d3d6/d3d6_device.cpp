@@ -567,10 +567,21 @@ namespace dxvk {
         *lpdwRenderState = TRUE;
         return D3D_OK;
 
-      case D3DRENDERSTATE_WRAPU:
-      case D3DRENDERSTATE_WRAPV:
-        *lpdwRenderState = FALSE;
+      // Not implemented in DXVK, but retrieve it as it were
+      case D3DRENDERSTATE_WRAPU: {
+        DWORD value9 = 0;
+        m_d3d9->GetRenderState(d3d9::D3DRS_WRAP0, &value9);
+        *lpdwRenderState = value9 & D3DWRAP_U;
         return D3D_OK;
+      }
+
+      // Not implemented in DXVK, but retrieve it as it were
+      case D3DRENDERSTATE_WRAPV: {
+        DWORD value9 = 0;
+        m_d3d9->GetRenderState(d3d9::D3DRS_WRAP0, &value9);
+        *lpdwRenderState = value9 & D3DWRAP_V;
+        return D3D_OK;
+      }
 
       case D3DRENDERSTATE_LINEPATTERN:
         *lpdwRenderState = bit::cast<DWORD>(m_linePattern);
@@ -762,14 +773,29 @@ namespace dxvk {
 
         return D3D_OK;
 
-      case D3DRENDERSTATE_WRAPU:
-      case D3DRENDERSTATE_WRAPV:
-        static bool s_wrapUVErrorShown;
-
-        if (dwRenderState && !std::exchange(s_wrapUVErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_WRAPU/V");
-
+      // Not implemented in DXVK, but forward it anyway
+      case D3DRENDERSTATE_WRAPU: {
+        DWORD value9 = 0;
+        m_d3d9->GetRenderState(d3d9::D3DRS_WRAP0, &value9);
+        if (dwRenderState == TRUE) {
+          m_d3d9->SetRenderState(d3d9::D3DRS_WRAP0, value9 & D3DWRAP_U);
+        } else {
+          m_d3d9->SetRenderState(d3d9::D3DRS_WRAP0, value9 & ~D3DWRAP_U);
+        }
         return D3D_OK;
+      }
+
+      // Not implemented in DXVK, but forward it anyway
+      case D3DRENDERSTATE_WRAPV: {
+        DWORD value9 = 0;
+        m_d3d9->GetRenderState(d3d9::D3DRS_WRAP0, &value9);
+        if (dwRenderState == TRUE) {
+          m_d3d9->SetRenderState(d3d9::D3DRS_WRAP0, value9 & D3DWRAP_V);
+        } else {
+          m_d3d9->SetRenderState(d3d9::D3DRS_WRAP0, value9 & ~D3DWRAP_V);
+        }
+        return D3D_OK;
+      }
 
       // TODO: Implement D3DRS_LINEPATTERN - vkCmdSetLineRasterizationModeEXT
       // and advertise support with D3DPRASTERCAPS_PAT once that is done

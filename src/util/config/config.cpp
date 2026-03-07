@@ -1709,9 +1709,12 @@ namespace dxvk {
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Urban Chaos                                *
-     * Uses windowed present mode in full-screen  */
+     * Uses windowed present mode in full-screen  *
+     * and mixes up VP MinZ / MaxZ values.        */
     { R"(\\fallen\.exe$)", {{
       { "ddraw.ignoreExclusiveMode",        "True" },
+      { "ddraw.forceSingleBackBuffer",      "True" },
+      { "ddraw.viewportCorrection",         "True" },
     }} },
     /* Redline - Fixes missing weapon mip maps    */
     { R"(\\Redline\.exe$)", {{
@@ -1803,6 +1806,11 @@ namespace dxvk {
     { R"(\\nocturne\.exe$)", {{
       { "ddraw.depthWriteBack",             "True" },
       { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Arabian Nights                             *
+     * Fixes flickering during level load         */
+    { R"(\\Arabian Nights\\_start\.exe$)", {{
+      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
 
     /**********************************************/
