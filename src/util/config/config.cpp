@@ -1671,6 +1671,11 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                "-500" },
       { "ddraw.forceLegacyDiscard",         "True" },
     }} },
+    /* Tribes 2 - fixes rendering and performance */
+    { R"(\\Tribes2\.exe$)", {{
+      { "ddraw.ignoreExclusiveMode",        "True" },
+      { "ddraw.deviceTypeOverride",         "SWVP" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
