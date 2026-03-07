@@ -452,8 +452,16 @@ namespace dxvk {
     viewport9->MinZ   = data->dvMaxZ <= 1.0f ? data->dvMinZ : data->dvMinZ / data->dvMaxZ;
     viewport9->MaxZ   = data->dvMaxZ <= 1.0f ? data->dvMaxZ : 1.0f;
 
-    if (unlikely(m_parent->GetOptions()->viewportCorrection && viewport9->MinZ == 0.0f && viewport9->MaxZ == 0.0f))
-      viewport9->MaxZ = 1.0f;
+    if (unlikely(m_parent->GetOptions()->viewportCorrection)) {
+      // The Summoner sets both to 0.0f and expects to end up with 0.0f / 1.0f
+      if (viewport9->MinZ == 0.0f && viewport9->MaxZ == 0.0f) {
+        viewport9->MaxZ = 1.0f;
+      // Urban Chaos mixes up MinZ / MaxZ, and this somehow works on native...
+      } else if (viewport9->MinZ == 1.0f && viewport9->MaxZ == 0.0f) {
+        viewport9->MinZ = 0.0f;
+        viewport9->MaxZ = 1.0f;
+      }
+    }
 
     m_commonViewport->MarkViewportAsSet();
 
