@@ -641,6 +641,13 @@ namespace dxvk {
     if (unlikely(pDDDI == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    // We need to share the device identifier with the underlying
+    // DDraw implementation, as some games validate it in various places
+    DDDEVICEIDENTIFIER pDDDIproxy = { };
+    HRESULT hr = m_proxy->GetDeviceIdentifier(&pDDDIproxy, dwFlags);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
     const d3d9::D3DADAPTER_IDENTIFIER9* adapterIdentifier9 = m_commonIntf->GetAdapterIdentifier();
     // This is typically the "2D accelerator" in the system
     if (unlikely(dwFlags & DDGDI_GETHOSTIDENTIFIER)) {
@@ -652,7 +659,7 @@ namespace dxvk {
       pDDDI->dwDeviceId               = 0;
       pDDDI->dwSubSysId               = 0;
       pDDDI->dwRevision               = 0;
-      pDDDI->guidDeviceIdentifier     = GUID_StandardVGAAdapter;
+      pDDDI->guidDeviceIdentifier     = pDDDIproxy.guidDeviceIdentifier;
     } else {
       Logger::debug("DDraw4Interface::GetDeviceIdentifier: Retrieving primary adapter info");
       memcpy(&pDDDI->szDriver,      &adapterIdentifier9->Driver,      sizeof(adapterIdentifier9->Driver));
@@ -662,7 +669,7 @@ namespace dxvk {
       pDDDI->dwDeviceId               = adapterIdentifier9->DeviceId;
       pDDDI->dwSubSysId               = adapterIdentifier9->SubSysId;
       pDDDI->dwRevision               = adapterIdentifier9->Revision;
-      pDDDI->guidDeviceIdentifier     = adapterIdentifier9->DeviceIdentifier;
+      pDDDI->guidDeviceIdentifier     = pDDDIproxy.guidDeviceIdentifier;
     }
 
     Logger::info(str::format("DDraw4Interface::GetDeviceIdentifier: Reporting: ", pDDDI->szDescription));
