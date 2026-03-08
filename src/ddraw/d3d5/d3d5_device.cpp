@@ -94,7 +94,6 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // O.D.T.: Escape... Or Die Trying queries for a D3D3 device in order to use execute buffers
     if (unlikely(riid == __uuidof(IDirect3DDevice))) {
       Logger::debug("D3D5Device::QueryInterface: Query for IDirect3DDevice");
 
@@ -103,7 +102,10 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D3Device(std::move(ppvProxyObject), nullptr));
+      // Reuse the existing D3D9 device in situations where games want
+      // to get access only to D3D3 execute buffers on a D3D5 device
+      Com<d3d9::IDirect3DDevice9> device9 = m_d3d9.ptr();
+      *ppvObject = ref(new D3D3Device(m_commonIntf, std::move(ppvProxyObject), m_rt.ptr(), std::move(device9)));
 
       return S_OK;
     }

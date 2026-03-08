@@ -1189,6 +1189,8 @@ namespace dxvk {
      * (with the "Modern Patch")                  */
     { R"(\\nfs3\.exe$)", {{
       { "d3d8.batching",                    "True" },
+      { "ddraw.forceSingleBackBuffer",      "True" },
+      { "ddraw.backBufferGuard",          "Strict" },
     }} },
     /* Need for Speed: High Stakes / Road         *
      * Challenge (with the "Modern Patch") -      *
@@ -1198,6 +1200,8 @@ namespace dxvk {
       { "d3d9.memoryTrackTest",             "True" },
       { "d3d9.maxAvailableMemory",          "1024" },
       { "d3d8.batching",                    "True" },
+      { "ddraw.forceSingleBackBuffer",      "True" },
+      { "ddraw.backBufferGuard",          "Strict" },
     }} },
     /* Need for Speed: Hot Pursuit 2              */
     { R"(\\NFSHP2\.exe$)", {{

@@ -119,7 +119,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D3Device(std::move(ppvProxyObject), this));
+      *ppvObject = ref(new D3D3Device(m_commonIntf, std::move(ppvProxyObject), this, nullptr));
 
       return S_OK;
     }
@@ -133,7 +133,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D3Device(std::move(ppvProxyObject), this));
+      *ppvObject = ref(new D3D3Device(m_commonIntf, std::move(ppvProxyObject), this, nullptr));
 
       return S_OK;
     }
