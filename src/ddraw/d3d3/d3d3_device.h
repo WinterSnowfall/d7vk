@@ -15,7 +15,11 @@ namespace dxvk {
   class D3D3Device final : public DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9> {
 
   public:
-    D3D3Device(Com<IDirect3DDevice>&& d3d3DeviceProxy, DDrawSurface* pParent);
+    D3D3Device(
+        DDrawCommonInterface* commonIntf,
+        Com<IDirect3DDevice>&& d3d3DeviceProxy,
+        DDrawSurface* pParent,
+        Com<d3d9::IDirect3DDevice9>&& pDevice9);
 
     ~D3D3Device();
 
@@ -63,6 +67,11 @@ namespace dxvk {
 
     static uint32_t       s_deviceCount;
     uint32_t              m_deviceCount = 0;
+
+    DDrawCommonInterface* m_commonIntf = nullptr;
+
+    Com<DDrawSurface>     m_rt;
+    DDrawSurface*         m_ds = nullptr;
 
   };
 
