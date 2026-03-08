@@ -11,9 +11,15 @@ namespace dxvk {
   uint32_t D3D3Device::s_deviceCount = 0;
 
   D3D3Device::D3D3Device(
+      DDrawCommonInterface* commonIntf,
       Com<IDirect3DDevice>&& d3d3DeviceProxy,
-      DDrawSurface* pParent)
-    : DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9>(pParent, std::move(d3d3DeviceProxy), nullptr) {
+      DDrawSurface* pParent,
+      Com<d3d9::IDirect3DDevice9>&& pDevice9)
+    : DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9>(pParent, std::move(d3d3DeviceProxy), std::move(pDevice9))
+    , m_commonIntf ( commonIntf )
+    // TODO: Once we these from a surface, we'll need to make sure they're initialized
+    , m_rt ( pParent )
+    , m_ds ( pParent->GetAttachedDepthStencil() ) {
     m_deviceCount = ++s_deviceCount;
 
     Logger::debug(str::format("D3D3Device: Created a new device nr. ((1-", m_deviceCount, "))"));
