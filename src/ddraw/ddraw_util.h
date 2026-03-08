@@ -39,6 +39,16 @@ namespace dxvk {
     }
   }
 
+  // >D3D6 DWORD vertex codes to D3D5 D3DVERTEXTYPE
+  inline D3DVERTEXTYPE ConvertFVFType(DWORD fvfType) {
+    switch (fvfType) {
+      default:
+      case D3DFVF_VERTEX:   return D3DVT_VERTEX;
+      case D3DFVF_LVERTEX:  return D3DVT_LVERTEX;
+      case D3DFVF_TLVERTEX: return D3DVT_TLVERTEX;
+    }
+  }
+
   inline d3d9::D3DTRANSFORMSTATETYPE ConvertTransformState(D3DTRANSFORMSTATETYPE tst) {
     switch (tst) {
       case D3DTRANSFORMSTATE_WORLD:  return d3d9::D3DTRANSFORMSTATETYPE(D3DTS_WORLD);

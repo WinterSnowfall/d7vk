@@ -232,6 +232,11 @@ namespace dxvk {
     Com<D3D6Viewport>              m_currentViewport;
     std::vector<Com<D3D6Viewport>> m_viewports;
 
+    VertexStreamInfo               m_vertexStreamInfo;
+    std::vector<D3DVERTEX>         m_vertexStream;
+    std::vector<D3DLVERTEX>        m_lvertexStream;
+    std::vector<D3DTLVERTEX>       m_tlvertexStream;
+
     std::array<Com<D3D6Texture, false>, ddrawCaps::TextureStageCount> m_textures;
 
     // Value of D3DRENDERSTATE_COLORKEYENABLE
