@@ -501,7 +501,21 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::Begin(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, DWORD dwFlags) {
-    Logger::warn("!!! D3D6Device::Begin: Stub");
+    Logger::debug(">>> D3D6Device::Begin");
+
+    // All FVF combinations are supported technically,
+    // but I doubt that is the case in practice
+    if (dwVertexTypeDesc != D3DFVF_VERTEX &&
+        dwVertexTypeDesc != D3DFVF_LVERTEX &&
+        dwVertexTypeDesc != D3DFVF_TLVERTEX) {
+      Logger::err("D3D6Device::Begin: Unsupported FVF format");
+      return DDERR_INVALIDPARAMS;
+    }
+
+    m_vertexStreamInfo.d3dpt = d3dptPrimitiveType;
+    m_vertexStreamInfo.d3dvt = ConvertFVFType(dwVertexTypeDesc);
+    m_vertexStreamInfo.dwFlags = dwFlags;
+
     return D3D_OK;
   }
 
@@ -511,7 +525,22 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::Vertex(void *vertex) {
-    Logger::warn("!!! D3D6Device::Vertex: Stub");
+    Logger::debug(">>> D3D6Device::Vertex");
+
+    if (unlikely(vertex == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (m_vertexStreamInfo.d3dvt == D3DVT_VERTEX) {
+      m_vertexStream.push_back(*reinterpret_cast<D3DVERTEX*>(vertex));
+    } else if (m_vertexStreamInfo.d3dvt == D3DVT_LVERTEX) {
+      m_lvertexStream.push_back(*reinterpret_cast<D3DLVERTEX*>(vertex));
+    } else if (m_vertexStreamInfo.d3dvt == D3DVT_TLVERTEX) {
+      m_tlvertexStream.push_back(*reinterpret_cast<D3DTLVERTEX*>(vertex));
+    } else {
+      Logger::warn(">>> D3D6Device::Vertex: Invalid vertex type");
+      return DDERR_INVALIDPARAMS;
+    }
+
     return D3D_OK;
   }
 
@@ -521,8 +550,32 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::End(DWORD dwFlags) {
-    Logger::warn("!!! D3D6Device::End: Stub");
-    return D3D_OK;
+    Logger::debug(">>> D3D6Device::End");
+
+    HRESULT hr;
+    if (m_vertexStreamInfo.d3dvt == D3DVT_VERTEX) {
+      hr = DrawPrimitive(m_vertexStreamInfo.d3dpt, ConvertVertexType(m_vertexStreamInfo.d3dvt), m_vertexStream.data(),
+                         m_vertexStream.size(), m_vertexStreamInfo.dwFlags);
+      m_vertexStream.clear();
+    } else if (m_vertexStreamInfo.d3dvt == D3DVT_LVERTEX) {
+      hr = DrawPrimitive(m_vertexStreamInfo.d3dpt, ConvertVertexType(m_vertexStreamInfo.d3dvt), m_lvertexStream.data(),
+                         m_lvertexStream.size(), m_vertexStreamInfo.dwFlags);
+      m_lvertexStream.clear();
+    } else if (m_vertexStreamInfo.d3dvt == D3DVT_TLVERTEX) {
+      hr = DrawPrimitive(m_vertexStreamInfo.d3dpt, ConvertVertexType(m_vertexStreamInfo.d3dvt), m_tlvertexStream.data(),
+                         m_tlvertexStream.size(), m_vertexStreamInfo.dwFlags);
+      m_tlvertexStream.clear();
+    } else {
+      Logger::warn(">>> D3D6Device::End: Invalid vertex type");
+      return DDERR_INVALIDPARAMS;
+    }
+
+    if (unlikely(FAILED(hr)))
+      Logger::warn(">>> D3D6Device::End: Failed call to DrawPrimitive");
+
+    m_vertexStreamInfo = { };
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType, LPDWORD lpdwRenderState) {
@@ -739,6 +792,11 @@ namespace dxvk {
 
       // "Texture handle for use when rendering with the IDirect3DDevice2 or earlier interfaces."
       case D3DRENDERSTATE_TEXTUREHANDLE:
+        static bool s_textureHandleErrorShown;
+
+        if (dwRenderState && !std::exchange(s_textureHandleErrorShown, true))
+          Logger::warn("D3D6Device::SetRenderState: D3DRENDERSTATE_TEXTUREHANDLE is not supported");
+
         return D3D_OK;
 
       case D3DRENDERSTATE_ANTIALIAS: {
@@ -1574,7 +1632,7 @@ namespace dxvk {
         //  have been used with no texturing; if the texture does not contain an alpha component,
         //  alpha values at the vertices in the source are interpolated between vertices."
         if (m_textureMapBlend == D3DTBLEND_MODULATE) {
-          const DWORD textureOp = texture6->GetParent()->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_MODULATE;
+          const DWORD textureOp = surface6->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_MODULATE;
           m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
         }
 
