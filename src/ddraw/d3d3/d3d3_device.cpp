@@ -1,26 +1,38 @@
 #include "d3d3_device.h"
 
-#include "d3d3_interface.h"
 #include "d3d3_execute_buffer.h"
-#include "d3d3_viewport.h"
 
 #include "../ddraw/ddraw_surface.h"
+
+#include <algorithm>
 
 namespace dxvk {
 
   uint32_t D3D3Device::s_deviceCount = 0;
 
   D3D3Device::D3D3Device(
-      DDrawCommonInterface* commonIntf,
       Com<IDirect3DDevice>&& d3d3DeviceProxy,
       DDrawSurface* pParent,
-      Com<d3d9::IDirect3DDevice9>&& pDevice9)
+      D3DDEVICEDESC Desc,
+      GUID deviceGUID,
+      d3d9::D3DPRESENT_PARAMETERS Params9,
+      Com<d3d9::IDirect3DDevice9>&& pDevice9,
+      DWORD CreationFlags9)
     : DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9>(pParent, std::move(d3d3DeviceProxy), std::move(pDevice9))
-    , m_commonIntf ( commonIntf )
+    , m_commonIntf ( pParent->GetCommonInterface() )
+    , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
+    , m_params9 ( Params9 )
+    , m_desc ( Desc )
+    , m_deviceGUID ( deviceGUID )
     , m_rt ( pParent ) {
     // Get the bridge interface to D3D9
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8Bridge), reinterpret_cast<void**>(&m_bridge))))) {
       throw DxvkError("D3D3Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+    }
+
+    if (unlikely(m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Forced)) {
+      Logger::warn("D3D3Device: Force enabling AA");
+      m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
     }
 
     m_deviceCount = ++s_deviceCount;
@@ -29,6 +41,11 @@ namespace dxvk {
   }
 
   D3D3Device::~D3D3Device() {
+    // Dissasociate every bound viewport from this device
+    for (auto viewport : m_viewports) {
+      viewport->SetDevice(nullptr);
+    }
+
     // Clear the common interface device pointer if it points to this device
     if (m_commonIntf->GetD3D3Device() == this)
       m_commonIntf->SetD3D3Device(nullptr);
@@ -73,8 +90,38 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::GetCaps(D3DDEVICEDESC *hal_desc, D3DDEVICEDESC *hel_desc) {
-    Logger::debug("<<< D3D3Device::GetCaps: Proxy");
-    return m_proxy->GetCaps(hal_desc, hel_desc);
+    Logger::debug(">>> D3D3Device::GetCaps");
+
+    if (unlikely(hal_desc == nullptr || hel_desc == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(!IsValidD3DDeviceDescSize(hal_desc->dwSize)
+              || !IsValidD3DDeviceDescSize(hel_desc->dwSize)))
+      return DDERR_INVALIDPARAMS;
+
+    D3DDEVICEDESC desc_HAL = m_desc;
+    D3DDEVICEDESC desc_HEL = m_desc;
+
+    if (m_deviceGUID == IID_IDirect3DRGBDevice) {
+      desc_HAL.dwFlags = 0;
+      desc_HAL.dcmColorModel = 0;
+      // Some applications apparently care about RGB texture caps
+      desc_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+      desc_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+      desc_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
+      desc_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
+    } else if (m_deviceGUID == IID_IDirect3DHALDevice) {
+      desc_HEL.dcmColorModel = 0;
+    } else {
+      Logger::warn("D3D3Device::GetCaps: Unhandled device type");
+    }
+
+    memcpy(hal_desc, &desc_HAL, sizeof(D3DDEVICEDESC));
+    memcpy(hel_desc, &desc_HEL, sizeof(D3DDEVICEDESC));
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::SwapTextureHandles(IDirect3DTexture *tex1, IDirect3DTexture *tex2) {
@@ -88,23 +135,43 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::AddViewport(IDirect3DViewport *viewport) {
-    Logger::debug("<<< D3D3Device::AddViewport: Proxy");
+    D3D3DeviceLock lock = LockDevice();
+
+    Logger::debug(">>> D3D3Device::AddViewport");
 
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
     D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
-    return m_proxy->AddViewport(d3d3Viewport->GetProxied());
+    HRESULT hr = m_proxy->AddViewport(d3d3Viewport->GetProxied());
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    AddViewportInternal(viewport);
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::DeleteViewport(IDirect3DViewport *viewport) {
-    Logger::debug("<<< D3D3Device::DeleteViewport: Proxy");
+    D3D3DeviceLock lock = LockDevice();
+
+    Logger::debug(">>> D3D3Device::DeleteViewport");
 
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
     D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
-    return m_proxy->DeleteViewport(d3d3Viewport->GetProxied());
+    HRESULT hr = m_proxy->DeleteViewport(d3d3Viewport->GetProxied());
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    DeleteViewportInternal(viewport);
+
+    // Clear the current viewport if it is deleted from the device
+    if (m_currentViewport.ptr() == d3d3Viewport)
+      m_currentViewport = nullptr;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::NextViewport(IDirect3DViewport *ref, IDirect3DViewport **viewport, DWORD flags) {
@@ -113,18 +180,113 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK cb, void *ctx) {
-    Logger::debug("<<< D3D3Device::EnumTextureFormats: Proxy");
-    return m_proxy->EnumTextureFormats(cb, ctx);
+    Logger::debug(">>> D3D3Device::EnumTextureFormats");
+
+    if (unlikely(cb == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    DDSURFACEDESC textureFormat = { };
+    textureFormat.dwSize  = sizeof(DDSURFACEDESC);
+    textureFormat.dwFlags = DDSD_CAPS | DDSD_PIXELFORMAT;
+    textureFormat.ddsCaps.dwCaps = DDSCAPS_TEXTURE;
+
+    // Note: The list of formats exposed in D3D3 is restricted to the below
+
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_X1R5G5B5);
+    HRESULT hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_A1R5G5B5);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    // D3DFMT_X4R4G4B4 is not supported by D3D3
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_A4R4G4B4);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_R5G6B5);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_X8R8G8B8);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_A8R8G8B8);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    // Not supported in D3D9, but some games need
+    // it to be advertised (for offscreen plain surfaces?)
+    textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;
+
+    // Not supported in D3D9, but some games may use it
+    /*textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_P8);
+    hr = cb(&textureFormat, ctx);
+    if (unlikely(hr == D3DENUMRET_CANCEL))
+      return D3D_OK;*/
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::BeginScene() {
-    Logger::debug("<<< D3D3Device::BeginScene: Proxy");
-    return m_proxy->BeginScene();
+    D3D3DeviceLock lock = LockDevice();
+
+    Logger::debug(">>> D3D3Device::BeginScene");
+
+    RefreshLastUsedDevice();
+
+    if (unlikely(m_inScene))
+      return D3DERR_SCENE_IN_SCENE;
+
+    HRESULT hr = m_d3d9->BeginScene();
+
+    if (likely(SUCCEEDED(hr)))
+      m_inScene = true;
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::EndScene() {
-    Logger::debug("<<< D3D3Device::EndScene: Proxy");
-    return m_proxy->EndScene();
+    D3D3DeviceLock lock = LockDevice();
+
+    Logger::debug(">>> D3D3Device::EndScene");
+
+    RefreshLastUsedDevice();
+
+    if (unlikely(!m_inScene))
+      return D3DERR_SCENE_NOT_IN_SCENE;
+
+    HRESULT hr = m_d3d9->EndScene();
+
+    if (likely(SUCCEEDED(hr))) {
+      if (m_parent->GetOptions()->forceProxiedPresent) {
+        // If we have drawn anything, we need to make sure we blit back
+        // the results onto the D3D3 render target before we flip it
+        if (m_commonIntf->HasDrawn())
+          BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_rt->GetProxied(), m_rt->GetD3D9());
+
+        m_rt->GetProxied()->Flip(static_cast<IDirectDrawSurface*>(m_commonIntf->GetFlipRTSurface()),
+                                 m_commonIntf->GetFlipRTFlags());
+
+        if (likely(m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
+          m_commonIntf->ResetDrawTracking();
+      }
+
+      m_inScene = false;
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::GetDirect3D(IDirect3D **d3d) {
@@ -171,6 +333,12 @@ namespace dxvk {
 
     D3D3ExecuteBuffer* d3d3ExecuteBuffer = static_cast<D3D3ExecuteBuffer*>(buffer);
     D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
+
+    if (m_currentViewport != d3d3Viewport)
+      m_currentViewport = d3d3Viewport;
+
+    m_commonIntf->UpdateDrawTracking();
+
     return m_proxy->Execute(d3d3ExecuteBuffer->GetProxied(), d3d3Viewport->GetProxied(), flags);
   }
 
@@ -182,6 +350,12 @@ namespace dxvk {
 
     D3D3ExecuteBuffer* d3d3ExecuteBuffer = static_cast<D3D3ExecuteBuffer*>(buffer);
     D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
+
+    if (m_currentViewport != d3d3Viewport)
+      m_currentViewport = d3d3Viewport;
+
+    m_commonIntf->UpdateDrawTracking();
+
     return m_proxy->Pick(d3d3ExecuteBuffer->GetProxied(), d3d3Viewport->GetProxied(), flags, rect);
   }
 
@@ -243,6 +417,30 @@ namespace dxvk {
       m_d3d9->SetDepthStencilSurface(nullptr);
       // Should be superfluous, but play it safe
       m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_FALSE);
+    }
+  }
+
+  inline void D3D3Device::AddViewportInternal(IDirect3DViewport* viewport) {
+    D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
+
+    auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d3Viewport);
+    if (unlikely(it != m_viewports.end())) {
+      Logger::warn("D3D3Device::AddViewportInternal: Pre-existing viewport found");
+    } else {
+      m_viewports.push_back(d3d3Viewport);
+      d3d3Viewport->SetDevice(this);
+    }
+  }
+
+  inline void D3D3Device::DeleteViewportInternal(IDirect3DViewport* viewport) {
+    D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
+
+    auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d3Viewport);
+    if (likely(it != m_viewports.end())) {
+      m_viewports.erase(it);
+      d3d3Viewport->SetDevice(nullptr);
+    } else {
+      Logger::warn("D3D3Device::DeleteViewportInternal: Viewport not found");
     }
   }
 
