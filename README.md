@@ -2,7 +2,7 @@
 
 A Vulkan-based translation layer for Direct3D 7, 6 and 5 which allows running 3D applications on Linux using Wine. It uses DXVK's D3D9 backend as well as Wine's DDraw implementation (or the windows native DDraw) and acts as a proxy between the two, providing a minimal D3D7/6/5-on-D3D9 implementation.
 
-Note however that D3D6/5 games making use of the legacy D3D3 rendering pipeline (using execute buffers) are not supported by D7VK. Needless to say, neither are any cursed D3D retained-mode applications, since the project only implements immediate-mode.
+Note that D3D retained-mode applications are not supported, since the project only aims to implement immediate-mode.
 
 ## FAQ
 
@@ -14,17 +14,11 @@ If you're wondering about the current state of a certain game, a good starting p
 
 ### Wait, what? There's D3D6/5 support in my D7VK! How did it get there?
 
-After looking over the D3D6/5 SDK documentation, they turned out to be somewhat approachable, so I have implemented both. Support for D3D7 still remains the main goal of the project, but support for D3D6/5 will also be provided, as an experimental addition. From a features and general compatibility standpoint, expect them to fare somewhat worse than D3D7, because, as I've said before: the further we stray from D3D8/9, the further we stray from the divine.
+After looking over the D3D6/5 SDK documentation, they turned out to be somewhat approachable, so I have implemented both. Support for D3D7 still remains the main goal of the project. From a features and general compatibility standpoint, expect D3D6/5 to fare somewhat worse than D3D7, because, as I've said before: the further we stray from D3D8/9, the further we stray from the divine.
 
 ### Why not spin off a D5VK and a D6VK, or rename the project?
 
-All APIs prior to D3D8 fall under the cursed umbrella of DDraw, so it makes absolutely no sense to split things up. As for any renaming, that won't happen, since the project's main focus remains unchanged.
-
-### Does that mean you'll add support for D3D3 at some point?
-
-No. But we fully support D3D4 already, heh. Jokes aside, I have looked over earlier API documentation as well, and I can confidently say that while D3D6/5 are still reasonably similar to D3D9, D3D3 uses a much, much cruder rendering pipeline that simply isn't worth mapping onto DXVK's D3D9 backend.
-
-It also makes very little sense to consider it, especially given its complexity, since there's very little hardware acceleration to speak of before D3D6/5 (and even in D3D6/5, if we're to be honest). You're more than fine with good ol' software rendering.
+All APIs prior to D3D8 fall under the cursed umbrella of DDraw, so it makes absolutely no sense to split things up. As for any renaming, that won't happen, since the project's main focus (namely D3D7) remains unchanged.
 
 ### What should I do if a game doesn't work (properly) with D7VK?
 

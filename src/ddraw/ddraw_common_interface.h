@@ -21,6 +21,7 @@ namespace dxvk {
   class D3D7Device;
   class D3D6Device;
   class D3D5Device;
+  class D3D3Device;
 
   class DDrawCommonInterface : public ComObjectClamp<IUnknown> {
 
@@ -237,6 +238,14 @@ namespace dxvk {
       return m_device5;
     }
 
+    void SetD3D3Device(D3D3Device* device3) {
+      m_device3 = device3;
+    }
+
+    D3D3Device* GetD3D3Device() const {
+      return m_device3;
+    }
+
   private:
 
     // Track draw state on the common interface, since the back buffer
@@ -263,6 +272,7 @@ namespace dxvk {
     D3D7Device*                       m_device7            = nullptr;
     D3D6Device*                       m_device6            = nullptr;
     D3D5Device*                       m_device5            = nullptr;
+    D3D3Device*                       m_device3            = nullptr;
 
     // Track all possible instance versions of the same object
     DDraw7Interface*                  m_intf7              = nullptr;

@@ -1842,22 +1842,6 @@ namespace dxvk {
     { R"(\\tm2\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
-    /* Incoming                                   */
-    { R"(\\incoming\.exe$)", {{
-      { "ddraw.proxiedExecuteBuffers",      "True" },
-    }} },
-    /* Warhammer: Dark Omen                       */
-    { R"(\\DarkOmen\.exe$)", {{
-      { "ddraw.proxiedExecuteBuffers",      "True" },
-    }} },
-    /* O.D.T.: Escape... Or Die Trying            */
-    { R"(\\ODT\.exe$)", {{
-      { "ddraw.proxiedExecuteBuffers",      "True" },
-    }} },
-    /* Star Wars: Shadows of the Empire           */
-    { R"(\\Shadows\.exe$)", {{
-      { "ddraw.proxiedExecuteBuffers",      "True" },
-    }} },
     /* Mobil 1 Rally Championship                 *
      * Crashes on certain tracks above 30 FPS     */
     { R"(\\Ral\.exe$)", {{
