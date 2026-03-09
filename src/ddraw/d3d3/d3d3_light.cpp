@@ -51,13 +51,85 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Light::SetLight(D3DLIGHT *data) {
-    Logger::debug("<<< D3D3Light::SetLight: Proxy");
-    return m_proxy->SetLight(data);
+    Logger::debug(">>> D3D3Light::SetLight");
+
+    static constexpr D3DCOLORVALUE noLight = {{0.0f}, {0.0f}, {0.0f}, {0.0f}};
+
+    if (unlikely(data == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(!data->dwSize))
+      return DDERR_INVALIDPARAMS;
+
+    // Hidden & Dangeous spams a lot of parallel point lights
+    if (unlikely(data->dltType == D3DLIGHT_PARALLELPOINT)) {
+      static bool s_parallelPointErrorShown;
+
+      if (!std::exchange(s_parallelPointErrorShown, true))
+        Logger::warn("D3D3Light::SetLight: Unsupported light type D3DLIGHT_PARALLELPOINT");
+
+      return DDERR_INVALIDPARAMS;
+    }
+
+    m_light9.Type         = d3d9::D3DLIGHTTYPE(data->dltType);
+    m_light9.Diffuse      = data->dcvColor;
+    m_light9.Specular     = data->dcvColor;
+    // Ambient light comes from the material
+    m_light9.Ambient      = noLight;
+    m_light9.Position     = data->dvPosition;
+    m_light9.Direction    = data->dvDirection;
+    m_light9.Range        = data->dvRange;
+    m_light9.Falloff      = data->dvFalloff;
+    m_light9.Attenuation0 = data->dvAttenuation0;
+    m_light9.Attenuation1 = data->dvAttenuation1;
+    m_light9.Attenuation2 = data->dvAttenuation2;
+    m_light9.Theta        = data->dvTheta;
+    m_light9.Phi          = data->dvPhi;
+    // D3DLIGHT structure lights are, apparently, considered to be active by default
+    m_isActive            = true;
+
+    Logger::debug(str::format(">>> D3D3Light::SetLight: Updated light nr. ", m_lightCount));
+    Logger::debug(str::format("   Type:         ", m_light9.Type));
+    Logger::debug(str::format("   Diffuse:      ", m_light9.Diffuse.r, " ", m_light9.Diffuse.g, " ", m_light9.Diffuse.b));
+    Logger::debug(str::format("   Specular:     ", m_light9.Specular.r, " ", m_light9.Specular.g, " ", m_light9.Specular.b));
+    Logger::debug(str::format("   Ambient:      ", m_light9.Ambient.r, " ", m_light9.Ambient.g, " ", m_light9.Ambient.b));
+    Logger::debug(str::format("   Position:     ", m_light9.Position.x, " ", m_light9.Position.y, " ", m_light9.Position.z));
+    Logger::debug(str::format("   Direction:    ", m_light9.Direction.x, " ", m_light9.Direction.y, " ", m_light9.Direction.z));
+    Logger::debug(str::format("   Range:        ", m_light9.Range));
+    Logger::debug(str::format("   Falloff:      ", m_light9.Falloff));
+    Logger::debug(str::format("   Attenuation0: ", m_light9.Attenuation0));
+    Logger::debug(str::format("   Attenuation1: ", m_light9.Attenuation1));
+    Logger::debug(str::format("   Attenuation2: ", m_light9.Attenuation2));
+    Logger::debug(str::format("   Theta:        ", m_light9.Theta));
+    Logger::debug(str::format("   Phi:          ", m_light9.Phi));
+
+    // Update the D3D9 light directly if it's actively being used
+    if (m_viewport != nullptr && m_viewport->GetCommonViewport()->IsCurrentViewport())
+      m_viewport->ApplyAndActivateLight(m_lightCount, this);
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Light::GetLight(D3DLIGHT *data) {
-    Logger::debug("<<< D3D3Light::GetLight: Proxy");
-    return m_proxy->GetLight(data);
+    Logger::debug(">>> D3D3Light::GetLight");
+
+    if (unlikely(data == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    data->dltType         = D3DLIGHTTYPE(m_light9.Type);
+    data->dcvColor        = m_light9.Diffuse;
+    data->dcvColor        = m_light9.Specular;
+    data->dvPosition      = m_light9.Position;
+    data->dvDirection     = m_light9.Direction;
+    data->dvRange         = m_light9.Range;
+    data->dvFalloff       = m_light9.Falloff;
+    data->dvAttenuation0  = m_light9.Attenuation0;
+    data->dvAttenuation1  = m_light9.Attenuation1;
+    data->dvAttenuation2  = m_light9.Attenuation2;
+    data->dvTheta         = m_light9.Theta;
+    data->dvPhi           = m_light9.Phi;
+
+    return D3D_OK;
   }
 
 }
