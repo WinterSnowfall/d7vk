@@ -390,6 +390,186 @@ namespace dxvk {
     }
   }
 
+  inline D3DDEVICEDESC GetD3D3Caps(bool exposeFSAA) {
+    D3DDEVICEDESC desc;
+
+    desc.dwSize    = sizeof(D3DDEVICEDESC);
+
+    desc.dwFlags   = D3DDD_BCLIPPING
+                   | D3DDD_COLORMODEL
+                   | D3DDD_DEVCAPS
+                   | D3DDD_DEVICERENDERBITDEPTH
+                   | D3DDD_DEVICEZBUFFERBITDEPTH
+                   | D3DDD_LIGHTINGCAPS
+                   | D3DDD_LINECAPS
+                   | D3DDD_MAXBUFFERSIZE
+                   | D3DDD_MAXVERTEXCOUNT
+                   | D3DDD_TRANSFORMCAPS
+                   | D3DDD_TRICAPS;
+
+    desc.dcmColorModel = D3DCOLOR_RGB;
+
+    desc.dwDevCaps = D3DDEVCAPS_EXECUTESYSTEMMEMORY
+                   | D3DDEVCAPS_EXECUTEVIDEOMEMORY
+                   | D3DDEVCAPS_FLOATTLVERTEX
+                // | D3DDEVCAPS_SORTDECREASINGZ
+                // | D3DDEVCAPS_SORTEXACT
+                // | D3DDEVCAPS_SORTINCREASINGZ
+                // | D3DDEVCAPS_TEXTURESYSTEMMEMORY
+                   | D3DDEVCAPS_TEXTUREVIDEOMEMORY
+                   | D3DDEVCAPS_TLVERTEXSYSTEMMEMORY
+                   | D3DDEVCAPS_TLVERTEXVIDEOMEMORY;
+
+    D3DTRANSFORMCAPS transformCaps;
+    transformCaps.dwSize = sizeof(D3DTRANSFORMCAPS);
+    transformCaps.dwCaps = D3DTRANSFORMCAPS_CLIP;
+
+    desc.dtcTransformCaps = transformCaps;
+
+    desc.bClipping = TRUE;
+
+    D3DLIGHTINGCAPS lightingCaps;
+    lightingCaps.dwSize  = sizeof(D3DLIGHTINGCAPS);
+    lightingCaps.dwCaps  = D3DLIGHTCAPS_DIRECTIONAL
+                      // | D3DLIGHTCAPS_PARALLELPOINT // Not supported by D3D9
+                         | D3DLIGHTCAPS_POINT
+                         | D3DLIGHTCAPS_SPOT;
+    lightingCaps.dwLightingModel = D3DLIGHTINGMODEL_RGB;
+    lightingCaps.dwNumLights = ddrawCaps::MaxEnabledLights;
+
+    desc.dlcLightingCaps = lightingCaps;
+
+    D3DPRIMCAPS prim;
+    prim.dwSize = sizeof(D3DPRIMCAPS);
+
+    prim.dwMiscCaps           = D3DPMISCCAPS_CULLCCW
+                              | D3DPMISCCAPS_CULLCW
+                              | D3DPMISCCAPS_CULLNONE
+                           // | D3DPMISCCAPS_CONFORMANT
+                           // | D3DPMISCCAPS_LINEPATTERNREP // Not implemented in D3D9
+                           // | D3DPMISCCAPS_MASKPLANES
+                              | D3DPMISCCAPS_MASKZ;
+
+    prim.dwRasterCaps         = D3DPRASTERCAPS_ANISOTROPY
+                              | D3DPRASTERCAPS_ANTIALIASEDGES // Technically not implemented in D3D9
+                           // | D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT
+                           // | D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT
+                              | D3DPRASTERCAPS_DITHER
+                              | D3DPRASTERCAPS_FOGRANGE
+                              | D3DPRASTERCAPS_FOGTABLE
+                              | D3DPRASTERCAPS_FOGVERTEX
+                              | D3DPRASTERCAPS_MIPMAPLODBIAS
+                           // | D3DPRASTERCAPS_PAT // Not implemented in D3D9
+                           // | D3DPRASTERCAPS_ROP2
+                              | D3DPRASTERCAPS_STIPPLE // Technically not implemented
+                              | D3DPRASTERCAPS_SUBPIXEL
+                           // | D3DPRASTERCAPS_SUBPIXELX
+                           // | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
+                           // | D3DPRASTERCAPS_WBUFFER
+                              | D3DPRASTERCAPS_WFOG
+                           // | D3DPRASTERCAPS_XOR
+                              | D3DPRASTERCAPS_ZBIAS
+                           // | D3DPRASTERCAPS_ZBUFFERLESSHSR // Easy footgun to not get a z-buffer
+                              | D3DPRASTERCAPS_ZFOG
+                              | D3DPRASTERCAPS_ZTEST;
+
+    if (unlikely(exposeFSAA)) {
+      prim.dwRasterCaps |= D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT
+                        |  D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT;
+    }
+
+    prim.dwZCmpCaps           = D3DPCMPCAPS_ALWAYS
+                              | D3DPCMPCAPS_EQUAL
+                              | D3DPCMPCAPS_GREATER
+                              | D3DPCMPCAPS_GREATEREQUAL
+                              | D3DPCMPCAPS_LESS
+                              | D3DPCMPCAPS_LESSEQUAL
+                              | D3DPCMPCAPS_NEVER
+                              | D3DPCMPCAPS_NOTEQUAL;
+
+    prim.dwSrcBlendCaps       = D3DPBLENDCAPS_BOTHINVSRCALPHA
+                              | D3DPBLENDCAPS_BOTHSRCALPHA
+                              | D3DPBLENDCAPS_DESTALPHA
+                              | D3DPBLENDCAPS_DESTCOLOR
+                              | D3DPBLENDCAPS_INVDESTALPHA
+                              | D3DPBLENDCAPS_INVDESTCOLOR
+                              | D3DPBLENDCAPS_INVSRCALPHA
+                              | D3DPBLENDCAPS_INVSRCCOLOR
+                              | D3DPBLENDCAPS_ONE
+                              | D3DPBLENDCAPS_SRCALPHA
+                              | D3DPBLENDCAPS_SRCALPHASAT
+                              | D3DPBLENDCAPS_SRCCOLOR
+                              | D3DPBLENDCAPS_ZERO;
+
+    prim.dwDestBlendCaps      = prim.dwSrcBlendCaps;
+
+    prim.dwAlphaCmpCaps       = prim.dwZCmpCaps;
+
+    prim.dwShadeCaps          = D3DPSHADECAPS_ALPHAFLATBLEND
+                           // | D3DPSHADECAPS_ALPHAFLATSTIPPLED
+                              | D3DPSHADECAPS_ALPHAGOURAUDBLEND
+                           // | D3DPSHADECAPS_ALPHAGOURAUDSTIPPLED
+                           // | D3DPSHADECAPS_ALPHAPHONGBLEND
+                           // | D3DPSHADECAPS_ALPHAPHONGSTIPPLED
+                           // | D3DPSHADECAPS_COLORFLATMONO
+                              | D3DPSHADECAPS_COLORFLATRGB
+                           // | D3DPSHADECAPS_COLORGOURAUDMONO
+                              | D3DPSHADECAPS_COLORGOURAUDRGB
+                           // | D3DPSHADECAPS_COLORPHONGMONO
+                           // | D3DPSHADECAPS_COLORPHONGRGB
+                              | D3DPSHADECAPS_FOGFLAT
+                              | D3DPSHADECAPS_FOGGOURAUD
+                           // | D3DPSHADECAPS_FOGPHONG
+                           // | D3DPSHADECAPS_SPECULARFLATMONO
+                              | D3DPSHADECAPS_SPECULARFLATRGB
+                           // | D3DPSHADECAPS_SPECULARGOURAUDMONO
+                              | D3DPSHADECAPS_SPECULARGOURAUDRGB;
+                           // | D3DPSHADECAPS_SPECULARPHONGMONO
+                           // | D3DPSHADECAPS_SPECULARPHONGRGB;
+
+    prim.dwTextureCaps        = D3DPTEXTURECAPS_ALPHA
+                              | D3DPTEXTURECAPS_BORDER
+                              | D3DPTEXTURECAPS_PERSPECTIVE
+                           // | D3DPTEXTURECAPS_POW2
+                           // | D3DPTEXTURECAPS_SQUAREONLY
+                              | D3DPTEXTURECAPS_TRANSPARENCY;
+
+    prim.dwTextureFilterCaps  = D3DPTFILTERCAPS_LINEAR
+                              | D3DPTFILTERCAPS_LINEARMIPLINEAR
+                              | D3DPTFILTERCAPS_LINEARMIPNEAREST
+                              | D3DPTFILTERCAPS_MIPLINEAR
+                              | D3DPTFILTERCAPS_MIPNEAREST
+                              | D3DPTFILTERCAPS_NEAREST;
+
+    prim.dwTextureBlendCaps   = D3DPTBLENDCAPS_ADD
+                              | D3DPTBLENDCAPS_COPY
+                              | D3DPTBLENDCAPS_DECAL
+                              | D3DPTBLENDCAPS_DECALALPHA
+                              | D3DPTBLENDCAPS_DECALMASK
+                              | D3DPTBLENDCAPS_MODULATE
+                              | D3DPTBLENDCAPS_MODULATEALPHA
+                              | D3DPTBLENDCAPS_MODULATEMASK;
+
+    prim.dwTextureAddressCaps = D3DPTADDRESSCAPS_BORDER
+                              | D3DPTADDRESSCAPS_CLAMP
+                              | D3DPTADDRESSCAPS_INDEPENDENTUV
+                              | D3DPTADDRESSCAPS_MIRROR
+                              | D3DPTADDRESSCAPS_WRAP;
+
+    prim.dwStippleWidth       = 32;
+    prim.dwStippleHeight      = 32;
+
+    desc.dpcLineCaps          = prim;
+    desc.dpcTriCaps           = prim;
+
+    desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
+    desc.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24;
+    desc.dwMaxBufferSize          = 0;
+    desc.dwMaxVertexCount         = D3DDD_MAXVERTEXCOUNT;
+
+    return desc;
+  }
+
   inline D3DDEVICEDESC2 GetD3D5Caps(const IID rclsid, bool exposeFSAA) {
     D3DDEVICEDESC2 desc;
 

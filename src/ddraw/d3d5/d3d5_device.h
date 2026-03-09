@@ -15,7 +15,6 @@
 #include "d3d5_viewport.h"
 
 #include <vector>
-#include <unordered_map>
 
 namespace dxvk {
 
@@ -193,6 +192,7 @@ namespace dxvk {
 
     Com<DxvkD3D8Bridge>            m_bridge;
 
+    DWORD                          m_creationFlags9 = 0;
     D3D5Multithread                m_multithread;
 
     d3d9::D3DPRESENT_PARAMETERS    m_params9;

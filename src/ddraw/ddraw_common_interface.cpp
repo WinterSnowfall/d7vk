@@ -206,6 +206,8 @@ namespace dxvk {
       return m_device6->GetMultiSampleType();
     } else if (m_device5 != nullptr) {
       return m_device5->GetMultiSampleType();
+    } else if (m_device3 != nullptr) {
+      return m_device3->GetMultiSampleType();
     }
 
     return d3d9::D3DMULTISAMPLE_NONE;
@@ -218,6 +220,8 @@ namespace dxvk {
       return m_device6->GetPresentParameters();
     } else if (m_device5 != nullptr) {
       return m_device5->GetPresentParameters();
+    } else if (m_device3 != nullptr) {
+      return m_device3->GetPresentParameters();
     }
 
     return d3d9::D3DPRESENT_PARAMETERS();
@@ -229,13 +233,14 @@ namespace dxvk {
     } else if (m_device6 != nullptr) {
       return m_device6->ResetD3D9Swapchain(params);
     }
-    // D3D5 has no way of disabling/re-enabling VSync
+    // D3D3/5 has no way of disabling/re-enabling VSync
 
     return DDERR_GENERIC;
   }
 
   bool DDrawCommonInterface::IsCurrentRenderTarget(DDrawSurface* surface) const {
-    return m_device5 != nullptr ? m_device5->GetRenderTarget() == surface : false;
+    return m_device5 != nullptr ? m_device5->GetRenderTarget() == surface :
+           m_device3 != nullptr ? m_device3->GetRenderTarget() == surface : false;
   }
 
   bool DDrawCommonInterface::IsCurrentRenderTarget(DDraw4Surface* surface) const {
@@ -256,13 +261,16 @@ namespace dxvk {
       return surface == m_device6->GetRenderTarget()->GetD3D9();
     } else if (m_device5 != nullptr) {
       return surface == m_device5->GetRenderTarget()->GetD3D9();
+    } else if (m_device3 != nullptr) {
+      return surface == m_device3->GetRenderTarget()->GetD3D9();
     }
 
     return false;
   }
 
   bool DDrawCommonInterface::IsCurrentDepthStencil(DDrawSurface* surface) const {
-    return m_device5 != nullptr ? m_device5->GetDepthStencil() == surface : false;
+    return m_device5 != nullptr ? m_device5->GetDepthStencil() == surface :
+           m_device3 != nullptr ? m_device3->GetDepthStencil() == surface : false;
   }
 
   bool DDrawCommonInterface::IsCurrentDepthStencil(DDraw4Surface* surface) const {
@@ -283,6 +291,8 @@ namespace dxvk {
       return surface == m_device6->GetDepthStencil()->GetD3D9();
     } else if (m_device5 != nullptr) {
       return surface == m_device5->GetDepthStencil()->GetD3D9();
+    } else if (m_device3 != nullptr) {
+      return surface == m_device3->GetDepthStencil()->GetD3D9();
     }
 
     return false;

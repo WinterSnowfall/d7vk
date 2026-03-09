@@ -2,26 +2,37 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
+#include "../ddraw_options.h"
 
 #include "../ddraw_common_interface.h"
 
 #include "../../d3d9/d3d9_bridge.h"
+
+#include "d3d3_interface.h"
+#include "d3d3_material.h"
+#include "d3d3_multithread.h"
+#include "d3d3_viewport.h"
+
+#include <vector>
 
 namespace dxvk {
 
   class DDrawSurface;
 
   /**
-  * \brief Minimal D3D3 device implementation
+  * \brief D3D3 device implementation
   */
   class D3D3Device final : public DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9> {
 
   public:
     D3D3Device(
-        DDrawCommonInterface* commonIntf,
         Com<IDirect3DDevice>&& d3d3DeviceProxy,
         DDrawSurface* pParent,
-        Com<d3d9::IDirect3DDevice9>&& pDevice9);
+        D3DDEVICEDESC Desc,
+        GUID deviceGUID,
+        d3d9::D3DPRESENT_PARAMETERS Params9,
+        Com<d3d9::IDirect3DDevice9>&& pDevice9,
+        DWORD CreationFlags9);
 
     ~D3D3Device();
 
@@ -67,17 +78,69 @@ namespace dxvk {
 
     void InitializeDS();
 
+    D3D3DeviceLock LockDevice() {
+      return m_multithread.AcquireLock();
+    }
+
+    d3d9::D3DPRESENT_PARAMETERS GetPresentParameters() const {
+      return m_params9;
+    }
+
+    d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType() const {
+      return m_params9.MultiSampleType;
+    }
+
+    DDrawSurface* GetRenderTarget() const {
+      return m_rt.ptr();
+    }
+
+    DDrawSurface* GetDepthStencil() const {
+      return m_ds;
+    }
+
+    D3D3Viewport* GetCurrentViewportInternal() const {
+      return m_currentViewport.ptr();
+    }
+
+    D3DMATERIALHANDLE GetCurrentMaterialHandle() const {
+      return m_materialHandle;
+    }
+
   private:
 
-    static uint32_t       s_deviceCount;
-    uint32_t              m_deviceCount = 0;
+    inline void RefreshLastUsedDevice() {
+      if (unlikely(m_commonIntf->GetD3D3Device() != this))
+        m_commonIntf->SetD3D3Device(this);
+    }
 
-    DDrawCommonInterface* m_commonIntf = nullptr;
+    inline void AddViewportInternal(IDirect3DViewport* viewport);
 
-    Com<DxvkD3D8Bridge>   m_bridge;
+    inline void DeleteViewportInternal(IDirect3DViewport* viewport);
 
-    Com<DDrawSurface>     m_rt;
-    DDrawSurface*         m_ds = nullptr;
+    bool                           m_inScene      = false;
+
+    static uint32_t                s_deviceCount;
+    uint32_t                       m_deviceCount = 0;
+
+    DDrawCommonInterface*          m_commonIntf = nullptr;
+
+    Com<DxvkD3D8Bridge>            m_bridge;
+
+    D3D3Multithread                m_multithread;
+
+    d3d9::D3DPRESENT_PARAMETERS    m_params9;
+
+    D3DMATERIALHANDLE              m_materialHandle = 0;
+    D3DTEXTUREHANDLE               m_textureHandle  = 0;
+
+    D3DDEVICEDESC                  m_desc;
+    GUID                           m_deviceGUID;
+
+    Com<DDrawSurface>              m_rt;
+    DDrawSurface*                  m_ds = nullptr;
+
+    Com<D3D3Viewport>              m_currentViewport;
+    std::vector<Com<D3D3Viewport>> m_viewports;
 
   };
 

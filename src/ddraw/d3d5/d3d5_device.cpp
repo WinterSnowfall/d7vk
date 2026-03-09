@@ -35,6 +35,7 @@ namespace dxvk {
     : DDrawWrappedObject<D3D5Interface, IDirect3DDevice2, d3d9::IDirect3DDevice9>(pParent, std::move(d3d5DeviceProxy), std::move(pDevice9))
     , m_DDIntfParent ( pParent->GetParent() )
     , m_commonIntf ( pParent->GetParent()->GetCommonInterface() )
+    , m_creationFlags9 ( CreationFlags9 )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
     , m_desc ( Desc )
@@ -102,10 +103,12 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
+      D3DDEVICEDESC desc3 = GetD3D3Caps(m_parent->GetOptions()->emulateFSAA != FSAAEmulation::Disabled);
       // Reuse the existing D3D9 device in situations where games want
       // to get access only to D3D3 execute buffers on a D3D5 device
       Com<d3d9::IDirect3DDevice9> device9 = m_d3d9.ptr();
-      *ppvObject = ref(new D3D3Device(m_commonIntf, std::move(ppvProxyObject), m_rt.ptr(), std::move(device9)));
+      *ppvObject = ref(new D3D3Device(std::move(ppvProxyObject), m_rt.ptr(), desc3, m_deviceGUID,
+                                      m_params9, std::move(device9), m_creationFlags9));
 
       return S_OK;
     }

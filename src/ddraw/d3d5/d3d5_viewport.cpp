@@ -182,7 +182,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen) {
-    Logger::debug("<<< D3D5Viewport::TransformVertices: Proxy");
+    Logger::warn("<<< D3D5Viewport::TransformVertices: Proxy");
     return m_proxy->TransformVertices(vertex_count, data, flags, offscreen);
   }
 
@@ -336,7 +336,6 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // TODO:
   HRESULT STDMETHODCALLTYPE D3D5Viewport::NextLight(IDirect3DLight *ref, IDirect3DLight **light, DWORD flags) {
     Logger::warn("!!! D3D5Viewport::NextLight: Stub");
     return D3D_OK;
@@ -368,7 +367,7 @@ namespace dxvk {
     // Similarly, the dvClipWidth member is typically 2.0 and dvClipHeight is
     // set to twice the aspect ratio set in dwClipY."
     data->dvClipX      = -1.0f;
-    data->dvClipY      = -1.0f * (static_cast<float>(viewport9->Height) / 
+    data->dvClipY      = -1.0f * (static_cast<float>(viewport9->Height) /
                                   static_cast<float>(viewport9->Width));
     data->dvClipWidth  =  2.0f;
     data->dvClipHeight = -2.0f * data->dvClipY;
