@@ -67,9 +67,6 @@ namespace dxvk {
     /// this for correctness, however it will degrade performance. Default disabled.
     bool forceLegacyDiscard;
 
-    /// Proxies all D3D5 calls, to allow mixed D3D3 execute buffer use
-    bool proxiedExecuteBuffers;
-
     /// Some applications set the viewport MinZ/MaxZ to 0.0f/0.0f and expect
     /// the behavioral equivalent of settting 0.0f/1.0f. This may have been an early
     /// D3D quirk, but tests have shown the resulting values are 0.0f/0.001f.
@@ -117,7 +114,6 @@ namespace dxvk {
       this->useD24X8forD32        = config.getOption<bool>   ("ddraw.useD24X8forD32",        false);
       this->supportD16            = config.getOption<bool>   ("ddraw.supportD16",             true);
       this->forceLegacyDiscard    = config.getOption<bool>   ("ddraw.forceLegacyDiscard",    false);
-      this->proxiedExecuteBuffers = config.getOption<bool>   ("ddraw.proxiedExecuteBuffers", false);
       this->viewportCorrection    = config.getOption<bool>   ("ddraw.viewportCorrection",    false);
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);

@@ -3,6 +3,7 @@
 #include "ddraw_gamma.h"
 
 #include "../d3d3/d3d3_device.h"
+#include "../d3d3/d3d3_interface.h"
 #include "../d3d3/d3d3_texture.h"
 
 #include "../ddraw2/ddraw2_surface.h"
@@ -109,31 +110,146 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // Apparently, the standard way of creating a HAL D3D3 device...
-    if (riid == IID_IDirect3DHALDevice) {
-      Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DHALDevice");
-      Logger::warn("DDrawSurface::QueryInterface: Use of unsupported D3D3 device");
+    // The standard way of creating a new D3D3 device. For now, support only these 2
+    // riids, and if anything is mad enough to use RAMP devices or whatnot we'll adjust.
+    if (riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DHALDevice) {
+      if (riid == IID_IDirect3DRGBDevice)
+        Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DRGBDevice");
+      else
+        Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DHALDevice");
 
       Com<IDirect3DDevice> ppvProxyObject;
       HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D3Device(m_commonIntf, std::move(ppvProxyObject), this, nullptr));
+      DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 
-      return S_OK;
-    }
-    // Apparently, the standard way of creating a RGB D3D3 device...
-    if (riid == IID_IDirect3DRGBDevice) {
-      Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DRGBDevice");
-      Logger::warn("DDrawSurface::QueryInterface: Use of unsupported D3D3 device");
+      HWND hWnd = m_commonIntf->GetHWND();
+      // Needed to sometimes safely skip intro playback on legacy devices
+      if (unlikely(hWnd == nullptr)) {
+        Logger::debug("DDrawSurface::QueryInterface: HWND is NULL");
+      }
 
-      Com<IDirect3DDevice> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
+      DWORD backBufferWidth  = m_commonSurf->GetDesc()->dwWidth;
+      DWORD BackBufferHeight = m_commonSurf->GetDesc()->dwHeight;
+
+      if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent &&
+                  m_commonIntf->GetOptions()->backBufferResize)) {
+        const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+
+        // Ignore any mode size dimensions when in windowed present mode
+        if (exclusiveMode) {
+          DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
+          // Wayland apparently needs this for somewhat proper back buffer sizing
+          if ((modeSize->width  && modeSize->width  < m_commonSurf->GetDesc()->dwWidth)
+           || (modeSize->height && modeSize->height < m_commonSurf->GetDesc()->dwHeight)) {
+            Logger::info("DDrawSurface::QueryInterface: Enforcing mode dimensions");
+
+            backBufferWidth  = modeSize->width;
+            BackBufferHeight = modeSize->height;
+          }
+        }
+      }
+
+      D3D3Interface* d3d3Intf = m_commonIntf->GetD3D3Interface();
+      if (unlikely(d3d3Intf == nullptr)) {
+        Logger::err("DDrawSurface::QueryInterface: Device creation failed due to null D3D3 interface");
+        return DDERR_GENERIC;
+      }
+
+      // Determine the supported AA sample count by querying the D3D9 interface
+      d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
+      if (likely(m_commonIntf->GetOptions()->emulateFSAA != FSAAEmulation::Disabled)) {
+        HRESULT hr4S = d3d3Intf->GetD3D9()->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, m_commonSurf->GetD3D9Format(),
+                                                                       TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
+        if (unlikely(FAILED(hr4S))) {
+          HRESULT hr2S = d3d3Intf->GetD3D9()->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, m_commonSurf->GetD3D9Format(),
+                                                                         TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
+          if (unlikely(FAILED(hr2S))) {
+            Logger::warn("DDrawSurface::QueryInterface: No MSAA support has been detected");
+          } else {
+            Logger::info("DDrawSurface::QueryInterface: Using 2x MSAA for FSAA emulation");
+            multiSampleType = d3d9::D3DMULTISAMPLE_2_SAMPLES;
+          }
+        } else {
+          Logger::info("DDrawSurface::QueryInterface: Using 4x MSAA for FSAA emulation");
+          multiSampleType = d3d9::D3DMULTISAMPLE_4_SAMPLES;
+        }
+      } else {
+        Logger::info("DDrawSurface::QueryInterface: FSAA emulation is disabled");
+      }
+
+      Logger::info(str::format("DDrawSurface::QueryInterface: Back buffer size: ", backBufferWidth, "x", BackBufferHeight));
+
+      DWORD backBufferCount = 0;
+      if (likely(!m_commonIntf->GetOptions()->forceSingleBackBuffer)) {
+        IDirectDrawSurface* backBuffer = m_proxy.ptr();
+        while (backBuffer != nullptr) {
+          IDirectDrawSurface* parentSurface = backBuffer;
+          backBuffer = nullptr;
+          parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfacesCallback);
+          backBufferCount++;
+          // the swapchain will eventually return to its origin
+          if (backBuffer == m_proxy.ptr())
+            break;
+        }
+      }
+      // Consider the front buffer as well when reporting the overall count
+      Logger::info(str::format("DDrawSurface::QueryInterface: Back buffer count: ", backBufferCount + 1));
+
+      const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
+      // Always appears to be enabled when running in non-exclusive mode
+      const bool vBlankStatus = m_commonIntf->GetWaitForVBlank();
+
+      d3d9::D3DPRESENT_PARAMETERS params;
+      params.BackBufferWidth    = backBufferWidth;
+      params.BackBufferHeight   = BackBufferHeight;
+      params.BackBufferFormat   = m_commonSurf->GetD3D9Format();
+      params.BackBufferCount    = backBufferCount;
+      params.MultiSampleType    = multiSampleType;
+      params.MultiSampleQuality = 0;
+      params.SwapEffect         = d3d9::D3DSWAPEFFECT_DISCARD;
+      params.hDeviceWindow      = hWnd;
+      params.Windowed           = TRUE; // Always use windowed, so that we can delegate mode switching to ddraw
+      params.EnableAutoDepthStencil     = FALSE;
+      params.AutoDepthStencilFormat     = d3d9::D3DFMT_UNKNOWN;
+      params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // Needed for back buffer locks
+      params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
+      params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
+
+      if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_commonIntf->GetOptions()->forceMultiThreaded)
+        deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
+      // DDSCL_FPUPRESERVE does not exist prior to DDraw7,
+      // and DDSCL_FPUSETUP is NOT the default state
+      if (!(cooperativeLevel & DDSCL_FPUSETUP))
+        deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
+      if (cooperativeLevel & DDSCL_NOWINDOWCHANGES)
+        deviceCreationFlags9 |= D3DCREATE_NOWINDOWCHANGES;
+
+      Com<d3d9::IDirect3DDevice9> device9;
+      hr = d3d3Intf->GetD3D9()->CreateDevice(
+        D3DADAPTER_DEFAULT,
+        d3d9::D3DDEVTYPE_HAL,
+        hWnd,
+        deviceCreationFlags9,
+        &params,
+        &device9
+      );
+
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDrawSurface::QueryInterface: Failed to create the D3D9 device");
         return hr;
+      }
 
-      *ppvObject = ref(new D3D3Device(m_commonIntf, std::move(ppvProxyObject), this, nullptr));
+      Com<D3D3Device> device3 = new D3D3Device(m_commonIntf, std::move(ppvProxyObject), this, std::move(device9));
+
+      // Set the newly created D3D3 device on the common interface
+      m_commonIntf->SetD3D3Device(device3.ptr());
+      // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
+      device3->InitializeDS();
+
+      *ppvObject = device3.ref();
 
       return S_OK;
     }

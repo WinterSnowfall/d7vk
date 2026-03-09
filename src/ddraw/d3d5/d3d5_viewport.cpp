@@ -114,11 +114,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::GetViewport(D3DVIEWPORT *data) {
-    if (unlikely(m_parent != nullptr && m_parent->GetOptions()->proxiedExecuteBuffers)) {
-      Logger::debug("<<< D3D5Viewport::GetViewport: Proxy");
-      return m_proxy->SetViewport(data);
-    }
-
     Logger::debug(">>> D3D5Viewport::GetViewport");
 
     if (unlikely(data == nullptr))
@@ -150,11 +145,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::SetViewport(D3DVIEWPORT *data) {
-    if (unlikely(m_parent != nullptr && m_parent->GetOptions()->proxiedExecuteBuffers)) {
-      Logger::debug("<<< D3D5Viewport::SetViewport: Proxy");
-      return m_proxy->SetViewport(data);
-    }
-
     Logger::debug(">>> D3D5Viewport::SetViewport");
 
     HRESULT hr = m_proxy->SetViewport(data);
@@ -203,11 +193,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::SetBackground(D3DMATERIALHANDLE hMat) {
-    if (unlikely(m_parent != nullptr && m_parent->GetOptions()->proxiedExecuteBuffers)) {
-      Logger::debug("<<< D3D5Viewport::SetBackground: Proxy");
-      return m_proxy->SetBackground(hMat);
-    }
-
     Logger::debug(">>> D3D5Viewport::SetBackground");
 
     if (unlikely(m_commonViewport->GetMaterialHandle() == hMat))
@@ -231,11 +216,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::GetBackground(D3DMATERIALHANDLE *material, BOOL *valid) {
-    if (unlikely(m_parent != nullptr && m_parent->GetOptions()->proxiedExecuteBuffers)) {
-      Logger::debug("<<< D3D5Viewport::GetBackground: Proxy");
-      return m_proxy->GetBackground(material, valid);
-    }
-
     Logger::debug(">>> D3D5Viewport::GetBackground");
 
     if (unlikely(material == nullptr || valid == nullptr))
@@ -270,11 +250,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::Clear(DWORD count, D3DRECT *rects, DWORD flags) {
-    if (unlikely(m_parent != nullptr && m_parent->GetOptions()->proxiedExecuteBuffers)) {
-      Logger::debug("<<< D3D5Viewport::Clear: Proxy");
-      return m_proxy->Clear(count, rects, flags);
-    }
-
     Logger::debug("<<< D3D5Viewport::Clear: Proxy");
 
     // Fast skip
@@ -313,12 +288,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::AddLight(IDirect3DLight *light) {
-    if (unlikely(m_parent != nullptr && m_parent->GetOptions()->proxiedExecuteBuffers)) {
-      Logger::debug("<<< D3D5Viewport::AddLight: Proxy");
-      D3D5Light* light5 = reinterpret_cast<D3D5Light*>(light);
-      return m_proxy->AddLight(light5->GetProxied());
-    }
-
     Logger::debug(">>> D3D5Viewport::AddLight");
 
     if (unlikely(light == nullptr))
@@ -344,12 +313,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::DeleteLight(IDirect3DLight *light) {
-    if (unlikely(m_parent != nullptr && m_parent->GetOptions()->proxiedExecuteBuffers)) {
-      Logger::debug("<<< D3D5Viewport::DeleteLight: Proxy");
-      D3D5Light* light5 = reinterpret_cast<D3D5Light*>(light);
-      return m_proxy->DeleteLight(light5->GetProxied());
-    }
-
     Logger::debug(">>> D3D5Viewport::DeleteLight");
 
     if (unlikely(light == nullptr))
@@ -380,11 +343,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::GetViewport2(D3DVIEWPORT2 *data) {
-    if (unlikely(m_parent != nullptr && m_parent->GetOptions()->proxiedExecuteBuffers)) {
-      Logger::debug("<<< D3D5Viewport::SetViewport2: Proxy");
-      return m_proxy->GetViewport2(data);
-    }
-
     Logger::debug(">>> D3D5Viewport::GetViewport2");
 
     if (unlikely(data == nullptr))
@@ -419,11 +377,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::SetViewport2(D3DVIEWPORT2 *data) {
-    if (unlikely(m_parent != nullptr && m_parent->GetOptions()->proxiedExecuteBuffers)) {
-      Logger::debug("<<< D3D5Viewport::SetViewport2: Proxy");
-      return m_proxy->SetViewport2(data);
-    }
-
     Logger::debug(">>> D3D5Viewport::SetViewport2");
 
     HRESULT hr = m_proxy->SetViewport2(data);

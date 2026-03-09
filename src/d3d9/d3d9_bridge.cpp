@@ -127,6 +127,10 @@ namespace dxvk {
     return m_interface->QueryInterface(riid, ppvObject);
   }
 
+  void DxvkD3D8InterfaceBridge::EnableD3D3CompatibilityMode() {
+    m_interface->EnableD3D3CompatibilityMode();
+  }
+
   void DxvkD3D8InterfaceBridge::EnableD3D5CompatibilityMode() {
     m_interface->EnableD3D5CompatibilityMode();
   }

@@ -141,6 +141,10 @@ namespace dxvk {
 
     bool IsExtended() { return m_extended; }
 
+    bool IsD3D3Compatible() const {
+      return m_isD3D3Compatible;
+    }
+
     bool IsD3D5Compatible() const {
       return m_isD3D5Compatible;
     }
@@ -157,7 +161,19 @@ namespace dxvk {
       return m_isD3D8Compatible;
     }
 
+    void EnableD3D3CompatibilityMode() {
+      m_isD3D3Compatible = true;
+      m_isD3D5Compatible = true;
+      m_isD3D6Compatible = true;
+      m_isD3D7Compatible = true;
+      // D3D8 specific limitations and quirks are also very much in effect
+      m_isD3D8Compatible = true;
+      RefreshAdapterFormatTables();
+      Logger::info("The D3D9 interface is now operating in D3D3 compatibility mode.");
+    }
+
     void EnableD3D5CompatibilityMode() {
+      m_isD3D3Compatible = false;
       m_isD3D5Compatible = true;
       m_isD3D6Compatible = true;
       m_isD3D7Compatible = true;
@@ -168,7 +184,7 @@ namespace dxvk {
     }
 
     void EnableD3D6CompatibilityMode() {
-      // D3D5 compatibility may have been previously set by a legacy interface
+      m_isD3D3Compatible = false;
       m_isD3D5Compatible = false;
       m_isD3D6Compatible = true;
       m_isD3D7Compatible = true;
@@ -179,7 +195,7 @@ namespace dxvk {
     }
 
     void EnableD3D7CompatibilityMode() {
-      // D3D6/5 compatibility may have been previously set by a legacy interface
+      m_isD3D3Compatible = false;
       m_isD3D5Compatible = false;
       m_isD3D6Compatible = false;
       m_isD3D7Compatible = true;
@@ -216,6 +232,7 @@ namespace dxvk {
 
     bool                          m_extended;
 
+    bool                          m_isD3D3Compatible = false;
     bool                          m_isD3D5Compatible = false;
     bool                          m_isD3D6Compatible = false;
     bool                          m_isD3D7Compatible = false;
