@@ -181,9 +181,8 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // Used at least by X: Beyond The Frontier
   HRESULT STDMETHODCALLTYPE D3D6Viewport::TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen) {
-    Logger::debug("<<< D3D6Viewport::TransformVertices: Proxy");
+    Logger::warn("<<< D3D6Viewport::TransformVertices: Proxy");
     return m_proxy->TransformVertices(vertex_count, data, flags, offscreen);
   }
 
@@ -337,7 +336,6 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // TODO:
   HRESULT STDMETHODCALLTYPE D3D6Viewport::NextLight(IDirect3DLight *ref, IDirect3DLight **light, DWORD flags) {
     Logger::warn("!!! D3D6Viewport::NextLight: Stub");
     return D3D_OK;

@@ -12,10 +12,8 @@
 
 namespace dxvk {
 
-  class DDrawSurface;
   class D3D5Light;
   class D3D5Device;
-  class D3D5Material;
 
   class D3D5Viewport final : public DDrawWrappedObject<D3D5Interface, IDirect3DViewport2, IUnknown> {
 
