@@ -6,6 +6,7 @@
 #include "ddraw4/ddraw4_surface.h"
 #include "ddraw7/ddraw7_surface.h"
 
+#include "d3d3/d3d3_device.h"
 #include "d3d5/d3d5_device.h"
 #include "d3d6/d3d6_device.h"
 #include "d3d7/d3d7_device.h"
@@ -191,6 +192,8 @@ namespace dxvk {
       return m_device6->GetD3D9();
     } else if (m_device5 != nullptr) {
       return m_device5->GetD3D9();
+    } else if (m_device3 != nullptr) {
+      return m_device3->GetD3D9();
     }
 
     return nullptr;

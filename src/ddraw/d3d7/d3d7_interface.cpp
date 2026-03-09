@@ -325,6 +325,7 @@ namespace dxvk {
       Com<D3D7Device> device7 = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7,
                                                params, std::move(device9),
                                                rt7.ptr(), deviceCreationFlags9);
+
       // Set the newly created D3D7 device on the common interface
       commonIntf->SetD3D7Device(device7.ptr());
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
@@ -332,6 +333,7 @@ namespace dxvk {
       // Enable SWVP in case of mixed SWVP devices
       if (unlikely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
         device7->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
+
       *ppd3dDevice = device7.ref();
     } catch (const DxvkError& e) {
       Logger::err(e.message());

@@ -5,6 +5,8 @@
 
 #include "../ddraw_common_interface.h"
 
+#include "../../d3d9/d3d9_bridge.h"
+
 namespace dxvk {
 
   class DDrawSurface;
@@ -63,12 +65,16 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE DeleteMatrix(D3DMATRIXHANDLE D3DMatHandle);
 
+    void InitializeDS();
+
   private:
 
     static uint32_t       s_deviceCount;
     uint32_t              m_deviceCount = 0;
 
     DDrawCommonInterface* m_commonIntf = nullptr;
+
+    Com<DxvkD3D8Bridge>   m_bridge;
 
     Com<DDrawSurface>     m_rt;
     DDrawSurface*         m_ds = nullptr;
