@@ -1,6 +1,6 @@
 ﻿# D7VK
 
-A Vulkan-based translation layer for Direct3D 7, 6 and 5 which allows running 3D applications on Linux using Wine. It uses DXVK's D3D9 backend as well as Wine's DDraw implementation (or the windows native DDraw) and acts as a proxy between the two, providing a minimal D3D7/6/5-on-D3D9 implementation.
+A Vulkan-based translation layer for Direct3D 7, 6, 5 and 3 which allows running 3D applications on Linux using Wine. It uses DXVK's D3D9 backend as well as Wine's DDraw implementation (or the windows native DDraw) and acts as a proxy between the two, providing a minimal D3D7/6/5/3-on-D3D9 implementation.
 
 Note that D3D retained-mode applications are not supported, since the project only aims to implement immediate-mode.
 
@@ -8,17 +8,23 @@ Note that D3D retained-mode applications are not supported, since the project on
 
 ### Will D7VK work with every game out there?
 
-Sadly, no. DDraw and older D3D is a land of highly cursed API interoperability, and applications that for one reason or another mix and match D3D7/6/5 with DDraw and/or with GDI are not expected to work properly in all cases. If games provide alternative renderers, based on Glide or OpenGL, I strongly recommend you use those, together with [nGlide](https://www.zeus-software.com/downloads/nglide) where applicable.
+Sadly, no. DDraw and older D3D is a land of highly cursed API interoperability, and applications that for one reason or another mix and match D3D7/6/5/3 with DDraw and/or with GDI are not expected to work properly in all cases. If games provide alternative renderers, based on Glide or OpenGL, I strongly recommend you use those, together with [nGlide](https://www.zeus-software.com/downloads/nglide) where applicable.
 
 If you're wondering about the current state of a certain game, a good starting point would be checking [the issue tracker](https://github.com/WinterSnowfall/d7vk/issues).
 
-### Wait, what? There's D3D6/5 support in my D7VK! How did it get there?
+### Wait, what? There's D3D6/5/3 support in my D7VK! How did it get there?
 
-After looking over the D3D6/5 SDK documentation, they turned out to be somewhat approachable, so I have implemented both. Support for D3D7 still remains the main goal of the project. From a features and general compatibility standpoint, expect D3D6/5 to fare somewhat worse than D3D7, because, as I've said before: the further we stray from D3D8/9, the further we stray from the divine.
+After looking over the D3D6/5 SDK documentation, they turned out to be somewhat approachable, so I have implemented both. Thanks to [CkNoSFeRaTU](https://github.com/CkNoSFeRaTU) we also support D3D3, along with execute buffer driven rendering, and thus have achieved full D3D (immediate-mode) coverage of the DDraw world.
 
-### Why not spin off a D5VK and a D6VK, or rename the project?
+Mind you, support for D3D7 still remains the main goal of the project. From a features and general compatibility standpoint, expect D3D6/5/3 to fare somewhat worse than D3D7, because, as I've said before: the further we stray from D3D8/9, the further we stray from the divine.
 
-All APIs prior to D3D8 fall under the cursed umbrella of DDraw, so it makes absolutely no sense to split things up. As for any renaming, that won't happen, since the project's main focus (namely D3D7) remains unchanged.
+### Why not spin off a D6VK, a D5VK and a D3VK, or rename the project?
+
+All APIs prior to D3D8 fall under the cursed umbrella of DDraw, so it makes absolutely no sense to split things up. As for any renaming, that won't happen, since the project's main focus remains unchanged.
+
+### What happened to D3D1, D3D2 and D3D4?
+
+D3D1 never existed, because the first release of DirectX didn't include a 3D component. Direct3D was added in DirectX 2 and was left mostly unchanged in DirectX 3, so D3D3 and D3D2 are interchangable terms, with a mostly historical distinction. [DirectX 4 was never released](https://devblogs.microsoft.com/oldnewthing/20040122-00/?p=40963), and the prototyped D3D4 implementation was restructured into what ultimately became D3D5.
 
 ### What should I do if a game doesn't work (properly) with D7VK?
 
@@ -85,6 +91,7 @@ Listed below are the DLL requirements for using DXVK with any single API.
 - d3d7: `ddraw.dll`
 - d3d6: `ddraw.dll`
 - d3d5: `ddraw.dll`
+- d3d3: `ddraw.dll`
 
 ### HUD
 The `DXVK_HUD` environment variable controls a HUD which can display the framerate and some stat counters. It accepts a comma-separated list of the following options:

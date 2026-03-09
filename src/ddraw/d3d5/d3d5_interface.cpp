@@ -189,14 +189,12 @@ namespace dxvk {
     if (unlikely(lplpDirect3DMaterial == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    Com<IDirect3DMaterial2> materialProxy = nullptr;
-
     InitReturnPtr(lplpDirect3DMaterial);
 
     m_materialHandle++;
     auto materialIterPair = m_materials.emplace(std::piecewise_construct,
                                                 std::forward_as_tuple(m_materialHandle),
-                                                std::forward_as_tuple(std::move(materialProxy), this, m_materialHandle));
+                                                std::forward_as_tuple(nullptr, this, m_materialHandle));
 
     *lplpDirect3DMaterial = ref(&materialIterPair.first->second);
 
