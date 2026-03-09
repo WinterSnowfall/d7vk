@@ -17,15 +17,22 @@ namespace dxvk {
       Com<d3d9::IDirect3DDevice9>&& pDevice9)
     : DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9>(pParent, std::move(d3d3DeviceProxy), std::move(pDevice9))
     , m_commonIntf ( commonIntf )
-    // TODO: Once we these from a surface, we'll need to make sure they're initialized
-    , m_rt ( pParent )
-    , m_ds ( pParent->GetAttachedDepthStencil() ) {
+    , m_rt ( pParent ) {
+    // Get the bridge interface to D3D9
+    if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8Bridge), reinterpret_cast<void**>(&m_bridge))))) {
+      throw DxvkError("D3D3Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+    }
+
     m_deviceCount = ++s_deviceCount;
 
     Logger::debug(str::format("D3D3Device: Created a new device nr. ((1-", m_deviceCount, "))"));
   }
 
   D3D3Device::~D3D3Device() {
+    // Clear the common interface device pointer if it points to this device
+    if (m_commonIntf->GetD3D3Device() == this)
+      m_commonIntf->SetD3D3Device(nullptr);
+
     Logger::debug(str::format("D3D3Device: Device nr. ((1-", m_deviceCount, ")) bites the dust"));
   }
 
@@ -201,6 +208,42 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D3Device::DeleteMatrix(D3DMATRIXHANDLE D3DMatHandle) {
     Logger::debug("<<< D3D3Device::GetMatrix: Proxy");
     return m_proxy->DeleteMatrix(D3DMatHandle);
+  }
+
+  void D3D3Device::InitializeDS() {
+    if (!m_rt->IsInitialized())
+      m_rt->InitializeD3D9RenderTarget();
+
+    m_ds = m_rt->GetAttachedDepthStencil();
+
+    if (m_ds != nullptr) {
+      Logger::debug("D3D3Device::InitializeDS: Found an attached DS");
+
+      HRESULT hrDS = m_ds->InitializeD3D9DepthStencil();
+      if (unlikely(FAILED(hrDS))) {
+        Logger::err("D3D3Device::InitializeDS: Failed to initialize D3D9 DS");
+      } else if (m_commonIntf->GetD3D5Device() == nullptr) {
+        Logger::info("D3D3Device::InitializeDS: Got depth stencil from RT");
+
+        DDSURFACEDESC descDS;
+        descDS.dwSize = sizeof(DDSURFACEDESC);
+        m_ds->GetProxied()->GetSurfaceDesc(&descDS);
+        Logger::debug(str::format("D3D3Device::InitializeDS: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
+
+        HRESULT hrDS9 = m_d3d9->SetDepthStencilSurface(m_ds->GetD3D9());
+        if(unlikely(FAILED(hrDS9))) {
+          Logger::err("D3D3Device::InitializeDS: Failed to set D3D9 depth stencil");
+        } else {
+          // This needs to act like an auto depth stencil of sorts, so manually enable z-buffering
+          m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_TRUE);
+        }
+      }
+    } else if (m_commonIntf->GetD3D5Device() == nullptr) {
+      Logger::info("D3D3Device::InitializeDS: RT has no depth stencil attached");
+      m_d3d9->SetDepthStencilSurface(nullptr);
+      // Should be superfluous, but play it safe
+      m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_FALSE);
+    }
   }
 
 }
