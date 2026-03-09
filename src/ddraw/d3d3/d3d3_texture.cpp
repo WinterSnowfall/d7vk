@@ -82,16 +82,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Texture::GetHandle(LPDIRECT3DDEVICE lpDirect3DDevice, LPD3DTEXTUREHANDLE lpHandle) {
-    if (likely(m_parent->GetCommonInterface()->GetD3D5Device() == nullptr)) {
-      Logger::debug("<<< D3D3Texture::GetHandle: Proxy");
-
-      if(unlikely(lpDirect3DDevice == nullptr || lpHandle == nullptr))
-        return DDERR_INVALIDPARAMS;
-
-      D3D3Device* d3d3Device = static_cast<D3D3Device*>(lpDirect3DDevice);
-      return m_proxy->GetHandle(d3d3Device->GetProxied(), lpHandle);
-    }
-
     // Frogger gets texture handles from IDirect3DTexture objects
     // and uses them in calls on a IDirect3DDevice2
     Logger::debug(">>> D3D3Texture::GetHandle");
@@ -122,9 +112,21 @@ namespace dxvk {
     Logger::debug("<<< D3D3Texture::Load: Proxy");
 
     Com<D3D3Texture> d3d3Texture = static_cast<D3D3Texture*>(lpD3DTexture);
+
     HRESULT hr = m_proxy->Load(d3d3Texture->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
+
+    // Update the cached parent surface desc
+    DDSURFACEDESC desc;
+    desc.dwSize = sizeof(DDSURFACEDESC);
+    HRESULT hrDesc = m_parent->GetProxied()->GetSurfaceDesc(&desc);
+
+    if (unlikely(FAILED(hrDesc))) {
+      Logger::err("D3D3Texture::Load: Failed to retrieve updated surface desc");
+    } else {
+      m_parent->GetCommonSurface()->SetDesc(desc);
+    }
 
     m_parent->GetCommonSurface()->DirtyMipMaps();
 

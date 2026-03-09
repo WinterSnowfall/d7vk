@@ -2,17 +2,21 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
+#include "../ddraw_format.h"
 
 #include "../ddraw_common_interface.h"
 
 #include "../../d3d9/d3d9_bridge.h"
 
+#include <unordered_map>
+
 namespace dxvk {
 
   class DDrawInterface;
+  class D3D3Material;
 
   /**
-  * \brief Minimal D3D3 interface implementation
+  * \brief D3D3 interface implementation
   */
   class D3D3Interface final : public DDrawWrappedObject<DDrawInterface, IDirect3D, d3d9::IDirect3D9> {
 
@@ -39,12 +43,17 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE FindDevice(D3DFINDDEVICESEARCH *lpD3DFDS, D3DFINDDEVICERESULT *lpD3DFDR);
 
+    D3D3Material* GetMaterialFromHandle(D3DMATERIALHANDLE handle);
+
   private:
 
     static uint32_t               s_intfCount;
     uint32_t                      m_intfCount = 0;
 
     Com<IDxvkD3D8InterfaceBridge> m_bridge;
+
+    D3DMATERIALHANDLE             m_materialHandle = 0;
+    std::unordered_map<D3DMATERIALHANDLE, D3D3Material> m_materials;
 
   };
 

@@ -1,5 +1,7 @@
 #include "d3d5_texture.h"
 
+#include "d3d5_device.h"
+
 #include "../ddraw/ddraw_surface.h"
 
 namespace dxvk {
@@ -89,7 +91,9 @@ namespace dxvk {
 
     if (unlikely(!texHandle)) {
       Logger::warn("D3D5Texture::GetHandle: Null handle returned");
-      return m_proxy->GetHandle(lpDirect3DDevice2, lpHandle);
+
+      D3D5Device* d3d5Device = static_cast<D3D5Device*>(lpDirect3DDevice2);
+      return m_proxy->GetHandle(d3d5Device->GetProxied(), lpHandle);
     }
 
     *lpHandle = texHandle;

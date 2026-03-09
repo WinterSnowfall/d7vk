@@ -14,7 +14,7 @@ namespace dxvk {
     : DDrawWrappedObject<DDrawInterface, IDirect3D, d3d9::IDirect3D9>(pParent, std::move(d3d3IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION))) {
     // Get the bridge interface to D3D9.
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
-      throw DxvkError("D3D5Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+      throw DxvkError("D3D3Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
     m_bridge->EnableD3D3CompatibilityMode();
@@ -123,14 +123,17 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D3Interface::CreateMaterial(LPDIRECT3DMATERIAL *lplpDirect3DMaterial, IUnknown *pUnkOuter) {
     Logger::debug(">>> D3D3Interface::CreateMaterial");
 
-    Com<IDirect3DMaterial> lplpDirect3DMaterialProxy;
-    HRESULT hr = m_proxy->CreateMaterial(&lplpDirect3DMaterialProxy, pUnkOuter);
-    if (unlikely(FAILED(hr)))
-      return hr;
+    if (unlikely(lplpDirect3DMaterial == nullptr))
+      return DDERR_INVALIDPARAMS;
 
     InitReturnPtr(lplpDirect3DMaterial);
 
-    *lplpDirect3DMaterial = ref(new D3D3Material(std::move(lplpDirect3DMaterialProxy), this));
+    m_materialHandle++;
+    auto materialIterPair = m_materials.emplace(std::piecewise_construct,
+                                                std::forward_as_tuple(m_materialHandle),
+                                                std::forward_as_tuple(nullptr, this, m_materialHandle));
+
+    *lplpDirect3DMaterial = ref(&materialIterPair.first->second);
 
     return D3D_OK;
   }
@@ -153,6 +156,17 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D3Interface::FindDevice(D3DFINDDEVICESEARCH *lpD3DFDS, D3DFINDDEVICERESULT *lpD3DFDR) {
     Logger::debug("<<< D3D3Interface::FindDevice: Proxy");
     return m_proxy->FindDevice(lpD3DFDS, lpD3DFDR);
+  }
+
+  D3D3Material* D3D3Interface::GetMaterialFromHandle(D3DMATERIALHANDLE handle) {
+    auto materialsIter = m_materials.find(handle);
+
+    if (unlikely(materialsIter == m_materials.end())) {
+      Logger::warn(str::format("D3D3Interface::GetMaterialFromHandle: Invalid handle: ", handle));
+      return nullptr;
+    }
+
+    return &materialsIter->second;
   }
 
 }

@@ -7,7 +7,12 @@
 
 #include "d3d3_interface.h"
 
+#include <vector>
+
 namespace dxvk {
+
+  class D3D3Light;
+  class D3D3Device;
 
   class D3D3Viewport final : public DDrawWrappedObject<D3D3Interface, IDirect3DViewport, IUnknown> {
 
@@ -45,12 +50,30 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE NextLight(IDirect3DLight *ref, IDirect3DLight **light, DWORD flags);
 
+    HRESULT ApplyViewport();
+
+    HRESULT ApplyAndActivateLights();
+
+    HRESULT ApplyAndActivateLight(DWORD index, D3D3Light* light3);
+
+    D3DCommonViewport* GetCommonViewport() const {
+      return m_commonViewport.ptr();
+    }
+
+    void SetDevice(D3D3Device* device) {
+      m_device = device;
+    }
+
   private:
 
-    static uint32_t        s_viewportCount;
-    uint32_t               m_viewportCount   = 0;
+    static uint32_t         s_viewportCount;
+    uint32_t                m_viewportCount   = 0;
 
-    Com<D3DCommonViewport> m_commonViewport;
+    Com<D3DCommonViewport>  m_commonViewport;
+
+    D3D3Device*             m_device = nullptr;
+
+    std::vector<D3D3Light*> m_lights;
 
   };
 
