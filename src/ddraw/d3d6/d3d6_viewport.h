@@ -12,10 +12,8 @@
 
 namespace dxvk {
 
-  class DDraw4Surface;
   class D3D6Light;
   class D3D6Device;
-  class D3D6Material;
 
   class D3D6Viewport final : public DDrawWrappedObject<D3D6Interface, IDirect3DViewport3, IUnknown> {
 
@@ -79,14 +77,14 @@ namespace dxvk {
 
   private:
 
-    static uint32_t          s_viewportCount;
-    uint32_t                 m_viewportCount   = 0;
+    static uint32_t         s_viewportCount;
+    uint32_t                m_viewportCount   = 0;
 
-    Com<D3DCommonViewport>   m_commonViewport;
+    Com<D3DCommonViewport>  m_commonViewport;
 
-    D3D6Device*              m_device = nullptr;
+    D3D6Device*             m_device = nullptr;
 
-    std::vector<D3D6Light*>  m_lights;
+    std::vector<D3D6Light*> m_lights;
 
   };
 
