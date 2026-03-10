@@ -72,6 +72,8 @@ namespace dxvk {
 
     DDrawSurface* GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle);
 
+    D3DCommonTexture* GetTextureFromHandle(D3DTEXTUREHANDLE handle);
+
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf.ptr();
     }

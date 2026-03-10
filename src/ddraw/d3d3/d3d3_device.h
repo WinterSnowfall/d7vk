@@ -117,6 +117,22 @@ namespace dxvk {
 
     inline void DeleteViewportInternal(IDirect3DViewport* viewport);
 
+    inline HRESULT SetTextureInternal(DDrawSurface* surface, DWORD textureHandle);
+
+    inline HRESULT STDMETHODCALLTYPE SetRenderStateInternal(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState);
+
+    inline HRESULT STDMETHODCALLTYPE SetLightStateInternal(D3DLIGHTSTATETYPE dwLightStateType, DWORD dwLightState);
+
+    inline void DrawTriangleInternal(D3DTRIANGLE* triangle, DWORD count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer);
+
+    inline void DrawLineInternal(D3DLINE* line, DWORD count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer);
+
+    inline void DrawPointInternal(D3DPOINT* point, DWORD count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer);
+
+    inline void DrawSpanInternal(D3DSPAN* span, DWORD count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer);
+
+    inline void TextureLoadInternal(D3DTEXTURELOAD* textureLoad, DWORD count);
+
     bool                           m_inScene      = false;
 
     static uint32_t                s_deviceCount;
@@ -141,6 +157,13 @@ namespace dxvk {
 
     Com<D3D3Viewport>              m_currentViewport;
     std::vector<Com<D3D3Viewport>> m_viewports;
+
+    // Value of D3DRENDERSTATE_ANTIALIAS
+    DWORD           m_antialias       = D3DANTIALIAS_NONE;
+    // Value of D3DRENDERSTATE_LINEPATTERN
+    D3DLINEPATTERN  m_linePattern     = {};
+    // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
+    DWORD           m_textureMapBlend = D3DTBLEND_MODULATE;
 
   };
 
