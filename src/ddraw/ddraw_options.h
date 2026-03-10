@@ -28,83 +28,62 @@ namespace dxvk {
 
   struct D3DOptions {
 
-    /// Map all back buffers onto a single D3D9 back buffer. Some applications have broken flip
-    /// implementations or simply do not use all the back buffers they create, which causes issues.
-    bool forceSingleBackBuffer;
-
-    /// Force enable multithreaded protections. Some applications that don't
-    /// properly submit DDSCL_MULTITHREADED flags will crash otherwise.
+    /// Enforces the use of DDSCL_MULTITHREADED
     bool forceMultiThreaded;
 
-    /// If we detect a back buffer size larger than the application set display mode during device
-    /// creation, we will use the mode size for the D3D9 back buffer. This is useful for full-screen
-    /// presentation on Wayland, or in other situations when back buffer dimensions get altered in-flight.
-    bool backBufferResize;
-
-    /// Determines if D3D9 front/back buffers are written back during blits/locks on DDraw surfaces.
-    /// Default disabled, as it may cause more harm than good, however it is required by certain games
-    /// for overlay correctness and/or in order for save game screenshots to be captured properly.
-    bool backBufferWriteBack;
-
-    /// Determines if D3D9 Z buffers are written back during blits/locks on DDraw surfaces.
-    /// Default disabled, as it negatively affects performance, but is sometimes needed for correctness.
-    bool depthWriteBack;
-
-    /// Upload or skip upload of depth stencils. Some games do highly cursed things which will
-    /// destroy performance if we allow depth writes/uploads. Default enabled.
-    bool uploadDepthStencils;
-
-    /// Replaces any use of D32 with D24X8. Needed for games such as
-    /// Sacrifice, which won't enable 32-bit modes without D32 support.
+    /// Replaces any use of D32 with D24X8
     bool useD24X8forD32;
 
-    /// Advertise support for D16. Disabling it may force some games to use a higher
-    /// precision for depth, which may reduce Z-fighting artifacts. In other cases it
-    /// might cause games to crash, so use with caution. Default enabled.
+    /// Advertise support for D16
     bool supportD16;
 
-    /// Respect DISCARD only on DYNAMIC + WRITEONLY buffers. Some applications need
-    /// this for correctness, however it will degrade performance. Default disabled.
+    /// Respect DISCARD only on DYNAMIC + WRITEONLY buffers
     bool forceLegacyDiscard;
 
-    /// Some applications set the viewport MinZ/MaxZ to 0.0f/0.0f and expect
-    /// the behavioral equivalent of settting 0.0f/1.0f. This may have been an early
-    /// D3D quirk, but tests have shown the resulting values are 0.0f/0.001f.
+    /// Temporary workaround for bad behaving viewport MinZ/MaxZ use
     bool viewportCorrection;
 
-    /// Max available memory override, shared with the D3D9 backend
-    uint32_t maxAvailableMemory;
+    /// Map all back buffers onto a single D3D9 back buffer
+    bool forceSingleBackBuffer;
 
-    /// Blits back to the proxied render target and flips the surface.
-    /// This is currently required by any game that blits cursors or
-    /// does presentation through blits directly onto the front/back buffers.
+    /// Resize the back buffer size to screen size when needed
+    bool backBufferResize;
+
+    /// Write back D3D9 back buffers during blits/locks on DDraw surfaces
+    bool backBufferWriteBack;
+
+    /// Write back D3D9 depth stencils during blits/locks on DDraw surfaces
+    bool depthWriteBack;
+
+    /// Upload or skip upload of depth stencils
+    bool uploadDepthStencils;
+
+    /// Blits back to the proxied flippable surface and presents with DDraw
     bool forceProxiedPresent;
 
     /// Ignore any application set gamma ramp
     bool ignoreGammaRamp;
 
-    /// Forces windowed mode presentation (direct blits to the primary surface),
-    /// even in exclusive full-screen, since some games rely on it for presentation
+    /// Forces windowed mode presentation in EXCLUSIVE/FULLSCREEN mode
     bool ignoreExclusiveMode;
 
-    /// Automatically generate texture mip maps and ignore those copied (or not copied)
-    /// by the application. This is currently used as a workaround for all UE1 titles.
+    /// Automatically generate all texture mip maps on the GPU
     bool autoGenMipMaps;
 
-    /// Immediately perform all texture related operations and uploads instead of dirtying.
-    /// Will negatively affect performance and is only useful for debugging.
+    /// Enables all surface write-backs, but comes with performance penalties
     bool apitraceMode;
 
-    /// Uses supported MSAA up to 4x to emulate D3D5 and higher order-dependent
-    /// and order-independent full scene anti-aliasing. Disabled by default.
+    /// Uses supported MSAA up to 4x to emulate FSAA
     FSAAEmulation emulateFSAA;
 
-    /// Force the use of a certain D3D9 device type. Sometimes needed to handle dubious
-    /// application buffer placement and/or other types of SWVP-related issues.
+    /// Force the use of a certain D3D9 device type
     D3DDeviceTypeOverride deviceTypeOverride;
 
-    /// Determines how to handle proxy back buffer blits done by the application
+    /// Determines how uploads for back buffer blits are handled
     D3DBackBufferGuard backBufferGuard;
+
+    /// Max available memory override, shared with the D3D9 backend
+    uint32_t maxAvailableMemory;
 
     D3DOptions() {}
 
