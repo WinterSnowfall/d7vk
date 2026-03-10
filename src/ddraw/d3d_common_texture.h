@@ -33,21 +33,12 @@ namespace dxvk {
       return m_commonSurf->GetDDSurface();
     }
 
-    void SetD3D3Texture(D3D3Texture* tex3) {
-      m_tex3 = tex3;
-    }
-
-    D3D3Texture* GetD3D3Texture() const {
-      return m_tex3;
-    }
-
   private:
 
     DDrawCommonSurface*     m_commonSurf;
 
     D3DTEXTUREHANDLE        m_textureHandle = 0;
 
-    D3D3Texture*            m_tex3 = nullptr;
   };
 
 }
