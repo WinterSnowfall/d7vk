@@ -89,7 +89,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D3Interface(std::move(ppvProxyObject), nullptr));
+      *ppvObject = ref(new D3D3Interface(std::move(ppvProxyObject), m_parent));
 
       return S_OK;
     }

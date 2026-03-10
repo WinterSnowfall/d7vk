@@ -390,10 +390,10 @@ namespace dxvk {
     }
   }
 
-  inline D3DDEVICEDESC GetD3D3Caps() {
-    D3DDEVICEDESC desc;
+  inline D3DDEVICEDESC3 GetD3D3Caps() {
+    D3DDEVICEDESC3 desc;
 
-    desc.dwSize    = sizeof(D3DDEVICEDESC);
+    desc.dwSize    = sizeof(D3DDEVICEDESC3);
 
     desc.dwFlags   = D3DDD_BCLIPPING
                    | D3DDD_COLORMODEL
