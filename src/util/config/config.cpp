@@ -1640,8 +1640,11 @@ namespace dxvk {
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Knight Rider: The Game                     *
-     * Fixes in-game vehicle environment maps     */
+     * Fixes in-game vehicle environment maps     *
+     * and Z-fighting artifacts when using D16    */
     { R"(\\(Knight Rider|KR( Demo)?)\.exe$)", {{
+      { "ddraw.supportD16",                "False" },
+      { "ddraw.forceSingleBackBuffer",      "True" },
       { "ddraw.backBufferWriteBack",        "True" },
     }} },
     /* Knight Rider: The Game 2                   *
