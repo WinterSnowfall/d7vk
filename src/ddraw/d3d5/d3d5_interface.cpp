@@ -1,9 +1,10 @@
 #include "d3d5_interface.h"
 
 #include "d3d5_device.h"
-#include "d3d5_light.h"
 #include "d3d5_material.h"
 #include "d3d5_viewport.h"
+
+#include "../d3d_common_light.h"
 
 #include "../d3d3/d3d3_interface.h"
 
@@ -172,13 +173,9 @@ namespace dxvk {
     if (unlikely(lplpDirect3DLight == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // We do not really need a proxy light object, it's a simple container,
-    // however let's create one in case of execute buffers proxying
-    Com<IDirect3DLight> lightProxy = nullptr;
-
     InitReturnPtr(lplpDirect3DLight);
 
-    *lplpDirect3DLight = ref(new D3D5Light(std::move(lightProxy), this));
+    *lplpDirect3DLight = ref(new D3DLight(nullptr, this));
 
     return D3D_OK;
   }

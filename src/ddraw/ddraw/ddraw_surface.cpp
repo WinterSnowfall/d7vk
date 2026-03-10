@@ -242,9 +242,7 @@ namespace dxvk {
         return hr;
       }
 
-      D3DDEVICEDESC desc3 = GetD3D3Caps(m_commonIntf->GetOptions()->emulateFSAA != FSAAEmulation::Disabled);
-
-      Com<D3D3Device> device3 = new D3D3Device(std::move(ppvProxyObject), this, desc3, riid,
+      Com<D3D3Device> device3 = new D3D3Device(std::move(ppvProxyObject), this, GetD3D3Caps(), riid,
                                                params, std::move(device9), deviceCreationFlags9);
 
       // Set the newly created D3D3 device on the common interface

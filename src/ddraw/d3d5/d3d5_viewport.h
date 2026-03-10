@@ -12,7 +12,7 @@
 
 namespace dxvk {
 
-  class D3D5Light;
+  class D3DLight;
   class D3D5Device;
 
   class D3D5Viewport final : public DDrawWrappedObject<D3D5Interface, IDirect3DViewport2, IUnknown> {
@@ -59,7 +59,7 @@ namespace dxvk {
 
     HRESULT ApplyAndActivateLights();
 
-    HRESULT ApplyAndActivateLight(DWORD index, D3D5Light* light5);
+    HRESULT ApplyAndActivateLight(DWORD index, D3DLight* light);
 
     D3DCommonViewport* GetCommonViewport() const {
       return m_commonViewport.ptr();
@@ -71,14 +71,14 @@ namespace dxvk {
 
   private:
 
-    static uint32_t          s_viewportCount;
-    uint32_t                 m_viewportCount   = 0;
+    static uint32_t        s_viewportCount;
+    uint32_t               m_viewportCount   = 0;
 
-    Com<D3DCommonViewport>   m_commonViewport;
+    Com<D3DCommonViewport> m_commonViewport;
 
-    D3D5Device*              m_device = nullptr;
+    D3D5Device*            m_device = nullptr;
 
-    std::vector<D3D5Light*>  m_lights;
+    std::vector<D3DLight*> m_lights;
 
   };
 

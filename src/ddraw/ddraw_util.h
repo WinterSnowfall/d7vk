@@ -390,7 +390,7 @@ namespace dxvk {
     }
   }
 
-  inline D3DDEVICEDESC GetD3D3Caps(bool exposeFSAA) {
+  inline D3DDEVICEDESC GetD3D3Caps() {
     D3DDEVICEDESC desc;
 
     desc.dwSize    = sizeof(D3DDEVICEDESC);
@@ -431,6 +431,7 @@ namespace dxvk {
     D3DLIGHTINGCAPS lightingCaps;
     lightingCaps.dwSize  = sizeof(D3DLIGHTINGCAPS);
     lightingCaps.dwCaps  = D3DLIGHTCAPS_DIRECTIONAL
+                      // | D3DLIGHTCAPS_GLSPOT // D3D3 specific
                       // | D3DLIGHTCAPS_PARALLELPOINT // Not supported by D3D9
                          | D3DLIGHTCAPS_POINT
                          | D3DLIGHTCAPS_SPOT;
@@ -450,33 +451,16 @@ namespace dxvk {
                            // | D3DPMISCCAPS_MASKPLANES
                               | D3DPMISCCAPS_MASKZ;
 
-    prim.dwRasterCaps         = D3DPRASTERCAPS_ANISOTROPY
-                              | D3DPRASTERCAPS_ANTIALIASEDGES // Technically not implemented in D3D9
-                           // | D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT
-                           // | D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT
-                              | D3DPRASTERCAPS_DITHER
-                              | D3DPRASTERCAPS_FOGRANGE
+    prim.dwRasterCaps         = D3DPRASTERCAPS_DITHER
                               | D3DPRASTERCAPS_FOGTABLE
                               | D3DPRASTERCAPS_FOGVERTEX
-                              | D3DPRASTERCAPS_MIPMAPLODBIAS
                            // | D3DPRASTERCAPS_PAT // Not implemented in D3D9
                            // | D3DPRASTERCAPS_ROP2
                               | D3DPRASTERCAPS_STIPPLE // Technically not implemented
                               | D3DPRASTERCAPS_SUBPIXEL
                            // | D3DPRASTERCAPS_SUBPIXELX
-                           // | D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT
-                           // | D3DPRASTERCAPS_WBUFFER
-                              | D3DPRASTERCAPS_WFOG
                            // | D3DPRASTERCAPS_XOR
-                              | D3DPRASTERCAPS_ZBIAS
-                           // | D3DPRASTERCAPS_ZBUFFERLESSHSR // Easy footgun to not get a z-buffer
-                              | D3DPRASTERCAPS_ZFOG
                               | D3DPRASTERCAPS_ZTEST;
-
-    if (unlikely(exposeFSAA)) {
-      prim.dwRasterCaps |= D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT
-                        |  D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT;
-    }
 
     prim.dwZCmpCaps           = D3DPCMPCAPS_ALWAYS
                               | D3DPCMPCAPS_EQUAL
@@ -541,8 +525,7 @@ namespace dxvk {
                               | D3DPTFILTERCAPS_MIPNEAREST
                               | D3DPTFILTERCAPS_NEAREST;
 
-    prim.dwTextureBlendCaps   = D3DPTBLENDCAPS_ADD
-                              | D3DPTBLENDCAPS_COPY
+    prim.dwTextureBlendCaps   = D3DPTBLENDCAPS_COPY
                               | D3DPTBLENDCAPS_DECAL
                               | D3DPTBLENDCAPS_DECALALPHA
                               | D3DPTBLENDCAPS_DECALMASK
@@ -550,9 +533,7 @@ namespace dxvk {
                               | D3DPTBLENDCAPS_MODULATEALPHA
                               | D3DPTBLENDCAPS_MODULATEMASK;
 
-    prim.dwTextureAddressCaps = D3DPTADDRESSCAPS_BORDER
-                              | D3DPTADDRESSCAPS_CLAMP
-                              | D3DPTADDRESSCAPS_INDEPENDENTUV
+    prim.dwTextureAddressCaps = D3DPTADDRESSCAPS_CLAMP
                               | D3DPTADDRESSCAPS_MIRROR
                               | D3DPTADDRESSCAPS_WRAP;
 
