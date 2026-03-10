@@ -2,10 +2,11 @@
 
 #include "d3d6_device.h"
 #include "d3d6_buffer.h"
-#include "d3d6_light.h"
 #include "d3d6_material.h"
 #include "d3d6_multithread.h"
 #include "d3d6_viewport.h"
+
+#include "../d3d_common_light.h"
 
 #include "../ddraw4/ddraw4_interface.h"
 #include "../ddraw4/ddraw4_surface.h"
@@ -159,8 +160,7 @@ namespace dxvk {
 
     InitReturnPtr(lplpDirect3DLight);
 
-    // We do not really need a proxy light object, it's a simple container
-    *lplpDirect3DLight = ref(new D3D6Light(nullptr, this));
+    *lplpDirect3DLight = ref(new D3DLight(nullptr, this));
 
     return D3D_OK;
   }
