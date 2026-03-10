@@ -1,8 +1,9 @@
 #include "d3d3_interface.h"
 
-#include "d3d3_light.h"
 #include "d3d3_material.h"
 #include "d3d3_viewport.h"
+
+#include "../d3d_common_light.h"
 
 #include "../ddraw/ddraw_interface.h"
 
@@ -108,14 +109,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D3Interface::CreateLight(LPDIRECT3DLIGHT *lplpDirect3DLight, IUnknown *pUnkOuter) {
     Logger::debug(">>> D3D3Interface::CreateLight");
 
-    Com<IDirect3DLight> lplpDirect3DLightProxy;
-    HRESULT hr = m_proxy->CreateLight(&lplpDirect3DLightProxy, pUnkOuter);
-    if (unlikely(FAILED(hr)))
-      return hr;
+    if (unlikely(lplpDirect3DLight == nullptr))
+      return DDERR_INVALIDPARAMS;
 
     InitReturnPtr(lplpDirect3DLight);
 
-    *lplpDirect3DLight = ref(new D3D3Light(std::move(lplpDirect3DLightProxy), this));
+    *lplpDirect3DLight = ref(new D3DLight(nullptr, this));
 
     return D3D_OK;
   }
