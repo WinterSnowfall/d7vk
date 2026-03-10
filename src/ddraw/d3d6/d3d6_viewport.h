@@ -12,7 +12,7 @@
 
 namespace dxvk {
 
-  class D3D6Light;
+  class D3DLight;
   class D3D6Device;
 
   class D3D6Viewport final : public DDrawWrappedObject<D3D6Interface, IDirect3DViewport3, IUnknown> {
@@ -65,7 +65,7 @@ namespace dxvk {
 
     HRESULT ApplyAndActivateLights();
 
-    HRESULT ApplyAndActivateLight(DWORD index, D3D6Light* light6);
+    HRESULT ApplyAndActivateLight(DWORD index, D3DLight* light);
 
     D3DCommonViewport* GetCommonViewport() const {
       return m_commonViewport.ptr();
@@ -84,7 +84,7 @@ namespace dxvk {
 
     D3D6Device*             m_device = nullptr;
 
-    std::vector<D3D6Light*> m_lights;
+    std::vector<D3DLight*>  m_lights;
 
   };
 
