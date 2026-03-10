@@ -1,8 +1,9 @@
 #include "d3d5_viewport.h"
 
-#include "d3d5_light.h"
 #include "d3d5_device.h"
 #include "d3d5_material.h"
+
+#include "d3d_common_light.h"
 
 #include "../ddraw/ddraw_surface.h"
 
@@ -35,7 +36,7 @@ namespace dxvk {
   D3D5Viewport::~D3D5Viewport() {
     // Dissasociate every bound light from this viewport
     for (auto light : m_lights) {
-      light->SetViewport(nullptr);
+      light->SetViewport5(nullptr);
     }
 
     m_commonViewport->SetD3D5Viewport(nullptr);
@@ -293,21 +294,21 @@ namespace dxvk {
     if (unlikely(light == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D5Light* light5 = reinterpret_cast<D3D5Light*>(light);
+    D3DLight* d3dLight = reinterpret_cast<D3DLight*>(light);
 
-    if (unlikely(light5->HasViewport()))
+    if (unlikely(d3dLight->HasViewport()))
       return D3DERR_LIGHTHASVIEWPORT;
 
-    auto it = std::find(m_lights.begin(), m_lights.end(), light5);
+    auto it = std::find(m_lights.begin(), m_lights.end(), d3dLight);
     if (unlikely(it != m_lights.end())) {
       Logger::warn("D3D5Viewport::AddLight: Pre-existing light found");
     } else {
-      m_lights.push_back(light5);
-      light5->SetViewport(this);
+      m_lights.push_back(d3dLight);
+      d3dLight->SetViewport5(this);
     }
 
     if (m_device != nullptr && m_commonViewport->IsCurrentViewport())
-      ApplyAndActivateLight(light5->GetIndex(), light5);
+      ApplyAndActivateLight(d3dLight->GetIndex(), d3dLight);
 
     return D3D_OK;
   }
@@ -318,17 +319,17 @@ namespace dxvk {
     if (unlikely(light == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D5Light* light5 = reinterpret_cast<D3D5Light*>(light);
+    D3DLight* d3dLight = reinterpret_cast<D3DLight*>(light);
 
-    auto it = std::find(m_lights.begin(), m_lights.end(), light5);
+    auto it = std::find(m_lights.begin(), m_lights.end(), d3dLight);
     if (likely(it != m_lights.end())) {
-      const DWORD light5Index = light5->GetIndex();
-      if (m_device != nullptr && m_commonViewport->IsCurrentViewport() && light5->IsActive()) {
-        Logger::debug(str::format("D3D5Viewport: Disabling light nr. ", light5Index));
-        m_device->GetD3D9()->LightEnable(light5Index, FALSE);
+      const DWORD lightIndex = d3dLight->GetIndex();
+      if (m_device != nullptr && m_commonViewport->IsCurrentViewport() && d3dLight->IsActive()) {
+        Logger::debug(str::format("D3D5Viewport: Disabling light nr. ", lightIndex));
+        m_device->GetD3D9()->LightEnable(lightIndex, FALSE);
       }
       m_lights.erase(it);
-      light5->SetViewport(nullptr);
+      d3dLight->SetViewport5(nullptr);
     } else {
       Logger::warn("D3D5Viewport::DeleteLight: Light not found");
     }
@@ -442,19 +443,19 @@ namespace dxvk {
 
     Logger::debug("D3D5Viewport: Applying lights to D3D9");
 
-    for (auto light5: m_lights)
-      ApplyAndActivateLight(light5->GetIndex(), light5);
+    for (auto light: m_lights)
+      ApplyAndActivateLight(light->GetIndex(), light);
 
     return D3D_OK;
   }
 
-  HRESULT D3D5Viewport::ApplyAndActivateLight(DWORD index, D3D5Light* light5) {
-    HRESULT hr = m_device->GetD3D9()->SetLight(index, light5->GetD3D9Light());
+  HRESULT D3D5Viewport::ApplyAndActivateLight(DWORD index, D3DLight* light) {
+    HRESULT hr = m_device->GetD3D9()->SetLight(index, light->GetD3D9Light());
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D5Viewport: Failed D3D9 SetLight call");
     } else {
       HRESULT hrLE;
-      if (light5->IsActive()) {
+      if (light->IsActive()) {
         Logger::debug(str::format("D3D5Viewport: Enabling light nr. ", index));
         hrLE = m_device->GetD3D9()->LightEnable(index, TRUE);
         if (unlikely(FAILED(hrLE)))
