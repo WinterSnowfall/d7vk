@@ -12,6 +12,7 @@ namespace dxvk {
   public:
 
     D3D3ExecuteBuffer(Com<IDirect3DExecuteBuffer>&& buffProxy,
+                      D3DEXECUTEBUFFERDESC desc,
                       D3D3Device* pParent);
 
     ~D3D3ExecuteBuffer();
@@ -30,12 +31,25 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALLBACK lpFunc, LPVOID lpUserArg, DWORD dwReserved);
 
+    std::vector<uint8_t> GetBuffer() const {
+      return m_buffer;
+    }
+
+    D3DEXECUTEDATA GetExecuteData() const {
+      return m_data;
+    }
 
   private:
 
     static uint32_t       s_buffCount;
     uint32_t              m_buffCount  = 0;
 
+    bool                  m_locked = false;
+    std::vector<uint8_t>  m_buffer;
+
+    D3DEXECUTEBUFFERDESC  m_desc;
+    D3DEXECUTEDATA        m_data;
+    D3D3Device*           m_D3D3Device = nullptr;
   };
 
 }
