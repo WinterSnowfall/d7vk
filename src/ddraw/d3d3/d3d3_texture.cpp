@@ -14,6 +14,8 @@ namespace dxvk {
 
     m_texCount = ++s_texCount;
 
+    m_commonTex->SetD3D3Texture(this);
+
     Logger::debug(str::format("D3D3Texture: Created a new texture nr. [[1-", m_texCount, "]]"));
   }
 
