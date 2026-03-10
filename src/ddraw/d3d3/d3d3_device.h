@@ -28,7 +28,7 @@ namespace dxvk {
     D3D3Device(
         Com<IDirect3DDevice>&& d3d3DeviceProxy,
         DDrawSurface* pParent,
-        D3DDEVICEDESC Desc,
+        D3DDEVICEDESC3 Desc,
         GUID deviceGUID,
         d3d9::D3DPRESENT_PARAMETERS Params9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
@@ -149,7 +149,7 @@ namespace dxvk {
     D3DMATERIALHANDLE              m_materialHandle = 0;
     D3DTEXTUREHANDLE               m_textureHandle  = 0;
 
-    D3DDEVICEDESC                  m_desc;
+    D3DDEVICEDESC3                 m_desc;
     GUID                           m_deviceGUID;
 
     Com<DDrawSurface>              m_rt;
@@ -158,12 +158,8 @@ namespace dxvk {
     Com<D3D3Viewport>              m_currentViewport;
     std::vector<Com<D3D3Viewport>> m_viewports;
 
-    // Value of D3DRENDERSTATE_ANTIALIAS
-    DWORD           m_antialias       = D3DANTIALIAS_NONE;
-    // Value of D3DRENDERSTATE_LINEPATTERN
-    D3DLINEPATTERN  m_linePattern     = {};
     // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
-    DWORD           m_textureMapBlend = D3DTBLEND_MODULATE;
+    DWORD                          m_textureMapBlend = D3DTBLEND_MODULATE;
 
   };
 
