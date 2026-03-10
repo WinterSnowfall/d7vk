@@ -1885,6 +1885,26 @@ namespace dxvk {
     { R"(\\RainbowSix\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Incoming - fixes load screen flickering    */
+    { R"(\\incoming\.exe$)", {{
+      { "ddraw.forceSingleBackBuffer",      "True" },
+    }} },
+
+    /**********************************************/
+    /* D3D3 GAMES                                 */
+    /**********************************************/
+    /* Outlaws - fixes pause menu backgrounds     */
+    { R"(\\olwin\.exe$)", {{
+      { "ddraw.backBufferWriteBack",        "True" },
+    }} },
+    /* Star Wars: Jedi Knight: Dark Forces II     */
+    { R"(\\JK\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Star Wars: Jedi Knight: Mysteries of the Sith */
+    { R"(\\JKM\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
   };
 
