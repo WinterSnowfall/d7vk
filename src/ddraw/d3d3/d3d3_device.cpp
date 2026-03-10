@@ -14,7 +14,7 @@ namespace dxvk {
   D3D3Device::D3D3Device(
       Com<IDirect3DDevice>&& d3d3DeviceProxy,
       DDrawSurface* pParent,
-      D3DDEVICEDESC Desc,
+      D3DDEVICEDESC3 Desc,
       GUID deviceGUID,
       d3d9::D3DPRESENT_PARAMETERS Params9,
       Com<d3d9::IDirect3DDevice9>&& pDevice9,
@@ -100,8 +100,8 @@ namespace dxvk {
               || !IsValidD3DDeviceDescSize(hel_desc->dwSize)))
       return DDERR_INVALIDPARAMS;
 
-    D3DDEVICEDESC desc_HAL = m_desc;
-    D3DDEVICEDESC desc_HEL = m_desc;
+    D3DDEVICEDESC3 desc_HAL = m_desc;
+    D3DDEVICEDESC3 desc_HEL = m_desc;
 
     if (m_deviceGUID == IID_IDirect3DRGBDevice) {
       desc_HAL.dwFlags = 0;
@@ -119,8 +119,8 @@ namespace dxvk {
       Logger::warn("D3D3Device::GetCaps: Unhandled device type");
     }
 
-    memcpy(hal_desc, &desc_HAL, sizeof(D3DDEVICEDESC));
-    memcpy(hel_desc, &desc_HEL, sizeof(D3DDEVICEDESC));
+    memcpy(hal_desc, &desc_HAL, sizeof(D3DDEVICEDESC3));
+    memcpy(hel_desc, &desc_HEL, sizeof(D3DDEVICEDESC3));
 
     return D3D_OK;
   }
@@ -326,7 +326,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::Execute(IDirect3DExecuteBuffer *buffer, IDirect3DViewport *viewport, DWORD flags) {
-    Logger::debug("<<< D3D3Device::Execute");
+    Logger::debug(">>> D3D3Device::Execute");
 
     if (unlikely(buffer == nullptr || viewport == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -359,13 +359,13 @@ namespace dxvk {
             break;
 
         if (ptr + instructionSize > end) {
-            Logger::warn("<<< D3D3Device::Execute reached the end but there are no D3DOP_EXIT!");
+            Logger::warn("D3D3Device::Execute: reached the end but there are no D3DOP_EXIT!");
             break;
         }
 
         switch (opcode) {
           case D3DOP_BRANCHFORWARD: {
-              Logger::debug("<<< D3D3Device::Execute D3DOP_BRANCHFORWARD");
+              Logger::debug("D3D3Device::Execute: D3DOP_BRANCHFORWARD");
 
               D3DBRANCH* branch = reinterpret_cast<D3DBRANCH*>(operation);
               for (DWORD i = 0; i < count; i++) {
@@ -390,21 +390,21 @@ namespace dxvk {
             }
             break;
           case D3DOP_LINE: {
-              Logger::debug("<<< D3D3Device::Execute D3DOP_LINE");
+              Logger::debug("D3D3Device::Execute: D3DOP_LINE");
 
               D3DLINE* line = reinterpret_cast<D3DLINE*>(operation);
               DrawLineInternal(line, count, data.dwVertexCount, vertexBuffer);
             }
             break;
           case D3DOP_POINT: {
-              Logger::debug("<<< D3D3Device::Execute D3DOP_POINT");
+              Logger::debug("D3D3Device::Execute: D3DOP_POINT");
 
               D3DPOINT* point = reinterpret_cast<D3DPOINT*>(operation);
               DrawPointInternal(point, count, data.dwVertexCount, vertexBuffer);
             }
             break;
           case D3DOP_TRIANGLE: {
-              Logger::debug("<<< D3D3Device::Execute D3DOP_TRIANGLE");
+              Logger::debug("D3D3Device::Execute: D3DOP_TRIANGLE");
 
               D3DTRIANGLE* triangle = reinterpret_cast<D3DTRIANGLE*>(operation);
               DrawTriangleInternal(triangle, count, data.dwVertexCount, vertexBuffer);
@@ -413,7 +413,7 @@ namespace dxvk {
           case D3DOP_MATRIXLOAD: {
               static bool warn = true;
               if (warn) {
-                Logger::warn("<<< D3D3Device::Execute D3DOP_MATRIXLOAD is not implemented");
+                Logger::warn("D3D3Device::Execute: D3DOP_MATRIXLOAD is not implemented");
                 warn = false;
               }
             }
@@ -421,7 +421,7 @@ namespace dxvk {
           case D3DOP_MATRIXMULTIPLY: {
               static bool warn = true;
               if (warn) {
-                Logger::warn("<<< D3D3Device::Execute D3DOP_MATRIXMULTIPLY is not implemented");
+                Logger::warn("D3D3Device::Execute: D3DOP_MATRIXMULTIPLY is not implemented");
                 warn = false;
               }
             }
@@ -431,12 +431,12 @@ namespace dxvk {
               for (DWORD i = 0; i < count; i++) {
                 D3DPROCESSVERTICES& pv = processVertices[i];
                 const DWORD vop = pv.dwFlags & D3DPROCESSVERTICES_OPMASK;
-                Logger::debug(str::format("<<< D3D3Device::Execute D3DOP_PROCESSVERTICES operation: ", vop, ", start: ", pv.wStart, ", dest: ", pv.wDest, ", count: ", pv.dwCount, ", flags: ", pv.dwFlags));
+                Logger::debug(str::format("D3D3Device::Execute: D3DOP_PROCESSVERTICES operation: ", vop, ", start: ", pv.wStart, ", dest: ", pv.wDest, ", count: ", pv.dwCount, ", flags: ", pv.dwFlags));
                 switch (vop) {
                   case D3DPROCESSVERTICES_COPY: {
                       static bool warn = true;
                       if (warn) {
-                        Logger::warn("<<< D3D3Device::Execute D3DOP_PROCESSVERTICES COPY is not implemented");
+                        Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES COPY is not implemented");
                         warn = false;
                       }
                     }
@@ -444,7 +444,7 @@ namespace dxvk {
                   case D3DPROCESSVERTICES_NOCOLOR: {
                       static bool warn = true;
                       if (warn) {
-                        Logger::warn("<<< D3D3Device::Execute D3DOP_PROCESSVERTICES NOCOLOR is not implemented");
+                        Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES NOCOLOR is not implemented");
                         warn = false;
                       }
                     }
@@ -452,7 +452,7 @@ namespace dxvk {
                   case D3DPROCESSVERTICES_TRANSFORM: {
                       static bool warn = true;
                       if (warn) {
-                        Logger::warn("<<< D3D3Device::Execute D3DOP_PROCESSVERTICES TRANSFORM is not implemented");
+                        Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES TRANSFORM is not implemented");
                         warn = false;
                       }
                     }
@@ -460,7 +460,7 @@ namespace dxvk {
                   case D3DPROCESSVERTICES_TRANSFORMLIGHT: {
                       static bool warn = true;
                       if (warn) {
-                        Logger::warn("<<< D3D3Device::Execute D3DOP_PROCESSVERTICES TRANSORMLIGHT is not implemented");
+                        Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES TRANSORMLIGHT is not implemented");
                         warn = false;
                       }
                     }
@@ -468,27 +468,27 @@ namespace dxvk {
                   case D3DPROCESSVERTICES_UPDATEEXTENTS: {
                       static bool warn = true;
                       if (warn) {
-                        Logger::warn("<<< D3D3Device::Execute D3DOP_PROCESSVERTICES UPDATEEXTENTS is not implemented");
+                        Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES UPDATEEXTENTS is not implemented");
                         warn = false;
                       }
                     }
                     break;
                   default:
-                    Logger::err(str::format("<<< D3D3Device::Execute D3DOP_PROCESSVERTICES unknown operation: ", vop));
+                    Logger::err(str::format("D3D3Device::Execute: D3DOP_PROCESSVERTICES unknown operation: ", vop));
                     break;
                 }
               }
             }
             break;
           case D3DOP_SPAN: {
-              Logger::warn("<<< D3D3Device::Execute D3DOP_SPAN");
+              Logger::warn("D3D3Device::Execute: D3DOP_SPAN");
 
               D3DSPAN* span = reinterpret_cast<D3DSPAN*>(operation);
               DrawSpanInternal(span, count, data.dwVertexCount, vertexBuffer);
             }
             break;
           case D3DOP_STATELIGHT: {
-              Logger::debug("<<< D3D3Device::Execute D3DOP_STATELIGHT");
+              Logger::debug("D3D3Device::Execute: D3DOP_STATELIGHT");
               D3DSTATE* state = reinterpret_cast<D3DSTATE*>(operation);
               for (DWORD i = 0; i < count; i++) {
                 D3DSTATE& s = state[i];
@@ -498,7 +498,7 @@ namespace dxvk {
             }
             break;
           case D3DOP_STATERENDER: {
-              Logger::debug("<<< D3D3Device::Execute D3DOP_STATERENDER");
+              Logger::debug("D3D3Device::Execute: D3DOP_STATERENDER");
               D3DSTATE* state = reinterpret_cast<D3DSTATE*>(operation);
               for (DWORD i = 0; i < count; i++) {
                 D3DSTATE& s = state[i];
@@ -510,7 +510,7 @@ namespace dxvk {
           case D3DOP_STATETRANSFORM: {
               static bool warn = true;
               if (warn) {
-                Logger::warn("<<< D3D3Device::Execute D3DOP_STATETRANSFORM is not implemented");
+                Logger::warn("D3D3Device::Execute: D3DOP_STATETRANSFORM is not implemented");
                 warn = false;
               }
 
@@ -518,7 +518,7 @@ namespace dxvk {
             }
             break;
           case D3DOP_SETSTATUS: {
-              Logger::debug("<<< D3D3Device::Execute D3DOP_SETSTATUS");
+              Logger::debug("D3D3Device::Execute: D3DOP_SETSTATUS");
               D3DSTATUS* status = reinterpret_cast<D3DSTATUS*>(operation);
               for (DWORD i = 0; i < count; i++) {
                 data.dsStatus = status[i];
@@ -526,13 +526,13 @@ namespace dxvk {
             }
             break;
           case D3DOP_TEXTURELOAD: {
-              Logger::debug("<<< D3D3Device::Execute D3DOP_TEXTURELOAD");
+              Logger::debug("D3D3Device::Execute: D3DOP_TEXTURELOAD");
               D3DTEXTURELOAD* textureLoad = reinterpret_cast<D3DTEXTURELOAD*>(operation);
               TextureLoadInternal(textureLoad, count);
             }
             break;
           default:
-            Logger::err(str::format("<<< D3D3Device::Execute Unknown opcode encountered: ", opcode));
+            Logger::err(str::format("D3D3Device::Execute: Unknown opcode encountered: ", opcode));
             break;
         }
 
@@ -647,7 +647,7 @@ namespace dxvk {
   }
 
   inline HRESULT STDMETHODCALLTYPE D3D3Device::SetLightStateInternal(D3DLIGHTSTATETYPE dwLightStateType, DWORD dwLightState) {
-    Logger::debug(">>> D3D3Device::SetLightState");
+    Logger::debug(">>> D3D3Device::SetLightStateInternal");
 
     switch (dwLightStateType) {
       case D3DLIGHTSTATE_MATERIAL: {
@@ -667,7 +667,7 @@ namespace dxvk {
 
           m_materialHandle = dwLightState;
           device5->SetCurrentMaterialHandle(dwLightState);
-          Logger::debug(str::format("D3D3Device::SetLightState D3D5: Applying material nr. ", dwLightState, " to D3D9"));
+          Logger::debug(str::format("D3D3Device::SetLightStateInternal: D3D5: Applying material nr. ", dwLightState, " to D3D9"));
           m_d3d9->SetMaterial(material5->GetD3D9Material());
         } else {
           D3D3Material* material3 = m_commonIntf->GetD3D3Interface()->GetMaterialFromHandle(dwLightState);
@@ -675,7 +675,7 @@ namespace dxvk {
             return DDERR_INVALIDPARAMS;
 
           m_materialHandle = dwLightState;
-          Logger::debug(str::format("D3D3Device::SetLightState D3D3: Applying material nr. ", dwLightState, " to D3D9"));
+          Logger::debug(str::format("D3D3Device::SetLightStateInternal: D3D3: Applying material nr. ", dwLightState, " to D3D9"));
           m_d3d9->SetMaterial(material3->GetD3D9Material());
         }
 
@@ -686,7 +686,7 @@ namespace dxvk {
         break;
       case D3DLIGHTSTATE_COLORMODEL:
         if (unlikely(dwLightState != D3DCOLOR_RGB))
-          Logger::warn("D3D3Device::SetLightState: Unsupported D3DLIGHTSTATE_COLORMODEL");
+          Logger::warn("D3D3Device::SetLightStateInternal: Unsupported D3DLIGHTSTATE_COLORMODEL");
         break;
       case D3DLIGHTSTATE_FOGMODE:
         m_d3d9->SetRenderState(d3d9::D3DRS_FOGVERTEXMODE, dwLightState);
@@ -708,12 +708,12 @@ namespace dxvk {
   }
 
   inline HRESULT STDMETHODCALLTYPE D3D3Device::SetRenderStateInternal(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
-    Logger::debug(str::format(">>> D3D3Device::SetRenderState: ", dwRenderStateType));
+    Logger::debug(str::format(">>> D3D3Device::SetRenderStateInternal: ", dwRenderStateType));
 
     // As opposed to D3D7, D3D3 does not error out on
     // unknown or invalid render states.
     if (unlikely(!IsValidD3D3RenderStateType(dwRenderStateType))) {
-      Logger::debug(str::format("D3D3Device::SetRenderState: Invalid render state ", dwRenderStateType));
+      Logger::debug(str::format("D3D3Device::SetRenderStateInternal: Invalid render state ", dwRenderStateType));
       return D3D_OK;
     }
 
@@ -743,17 +743,12 @@ namespace dxvk {
 
       case D3DRENDERSTATE_ANTIALIAS: {
         if (likely(m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Disabled)) {
-          if (unlikely(dwRenderState == D3DANTIALIAS_SORTDEPENDENT
-                    || dwRenderState == D3DANTIALIAS_SORTINDEPENDENT))
-            Logger::warn("D3D3Device::SetRenderState: Device does not expose FSAA emulation");
+          if (unlikely(dwRenderState))
+            Logger::warn("D3D3Device::SetRenderStateInternal: Device does not expose FSAA emulation");
           return D3D_OK;
         }
 
-        State9        = d3d9::D3DRS_MULTISAMPLEANTIALIAS;
-        m_antialias   = dwRenderState;
-        dwRenderState = m_antialias == D3DANTIALIAS_SORTDEPENDENT
-                     || m_antialias == D3DANTIALIAS_SORTINDEPENDENT
-                     || m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Forced ? TRUE : FALSE;
+        State9 = d3d9::D3DRS_MULTISAMPLEANTIALIAS;
         break;
       }
 
@@ -769,7 +764,7 @@ namespace dxvk {
         static bool s_texturePerspectiveErrorShown;
 
         if (!dwRenderState && !std::exchange(s_texturePerspectiveErrorShown, true))
-          Logger::debug("D3D3Device::SetRenderState: Disabling of D3DRENDERSTATE_TEXTUREPERSPECTIVE is not supported");
+          Logger::debug("D3D3Device::SetRenderStateInternal: Disabling of D3DRENDERSTATE_TEXTUREPERSPECTIVE is not supported");
 
         return D3D_OK;
 
@@ -803,16 +798,15 @@ namespace dxvk {
         static bool s_linePatternErrorShown;
 
         if (!std::exchange(s_linePatternErrorShown, true))
-          Logger::warn("D3D3Device::SetRenderState: Unimplemented render state D3DRS_LINEPATTERN");
+          Logger::warn("D3D3Device::SetRenderStateInternal: Unimplemented render state D3DRS_LINEPATTERN");
 
-        m_linePattern = bit::cast<D3DLINEPATTERN>(dwRenderState);
         return D3D_OK;
 
       case D3DRENDERSTATE_MONOENABLE:
         static bool s_monoEnableErrorShown;
 
         if (dwRenderState && !std::exchange(s_monoEnableErrorShown, true))
-          Logger::warn("D3D3Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_MONOENABLE");
+          Logger::warn("D3D3Device::SetRenderStateInternal: Unimplemented render state D3DRENDERSTATE_MONOENABLE");
 
         return D3D_OK;
 
@@ -820,7 +814,7 @@ namespace dxvk {
         static bool s_ROP2ErrorShown;
 
         if (!std::exchange(s_ROP2ErrorShown, true))
-          Logger::warn("D3D3Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_ROP2");
+          Logger::warn("D3D3Device::SetRenderStateInternal: Unimplemented render state D3DRENDERSTATE_ROP2");
 
         return D3D_OK;
 
@@ -955,7 +949,7 @@ namespace dxvk {
         static bool s_zVisibleErrorShown;
 
         if (dwRenderState && !std::exchange(s_zVisibleErrorShown, true))
-          Logger::warn("D3D3Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_ZVISIBLE");
+          Logger::warn("D3D3Device::SetRenderStateInternal: Unimplemented render state D3DRENDERSTATE_ZVISIBLE");
 
         return D3D_OK;
 
@@ -971,7 +965,7 @@ namespace dxvk {
         static bool s_stippledAlphaErrorShown;
 
         if (dwRenderState && !std::exchange(s_stippledAlphaErrorShown, true))
-          Logger::warn("D3D3Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEDALPHA");
+          Logger::warn("D3D3Device::SetRenderStateInternal: Unimplemented render state D3DRENDERSTATE_STIPPLEDALPHA");
 
         return D3D_OK;
 
@@ -980,7 +974,7 @@ namespace dxvk {
         static bool s_stippleEnableErrorShown;
 
         if (dwRenderState && !std::exchange(s_stippleEnableErrorShown, true))
-          Logger::warn("D3D3Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEENABLE");
+          Logger::warn("D3D3Device::SetRenderStateInternal: Unimplemented render state D3DRENDERSTATE_STIPPLEENABLE");
 
         return D3D_OK;
 
@@ -1020,7 +1014,7 @@ namespace dxvk {
         static bool s_stipplePatternErrorShown;
 
         if (!std::exchange(s_stipplePatternErrorShown, true))
-          Logger::warn("D3D3Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEPATTERNXX");
+          Logger::warn("D3D3Device::SetRenderStateInternal: Unimplemented render state D3DRENDERSTATE_STIPPLEPATTERNXX");
 
         return D3D_OK;
     }
@@ -1053,9 +1047,9 @@ namespace dxvk {
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
       if (SUCCEEDED(hr)) {
-        Logger::debug(str::format("<<< D3D3Device::Execute D3DOP_TRIANGLE drawn triangles: ", vertices.size()));
+        Logger::debug(str::format("D3D3Device::Execute: D3DOP_TRIANGLE drawn triangles: ", vertices.size()));
       } else {
-        Logger::err(str::format("<<< D3D3Device::Execute D3DOP_TRIANGLE failed to draw triangles: ", vertices.size()));
+        Logger::err(str::format("D3D3Device::Execute: D3DOP_TRIANGLE failed to draw triangles: ", vertices.size()));
       }
       vertices.clear();
     }
@@ -1082,9 +1076,9 @@ namespace dxvk {
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
       if (SUCCEEDED(hr)) {
-        Logger::debug(str::format("<<< D3D3Device::Execute D3DOP_LINE drawn triangles: ", vertices.size()));
+        Logger::debug(str::format("D3D3Device::Execute: D3DOP_LINE drawn triangles: ", vertices.size()));
       } else {
-        Logger::err(str::format("<<< D3D3Device::Execute D3DOP_LINE failed to draw triangles: ", vertices.size()));
+        Logger::err(str::format("D3D3Device::Execute: D3DOP_LINE failed to draw triangles: ", vertices.size()));
       }
       vertices.clear();
     }
@@ -1112,9 +1106,9 @@ namespace dxvk {
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
       if (SUCCEEDED(hr)) {
-        Logger::debug(str::format("<<< D3D3Device::Execute D3DOP_POINT drawn triangles: ", vertices.size()));
+        Logger::debug(str::format("D3D3Device::Execute: D3DOP_POINT drawn triangles: ", vertices.size()));
       } else {
-        Logger::err(str::format("<<< D3D3Device::Execute D3DOP_POINT failed to draw triangles: ", vertices.size()));
+        Logger::err(str::format("D3D3Device::Execute: D3DOP_POINT failed to draw triangles: ", vertices.size()));
       }
       vertices.clear();
     }
@@ -1142,9 +1136,9 @@ namespace dxvk {
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
       if (SUCCEEDED(hr)) {
-        Logger::debug(str::format("<<< D3D3Device::Execute D3DOP_SPAN drawn triangles: ", vertices.size()));
+        Logger::debug(str::format("D3D3Device::Execute: D3DOP_SPAN drawn triangles: ", vertices.size()));
       } else {
-        Logger::err(str::format("<<< D3D3Device::Execute D3DOP_SPAN failed to draw triangles: ", vertices.size()));
+        Logger::err(str::format("D3D3Device::Execute: D3DOP_SPAN failed to draw triangles: ", vertices.size()));
       }
       vertices.clear();
     }
@@ -1154,12 +1148,12 @@ namespace dxvk {
     for (DWORD i = 0; i < count; i++) {
       D3DTEXTURELOAD& tl = textureLoad[i];
 
-      D3DCommonTexture* destTexture = m_commonIntf->GetDDInterface()->GetTextureFromHandle(tl.hDestTexture);
-      D3DCommonTexture* srcTexture = m_commonIntf->GetDDInterface()->GetTextureFromHandle(tl.hSrcTexture);
-      if (destTexture != nullptr && srcTexture != nullptr)
-        destTexture->GetD3D3Texture()->Load(srcTexture->GetD3D3Texture());
+      DDrawSurface* destSurf = m_commonIntf->GetDDInterface()->GetSurfaceFromTextureHandle(tl.hDestTexture);
+      DDrawSurface* srcSurf = m_commonIntf->GetDDInterface()->GetSurfaceFromTextureHandle(tl.hSrcTexture);
+      if (destSurf != nullptr && srcSurf != nullptr)
+        destSurf->GetD3D3Texture()->Load(srcSurf->GetD3D3Texture());
       else
-        Logger::warn("<<< D3D3Device::Execute D3DOP_TEXTURELOAD source or/and destination texture is null");
+        Logger::warn("D3D3Device::Execute: D3DOP_TEXTURELOAD source or/and destination texture is null");
     }
   }
 
@@ -1227,4 +1221,5 @@ namespace dxvk {
 
     return D3D_OK;
   }
+
 }
