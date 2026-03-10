@@ -138,6 +138,10 @@ namespace dxvk {
       return m_materialHandle;
     }
 
+    void SetCurrentMaterialHandle(D3DMATERIALHANDLE handle) {
+      m_materialHandle = handle;
+    }
+
   private:
 
     inline HRESULT InitializeIndexBuffers();
