@@ -103,11 +103,10 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      D3DDEVICEDESC desc3 = GetD3D3Caps(m_parent->GetOptions()->emulateFSAA != FSAAEmulation::Disabled);
       // Reuse the existing D3D9 device in situations where games want
       // to get access only to D3D3 execute buffers on a D3D5 device
       Com<d3d9::IDirect3DDevice9> device9 = m_d3d9.ptr();
-      *ppvObject = ref(new D3D3Device(std::move(ppvProxyObject), m_rt.ptr(), desc3, m_deviceGUID,
+      *ppvObject = ref(new D3D3Device(std::move(ppvProxyObject), m_rt.ptr(), GetD3D3Caps(), m_deviceGUID,
                                       m_params9, std::move(device9), m_creationFlags9));
 
       return S_OK;

@@ -1,32 +1,32 @@
-#include "d3d3_light.h"
+#include "d3d_common_light.h"
 
 namespace dxvk {
 
-  uint32_t D3D3Light::s_lightCount = 0;
+  uint32_t D3DLight::s_lightCount = 0;
 
-  D3D3Light::D3D3Light(Com<IDirect3DLight>&& proxyLight, D3D3Interface* pParent)
-    : DDrawWrappedObject<D3D3Interface, IDirect3DLight, IUnknown>(pParent, std::move(proxyLight), nullptr) {
+  D3DLight::D3DLight(Com<IDirect3DLight>&& proxyLight, IUnknown* pParent)
+    : DDrawWrappedObject<IUnknown, IDirect3DLight, IUnknown>(pParent, std::move(proxyLight), nullptr) {
     m_lightCount = ++s_lightCount;
 
-    Logger::debug(str::format("D3D3Light: Created a new light nr. [[1-", m_lightCount, "]]"));
+    Logger::debug(str::format("D3DLight: Created a new light nr. [[1-", m_lightCount, "]]"));
   }
 
-  D3D3Light::~D3D3Light() {
-    Logger::debug(str::format("D3D3Light: Light nr. [[1-", m_lightCount, "]] bites the dust"));
+  D3DLight::~D3DLight() {
+    Logger::debug(str::format("D3DLight: Light nr. [[1-", m_lightCount, "]] bites the dust"));
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<D3D3Interface, IDirect3DLight, IUnknown>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<IUnknown, IDirect3DLight, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
     if (riid == __uuidof(IDirect3DLight))
       return this;
 
-    throw DxvkError("D3D3Light::QueryInterface: Unknown interface query");
+    throw DxvkError("D3DLight::QueryInterface: Unknown interface query");
   }
 
-  HRESULT STDMETHODCALLTYPE D3D3Light::QueryInterface(REFIID riid, void** ppvObject) {
-    Logger::debug(">>> D3D3Light::QueryInterface");
+  HRESULT STDMETHODCALLTYPE D3DLight::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> D3DLight::QueryInterface");
 
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
@@ -45,13 +45,13 @@ namespace dxvk {
 
   // Docs state: "The method returns DDERR_ALREADYINITIALIZED because
   // the Direct3DLight object is initialized when it is created."
-  HRESULT STDMETHODCALLTYPE D3D3Light::Initialize(IDirect3D *d3d) {
-    Logger::debug(">>> D3D3Light::Initialize");
+  HRESULT STDMETHODCALLTYPE D3DLight::Initialize(IDirect3D *d3d) {
+    Logger::debug(">>> D3DLight::Initialize");
     return DDERR_ALREADYINITIALIZED;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D3Light::SetLight(D3DLIGHT *data) {
-    Logger::debug(">>> D3D3Light::SetLight");
+  HRESULT STDMETHODCALLTYPE D3DLight::SetLight(D3DLIGHT *data) {
+    Logger::debug(">>> D3DLight::SetLight");
 
     static constexpr D3DCOLORVALUE noLight = {{0.0f}, {0.0f}, {0.0f}, {0.0f}};
 
@@ -66,14 +66,29 @@ namespace dxvk {
       static bool s_parallelPointErrorShown;
 
       if (!std::exchange(s_parallelPointErrorShown, true))
-        Logger::warn("D3D3Light::SetLight: Unsupported light type D3DLIGHT_PARALLELPOINT");
+        Logger::warn("D3DLight::SetLight: Unsupported light type D3DLIGHT_PARALLELPOINT");
+
+      return DDERR_INVALIDPARAMS;
+    }
+    // Specific to D3D3
+    if (unlikely(data->dltType == D3DLIGHT_GLSPOT)) {
+      static bool s_glSpotErrorShown;
+
+      if (!std::exchange(s_glSpotErrorShown, true))
+        Logger::warn("D3DLight::SetLight: Unsupported light type D3DLIGHT_GLSPOT");
 
       return DDERR_INVALIDPARAMS;
     }
 
+    const bool hasSpecular = data->dwSize == sizeof(D3DLIGHT2) ? !(reinterpret_cast<D3DLIGHT2*>(data)->dwFlags & D3DLIGHT_NO_SPECULAR)
+                                                               : true;
+
+    // Docs: "Although this method's declaration specifies the lpLight parameter as being
+    // the address of a D3DLIGHT structure, that structure is not normally used. Rather,
+    // the D3DLIGHT2 structure is recommended to achieve the best lighting effects."
     m_light9.Type         = d3d9::D3DLIGHTTYPE(data->dltType);
     m_light9.Diffuse      = data->dcvColor;
-    m_light9.Specular     = data->dcvColor;
+    m_light9.Specular     = hasSpecular ? data->dcvColor : noLight;
     // Ambient light comes from the material
     m_light9.Ambient      = noLight;
     m_light9.Position     = data->dvPosition;
@@ -86,9 +101,10 @@ namespace dxvk {
     m_light9.Theta        = data->dvTheta;
     m_light9.Phi          = data->dvPhi;
     // D3DLIGHT structure lights are, apparently, considered to be active by default
-    m_isActive            = true;
+    m_isActive            = data->dwSize == sizeof(D3DLIGHT2) ? (reinterpret_cast<D3DLIGHT2*>(data)->dwFlags & D3DLIGHT_ACTIVE)
+                                                              : true;
 
-    Logger::debug(str::format(">>> D3D3Light::SetLight: Updated light nr. ", m_lightCount));
+    Logger::debug(str::format(">>> D3DLight::SetLight: Updated light nr. ", m_lightCount));
     Logger::debug(str::format("   Type:         ", m_light9.Type));
     Logger::debug(str::format("   Diffuse:      ", m_light9.Diffuse.r, " ", m_light9.Diffuse.g, " ", m_light9.Diffuse.b));
     Logger::debug(str::format("   Specular:     ", m_light9.Specular.r, " ", m_light9.Specular.g, " ", m_light9.Specular.b));
@@ -104,14 +120,18 @@ namespace dxvk {
     Logger::debug(str::format("   Phi:          ", m_light9.Phi));
 
     // Update the D3D9 light directly if it's actively being used
-    if (m_viewport != nullptr && m_viewport->GetCommonViewport()->IsCurrentViewport())
-      m_viewport->ApplyAndActivateLight(m_lightCount, this);
+    if (m_viewport6 != nullptr && m_viewport6->GetCommonViewport()->IsCurrentViewport())
+      m_viewport6->ApplyAndActivateLight(m_lightCount, this);
+    else if (m_viewport5 != nullptr && m_viewport5->GetCommonViewport()->IsCurrentViewport())
+      m_viewport5->ApplyAndActivateLight(m_lightCount, this);
+    else if (m_viewport3 != nullptr && m_viewport3->GetCommonViewport()->IsCurrentViewport())
+      m_viewport3->ApplyAndActivateLight(m_lightCount, this);
 
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D3Light::GetLight(D3DLIGHT *data) {
-    Logger::debug(">>> D3D3Light::GetLight");
+  HRESULT STDMETHODCALLTYPE D3DLight::GetLight(D3DLIGHT *data) {
+    Logger::debug(">>> D3DLight::GetLight");
 
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -128,6 +148,9 @@ namespace dxvk {
     data->dvAttenuation2  = m_light9.Attenuation2;
     data->dvTheta         = m_light9.Theta;
     data->dvPhi           = m_light9.Phi;
+
+    if (data->dwSize == sizeof(D3DLIGHT2))
+      reinterpret_cast<D3DLIGHT2*>(data)->dwFlags = m_isActive;
 
     return D3D_OK;
   }
