@@ -8,9 +8,6 @@
 namespace dxvk {
 
   class DDrawSurface;
-  class DDraw4Surface;
-
-  class D3D3Texture;
 
   class D3DCommonTexture : public ComObjectClamp<IUnknown> {
 

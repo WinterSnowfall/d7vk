@@ -67,7 +67,7 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // Standard way of retrieving a D3D interface
+    // Standard way of retrieving a D3D5 interface
     if (riid == __uuidof(IDirect3D2)) {
       if (m_commonIntf->GetDDInterface() != nullptr) {
         Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D2");
@@ -134,23 +134,13 @@ namespace dxvk {
     }
     // Standard way of retrieving a D3D3 interface
     if (unlikely(riid == __uuidof(IDirect3D))) {
-      if (m_commonIntf->GetDDInterface() == nullptr) {
-        Logger::warn("DDraw2Interface::QueryInterface: Query for IDirect3D");
-        return m_proxy->QueryInterface(riid, ppvObject);
+      if (m_commonIntf->GetDDInterface() != nullptr) {
+        Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D");
+        return m_commonIntf->GetDDInterface()->QueryInterface(riid, ppvObject);
       }
 
-      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D");
-
-      Com<IDirect3D> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      Com<D3D3Interface> d3d3Intf = new D3D3Interface(std::move(ppvProxyObject), m_commonIntf->GetDDInterface());
-      m_commonIntf->SetD3D3Interface(d3d3Intf.ptr());
-      *ppvObject = d3d3Intf.ref();
-
-      return S_OK;
+      Logger::warn("DDraw2Interface::QueryInterface: Query for IDirect3D");
+      return m_proxy->QueryInterface(riid, ppvObject);
     }
     // Standard way of retrieving a D3D6 interface
     if (unlikely(riid == __uuidof(IDirect3D3))) {
@@ -161,7 +151,8 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D6Interface(std::move(ppvProxyObject), m_commonIntf->GetDD4Interface()));
+      Com<D3D6Interface> d3d6Intf = new D3D6Interface(nullptr, std::move(ppvProxyObject), m_commonIntf->GetDD4Interface());
+      *ppvObject = d3d6Intf.ref();
 
       return S_OK;
     }
