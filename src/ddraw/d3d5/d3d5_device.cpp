@@ -1209,6 +1209,12 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
     Logger::debug(">>> D3D5Device::SetTransform");
+
+    // Need to also proxy for viewport TransformVertices calls to work
+    HRESULT hr = m_proxy->SetTransform(state, matrix);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
     return m_d3d9->SetTransform(ConvertTransformState(state), matrix);
   }
 
@@ -1219,6 +1225,12 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D5Device::MultiplyTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
     Logger::debug(">>> D3D5Device::MultiplyTransform");
+
+    // Need to also proxy for viewport TransformVertices calls to work
+    HRESULT hr = m_proxy->MultiplyTransform(state, matrix);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
     return m_d3d9->MultiplyTransform(ConvertTransformState(state), matrix);
   }
 
@@ -1374,14 +1386,6 @@ namespace dxvk {
       // Should be superfluous, but play it safe
       m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_FALSE);
     }
-  }
-
-  HRESULT D3D5Device::Reset(d3d9::D3DPRESENT_PARAMETERS* params) {
-    Logger::info("D3D5Device::Reset: Resetting the D3D9 swapchain");
-    HRESULT hr = m_bridge->ResetSwapChain(params);
-    if (unlikely(FAILED(hr)))
-      Logger::err("D3D5Device::Reset: Failed to reset the D3D9 swapchain");
-    return hr;
   }
 
   inline void D3D5Device::AddViewportInternal(IDirect3DViewport2* viewport) {

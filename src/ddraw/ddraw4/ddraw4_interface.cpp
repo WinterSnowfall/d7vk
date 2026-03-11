@@ -380,7 +380,22 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps) {
     Logger::debug("<<< DDraw4Interface::GetCaps: Proxy");
-    return m_proxy->GetCaps(lpDDDriverCaps, lpDDHELCaps);
+
+    DDCAPS lpDDDriverCapProxy;
+    DDCAPS lpDDHELCapsProxy;
+
+    HRESULT hr = m_proxy->GetCaps(&lpDDDriverCapProxy, &lpDDHELCapsProxy);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    lpDDDriverCapProxy.dwCaps2 |= DDCAPS2_FLIPINTERVAL | DDCAPS2_FLIPNOVSYNC;
+
+    if (lpDDDriverCaps != nullptr)
+      *lpDDDriverCaps = lpDDDriverCapProxy;
+    if (lpDDHELCaps != nullptr)
+      *lpDDHELCaps = lpDDHELCapsProxy;
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc) {

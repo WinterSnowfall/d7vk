@@ -454,8 +454,6 @@ namespace dxvk {
     Logger::info(str::format("D3D5Interface::CreateDevice: Back buffer count: ", backBufferCount + 1));
 
     const DWORD cooperativeLevel = commonIntf->GetCooperativeLevel();
-    // Always appears to be enabled when running in non-exclusive mode
-    const bool vBlankStatus = commonIntf->GetWaitForVBlank();
 
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = backBufferWidth;
@@ -471,7 +469,7 @@ namespace dxvk {
     params.AutoDepthStencilFormat     = d3d9::D3DFMT_UNKNOWN;
     params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // Needed for back buffer locks
     params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
-    params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
+    params.PresentationInterval       = D3DPRESENT_INTERVAL_DEFAULT; // A D3D5 device always uses VSync
 
     if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_options.forceMultiThreaded)
       deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
