@@ -623,6 +623,19 @@ namespace dxvk {
         } else {
           m_commonIntf->SetWaitForVBlank(false);
         }
+      // If the interface is not waiting for VBlank and we stop getting DDFLIP_NOVSYNC
+      // flags, reset the swapchain in order to return to VSync presentation using DEFAULT
+      } else if (unlikely(!m_commonIntf->GetWaitForVBlank() && IsVSyncFlipFlag(dwFlags))) {
+        Logger::info("DDraw4Surface::Flip: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
+
+        d3d9::D3DPRESENT_PARAMETERS resetParams = m_commonIntf->GetPresentParameters();
+        resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+        HRESULT hrReset = m_commonIntf->ResetD3D9Swapchain(&resetParams);
+        if (unlikely(FAILED(hrReset))) {
+          Logger::warn("DDraw4Surface::Flip: Failed D3D9 swapchain reset");
+        } else {
+          m_commonIntf->SetWaitForVBlank(true);
+        }
       }
 
       m_d3d9Device->Present(NULL, NULL, NULL, NULL);
@@ -630,6 +643,10 @@ namespace dxvk {
     // is trying to flip the surface. Allow that for compatibility reasons.
     } else {
       Logger::debug("<<< DDraw4Surface::Flip: Proxy");
+
+      // Update the VBlank wait status based on the flip flags
+      m_commonIntf->SetWaitForVBlank(IsVSyncFlipFlag(dwFlags));
+
       if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
         m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
       } else {
