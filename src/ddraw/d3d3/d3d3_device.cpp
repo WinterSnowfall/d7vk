@@ -2,6 +2,7 @@
 
 #include "d3d3_execute_buffer.h"
 
+#include "../ddraw/ddraw_interface.h"
 #include "../ddraw/ddraw_surface.h"
 #include "../d3d5/d3d5_device.h"
 
@@ -20,6 +21,7 @@ namespace dxvk {
       Com<d3d9::IDirect3DDevice9>&& pDevice9,
       DWORD CreationFlags9)
     : DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9>(pParent, std::move(d3d3DeviceProxy), std::move(pDevice9))
+    , m_DDIntfParent ( pParent->GetParent() )
     , m_commonIntf ( pParent->GetCommonInterface() )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
@@ -907,10 +909,23 @@ namespace dxvk {
         return D3D_OK;
 
       // Replaced by D3DRENDERSTATE_ALPHABLENDENABLE
-      case D3DRENDERSTATE_BLENDENABLE:
-        // TODO: also enabled colorkey?
+      case D3DRENDERSTATE_BLENDENABLE: {
+        // Color key transparency is enabled when alpha blending is disabled
+        m_colorKeyEnabled = !dwRenderState;
+
+        DDrawSurface* surface = m_textureHandle != 0 ? m_DDIntfParent->GetSurfaceFromTextureHandle(m_textureHandle) : nullptr;
+        const bool validColorKey = surface != nullptr ? surface->GetCommonSurface()->HasValidColorKey() : false;
+        m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
+        if (m_colorKeyEnabled && validColorKey) {
+          Logger::debug("D3D3Device::SetRenderStateInternal: Enabling color key transparency");
+          DDCOLORKEY normalizedColorKey = surface->GetCommonSurface()->GetColorKeyNormalized();
+          m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
+                                normalizedColorKey.dwColorSpaceHighValue);
+        }
+
         State9 = d3d9::D3DRS_ALPHABLENDENABLE;
         break;
+      }
 
       // TODO:
       case D3DRENDERSTATE_ZVISIBLE:
@@ -1182,6 +1197,16 @@ namespace dxvk {
       if (m_textureMapBlend == D3DTBLEND_MODULATE) {
         const DWORD textureOp = surface->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_MODULATE;
         m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
+      }
+
+      // D3D3 enables color key transparency when D3DRENDERSTATE_BLENDENABLE is disabled
+      const bool validColorKey = surface->GetCommonSurface()->HasValidColorKey();
+      m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
+      if (m_colorKeyEnabled && validColorKey) {
+        Logger::debug("D3D3Device::SetTextureInternal: Enabling color key transparency");
+        DDCOLORKEY normalizedColorKey = surface->GetCommonSurface()->GetColorKeyNormalized();
+        m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
+                              normalizedColorKey.dwColorSpaceHighValue);
       }
     }
 
