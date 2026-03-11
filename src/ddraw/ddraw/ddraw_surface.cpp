@@ -110,13 +110,16 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // The standard way of creating a new D3D3 device. For now, support only these 2
-    // riids, and if anything is mad enough to use RAMP devices or whatnot we'll adjust.
-    if (riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DHALDevice) {
-      if (riid == IID_IDirect3DRGBDevice)
-        Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DRGBDevice");
-      else
+    // The standard way of creating a new D3D3 device. Outside of RGB and HAL,
+    // some applications (e.g. Dark Rift) query for Wine's advertised custom device IID.
+    if (riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DRGBDevice || riid == IID_WineD3DDevice) {
+      if (riid == IID_IDirect3DHALDevice) {
         Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DHALDevice");
+      } else if (riid == IID_IDirect3DRGBDevice) {
+        Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DRGBDevice");
+      } else {
+        Logger::warn("DDrawSurface::QueryInterface: Query for unsupported device type");
+      }
 
       Com<IDirect3DDevice> ppvProxyObject;
       HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
@@ -199,8 +202,6 @@ namespace dxvk {
       Logger::info(str::format("DDrawSurface::QueryInterface: Back buffer count: ", backBufferCount + 1));
 
       const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
-      // Always appears to be enabled when running in non-exclusive mode
-      const bool vBlankStatus = m_commonIntf->GetWaitForVBlank();
 
       d3d9::D3DPRESENT_PARAMETERS params;
       params.BackBufferWidth    = backBufferWidth;
@@ -216,7 +217,7 @@ namespace dxvk {
       params.AutoDepthStencilFormat     = d3d9::D3DFMT_UNKNOWN;
       params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // Needed for back buffer locks
       params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
-      params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
+      params.PresentationInterval       = D3DPRESENT_INTERVAL_DEFAULT; // A D3D3 device always uses VSync
 
       if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_commonIntf->GetOptions()->forceMultiThreaded)
         deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
