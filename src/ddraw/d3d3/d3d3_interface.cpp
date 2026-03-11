@@ -11,12 +11,18 @@ namespace dxvk {
 
   uint32_t D3D3Interface::s_intfCount = 0;
 
-  D3D3Interface::D3D3Interface(Com<IDirect3D>&& d3d3IntfProxy, DDrawInterface* pParent)
-    : DDrawWrappedObject<DDrawInterface, IDirect3D, d3d9::IDirect3D9>(pParent, std::move(d3d3IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION))) {
+  D3D3Interface::D3D3Interface(D3DCommonInterface* commonD3DIntf, Com<IDirect3D>&& d3d3IntfProxy, DDrawInterface* pParent)
+    : DDrawWrappedObject<DDrawInterface, IDirect3D, d3d9::IDirect3D9>(pParent, std::move(d3d3IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)))
+    , m_commonD3DIntf ( commonD3DIntf ) {
     // Get the bridge interface to D3D9.
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
       throw DxvkError("D3D3Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
+
+    if (m_commonD3DIntf == nullptr)
+      m_commonD3DIntf = new D3DCommonInterface();
+
+    m_commonD3DIntf->SetD3D3Interface(this);
 
     m_bridge->EnableD3D3CompatibilityMode();
 
@@ -26,7 +32,11 @@ namespace dxvk {
   }
 
   D3D3Interface::~D3D3Interface() {
-    if (m_parent->GetCommonInterface()->GetD3D3Interface() == this)
+    if (m_commonD3DIntf->GetD3D3Interface() == this)
+      m_commonD3DIntf->SetD3D3Interface(nullptr);
+
+    // Clear the common interface pointer if it points to this interface
+    if (m_parent != nullptr && m_parent->GetCommonInterface()->GetD3D3Interface() == this)
       m_parent->GetCommonInterface()->SetD3D3Interface(nullptr);
 
     Logger::debug(str::format("D3D3Interface: Interface nr. ((1-", m_intfCount, ")) bites the dust"));
@@ -127,10 +137,10 @@ namespace dxvk {
 
     InitReturnPtr(lplpDirect3DMaterial);
 
-    m_materialHandle++;
+    D3DMATERIALHANDLE handle = m_commonD3DIntf->GetNextMaterialHandle();
     auto materialIterPair = m_materials.emplace(std::piecewise_construct,
-                                                std::forward_as_tuple(m_materialHandle),
-                                                std::forward_as_tuple(nullptr, this, m_materialHandle));
+                                                std::forward_as_tuple(handle),
+                                                std::forward_as_tuple(nullptr, this, handle));
 
     *lplpDirect3DMaterial = ref(&materialIterPair.first->second);
 
@@ -160,10 +170,8 @@ namespace dxvk {
   D3D3Material* D3D3Interface::GetMaterialFromHandle(D3DMATERIALHANDLE handle) {
     auto materialsIter = m_materials.find(handle);
 
-    if (unlikely(materialsIter == m_materials.end())) {
-      Logger::warn(str::format("D3D3Interface::GetMaterialFromHandle: Invalid handle: ", handle));
+    if (unlikely(materialsIter == m_materials.end()))
       return nullptr;
-    }
 
     return &materialsIter->second;
   }

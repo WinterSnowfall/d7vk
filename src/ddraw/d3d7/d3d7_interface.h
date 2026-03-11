@@ -6,10 +6,9 @@
 #include "../ddraw_util.h"
 
 #include "../ddraw_common_interface.h"
+#include "../d3d_common_interface.h"
 
 #include "../../d3d9/d3d9_bridge.h"
-
-#include <vector>
 
 namespace dxvk {
 
@@ -21,7 +20,7 @@ namespace dxvk {
   class D3D7Interface final : public DDrawWrappedObject<DDraw7Interface, IDirect3D7, d3d9::IDirect3D9> {
 
   public:
-    D3D7Interface(Com<IDirect3D7>&& d3d7Intf, DDraw7Interface* pParent);
+    D3D7Interface(D3DCommonInterface* commonD3DIntf, Com<IDirect3D7>&& d3d7Intf, DDraw7Interface* pParent);
 
     ~D3D7Interface();
 
@@ -41,6 +40,10 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE EvictManagedTextures();
 
+    D3DCommonInterface* GetCommonD3DInterface() const {
+      return m_commonD3DIntf.ptr();
+    }
+
     const D3DOptions* GetOptions() const {
       return &m_options;
     }
@@ -51,6 +54,8 @@ namespace dxvk {
     uint32_t                      m_intfCount = 0;
 
     Com<IDxvkD3D8InterfaceBridge> m_bridge;
+
+    Com<D3DCommonInterface>       m_commonD3DIntf;
 
     D3DOptions                    m_options;
 
