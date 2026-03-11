@@ -13,6 +13,7 @@
 #include "d3d3_viewport.h"
 
 #include <vector>
+#include <unordered_map>
 
 namespace dxvk {
 
@@ -162,6 +163,9 @@ namespace dxvk {
     DWORD                          m_colorKeyEnabled = 0;
     // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
     DWORD                          m_textureMapBlend = D3DTBLEND_MODULATE;
+
+    D3DMATRIXHANDLE                m_matrixHandle = 0;
+    std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> m_matrices;
 
   };
 
