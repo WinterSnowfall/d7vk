@@ -3,15 +3,18 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 
-#include "ddraw_surface.h"
+#include "../ddraw_common_surface.h"
 
 namespace dxvk {
 
-  class DDrawGammaControl final : public DDrawWrappedObject<DDrawSurface, IDirectDrawGammaControl, IUnknown> {
+  class DDrawGammaControl final : public DDrawWrappedObject<IUnknown, IDirectDrawGammaControl, IUnknown> {
 
   public:
 
-    DDrawGammaControl(Com<IDirectDrawGammaControl>&& proxyGamma, DDrawSurface* pParent);
+    DDrawGammaControl(
+        DDrawCommonSurface* commonSurf,
+        Com<IDirectDrawGammaControl>&& proxyGamma,
+        IUnknown* pParent);
 
     ~DDrawGammaControl();
 
@@ -20,6 +23,10 @@ namespace dxvk {
     HRESULT STDMETHODCALLTYPE GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
 
     HRESULT STDMETHODCALLTYPE SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
+
+  private:
+
+    DDrawCommonSurface* m_commonSurf = nullptr;
 
   };
 
