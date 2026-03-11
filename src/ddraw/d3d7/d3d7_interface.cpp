@@ -11,12 +11,18 @@ namespace dxvk {
 
   uint32_t D3D7Interface::s_intfCount = 0;
 
-  D3D7Interface::D3D7Interface(Com<IDirect3D7>&& d3d7IntfProxy, DDraw7Interface* pParent)
-    : DDrawWrappedObject<DDraw7Interface, IDirect3D7, d3d9::IDirect3D9>(pParent, std::move(d3d7IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION))) {
+  D3D7Interface::D3D7Interface(D3DCommonInterface* commonD3DIntf, Com<IDirect3D7>&& d3d7IntfProxy, DDraw7Interface* pParent)
+    : DDrawWrappedObject<DDraw7Interface, IDirect3D7, d3d9::IDirect3D9>(pParent, std::move(d3d7IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)))
+    , m_commonD3DIntf ( commonD3DIntf ) {
     // Get the bridge interface to D3D9.
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
       throw DxvkError("D3D7Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
+
+    if (m_commonD3DIntf == nullptr)
+      m_commonD3DIntf = new D3DCommonInterface();
+
+    m_commonD3DIntf->SetD3D7Interface(this);
 
     m_bridge->EnableD3D7CompatibilityMode();
 
@@ -28,6 +34,9 @@ namespace dxvk {
   }
 
   D3D7Interface::~D3D7Interface() {
+    if (m_commonD3DIntf->GetD3D7Interface() == this)
+      m_commonD3DIntf->SetD3D7Interface(nullptr);
+
     Logger::debug(str::format("D3D7Interface: Interface nr. ((7-", m_intfCount, ")) bites the dust"));
   }
 
@@ -161,14 +170,14 @@ namespace dxvk {
 
     if (likely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::None)) {
       if (rclsid == IID_IDirect3DTnLHalDevice) {
-        Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DTnLHalDevice device");
+        Logger::info("D3D7Interface::CreateDevice: Creating a IID_IDirect3DTnLHalDevice device");
         // Do not use exclusive HWVP, since some games call ProcessVertices
         // even in situations where they are expliclity using HW T&L
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
       } else if (rclsid == IID_IDirect3DHALDevice) {
-        Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
+        Logger::info("D3D7Interface::CreateDevice: Creating a IID_IDirect3DHALDevice device");
       } else if (rclsid == IID_IDirect3DRGBDevice) {
-        Logger::info("D3D7Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
+        Logger::info("D3D7Interface::CreateDevice: Creating a IID_IDirect3DRGBDevice device");
       } else {
         Logger::err("D3D7Interface::CreateDevice: Unsupported device type");
         return DDERR_INVALIDPARAMS;

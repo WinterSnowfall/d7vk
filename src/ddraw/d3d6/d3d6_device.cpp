@@ -1185,13 +1185,13 @@ namespace dxvk {
           return D3D_OK;
         }
 
-        D3D6Material* material6 = m_parent->GetMaterialFromHandle(dwLightState);
-        if (unlikely(material6 == nullptr))
+        d3d9::D3DMATERIAL9* material9 = m_parent->GetCommonD3DInterface()->GetD3D9MaterialFromHandle(dwLightState);
+        if (unlikely(material9 == nullptr))
           return DDERR_INVALIDPARAMS;
 
         m_materialHandle = dwLightState;
         Logger::debug(str::format("D3D6Device::SetLightState: Applying material nr. ", dwLightState, " to D3D9"));
-        m_d3d9->SetMaterial(material6->GetD3D9Material());
+        m_d3d9->SetMaterial(material9);
 
         break;
       }

@@ -96,7 +96,8 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D6Interface(std::move(ppvProxyObject), nullptr));
+      Com<D3D6Interface> d3d6Intf = new D3D6Interface(nullptr, std::move(ppvProxyObject), nullptr);
+      *ppvObject = d3d6Intf.ref();
 
       return S_OK;
     }
@@ -104,12 +105,16 @@ namespace dxvk {
     if (unlikely(riid == __uuidof(IDirect3D2))) {
       Logger::debug("DDrawInterface::QueryInterface: Query for IDirect3D2");
 
-      Com<IDirect3D2> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
+      // Initialize the IDirect3D2 interlocked object
+      if (unlikely(m_d3d5Intf == nullptr)) {
+        Com<IDirect3D2> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
 
-      m_d3d5Intf = new D3D5Interface(std::move(ppvProxyObject), this);
+        m_d3d5Intf = new D3D5Interface(nullptr, std::move(ppvProxyObject), this);
+      }
+
       *ppvObject = m_d3d5Intf.ref();
 
       return S_OK;
@@ -118,14 +123,18 @@ namespace dxvk {
     if (unlikely(riid == __uuidof(IDirect3D))) {
       Logger::debug("DDrawInterface::QueryInterface: Query for IDirect3D");
 
-      Com<IDirect3D> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
+      // Initialize the IDirect3D interlocked object
+      if (unlikely(m_d3d3Intf == nullptr)) {
+        Com<IDirect3D> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
 
-      Com<D3D3Interface> d3d3Intf = new D3D3Interface(std::move(ppvProxyObject), this);
-      m_commonIntf->SetD3D3Interface(d3d3Intf.ptr());
-      *ppvObject = d3d3Intf.ref();
+        m_d3d3Intf = new D3D3Interface(nullptr, std::move(ppvProxyObject), this);
+        m_commonIntf->SetD3D3Interface(m_d3d3Intf.ptr());
+      }
+
+      *ppvObject = m_d3d3Intf.ref();
 
       return S_OK;
     }
@@ -486,11 +495,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
-    if (m_d3d5Intf == nullptr) {
-      Logger::debug("<<< DDraw2Interface::WaitForVerticalBlank: Proxy");
-      return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
-    }
-
     Logger::debug("<<< DDrawInterface::WaitForVerticalBlank: Proxy");
 
     HRESULT hr = m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
