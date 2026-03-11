@@ -1,9 +1,9 @@
 #include "d3d5_viewport.h"
 
 #include "d3d5_device.h"
-#include "d3d5_material.h"
 
 #include "d3d_common_light.h"
+#include "d3d_common_material.h"
 
 #include "../ddraw/ddraw_surface.h"
 
@@ -199,9 +199,9 @@ namespace dxvk {
     if (unlikely(m_commonViewport->GetMaterialHandle() == hMat))
       return D3D_OK;
 
-    D3D5Material* material5 = m_parent->GetMaterialFromHandle(hMat);
+    D3DCommonMaterial* commonMaterial = m_parent->GetCommonD3DInterface()->GetCommonMaterialFromHandle(hMat);
 
-    if (unlikely(material5 == nullptr))
+    if (unlikely(commonMaterial == nullptr))
       return DDERR_INVALIDPARAMS;
 
     m_commonViewport->MarkMaterialAsSet();
@@ -211,7 +211,7 @@ namespace dxvk {
     // the material/background when cleared. It is not used
     // in any other way as far as I can tell, certainly
     // not as a standard D3D9 material (see D3DLIGHTSTATE_MATERIAL).
-    m_commonViewport->SetBackgroundColor(material5->GetMaterialColor());
+    m_commonViewport->SetBackgroundColor(commonMaterial->GetMaterialColor());
 
     return D3D_OK;
   }
