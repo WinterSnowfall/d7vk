@@ -17,12 +17,18 @@ namespace dxvk {
 
   uint32_t D3D5Interface::s_intfCount = 0;
 
-  D3D5Interface::D3D5Interface(Com<IDirect3D2>&& d3d5IntfProxy, DDrawInterface* pParent)
-    : DDrawWrappedObject<DDrawInterface, IDirect3D2, d3d9::IDirect3D9>(pParent, std::move(d3d5IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION))) {
+  D3D5Interface::D3D5Interface(D3DCommonInterface* commonD3DIntf, Com<IDirect3D2>&& d3d5IntfProxy, DDrawInterface* pParent)
+    : DDrawWrappedObject<DDrawInterface, IDirect3D2, d3d9::IDirect3D9>(pParent, std::move(d3d5IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)))
+    , m_commonD3DIntf ( commonD3DIntf ) {
     // Get the bridge interface to D3D9.
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
       throw DxvkError("D3D5Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
+
+    if (m_commonD3DIntf == nullptr)
+      m_commonD3DIntf = new D3DCommonInterface();
+
+    m_commonD3DIntf->SetD3D5Interface(this);
 
     m_bridge->EnableD3D5CompatibilityMode();
 
@@ -34,6 +40,9 @@ namespace dxvk {
   }
 
   D3D5Interface::~D3D5Interface() {
+    if (m_commonD3DIntf->GetD3D5Interface() == this)
+      m_commonD3DIntf->SetD3D5Interface(nullptr);
+
     Logger::debug(str::format("D3D5Interface: Interface nr. ((2-", m_intfCount, ")) bites the dust"));
   }
 
@@ -89,7 +98,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D3Interface(std::move(ppvProxyObject), m_parent));
+      *ppvObject = ref(new D3D3Interface(m_commonD3DIntf.ptr(), std::move(ppvProxyObject), m_parent));
 
       return S_OK;
     }
@@ -188,10 +197,10 @@ namespace dxvk {
 
     InitReturnPtr(lplpDirect3DMaterial);
 
-    m_materialHandle++;
+    D3DMATERIALHANDLE handle = m_commonD3DIntf->GetNextMaterialHandle();
     auto materialIterPair = m_materials.emplace(std::piecewise_construct,
-                                                std::forward_as_tuple(m_materialHandle),
-                                                std::forward_as_tuple(nullptr, this, m_materialHandle));
+                                                std::forward_as_tuple(handle),
+                                                std::forward_as_tuple(nullptr, this, handle));
 
     *lplpDirect3DMaterial = ref(&materialIterPair.first->second);
 
@@ -311,9 +320,9 @@ namespace dxvk {
 
     if (likely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::None)) {
       if (rclsid == IID_IDirect3DHALDevice) {
-        Logger::info("D3D5Interface::CreateDevice: Created a IID_IDirect3DHALDevice device");
+        Logger::info("D3D5Interface::CreateDevice: Creating a IID_IDirect3DHALDevice device");
       } else if (rclsid == IID_IDirect3DRGBDevice) {
-        Logger::info("D3D5Interface::CreateDevice: Created a IID_IDirect3DRGBDevice device");
+        Logger::info("D3D5Interface::CreateDevice: Creating a IID_IDirect3DRGBDevice device");
       } else if (rclsid == IID_IDirect3DMMXDevice) {
         Logger::warn("D3D5Interface::CreateDevice: Unsupported MMX device, falling back to RGB");
         rgbFallback = true;
@@ -515,10 +524,8 @@ namespace dxvk {
   D3D5Material* D3D5Interface::GetMaterialFromHandle(D3DMATERIALHANDLE handle) {
     auto materialsIter = m_materials.find(handle);
 
-    if (unlikely(materialsIter == m_materials.end())) {
-      Logger::warn(str::format("D3D5Interface::GetMaterialFromHandle: Invalid handle: ", handle));
+    if (unlikely(materialsIter == m_materials.end()))
       return nullptr;
-    }
 
     return &materialsIter->second;
   }
