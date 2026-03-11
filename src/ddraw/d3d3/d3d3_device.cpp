@@ -4,6 +4,7 @@
 
 #include "../ddraw/ddraw_interface.h"
 #include "../ddraw/ddraw_surface.h"
+
 #include "../d3d5/d3d5_device.h"
 
 #include <algorithm>
@@ -298,7 +299,7 @@ namespace dxvk {
     if (unlikely(d3d == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *d3d = m_parent->GetCommonInterface()->GetD3D3Interface();
+    *d3d = m_commonIntf->GetD3D3Interface();
 
     return D3D_OK;
   }
@@ -341,178 +342,184 @@ namespace dxvk {
 
     D3DEXECUTEDATA data = d3d3ExecuteBuffer->GetExecuteData();
     std::vector<uint8_t> executeBuffer = d3d3ExecuteBuffer->GetBuffer();
-    if (executeBuffer.size() == 0)
+    if (unlikely(executeBuffer.size() == 0))
       return DDERR_INVALIDPARAMS;
 
     uint8_t* buf = executeBuffer.data();
-    const D3DTLVERTEX* vertexBuffer = (const D3DTLVERTEX*)&buf[data.dwVertexOffset];
-
+    const D3DTLVERTEX* vertexBuffer = reinterpret_cast<const D3DTLVERTEX*>(&buf[data.dwVertexOffset]);
     uint8_t* ptr = buf + data.dwInstructionOffset;
     uint8_t* end = ptr + data.dwInstructionLength;
+
     while (ptr < end - sizeof(D3DINSTRUCTION)) {
-        D3DINSTRUCTION* instruction = (D3DINSTRUCTION*)ptr;
-        uint8_t size = instruction->bSize;
-        uint16_t count = instruction->wCount;
-        uint32_t instructionSize = sizeof(D3DINSTRUCTION) + (count * size);
-        DWORD opcode = instruction->bOpcode;
-        uint8_t* operation = ptr + sizeof(D3DINSTRUCTION);
+      D3DINSTRUCTION* instruction = reinterpret_cast<D3DINSTRUCTION*>(ptr);
+      const uint8_t  size  = instruction->bSize;
+      const uint16_t count = instruction->wCount;
+      const uint32_t instructionSize = sizeof(D3DINSTRUCTION) + (count * size);
+      DWORD opcode = instruction->bOpcode;
+      uint8_t* operation = ptr + sizeof(D3DINSTRUCTION);
 
-        if (opcode == D3DOP_EXIT)
-            break;
+      if (opcode == D3DOP_EXIT)
+        break;
 
-        if (ptr + instructionSize > end) {
-            Logger::warn("D3D3Device::Execute: reached the end but there are no D3DOP_EXIT!");
-            break;
+      if (unlikely(ptr + instructionSize > end)) {
+        Logger::warn("D3D3Device::Execute: reached the end but there are no D3DOP_EXIT!");
+        break;
+      }
+
+      switch (opcode) {
+        case D3DOP_BRANCHFORWARD: {
+          Logger::debug("D3D3Device::Execute: D3DOP_BRANCHFORWARD");
+
+          D3DBRANCH* branch = reinterpret_cast<D3DBRANCH*>(operation);
+          for (uint16_t i = 0; i < count; i++) {
+            D3DBRANCH& b = branch[i];
+
+            bool masked = (data.dsStatus.dwStatus & b.dwMask) == b.dwValue;
+            if (b.bNegate) {
+              masked = !masked;
+            }
+
+            if (masked && b.dwOffset) {
+              ptr+= branch->dwOffset - instructionSize;
+            }
+          }
+
+          break;
         }
+        case D3DOP_LINE: {
+          Logger::debug("D3D3Device::Execute: D3DOP_LINE");
 
-        switch (opcode) {
-          case D3DOP_BRANCHFORWARD: {
-              Logger::debug("D3D3Device::Execute: D3DOP_BRANCHFORWARD");
+          D3DLINE* line = reinterpret_cast<D3DLINE*>(operation);
+          DrawLineInternal(line, count, data.dwVertexCount, vertexBuffer);
 
-              D3DBRANCH* branch = reinterpret_cast<D3DBRANCH*>(operation);
-              for (DWORD i = 0; i < count; i++) {
-                D3DBRANCH& b = branch[i];
-
-                bool masked = (data.dsStatus.dwStatus & b.dwMask) == b.dwValue;
-                if (b.bNegate) {
-                  masked = !masked;
-                }
-
-                if (masked && b.dwOffset) {
-                  ptr+= branch->dwOffset - instructionSize;
-                }
-              }
-            }
-            break;
-          case D3DOP_LINE: {
-              Logger::debug("D3D3Device::Execute: D3DOP_LINE");
-
-              D3DLINE* line = reinterpret_cast<D3DLINE*>(operation);
-              DrawLineInternal(line, count, data.dwVertexCount, vertexBuffer);
-            }
-            break;
-          case D3DOP_POINT: {
-              Logger::debug("D3D3Device::Execute: D3DOP_POINT");
-
-              D3DPOINT* point = reinterpret_cast<D3DPOINT*>(operation);
-              DrawPointInternal(point, count, data.dwVertexCount, vertexBuffer);
-            }
-            break;
-          case D3DOP_TRIANGLE: {
-              Logger::debug("D3D3Device::Execute: D3DOP_TRIANGLE");
-
-              D3DTRIANGLE* triangle = reinterpret_cast<D3DTRIANGLE*>(operation);
-              DrawTriangleInternal(triangle, count, data.dwVertexCount, vertexBuffer);
-            }
-            break;
-          case D3DOP_MATRIXLOAD: {
-              static bool warn = true;
-              if (warn) {
-                Logger::warn("D3D3Device::Execute: D3DOP_MATRIXLOAD is not implemented");
-                warn = false;
-              }
-            }
-            break;
-          case D3DOP_MATRIXMULTIPLY: {
-              static bool warn = true;
-              if (warn) {
-                Logger::warn("D3D3Device::Execute: D3DOP_MATRIXMULTIPLY is not implemented");
-                warn = false;
-              }
-            }
-            break;
-          case D3DOP_PROCESSVERTICES: {
-              D3DPROCESSVERTICES* processVertices = reinterpret_cast<D3DPROCESSVERTICES*>(operation);
-              for (DWORD i = 0; i < count; i++) {
-                D3DPROCESSVERTICES& pv = processVertices[i];
-                if (pv.dwFlags & D3DPROCESSVERTICES_COPY) {
-                  static bool warn = true;
-                  if (warn) {
-                    // Appears to be mostly harmless
-                    Logger::debug("D3D3Device::Execute: D3DOP_PROCESSVERTICES COPY is not implemented");
-                    warn = false;
-                  }
-                }
-                // D3DPROCESSVERTICES_NOCOLOR and D3DPROCESSVERTICES_UPDATEEXTENTS are additional flags for transforms
-                if (pv.dwFlags & D3DPROCESSVERTICES_TRANSFORM) {
-                  static bool warn = true;
-                  if (warn) {
-                    Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES TRANSFORM is not implemented");
-                    warn = false;
-                  }
-                }
-                if (pv.dwFlags & D3DPROCESSVERTICES_TRANSFORMLIGHT) {
-                  static bool warn = true;
-                  if (warn) {
-                    Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES TRANSORMLIGHT is not implemented");
-                    warn = false;
-                  }
-                }
-              }
-            }
-            break;
-          case D3DOP_SPAN: {
-              Logger::warn("D3D3Device::Execute: D3DOP_SPAN");
-
-              D3DSPAN* span = reinterpret_cast<D3DSPAN*>(operation);
-              DrawSpanInternal(span, count, data.dwVertexCount, vertexBuffer);
-            }
-            break;
-          case D3DOP_STATELIGHT: {
-              Logger::debug("D3D3Device::Execute: D3DOP_STATELIGHT");
-              D3DSTATE* state = reinterpret_cast<D3DSTATE*>(operation);
-              for (DWORD i = 0; i < count; i++) {
-                D3DSTATE& s = state[i];
-
-                SetLightStateInternal(s.dlstLightStateType, s.dwArg[0]);
-              }
-            }
-            break;
-          case D3DOP_STATERENDER: {
-              Logger::debug("D3D3Device::Execute: D3DOP_STATERENDER");
-              D3DSTATE* state = reinterpret_cast<D3DSTATE*>(operation);
-              for (DWORD i = 0; i < count; i++) {
-                D3DSTATE& s = state[i];
-
-                SetRenderStateInternal(s.drstRenderStateType, s.dwArg[0]);
-              }
-            }
-            break;
-          case D3DOP_STATETRANSFORM: {
-              Logger::debug("D3D3Device::Execute: D3DOP_STATETRANSFORM");
-              D3DSTATE* state = reinterpret_cast<D3DSTATE*>(operation);
-              for (DWORD i = 0; i < count; i++) {
-                D3DSTATE& s = state[i];
-
-                D3DMATRIX matrix;
-                HRESULT hr = GetMatrix(s.dwArg[0], &matrix);
-                if (unlikely(FAILED(hr)))
-                  Logger::warn(str::format("D3D3Device::Execute: Failed to retrieve matrix: ", s.dwArg[0]));
-
-                m_d3d9->SetTransform(ConvertTransformState(s.dtstTransformStateType), &matrix);
-              }
-            }
-            break;
-          case D3DOP_SETSTATUS: {
-              Logger::debug("D3D3Device::Execute: D3DOP_SETSTATUS");
-              D3DSTATUS* status = reinterpret_cast<D3DSTATUS*>(operation);
-              for (DWORD i = 0; i < count; i++) {
-                data.dsStatus = status[i];
-              }
-            }
-            break;
-          case D3DOP_TEXTURELOAD: {
-              Logger::debug("D3D3Device::Execute: D3DOP_TEXTURELOAD");
-              D3DTEXTURELOAD* textureLoad = reinterpret_cast<D3DTEXTURELOAD*>(operation);
-              TextureLoadInternal(textureLoad, count);
-            }
-            break;
-          default:
-            Logger::err(str::format("D3D3Device::Execute: Unknown opcode encountered: ", opcode));
-            break;
+          break;
         }
+        case D3DOP_POINT: {
+          Logger::debug("D3D3Device::Execute: D3DOP_POINT");
 
-        ptr += instructionSize;
+          D3DPOINT* point = reinterpret_cast<D3DPOINT*>(operation);
+          DrawPointInternal(point, count, data.dwVertexCount, vertexBuffer);
+
+          break;
+        }
+        case D3DOP_TRIANGLE: {
+          Logger::debug("D3D3Device::Execute: D3DOP_TRIANGLE");
+
+          D3DTRIANGLE* triangle = reinterpret_cast<D3DTRIANGLE*>(operation);
+          DrawTriangleInternal(triangle, count, data.dwVertexCount, vertexBuffer);
+
+          break;
+        }
+        case D3DOP_MATRIXLOAD: {
+          static bool s_matrixLoadErrorShown;
+          if (!std::exchange(s_matrixLoadErrorShown, true))
+            Logger::warn("D3D3Device::Execute: D3DOP_MATRIXLOAD is not implemented");
+          break;
+        }
+        case D3DOP_MATRIXMULTIPLY: {
+          static bool s_matrixMultiplyErrorShown;
+          if (!std::exchange(s_matrixMultiplyErrorShown, true))
+            Logger::warn("D3D3Device::Execute: D3DOP_MATRIXMULTIPLY is not implemented");
+          break;
+        }
+        case D3DOP_PROCESSVERTICES: {
+          D3DPROCESSVERTICES* processVertices = reinterpret_cast<D3DPROCESSVERTICES*>(operation);
+
+          for (uint16_t i = 0; i < count; i++) {
+            D3DPROCESSVERTICES& pv = processVertices[i];
+            if (pv.dwFlags & D3DPROCESSVERTICES_COPY) {
+              static bool s_pvCopyErrorShown;
+              // Appears to be mostly harmless
+              if (!std::exchange(s_pvCopyErrorShown, true))
+                Logger::debug("D3D3Device::Execute: D3DOP_PROCESSVERTICES COPY is not implemented");
+            }
+            // D3DPROCESSVERTICES_NOCOLOR and D3DPROCESSVERTICES_UPDATEEXTENTS are additional flags for transforms
+            if (pv.dwFlags & D3DPROCESSVERTICES_TRANSFORM) {
+              static bool s_pvTransformErrorShown;
+              if (!std::exchange(s_pvTransformErrorShown, true))
+                Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES TRANSFORM is not implemented");
+            }
+            if (pv.dwFlags & D3DPROCESSVERTICES_TRANSFORMLIGHT) {
+              static bool s_pvTransformLightErrorShown;
+              if (!std::exchange(s_pvTransformLightErrorShown, true))
+                Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES TRANSORMLIGHT is not implemented");
+            }
+          }
+
+          break;
+        }
+        case D3DOP_SPAN: {
+          Logger::warn("D3D3Device::Execute: D3DOP_SPAN");
+
+          D3DSPAN* span = reinterpret_cast<D3DSPAN*>(operation);
+          DrawSpanInternal(span, count, data.dwVertexCount, vertexBuffer);
+
+          break;
+        }
+        case D3DOP_STATELIGHT: {
+          Logger::debug("D3D3Device::Execute: D3DOP_STATELIGHT");
+
+          D3DSTATE* state = reinterpret_cast<D3DSTATE*>(operation);
+          for (uint16_t i = 0; i < count; i++) {
+            D3DSTATE& s = state[i];
+            SetLightStateInternal(s.dlstLightStateType, s.dwArg[0]);
+          }
+          break;
+        }
+        case D3DOP_STATERENDER: {
+          Logger::debug("D3D3Device::Execute: D3DOP_STATERENDER");
+
+          D3DSTATE* state = reinterpret_cast<D3DSTATE*>(operation);
+          for (uint16_t i = 0; i < count; i++) {
+            D3DSTATE& s = state[i];
+            SetRenderStateInternal(s.drstRenderStateType, s.dwArg[0]);
+          }
+
+          break;
+        }
+        case D3DOP_STATETRANSFORM: {
+          Logger::debug("D3D3Device::Execute: D3DOP_STATETRANSFORM");
+
+          D3DSTATE* state = reinterpret_cast<D3DSTATE*>(operation);
+          D3DMATRIX matrix;
+          for (uint16_t i = 0; i < count; i++) {
+            D3DSTATE& s = state[i];
+
+            HRESULT hr = GetMatrix(s.dwArg[0], &matrix);
+            if (unlikely(FAILED(hr)))
+              Logger::warn(str::format("D3D3Device::Execute: Failed to retrieve matrix: ", s.dwArg[0]));
+
+            hr = m_d3d9->SetTransform(ConvertTransformState(s.dtstTransformStateType), &matrix);
+            if (unlikely(FAILED(hr)))
+              Logger::warn("D3D3Device::Execute: Failed to set D3D9 transform");
+          }
+
+          break;
+        }
+        case D3DOP_SETSTATUS: {
+          Logger::debug("D3D3Device::Execute: D3DOP_SETSTATUS");
+
+          D3DSTATUS* status = reinterpret_cast<D3DSTATUS*>(operation);
+          for (uint16_t i = 0; i < count; i++) {
+            data.dsStatus = status[i];
+          }
+
+          break;
+        }
+        case D3DOP_TEXTURELOAD: {
+          Logger::debug("D3D3Device::Execute: D3DOP_TEXTURELOAD");
+
+          D3DTEXTURELOAD* textureLoad = reinterpret_cast<D3DTEXTURELOAD*>(operation);
+          TextureLoadInternal(textureLoad, count);
+
+          break;
+        }
+        default:
+          Logger::err(str::format("D3D3Device::Execute: Unknown opcode encountered: ", opcode));
+          break;
+      }
+
+      ptr += instructionSize;
     }
 
     m_commonIntf->UpdateDrawTracking();
@@ -672,31 +679,35 @@ namespace dxvk {
     switch (dwLightStateType) {
       case D3DLIGHTSTATE_MATERIAL: {
         D3D5Device* device5 = m_commonIntf->GetD3D5Device();
+
         if (unlikely(!dwLightState)) {
           m_materialHandle = dwLightState;
+
           if (device5 != nullptr)
-            m_commonIntf->GetD3D5Device()->SetCurrentMaterialHandle(dwLightState);
+            device5->SetCurrentMaterialHandle(dwLightState);
 
           return D3D_OK;
         }
 
-        if (device5 != nullptr) {
+        Logger::debug(str::format("D3D3Device::SetLightStateInternal: Applying material nr. ", dwLightState, " to D3D9"));
+
+        D3D3Interface* d3d3Intf = m_commonIntf->GetD3D3Interface();
+        // consider pure D3D3 device use by default
+        if (likely(d3d3Intf != nullptr)) {
+          d3d9::D3DMATERIAL9* material9 = d3d3Intf->GetCommonD3DInterface()->GetD3D9MaterialFromHandle(dwLightState);
+          if (unlikely(material9 == nullptr))
+            return DDERR_INVALIDPARAMS;
+
+          m_materialHandle = dwLightState;
+          m_d3d9->SetMaterial(material9);
+        // fall back to using a D3D5 device otherwise
+        } else if (likely(device5 != nullptr)) {
           d3d9::D3DMATERIAL9* material9 = device5->GetParent()->GetCommonD3DInterface()->GetD3D9MaterialFromHandle(dwLightState);
-          if (unlikely(material9 == nullptr))
-            return DDERR_INVALIDPARAMS;
 
-          m_materialHandle = dwLightState;
           device5->SetCurrentMaterialHandle(dwLightState);
-          Logger::debug(str::format("D3D3Device::SetLightStateInternal: D3D5: Applying material nr. ", dwLightState, " to D3D9"));
-          m_d3d9->SetMaterial(material9);
+          device5->GetD3D9()->SetMaterial(material9);
         } else {
-          d3d9::D3DMATERIAL9* material9 = m_commonIntf->GetD3D3Interface()->GetCommonD3DInterface()->GetD3D9MaterialFromHandle(dwLightState);
-          if (unlikely(material9 == nullptr))
-            return DDERR_INVALIDPARAMS;
-
-          m_materialHandle = dwLightState;
-          Logger::debug(str::format("D3D3Device::SetLightStateInternal: D3D3: Applying material nr. ", dwLightState, " to D3D9"));
-          m_d3d9->SetMaterial(material9);
+          Logger::warn("D3D3Device::SetLightStateInternal: Unable to set D3D9 material");
         }
 
         break;
