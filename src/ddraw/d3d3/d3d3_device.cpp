@@ -371,20 +371,13 @@ namespace dxvk {
               for (DWORD i = 0; i < count; i++) {
                 D3DBRANCH& b = branch[i];
 
-                if ((data.dsStatus.dwStatus & b.dwMask) == b.dwValue) {
-                  if (!b.bNegate) {
-                    if (b.dwOffset) {
-                      ptr+= branch->dwOffset;
-                      break;
-                    }
-                  }
-                } else {
-                  if (b.bNegate) {
-                    if (b.dwOffset) {
-                      ptr+= branch->dwOffset;
-                      break;
-                    }
-                  }
+                bool masked = (data.dsStatus.dwStatus & b.dwMask) == b.dwValue;
+                if (b.bNegate) {
+                  masked = !masked;
+                }
+
+                if (masked && b.dwOffset) {
+                  ptr+= branch->dwOffset - instructionSize;
                 }
               }
             }
@@ -430,52 +423,27 @@ namespace dxvk {
               D3DPROCESSVERTICES* processVertices = reinterpret_cast<D3DPROCESSVERTICES*>(operation);
               for (DWORD i = 0; i < count; i++) {
                 D3DPROCESSVERTICES& pv = processVertices[i];
-                const DWORD vop = pv.dwFlags & D3DPROCESSVERTICES_OPMASK;
-                Logger::debug(str::format("D3D3Device::Execute: D3DOP_PROCESSVERTICES operation: ", vop, ", start: ", pv.wStart, ", dest: ", pv.wDest, ", count: ", pv.dwCount, ", flags: ", pv.dwFlags));
-                switch (vop) {
-                  case D3DPROCESSVERTICES_COPY: {
-                      static bool warn = true;
-                      if (warn) {
-                        Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES COPY is not implemented");
-                        warn = false;
-                      }
-                    }
-                    break;
-                  case D3DPROCESSVERTICES_NOCOLOR: {
-                      static bool warn = true;
-                      if (warn) {
-                        Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES NOCOLOR is not implemented");
-                        warn = false;
-                      }
-                    }
-                    break;
-                  case D3DPROCESSVERTICES_TRANSFORM: {
-                      static bool warn = true;
-                      if (warn) {
-                        Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES TRANSFORM is not implemented");
-                        warn = false;
-                      }
-                    }
-                    break;
-                  case D3DPROCESSVERTICES_TRANSFORMLIGHT: {
-                      static bool warn = true;
-                      if (warn) {
-                        Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES TRANSORMLIGHT is not implemented");
-                        warn = false;
-                      }
-                    }
-                    break;
-                  case D3DPROCESSVERTICES_UPDATEEXTENTS: {
-                      static bool warn = true;
-                      if (warn) {
-                        Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES UPDATEEXTENTS is not implemented");
-                        warn = false;
-                      }
-                    }
-                    break;
-                  default:
-                    Logger::err(str::format("D3D3Device::Execute: D3DOP_PROCESSVERTICES unknown operation: ", vop));
-                    break;
+                if (pv.dwFlags & D3DPROCESSVERTICES_COPY) {
+                  static bool warn = true;
+                  if (warn) {
+                    Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES COPY is not implemented");
+                    warn = false;
+                  }
+                }
+                // D3DPROCESSVERTICES_NOCOLOR and D3DPROCESSVERTICES_UPDATEEXTENTS are additional flags for transforms
+                if (pv.dwFlags & D3DPROCESSVERTICES_TRANSFORM) {
+                  static bool warn = true;
+                  if (warn) {
+                    Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES TRANSFORM is not implemented");
+                    warn = false;
+                  }
+                }
+                if (pv.dwFlags & D3DPROCESSVERTICES_TRANSFORMLIGHT) {
+                  static bool warn = true;
+                  if (warn) {
+                    Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES TRANSORMLIGHT is not implemented");
+                    warn = false;
+                  }
                 }
               }
             }
