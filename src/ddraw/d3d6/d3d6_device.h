@@ -11,7 +11,6 @@
 #include "../../d3d9/d3d9_bridge.h"
 
 #include "d3d6_interface.h"
-#include "d3d6_material.h"
 #include "d3d6_multithread.h"
 #include "d3d6_viewport.h"
 

@@ -10,7 +10,6 @@
 #include "../../d3d9/d3d9_bridge.h"
 
 #include "d3d5_interface.h"
-#include "d3d5_material.h"
 #include "d3d5_multithread.h"
 #include "d3d5_viewport.h"
 

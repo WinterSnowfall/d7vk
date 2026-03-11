@@ -12,6 +12,7 @@
 
 namespace dxvk {
 
+  class D3D3Interface;
   class D3D5Interface;
   class DDrawSurface;
 
@@ -96,6 +97,7 @@ namespace dxvk {
 
     Com<DDrawCommonInterface> m_commonIntf;
 
+    Com<D3D3Interface, false> m_d3d3Intf;
     Com<D3D5Interface, false> m_d3d5Intf;
 
     D3DTEXTUREHANDLE          m_textureHandle = 0;

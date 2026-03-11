@@ -9,7 +9,6 @@
 #include "../../d3d9/d3d9_bridge.h"
 
 #include "d3d3_interface.h"
-#include "d3d3_material.h"
 #include "d3d3_multithread.h"
 #include "d3d3_viewport.h"
 

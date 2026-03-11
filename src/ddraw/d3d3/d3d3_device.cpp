@@ -629,22 +629,22 @@ namespace dxvk {
         }
 
         if (device5 != nullptr) {
-          D3D5Material* material5 = device5->GetParent()->GetMaterialFromHandle(dwLightState);
-          if (unlikely(material5 == nullptr))
+          d3d9::D3DMATERIAL9* material9 = device5->GetParent()->GetCommonD3DInterface()->GetD3D9MaterialFromHandle(dwLightState);
+          if (unlikely(material9 == nullptr))
             return DDERR_INVALIDPARAMS;
 
           m_materialHandle = dwLightState;
           device5->SetCurrentMaterialHandle(dwLightState);
           Logger::debug(str::format("D3D3Device::SetLightStateInternal: D3D5: Applying material nr. ", dwLightState, " to D3D9"));
-          m_d3d9->SetMaterial(material5->GetD3D9Material());
+          m_d3d9->SetMaterial(material9);
         } else {
-          D3D3Material* material3 = m_commonIntf->GetD3D3Interface()->GetMaterialFromHandle(dwLightState);
-          if (unlikely(material3 == nullptr))
+          d3d9::D3DMATERIAL9* material9 = m_commonIntf->GetD3D3Interface()->GetCommonD3DInterface()->GetD3D9MaterialFromHandle(dwLightState);
+          if (unlikely(material9 == nullptr))
             return DDERR_INVALIDPARAMS;
 
           m_materialHandle = dwLightState;
           Logger::debug(str::format("D3D3Device::SetLightStateInternal: D3D3: Applying material nr. ", dwLightState, " to D3D9"));
-          m_d3d9->SetMaterial(material3->GetD3D9Material());
+          m_d3d9->SetMaterial(material9);
         }
 
         break;

@@ -5,6 +5,7 @@
 #include "../ddraw_format.h"
 
 #include "../ddraw_common_interface.h"
+#include "../d3d_common_interface.h"
 
 #include "../../d3d9/d3d9_bridge.h"
 
@@ -21,7 +22,7 @@ namespace dxvk {
   class D3D3Interface final : public DDrawWrappedObject<DDrawInterface, IDirect3D, d3d9::IDirect3D9> {
 
   public:
-    D3D3Interface(Com<IDirect3D>&& d3d3Intf, DDrawInterface* pParent);
+    D3D3Interface(D3DCommonInterface* commonD3DIntf, Com<IDirect3D>&& d3d3Intf, DDrawInterface* pParent);
 
     ~D3D3Interface();
 
@@ -45,6 +46,10 @@ namespace dxvk {
 
     D3D3Material* GetMaterialFromHandle(D3DMATERIALHANDLE handle);
 
+    D3DCommonInterface* GetCommonD3DInterface() const {
+      return m_commonD3DIntf.ptr();
+    }
+
   private:
 
     static uint32_t               s_intfCount;
@@ -52,7 +57,8 @@ namespace dxvk {
 
     Com<IDxvkD3D8InterfaceBridge> m_bridge;
 
-    D3DMATERIALHANDLE             m_materialHandle = 0;
+    Com<D3DCommonInterface>       m_commonD3DIntf;
+
     std::unordered_map<D3DMATERIALHANDLE, D3D3Material> m_materials;
 
   };
