@@ -428,7 +428,8 @@ namespace dxvk {
                 if (pv.dwFlags & D3DPROCESSVERTICES_COPY) {
                   static bool warn = true;
                   if (warn) {
-                    Logger::warn("D3D3Device::Execute: D3DOP_PROCESSVERTICES COPY is not implemented");
+                    // Appears to be mostly harmless
+                    Logger::debug("D3D3Device::Execute: D3DOP_PROCESSVERTICES COPY is not implemented");
                     warn = false;
                   }
                 }
@@ -478,13 +479,18 @@ namespace dxvk {
             }
             break;
           case D3DOP_STATETRANSFORM: {
-              static bool warn = true;
-              if (warn) {
-                Logger::warn("D3D3Device::Execute: D3DOP_STATETRANSFORM is not implemented");
-                warn = false;
-              }
+              Logger::debug("D3D3Device::Execute: D3DOP_STATETRANSFORM");
+              D3DSTATE* state = reinterpret_cast<D3DSTATE*>(operation);
+              for (DWORD i = 0; i < count; i++) {
+                D3DSTATE& s = state[i];
 
-              // TODO: D3DSTATE + s.dtstTransformStateType;
+                D3DMATRIX matrix;
+                HRESULT hr = GetMatrix(s.dwArg[0], &matrix);
+                if (unlikely(FAILED(hr)))
+                  Logger::warn(str::format("D3D3Device::Execute: Failed to retrieve matrix: ", s.dwArg[0]));
+
+                m_d3d9->SetTransform(ConvertTransformState(s.dtstTransformStateType), &matrix);
+              }
             }
             break;
           case D3DOP_SETSTATUS: {
@@ -537,23 +543,67 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::CreateMatrix(D3DMATRIXHANDLE *matrix) {
-    Logger::debug("<<< D3D3Device::CreateMatrix: Proxy");
-    return m_proxy->CreateMatrix(matrix);
+    Logger::debug(">>> D3D3Device::CreateMatrix");
+
+    m_matrixHandle++;
+    m_matrices.emplace(std::piecewise_construct,
+                       std::forward_as_tuple(m_matrixHandle),
+                       std::forward_as_tuple(D3DMATRIX()));
+
+    *matrix = m_matrixHandle;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::SetMatrix(D3DMATRIXHANDLE handle, D3DMATRIX *matrix) {
-    Logger::debug("<<< D3D3Device::SetMatrix: Proxy");
-    return m_proxy->SetMatrix(handle, matrix);
+    Logger::debug(">>> D3D3Device::SetMatrix");
+
+    if (unlikely(matrix == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    auto matrixIter = m_matrices.find(handle);
+
+    if (likely(matrixIter != m_matrices.end())) {
+      matrixIter->second = *matrix;
+    } else {
+      Logger::warn("D3D3Device::SetMatrix: Matrix not found");
+      return DDERR_INVALIDPARAMS;
+    }
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::GetMatrix(D3DMATRIXHANDLE handle, D3DMATRIX *matrix) {
-    Logger::debug("<<< D3D3Device::GetMatrix: Proxy");
-    return m_proxy->GetMatrix(handle, matrix);
+    Logger::debug(">>> D3D3Device::GetMatrix");
+
+    if (unlikely(matrix == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    auto matrixIter = m_matrices.find(handle);
+
+    if (likely(matrixIter != m_matrices.end())) {
+      *matrix = matrixIter->second;
+    } else {
+      Logger::warn("D3D3Device::GetMatrix: Matrix not found");
+      return DDERR_INVALIDPARAMS;
+    }
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::DeleteMatrix(D3DMATRIXHANDLE D3DMatHandle) {
-    Logger::debug("<<< D3D3Device::GetMatrix: Proxy");
-    return m_proxy->DeleteMatrix(D3DMatHandle);
+    Logger::debug(">>> D3D3Device::DeleteMatrix");
+
+    auto matrixIter = m_matrices.find(D3DMatHandle);
+
+    if (likely(matrixIter != m_matrices.end())) {
+      m_matrices.erase(matrixIter);
+    } else {
+      Logger::warn("D3D3Device::DeleteMatrix: Matrix not found");
+      return DDERR_INVALIDPARAMS;
+    }
+
+    return D3D_OK;
   }
 
   void D3D3Device::InitializeDS() {
