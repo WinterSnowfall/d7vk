@@ -103,8 +103,6 @@ namespace dxvk {
 
     void InitializeDS();
 
-    HRESULT Reset(d3d9::D3DPRESENT_PARAMETERS* params);
-
     D3D5DeviceLock LockDevice() {
       return m_multithread.AcquireLock();
     }

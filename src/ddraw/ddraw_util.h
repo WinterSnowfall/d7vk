@@ -29,6 +29,13 @@ namespace dxvk {
         || size == sizeof(D3DDEVICEDESC3);
   }
 
+  inline bool IsVSyncFlipFlag(DWORD flag) {
+    return !(flag & DDFLIP_NOVSYNC)   ||
+            (flag & DDFLIP_INTERVAL2) ||
+            (flag & DDFLIP_INTERVAL3) ||
+            (flag & DDFLIP_INTERVAL4);
+  }
+
   // D3D5 D3DVERTEXTYPE to >D3D6 DWORD vertex codes
   inline DWORD ConvertVertexType(D3DVERTEXTYPE vertexType) {
     switch (vertexType) {

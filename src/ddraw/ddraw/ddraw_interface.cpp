@@ -496,30 +496,7 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
     Logger::debug("<<< DDrawInterface::WaitForVerticalBlank: Proxy");
-
-    HRESULT hr = m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
-    if (unlikely(FAILED(hr)))
-      return hr;
-
-    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
-      // Switch to a default presentation interval when an application
-      // tries to wait for vertical blank, if we're not already doing so
-      D3D5Device* d3d5Device = m_commonIntf->GetD3D5Device();
-      if (unlikely(d3d5Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
-        Logger::info("DDrawInterface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
-
-        d3d9::D3DPRESENT_PARAMETERS resetParams = d3d5Device->GetPresentParameters();
-        resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
-        HRESULT hrReset = d3d5Device->Reset(&resetParams);
-        if (unlikely(FAILED(hrReset))) {
-          Logger::warn("DDrawInterface::WaitForVerticalBlank: Failed D3D9 swapchain reset");
-        } else {
-          m_commonIntf->SetWaitForVBlank(true);
-        }
-      }
-    }
-
-    return hr;
+    return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
   }
 
   DDrawSurface* DDrawInterface::GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle) {
