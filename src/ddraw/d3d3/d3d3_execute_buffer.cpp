@@ -5,14 +5,17 @@ namespace dxvk {
   uint32_t D3D3ExecuteBuffer::s_buffCount = 0;
 
   D3D3ExecuteBuffer::D3D3ExecuteBuffer(
-            Com<IDirect3DExecuteBuffer>&& buffProxy,
-            D3DEXECUTEBUFFERDESC desc,
-            D3D3Device* pParent)
+      Com<IDirect3DExecuteBuffer>&& buffProxy,
+      D3DEXECUTEBUFFERDESC desc,
+      D3D3Device* pParent)
     : DDrawWrappedObject<D3D3Device, IDirect3DExecuteBuffer, IUnknown>(pParent, std::move(buffProxy), nullptr)
     , m_desc (desc) {
-    m_buffCount = ++s_buffCount;
+    if (likely(m_buffer.size() == 0 && (m_desc.dwFlags & D3DDEB_BUFSIZE))) {
+      m_buffer.resize(m_desc.dwBufferSize);
+      Logger::debug(str::format("D3D3ExecuteBuffer: Buffer is initialized with size ", m_desc.dwBufferSize));
+    }
 
-    Initialize(pParent, &desc);
+    m_buffCount = ++s_buffCount;
 
     Logger::debug(str::format("D3D3ExecuteBuffer: Created a new execute buffer nr. {{1-", m_buffCount, "}}:"));
   }
@@ -33,7 +36,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpData) {
-    Logger::debug("<<< D3D3ExecuteBuffer::GetExecuteData");
+    Logger::debug(">>> D3D3ExecuteBuffer::GetExecuteData");
 
     if (unlikely(lpData == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -46,35 +49,20 @@ namespace dxvk {
     return D3D_OK;
   }
 
+  // Docs state: "Returns DDERR_ALREADYINITIALIZED because the
+  // Direct3DExecuteBuffer object is initialized when it is created."
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPD3DEXECUTEBUFFERDESC lpDesc) {
-    Logger::debug("<<< D3D3ExecuteBuffer::Initialize");
-
-    if (unlikely(lpDirect3DDevice == nullptr))
-      return DDERR_INVALIDPARAMS;
-
-    if (unlikely(lpDesc == nullptr || lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC)))
-      return DDERR_INVALIDPARAMS;
-
-    m_D3D3Device = static_cast<D3D3Device*>(lpDirect3DDevice);
-
-    if (m_buffer.size() == 0 && lpDesc->dwFlags & D3DDEB_BUFSIZE) {
-        m_desc = *lpDesc;
-        m_buffer.resize(lpDesc->dwBufferSize);
-
-        Logger::debug(str::format("<<< D3D3ExecuteBuffer::Initialize: Buffer is initialized with size ", lpDesc->dwBufferSize));
-        return D3D_OK;
-    }
-
+    Logger::debug(">>> D3D3ExecuteBuffer::Initialize");
     return DDERR_ALREADYINITIALIZED;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc) {
-    Logger::debug("<<< D3D3ExecuteBuffer::Lock");
+    Logger::debug(">>> D3D3ExecuteBuffer::Lock");
 
     if (unlikely(lpDesc == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (m_locked)
+    if (unlikely(m_locked))
       return D3DERR_EXECUTE_LOCKED;
 
     m_locked = true;
@@ -87,20 +75,20 @@ namespace dxvk {
 
   // Docs state: "Not currently implemented."
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::Optimize(DWORD dwUnknown) {
-    Logger::warn("<<< D3D3ExecuteBuffer::Optimize: Unsupported");
+    Logger::debug(">>> D3D3ExecuteBuffer::Optimize");
     return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpData) {
-    Logger::debug("<<< D3D3ExecuteBuffer::SetExecuteData");
+    Logger::debug(">>> D3D3ExecuteBuffer::SetExecuteData");
 
     if (unlikely(lpData == nullptr || m_buffer.size() == 0))
       return DDERR_INVALIDPARAMS;
 
-    if (lpData->dwInstructionOffset + lpData->dwInstructionLength > m_buffer.size())
+    if (unlikely(lpData->dwInstructionOffset + lpData->dwInstructionLength > m_buffer.size()))
       return DDERR_INVALIDPARAMS;
 
-    if (lpData->dwVertexOffset + lpData->dwVertexCount > m_buffer.size())
+    if (unlikely(lpData->dwVertexOffset + lpData->dwVertexCount > m_buffer.size()))
       return DDERR_INVALIDPARAMS;
 
     m_data = *lpData;
@@ -109,9 +97,9 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::Unlock() {
-    Logger::debug("<<< D3D3ExecuteBuffer::Unlock");
+    Logger::debug(">>> D3D3ExecuteBuffer::Unlock");
 
-    if (!m_locked)
+    if (unlikely(!m_locked))
       return D3DERR_EXECUTE_NOT_LOCKED;
 
     m_locked = false;
@@ -121,7 +109,7 @@ namespace dxvk {
 
   // Docs state: "Not currently implemented."
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALLBACK lpFunc, LPVOID lpUserArg, DWORD dwReserved) {
-    Logger::warn("<<< D3D3ExecuteBuffer::Validate: Unsupported");
+    Logger::debug(">>> D3D3ExecuteBuffer::Validate");
     return DDERR_UNSUPPORTED;
   }
 
