@@ -1,8 +1,8 @@
 #include "ddraw4_surface.h"
 
-#include "ddraw4_gamma.h"
 #include "ddraw4_interface.h"
 
+#include "../ddraw/ddraw_gamma.h"
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw2/ddraw2_surface.h"
 #include "../ddraw2/ddraw3_surface.h"
@@ -117,7 +117,7 @@ namespace dxvk {
       // This can never reasonably fail
       m_proxy->QueryInterface(__uuidof(IDirectDrawGammaControl), &gammaControlProxiedVoid);
       Com<IDirectDrawGammaControl> gammaControlProxied = static_cast<IDirectDrawGammaControl*>(gammaControlProxiedVoid);
-      *ppvObject = ref(new DDraw4GammaControl(std::move(gammaControlProxied), this));
+      *ppvObject = ref(new DDrawGammaControl(m_commonSurf.ptr(), std::move(gammaControlProxied), this));
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
