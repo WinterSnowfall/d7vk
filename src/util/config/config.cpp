@@ -1905,6 +1905,10 @@ namespace dxvk {
     { R"(\\JKM\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Moto Racer 2 - fixes menu flickering       */
+    { R"(\\moto\.exe$)", {{
+      { "ddraw.forceSingleBackBuffer",      "True" },
+    }} },
 
   };
 
