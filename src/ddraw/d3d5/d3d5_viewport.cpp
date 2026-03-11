@@ -183,7 +183,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen) {
-    Logger::warn("<<< D3D5Viewport::TransformVertices: Proxy");
+    Logger::debug("<<< D3D5Viewport::TransformVertices: Proxy");
     return m_proxy->TransformVertices(vertex_count, data, flags, offscreen);
   }
 
