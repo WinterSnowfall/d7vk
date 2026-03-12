@@ -31,7 +31,7 @@ namespace dxvk {
     D3DCommonMaterial* GetCommonMaterialFromHandle(D3DMATERIALHANDLE handle) const;
 
     D3DMATERIALHANDLE GetNextMaterialHandle() {
-      return m_materialHandle++;
+      return ++m_materialHandle;
     }
 
     void SetD3D7Interface(D3D7Interface* d3d7Intf) {
