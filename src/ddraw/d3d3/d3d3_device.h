@@ -159,8 +159,6 @@ namespace dxvk {
     Com<D3D3Viewport>              m_currentViewport;
     std::vector<Com<D3D3Viewport>> m_viewports;
 
-    // Value of D3DRENDERSTATE_BLENDENABLE (which also controls color key transparency in D3D3)
-    DWORD                          m_colorKeyEnabled = 0;
     // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
     DWORD                          m_textureMapBlend = D3DTBLEND_MODULATE;
 
