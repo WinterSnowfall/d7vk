@@ -211,12 +211,9 @@ namespace dxvk {
 
     m_commonViewport->MarkMaterialAsSet();
 
+    // Cache only the set material handle, as its color can
+    // change after it is set (get it on Clear directly)
     m_commonViewport->SetMaterialHandle(hMat);
-    // The viewport will be set to the diffuse values of
-    // the material/background when cleared. It is not used
-    // in any other way as far as I can tell, certainly
-    // not as a standard D3D9 material (see D3DLIGHTSTATE_MATERIAL).
-    m_commonViewport->SetBackgroundColor(commonMaterial->GetMaterialColor());
 
     return D3D_OK;
   }
@@ -281,7 +278,12 @@ namespace dxvk {
       m_device->GetD3D9()->SetViewport(m_commonViewport->GetD3D9Viewport());
     }
 
-    HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, m_commonViewport->GetBackgroundColor(), 1.0f, 0u);
+    static constexpr D3DCOLOR defaultColor = D3DCOLOR_ARGB(0, 0, 0, 0);
+    D3DMATERIALHANDLE handle = m_commonViewport->GetMaterialHandle();
+    D3DCommonMaterial* commonMaterial = m_commonViewport->GetCommonD3DInterface()->GetCommonMaterialFromHandle(handle);
+    D3DCOLOR clearColor = commonMaterial != nullptr ? commonMaterial->GetMaterialColor() : defaultColor;
+
+    HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, clearColor, 1.0f, 0u);
     if (unlikely(FAILED(hr9)))
       Logger::err("D3D3Viewport::Clear: Failed D3D9 Clear call");
 
