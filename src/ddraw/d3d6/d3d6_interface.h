@@ -55,6 +55,8 @@ namespace dxvk {
 
     D3D6Material* GetMaterialFromHandle(D3DMATERIALHANDLE handle);
 
+    void ReleaseMaterialHandle(D3DMATERIALHANDLE handle);
+
     D3DCommonInterface* GetCommonD3DInterface() const {
       return m_commonD3DIntf.ptr();
     }
@@ -72,7 +74,7 @@ namespace dxvk {
 
     Com<D3DCommonInterface>       m_commonD3DIntf;
 
-    std::unordered_map<D3DMATERIALHANDLE, D3D6Material> m_materials;
+    std::unordered_map<D3DMATERIALHANDLE, D3D6Material*> m_materials;
 
   };
 

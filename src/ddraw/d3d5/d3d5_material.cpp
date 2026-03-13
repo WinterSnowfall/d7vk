@@ -23,6 +23,8 @@ namespace dxvk {
   }
 
   D3D5Material::~D3D5Material() {
+    m_parent->ReleaseMaterialHandle(m_commonMaterial->GetMaterialHandle());
+
     Logger::debug(str::format("D3D5Material: Material nr. [[2-", m_materialCount, "]] bites the dust"));
   }
 
