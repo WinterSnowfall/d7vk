@@ -20,7 +20,7 @@ namespace dxvk {
     }
 
     if (m_commonD3DIntf == nullptr)
-      m_commonD3DIntf = new D3DCommonInterface();
+      m_commonD3DIntf = new D3DCommonInterface(D3DOptions(*m_bridge->GetConfig()));
 
     m_commonD3DIntf->SetD3D3Interface(this);
 

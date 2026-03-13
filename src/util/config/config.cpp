@@ -1381,7 +1381,7 @@ namespace dxvk {
      * and broken main menu animations.           */
     { R"(\\(1|I)nsane\\Game\.exe$)", {{
       { "d3d9.maxFrameRate",                "-240" },
-      { "ddraw.deviceTypeOverride",         "SWVP" },
+      { "ddraw.forceSWVP",                  "True" },
     }} },
     /* Arx Fatalis                                */
     { R"(\\arx\.exe$)", {{
@@ -1409,11 +1409,9 @@ namespace dxvk {
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
     /* Escape from Monkey Island                  *
-     * Startup crash with direct buffer mapping,  *
-     * broken animations/physics, and flip logic  */
+     * Fixes broken physics, and flip logic       */
     { R"(\\Monkey4\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-30" },
-      { "d3d9.allowDirectBufferMapping",   "False" },
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Gothic 1 - broken physics and              *
@@ -1637,6 +1635,10 @@ namespace dxvk {
     { R"(\\AoWSM(Compat)?\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Age of Wonders II: The Wizard's Throne     */
+    { R"(\\AoW2\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
     /* Hard Truck 2: King of the Road             */
     { R"(\\king\.exe$)", {{
       { "ddraw.colorKeyCompatibility",      "True" },
@@ -1688,7 +1690,7 @@ namespace dxvk {
     /* Tribes 2 - fixes rendering and performance */
     { R"(\\Tribes2\.exe$)", {{
       { "ddraw.ignoreExclusiveMode",        "True" },
-      { "ddraw.deviceTypeOverride",         "SWVP" },
+      { "ddraw.forceSWVP",                  "True" },
     }} },
 
     /**********************************************/
@@ -1747,7 +1749,6 @@ namespace dxvk {
     { R"(\\3dmark\.exe$)", {{
       { "d3d9.presentInterval",                "0" },
       { "d3d9.allowDirectBufferMapping",   "False" },
-      { "ddraw.deviceTypeOverride",    "SWVPMixed" },
     }} },
     /* Hidden & Dangerous (: Action Pack)         *
      * Prevents crashing on startup               */
@@ -1831,6 +1832,15 @@ namespace dxvk {
     { R"(\\Arabian Nights\\_start\.exe$)", {{
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
+    /* Metal Fatigue                              */
+    { R"(\\MFatigue\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Simon The Sorcerer 3D                      *
+     * Fixes Z-fighting artifacts with D16        */
+    { R"(\\MFatigue\.exe$)", {{
+      { "ddraw.supportD16",                "False" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */
@@ -1888,6 +1898,10 @@ namespace dxvk {
     /* Incoming - fixes load screen flickering    */
     { R"(\\incoming\.exe$)", {{
       { "ddraw.forceSingleBackBuffer",      "True" },
+    }} },
+    /* Lands of Lore III                          */
+    { R"(\\LOL3\.dat$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
     }} },
 
     /**********************************************/
