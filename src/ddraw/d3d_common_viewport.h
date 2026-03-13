@@ -55,14 +55,6 @@ namespace dxvk {
       return m_materialHandle;
     }
 
-    void SetBackgroundColor(D3DCOLOR backgroundColor) {
-      m_backgroundColor = backgroundColor;
-    }
-
-    D3DCOLOR GetBackgroundColor() const {
-      return m_backgroundColor;
-    }
-
     void SetIsCurrentViewport(bool isCurrentViewport) {
       m_isCurrentViewport = isCurrentViewport;
     }
@@ -116,7 +108,6 @@ namespace dxvk {
     D3DCommonInterface* m_commonD3DIntf     = nullptr;
 
     D3DMATERIALHANDLE   m_materialHandle    = 0;
-    D3DCOLOR            m_backgroundColor   = D3DCOLOR_RGBA(0, 0, 0, 0);
 
     d3d9::D3DVIEWPORT9  m_viewport9 = { };
 

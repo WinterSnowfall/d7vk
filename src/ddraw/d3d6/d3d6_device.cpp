@@ -656,9 +656,14 @@ namespace dxvk {
         m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MAGFILTER, lpdwRenderState);
         return D3D_OK;
 
-      case D3DRENDERSTATE_TEXTUREMIN:
-        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MINFILTER, lpdwRenderState);
+      case D3DRENDERSTATE_TEXTUREMIN: {
+        DWORD minFilter = 0;
+        DWORD mipFilter = 0;
+        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MINFILTER, &minFilter);
+        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MIPFILTER, &mipFilter);
+        *lpdwRenderState = DecodeTextureMinValues(minFilter, mipFilter);
         return D3D_OK;
+      }
 
       case D3DRENDERSTATE_TEXTUREMAPBLEND:
         *lpdwRenderState = m_textureMapBlend;
@@ -1643,7 +1648,7 @@ namespace dxvk {
         // "Any alpha values in the texture replace the alpha values in the colors that would
         //  have been used with no texturing; if the texture does not contain an alpha component,
         //  alpha values at the vertices in the source are interpolated between vertices."
-        if (m_textureMapBlend == D3DTBLEND_MODULATE) {
+        if (m_textureMapBlend == D3DTBLEND_MODULATE && !m_alphaOpSet) {
           const DWORD textureOp = surface6->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_MODULATE;
           m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
         }
@@ -1703,6 +1708,9 @@ namespace dxvk {
       m_d3d9->SetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSU, dwState);
       return m_d3d9->SetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSV, dwState);
     }
+
+    if (!m_alphaOpSet && d3dTexStageStateType == D3DTSS_ALPHAOP)
+      m_alphaOpSet = true;
 
     d3d9::D3DSAMPLERSTATETYPE stateType = ConvertSamplerStateType(d3dTexStageStateType);
 
