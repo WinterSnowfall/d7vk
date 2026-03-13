@@ -87,6 +87,13 @@ namespace dxvk {
                          std::forward_as_tuple(commonTex));
     }
 
+    void ReleaseTextureHandle(D3DTEXTUREHANDLE handle) {
+      auto textureIter = m_textures.find(handle);
+
+      if (likely(textureIter != m_textures.end()))
+        m_textures.erase(textureIter);
+    }
+
   private:
 
     bool                      m_needsInitialization = false;

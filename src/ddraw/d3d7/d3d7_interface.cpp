@@ -20,13 +20,11 @@ namespace dxvk {
     }
 
     if (m_commonD3DIntf == nullptr)
-      m_commonD3DIntf = new D3DCommonInterface();
+      m_commonD3DIntf = new D3DCommonInterface(D3DOptions(*m_bridge->GetConfig()));
 
     m_commonD3DIntf->SetD3D7Interface(this);
 
     m_bridge->EnableD3D7CompatibilityMode();
-
-    m_options = D3DOptions(*m_bridge->GetConfig());
 
     m_intfCount = ++s_intfCount;
 
@@ -116,6 +114,8 @@ namespace dxvk {
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+
     // Ideally we should take all the adapters into account, however
     // D3D7 supports one RGB (software emulation) device, one HAL device,
     // and one HAL T&L device, all indentified via GUIDs
@@ -124,7 +124,7 @@ namespace dxvk {
     // such as (The) Summoner, so always report RGB first, then HAL, then T&L HAL
 
     // Software emulation, this is expected to be exposed (SWVP)
-    D3DDEVICEDESC7 desc7RGB = GetD3D7Caps(IID_IDirect3DRGBDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
+    D3DDEVICEDESC7 desc7RGB = GetD3D7Caps(IID_IDirect3DRGBDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
     char deviceDescRGB[100] = "D7VK RGB";
     char deviceNameRGB[100] = "D7VK RGB";
 
@@ -133,7 +133,7 @@ namespace dxvk {
       return D3D_OK;
 
     // Hardware acceleration (no T&L, SWVP)
-    D3DDEVICEDESC7 desc7HAL = GetD3D7Caps(IID_IDirect3DHALDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
+    D3DDEVICEDESC7 desc7HAL = GetD3D7Caps(IID_IDirect3DHALDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
     char deviceDescHAL[100] = "D7VK HAL";
     char deviceNameHAL[100] = "D7VK HAL";
 
@@ -142,7 +142,7 @@ namespace dxvk {
       return D3D_OK;
 
     // Hardware acceleration with T&L (HWVP)
-    D3DDEVICEDESC7 desc7TNL = GetD3D7Caps(IID_IDirect3DTnLHalDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
+    D3DDEVICEDESC7 desc7TNL = GetD3D7Caps(IID_IDirect3DTnLHalDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
     char deviceDescTNL[100] = "D7VK T&L HAL";
     char deviceNameTNL[100] = "D7VK T&L HAL";
 
@@ -166,32 +166,28 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
 
-    if (likely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::None)) {
+    DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+    bool  rgbFallback          = false;
+
+    if (likely(!d3dOptions->forceSWVP)) {
       if (rclsid == IID_IDirect3DTnLHalDevice) {
         Logger::info("D3D7Interface::CreateDevice: Creating a IID_IDirect3DTnLHalDevice device");
-        // Do not use exclusive HWVP, since some games call ProcessVertices
-        // even in situations where they are expliclity using HW T&L
-        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+        deviceCreationFlags9 = D3DCREATE_HARDWARE_VERTEXPROCESSING;
       } else if (rclsid == IID_IDirect3DHALDevice) {
         Logger::info("D3D7Interface::CreateDevice: Creating a IID_IDirect3DHALDevice device");
+        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
       } else if (rclsid == IID_IDirect3DRGBDevice) {
         Logger::info("D3D7Interface::CreateDevice: Creating a IID_IDirect3DRGBDevice device");
       } else {
-        Logger::err("D3D7Interface::CreateDevice: Unsupported device type");
-        return DDERR_INVALIDPARAMS;
-      }
-    } else {
-      // Will default to SWVP, nothing to do in that case
-      if (m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed) {
-        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
-      } else if (m_options.deviceTypeOverride == D3DDeviceTypeOverride::HWVP) {
-        deviceCreationFlags9 = D3DCREATE_HARDWARE_VERTEXPROCESSING;
-      } else if (m_options.deviceTypeOverride == D3DDeviceTypeOverride::HWVPMixed) {
-        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+        Logger::warn("D3D7Interface::CreateDevice: Unsupported device type, falling back to RGB");
+        Logger::warn(str::format(rclsid));
+        rgbFallback = true;
       }
     }
+
+    const IID rclsidOverride = rgbFallback ? IID_IDirect3DRGBDevice : rclsid;
 
     DDrawCommonInterface* commonIntf = m_parent->GetCommonInterface();
 
@@ -210,7 +206,7 @@ namespace dxvk {
     }
 
     Com<IDirect3DDevice7> d3d7DeviceProxy;
-    HRESULT hr = m_proxy->CreateDevice(rclsid, rt7->GetProxied(), &d3d7DeviceProxy);
+    HRESULT hr = m_proxy->CreateDevice(rclsidOverride, rt7->GetProxied(), &d3d7DeviceProxy);
     if (unlikely(FAILED(hr))) {
       Logger::warn("D3D7Interface::CreateDevice: Failed to create the proxy device");
       return hr;
@@ -223,8 +219,8 @@ namespace dxvk {
     DWORD backBufferWidth  = desc.dwWidth;
     DWORD BackBufferHeight = desc.dwHeight;
 
-    if (likely(!m_options.forceProxiedPresent &&
-                m_options.backBufferResize)) {
+    if (likely(!d3dOptions->forceProxiedPresent &&
+                d3dOptions->backBufferResize)) {
       const bool exclusiveMode = commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
@@ -245,7 +241,7 @@ namespace dxvk {
 
     // Determine the supported AA sample count by querying the D3D9 interface
     d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
-    if (likely(m_options.emulateFSAA != FSAAEmulation::Disabled)) {
+    if (likely(d3dOptions->emulateFSAA != FSAAEmulation::Disabled)) {
       HRESULT hr4S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
                                                         TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
       if (unlikely(FAILED(hr4S))) {
@@ -268,7 +264,7 @@ namespace dxvk {
     Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
 
     DWORD backBufferCount = 0;
-    if (likely(!m_options.forceSingleBackBuffer)) {
+    if (likely(!d3dOptions->forceSingleBackBuffer)) {
       IDirectDrawSurface7* backBuffer = rt7->GetProxied();
       while (backBuffer != nullptr) {
         IDirectDrawSurface7* parentSurface = backBuffer;
@@ -303,7 +299,7 @@ namespace dxvk {
     params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
-    if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_options.forceMultiThreaded)
+    if ((cooperativeLevel & DDSCL_MULTITHREADED) || d3dOptions->forceMultiThreaded)
       deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
     // DDSCL_FPUSETUP was used exclusively prior to DDraw7 and had the opposite effect
     // to DDSCL_FPUPRESERVE. It is still present in DDraw7, now as the default state.
@@ -328,7 +324,7 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC7 desc7 = GetD3D7Caps(rclsid, m_options.emulateFSAA != FSAAEmulation::Disabled);
+    D3DDEVICEDESC7 desc7 = GetD3D7Caps(rclsidOverride, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
 
     try{
       Com<D3D7Device> device7 = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7,
@@ -339,9 +335,6 @@ namespace dxvk {
       commonIntf->SetD3D7Device(device7.ptr());
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       device7->InitializeDS();
-      // Enable SWVP in case of mixed SWVP devices
-      if (unlikely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
-        device7->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
 
       *ppd3dDevice = device7.ref();
     } catch (const DxvkError& e) {
@@ -385,12 +378,14 @@ namespace dxvk {
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+
     // There are just 3 supported depth stencil formats to worry about
     // in D3D9, so let's just enumerate them liniarly, for better clarity
     DDPIXELFORMAT depthFormat;
     HRESULT hr;
 
-    if (likely(m_options.supportD16)) {
+    if (likely(d3dOptions->supportD16)) {
       depthFormat = GetZBufferFormat(d3d9::D3DFMT_D16);
       hr = cb(&depthFormat, ctx);
       if (unlikely(hr == D3DENUMRET_CANCEL))

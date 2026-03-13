@@ -18,6 +18,8 @@ namespace dxvk {
   }
 
   D3D5Texture::~D3D5Texture() {
+    m_parent->GetParent()->ReleaseTextureHandle(m_commonTex->GetTextureHandle());
+
     Logger::debug(str::format("D3D5Texture: Texture nr. [[2-", m_texCount, "]] bites the dust"));
   }
 

@@ -34,11 +34,11 @@ I'll try to get as much game coverage as possible in D7VK, of course, but if som
 
 Yes, because D7VK relies on DXVK's D3D9 backend, so everything ends up there anyway.
 
-### VSync isn't turning off although the application lets me disable it. What gives?
+### VSync isn't turning off/on although the application lets me control it. What gives?
 
-VSync is universally enabled by default with older D3D, and thus also in D7VK. In fact, older D3D devices have to explicitly expose support for being able to *turn off* VSync, since not all of them were (allegedly) capable of doing it back in the day. This is why the vast majority of applications don't even bother with trying to change the defaults, and will implicitly enable VSync. In some cases, turning it off will simply not work reliably, even if an option is provided.
+VSync is universally enabled by default with older D3D, and thus also in D7VK. In fact, older D3D devices have to explicitly expose support for being able to *turn off* VSync, since not all of them were capable of doing it back in the day. Due to problematic implementations, given limited hardware support at the time, changing the default behavior may simply not work reliably, even if an option is provided.
 
-Note that D7VK does properly support turning it off in some cases, e.g. Unreal Tournament with the OldUnreal patch applied.
+Note that D7VK properly supports disabling VSync if applications consistently perform flips using the DDFLIP_NOVSYNC flag, e.g. Unreal Tournament with the OldUnreal patch applied, Re-Volt, 3DMark 2000 and others.
 
 That being said, D7VK will also enforce various frame rate limits, provided as built-in config options, for games that are known to break or suffer from various bugs at high frame rates. These situations are very much an issue on high refresh rate displays, regardless of VSync.
 

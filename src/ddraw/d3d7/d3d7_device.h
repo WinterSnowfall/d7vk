@@ -163,10 +163,6 @@ namespace dxvk {
       return m_ds;
     }
 
-    bool IsMixedHWVP() const {
-      return m_isMixedHWVP && m_parent->GetOptions()->deviceTypeOverride != D3DDeviceTypeOverride::SWVPMixed;
-    }
-
   private:
 
     inline HRESULT InitializeIndexBuffers();
@@ -187,7 +183,6 @@ namespace dxvk {
         m_commonIntf->SetD3D7Device(this);
     }
 
-    bool                        m_isMixedHWVP = false;
     bool                        m_inScene     = false;
 
     static uint32_t             s_deviceCount;

@@ -101,8 +101,8 @@ namespace dxvk {
     bool HasDrawn() const {
       // Returning true here means we skip all proxied back buffer blits,
       // whereas returning false means we allow all proxied back buffer blits
-      return m_options.backBufferGuard == D3DBackBufferGuard::Strict   ? true :
-             m_options.backBufferGuard == D3DBackBufferGuard::Disabled ? false : m_hasDrawn;
+      return m_d3dOptions.backBufferGuard == D3DBackBufferGuard::Strict   ? true :
+             m_d3dOptions.backBufferGuard == D3DBackBufferGuard::Disabled ? false : m_hasDrawn;
     }
 
     void UpdateDrawTracking() {
@@ -111,7 +111,7 @@ namespace dxvk {
     }
 
     void ResetDrawTracking() {
-      if (likely(m_options.backBufferGuard != D3DBackBufferGuard::Strict))
+      if (likely(m_d3dOptions.backBufferGuard != D3DBackBufferGuard::Strict))
         m_hasDrawn = false;
     }
 
@@ -129,7 +129,7 @@ namespace dxvk {
     }
 
     const D3DOptions* GetOptions() const {
-      return &m_options;
+      return &m_d3dOptions;
     }
 
     void SetWaitForVBlank(bool waitForVBlank) {
@@ -264,7 +264,7 @@ namespace dxvk {
 
     d3d9::D3DADAPTER_IDENTIFIER9      m_adapterIdentifier9 = { };
 
-    D3DOptions                        m_options;
+    D3DOptions                        m_d3dOptions;
 
     D3D3Interface*                    m_d3d3Intf           = nullptr;
 

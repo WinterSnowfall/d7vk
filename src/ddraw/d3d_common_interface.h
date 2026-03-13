@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ddraw_include.h"
+#include "ddraw_options.h"
 
 #include "d3d_common_material.h"
 
@@ -17,7 +18,7 @@ namespace dxvk {
 
   public:
 
-    D3DCommonInterface();
+    D3DCommonInterface(const D3DOptions& d3dOptions);
 
     ~D3DCommonInterface();
 
@@ -29,6 +30,10 @@ namespace dxvk {
     d3d9::D3DMATERIAL9* GetD3D9MaterialFromHandle(D3DMATERIALHANDLE handle) const;
 
     D3DCommonMaterial* GetCommonMaterialFromHandle(D3DMATERIALHANDLE handle) const;
+
+    const D3DOptions* GetOptions() const {
+      return &m_d3dOptions;
+    }
 
     D3DMATERIALHANDLE GetNextMaterialHandle() {
       return ++m_materialHandle;
@@ -69,12 +74,14 @@ namespace dxvk {
   private:
 
     // Track all possible last used D3D interfaces
-    D3D7Interface*                    m_d3d7Intf           = nullptr;
-    D3D6Interface*                    m_d3d6Intf           = nullptr;
-    D3D5Interface*                    m_d3d5Intf           = nullptr;
-    D3D3Interface*                    m_d3d3Intf           = nullptr;
+    D3D7Interface*    m_d3d7Intf       = nullptr;
+    D3D6Interface*    m_d3d6Intf       = nullptr;
+    D3D5Interface*    m_d3d5Intf       = nullptr;
+    D3D3Interface*    m_d3d3Intf       = nullptr;
 
-    D3DMATERIALHANDLE                 m_materialHandle = 0;
+    D3DMATERIALHANDLE m_materialHandle = 0;
+
+    D3DOptions        m_d3dOptions;
 
   };
 

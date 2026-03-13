@@ -21,7 +21,7 @@ namespace dxvk {
     , m_commonViewport ( commonViewport ) {
 
     if (m_commonViewport == nullptr)
-      m_commonViewport = new D3DCommonViewport();
+      m_commonViewport = new D3DCommonViewport(m_parent->GetCommonD3DInterface());
 
     if (m_commonViewport->GetOrigin() == nullptr)
       m_commonViewport->SetOrigin(this);
@@ -199,7 +199,7 @@ namespace dxvk {
     if (unlikely(m_commonViewport->GetMaterialHandle() == hMat))
       return D3D_OK;
 
-    D3DCommonMaterial* commonMaterial = m_parent->GetCommonD3DInterface()->GetCommonMaterialFromHandle(hMat);
+    D3DCommonMaterial* commonMaterial = m_commonViewport->GetCommonD3DInterface()->GetCommonMaterialFromHandle(hMat);
 
     if (unlikely(commonMaterial == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -405,7 +405,9 @@ namespace dxvk {
     viewport9->MinZ   = data->dvMaxZ <= 1.0f ? data->dvMinZ : data->dvMinZ / data->dvMaxZ;
     viewport9->MaxZ   = data->dvMaxZ <= 1.0f ? data->dvMaxZ : 1.0f;
 
-    if (unlikely(m_parent->GetOptions()->viewportCorrection)) {
+    const D3DOptions* d3dOptions = m_commonViewport->GetCommonD3DInterface()->GetOptions();
+
+    if (unlikely(d3dOptions->viewportCorrection)) {
       // The Summoner sets both to 0.0f and expects to end up with 0.0f / 1.0f
       if (viewport9->MinZ == 0.0f && viewport9->MaxZ == 0.0f) {
         viewport9->MaxZ = 1.0f;
