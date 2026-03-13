@@ -392,6 +392,25 @@ namespace dxvk {
     }
   }
 
+  inline DWORD DecodeTextureMinValues(DWORD minFilter, DWORD mipFilter) {
+    if (minFilter == d3d9::D3DTEXF_POINT) {
+      switch(mipFilter) {
+        default:
+        case d3d9::D3DTEXF_NONE:   return D3DFILTER_NEAREST;
+        case d3d9::D3DTEXF_POINT:  return D3DFILTER_MIPNEAREST;
+        case d3d9::D3DTEXF_LINEAR: return D3DFILTER_LINEARMIPNEAREST;
+      }
+    } else if (minFilter == d3d9::D3DTEXF_LINEAR) {
+      switch(mipFilter) {
+        default:
+        case d3d9::D3DTEXF_NONE:   return D3DFILTER_LINEAR;
+        case d3d9::D3DTEXF_POINT:  return D3DFILTER_MIPLINEAR;
+        case d3d9::D3DTEXF_LINEAR: return D3DFILTER_LINEARMIPLINEAR;
+      }
+    }
+    return 0;
+  }
+
   inline D3DDEVICEDESC3 GetD3D3Caps() {
     D3DDEVICEDESC3 desc;
 

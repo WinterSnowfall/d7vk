@@ -1832,9 +1832,11 @@ namespace dxvk {
     { R"(\\Arabian Nights\\_start\.exe$)", {{
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
-    /* Metal Fatigue                              */
+    /* Metal Fatigue                              *
+     * Fixes unit and building transparency       */
     { R"(\\MFatigue\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
+      { "ddraw.colorKeyCompatibility",      "True" },
     }} },
     /* Simon The Sorcerer 3D                      *
      * Fixes Z-fighting artifacts with D16        */

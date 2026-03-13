@@ -622,9 +622,14 @@ namespace dxvk {
         m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MAGFILTER, lpdwRenderState);
         return D3D_OK;
 
-      case D3DRENDERSTATE_TEXTUREMIN:
-        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MINFILTER, lpdwRenderState);
+      case D3DRENDERSTATE_TEXTUREMIN: {
+        DWORD minFilter = 0;
+        DWORD mipFilter = 0;
+        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MINFILTER, &minFilter);
+        m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MIPFILTER, &mipFilter);
+        *lpdwRenderState = DecodeTextureMinValues(minFilter, mipFilter);
         return D3D_OK;
+      }
 
       case D3DRENDERSTATE_TEXTUREMAPBLEND:
         *lpdwRenderState = m_textureMapBlend;
