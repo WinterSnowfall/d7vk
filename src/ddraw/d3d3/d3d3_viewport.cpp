@@ -21,7 +21,7 @@ namespace dxvk {
     , m_commonViewport ( commonViewport ) {
 
     if (m_commonViewport == nullptr)
-      m_commonViewport = new D3DCommonViewport();
+      m_commonViewport = new D3DCommonViewport(m_parent->GetCommonD3DInterface());
 
     if (m_commonViewport->GetOrigin() == nullptr)
       m_commonViewport->SetOrigin(this);
@@ -204,7 +204,7 @@ namespace dxvk {
     if (unlikely(m_commonViewport->GetMaterialHandle() == hMat))
       return D3D_OK;
 
-    D3DCommonMaterial* commonMaterial = m_parent->GetCommonD3DInterface()->GetCommonMaterialFromHandle(hMat);
+    D3DCommonMaterial* commonMaterial = m_commonViewport->GetCommonD3DInterface()->GetCommonMaterialFromHandle(hMat);
 
     if (unlikely(commonMaterial == nullptr))
       return DDERR_INVALIDPARAMS;

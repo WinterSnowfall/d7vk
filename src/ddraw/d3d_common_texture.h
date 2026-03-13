@@ -32,9 +32,9 @@ namespace dxvk {
 
   private:
 
-    DDrawCommonSurface*     m_commonSurf;
+    DDrawCommonSurface* m_commonSurf    = nullptr;
 
-    D3DTEXTUREHANDLE        m_textureHandle = 0;
+    D3DTEXTUREHANDLE    m_textureHandle = 0;
 
   };
 
