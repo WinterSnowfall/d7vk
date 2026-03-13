@@ -1840,7 +1840,7 @@ namespace dxvk {
     }} },
     /* Simon The Sorcerer 3D                      *
      * Fixes Z-fighting artifacts with D16        */
-    { R"(\\MFatigue\.exe$)", {{
+    { R"(\\Simon3D\.exe$)", {{
       { "ddraw.supportD16",                "False" },
     }} },
 
@@ -1893,9 +1893,11 @@ namespace dxvk {
     { R"(\\prophecy\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
-    /* Tom Clancy's Rainbow Six                   */
+    /* Tom Clancy's Rainbow Six                   *
+     * Fixes broken color key transparency        */
     { R"(\\RainbowSix\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
+      { "ddraw.colorKeyCompatibility",      "True" },
     }} },
     /* Incoming - fixes load screen flickering    */
     { R"(\\incoming\.exe$)", {{
