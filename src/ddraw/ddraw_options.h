@@ -12,14 +12,6 @@ namespace dxvk {
     Forced
   };
 
-  enum class D3DDeviceTypeOverride {
-    None,
-    SWVP,
-    SWVPMixed,
-    HWVP,
-    HWVPMixed
-  };
-
   enum class D3DBackBufferGuard {
     Disabled,
     Enabled,
@@ -30,6 +22,9 @@ namespace dxvk {
 
     /// Enforces the use of DDSCL_MULTITHREADED
     bool forceMultiThreaded;
+
+    /// Use SWVP mode for all D3D9 devices
+    bool forceSWVP;
 
     /// Replaces any use of D32 with D24X8
     bool useD24X8forD32;
@@ -76,9 +71,6 @@ namespace dxvk {
     /// Uses supported MSAA up to 4x to emulate FSAA
     FSAAEmulation emulateFSAA;
 
-    /// Force the use of a certain D3D9 device type
-    D3DDeviceTypeOverride deviceTypeOverride;
-
     /// Determines how uploads for back buffer blits are handled
     D3DBackBufferGuard backBufferGuard;
 
@@ -90,6 +82,7 @@ namespace dxvk {
     D3DOptions(const Config& config) {
       // D3D7/6/5/DDraw options
       this->forceMultiThreaded    = config.getOption<bool>   ("ddraw.forceMultiThreaded",    false);
+      this->forceSWVP             = config.getOption<bool>   ("ddraw.forceSWVP",             false);
       this->useD24X8forD32        = config.getOption<bool>   ("ddraw.useD24X8forD32",        false);
       this->supportD16            = config.getOption<bool>   ("ddraw.supportD16",             true);
       this->forceLegacyDiscard    = config.getOption<bool>   ("ddraw.forceLegacyDiscard",    false);
@@ -114,19 +107,6 @@ namespace dxvk {
         this->emulateFSAA = FSAAEmulation::Forced;
       } else {
         this->emulateFSAA = FSAAEmulation::Disabled;
-      }
-
-      std::string deviceTypeOverrideStr = Config::toLower(config.getOption<std::string>("ddraw.deviceTypeOverride", "auto"));
-      if (deviceTypeOverrideStr == "swvp") {
-        this->deviceTypeOverride = D3DDeviceTypeOverride::SWVP;
-      } else if (deviceTypeOverrideStr == "swvpmixed") {
-        this->deviceTypeOverride = D3DDeviceTypeOverride::SWVPMixed;
-      } else if (deviceTypeOverrideStr == "hwvp") {
-        this->deviceTypeOverride = D3DDeviceTypeOverride::HWVP;
-      } else if (deviceTypeOverrideStr == "hwvpmixed") {
-        this->deviceTypeOverride = D3DDeviceTypeOverride::HWVPMixed;
-      } else {
-        this->deviceTypeOverride = D3DDeviceTypeOverride::None;
       }
 
       std::string backBufferGuardStr = Config::toLower(config.getOption<std::string>("ddraw.backBufferGuard", "auto"));

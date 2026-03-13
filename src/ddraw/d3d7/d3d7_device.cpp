@@ -21,7 +21,6 @@ namespace dxvk {
       DDraw7Surface* pSurface,
       DWORD CreationFlags9)
     : DDrawWrappedObject<D3D7Interface, IDirect3DDevice7, d3d9::IDirect3DDevice9>(pParent, std::move(d3d7DeviceProxy), std::move(pDevice9))
-    , m_isMixedHWVP ( CreationFlags9 & D3DCREATE_MIXED_VERTEXPROCESSING )
     , m_commonIntf ( pParent->GetParent()->GetCommonInterface() )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
