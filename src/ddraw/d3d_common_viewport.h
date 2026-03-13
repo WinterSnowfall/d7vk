@@ -2,6 +2,8 @@
 
 #include "ddraw_include.h"
 
+#include "d3d_common_interface.h"
+
 namespace dxvk {
 
   class D3D6Viewport;
@@ -12,13 +14,17 @@ namespace dxvk {
 
   public:
 
-    D3DCommonViewport();
+    D3DCommonViewport(D3DCommonInterface* commonD3DIntf);
 
     ~D3DCommonViewport();
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
       *ppvObject = this;
       return S_OK;
+    }
+
+    D3DCommonInterface* GetCommonD3DInterface() const {
+      return m_commonD3DIntf;
     }
 
     d3d9::D3DVIEWPORT9* GetD3D9Viewport() {
@@ -103,21 +109,23 @@ namespace dxvk {
 
   private:
 
-    bool               m_isViewportSet     = false;
-    bool               m_isCurrentViewport = false;
-    bool               m_isMaterialSet     = false;
+    bool                m_isViewportSet     = false;
+    bool                m_isCurrentViewport = false;
+    bool                m_isMaterialSet     = false;
 
-    D3DMATERIALHANDLE  m_materialHandle    = 0;
-    D3DCOLOR           m_backgroundColor   = D3DCOLOR_RGBA(0, 0, 0, 0);
+    D3DCommonInterface* m_commonD3DIntf     = nullptr;
 
-    d3d9::D3DVIEWPORT9 m_viewport9 = { };
+    D3DMATERIALHANDLE   m_materialHandle    = 0;
+    D3DCOLOR            m_backgroundColor   = D3DCOLOR_RGBA(0, 0, 0, 0);
+
+    d3d9::D3DVIEWPORT9  m_viewport9 = { };
 
     // Track all possible viewport versions of the same object
-    D3D6Viewport*      m_d3d6Viewport      = nullptr;
-    D3D5Viewport*      m_d3d5Viewport      = nullptr;
-    D3D3Viewport*      m_d3d3Viewport      = nullptr;
+    D3D6Viewport*       m_d3d6Viewport      = nullptr;
+    D3D5Viewport*       m_d3d5Viewport      = nullptr;
+    D3D3Viewport*       m_d3d3Viewport      = nullptr;
 
-    IUnknown*          m_origin            = nullptr;
+    IUnknown*           m_origin            = nullptr;
 
   };
 

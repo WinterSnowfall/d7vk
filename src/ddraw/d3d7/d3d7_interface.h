@@ -45,7 +45,7 @@ namespace dxvk {
     }
 
     const D3DOptions* GetOptions() const {
-      return &m_options;
+      return m_commonD3DIntf->GetOptions();
     }
 
   private:
@@ -56,8 +56,6 @@ namespace dxvk {
     Com<IDxvkD3D8InterfaceBridge> m_bridge;
 
     Com<D3DCommonInterface>       m_commonD3DIntf;
-
-    D3DOptions                    m_options;
 
   };
 
