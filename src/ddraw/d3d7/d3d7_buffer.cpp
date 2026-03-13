@@ -146,9 +146,6 @@ namespace dxvk {
 
     D3D7DeviceLock lock = device->LockDevice();
 
-    if (device->IsMixedHWVP())
-      device->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
-
     HandlePreProcessVerticesFlags(dwVertexOp);
 
     device->GetD3D9()->SetFVF(m_desc.dwFVF);
@@ -159,9 +156,6 @@ namespace dxvk {
     }
 
     HandlePostProcessVerticesFlags(dwVertexOp);
-
-    if (device->IsMixedHWVP())
-      device->GetD3D9()->SetSoftwareVertexProcessing(FALSE);
 
     return hr;
   }
@@ -185,17 +179,11 @@ namespace dxvk {
 
     D3D7DeviceLock lock = device->LockDevice();
 
-    if (device->IsMixedHWVP())
-      device->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
-
     HandlePreProcessVerticesFlags(dwVertexOp);
 
     // TODO: lpVertexArray needs to be transformed into a non-strided vertex buffer stream
 
     HandlePostProcessVerticesFlags(dwVertexOp);
-
-    if (device->IsMixedHWVP())
-      device->GetD3D9()->SetSoftwareVertexProcessing(FALSE);
 
     return D3D_OK;
   }
@@ -233,7 +221,7 @@ namespace dxvk {
 
     Logger::debug(str::format("D3D7VertexBuffer::InitializeD3D9: Placing in: ", poolPlacement));
 
-    const DWORD usage = ConvertD3D7UsageFlags(m_desc.dwCaps, pool);
+    const DWORD usage = ConvertD3D7UsageFlags(m_desc.dwCaps);
     m_legacyDiscard = m_commonIntf->GetOptions()->forceLegacyDiscard &&
                       (usage & D3DUSAGE_DYNAMIC) && (usage & D3DUSAGE_WRITEONLY);
     HRESULT hr = m_d3d7Device->GetD3D9()->CreateVertexBuffer(m_size, usage, m_desc.dwFVF, pool, &m_d3d9, nullptr);

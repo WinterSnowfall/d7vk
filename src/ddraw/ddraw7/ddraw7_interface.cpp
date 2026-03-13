@@ -350,19 +350,14 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps) {
     Logger::debug("<<< DDraw7Interface::GetCaps: Proxy");
 
-    DDCAPS lpDDDriverCapProxy;
-    DDCAPS lpDDHELCapsProxy;
-
-    HRESULT hr = m_proxy->GetCaps(&lpDDDriverCapProxy, &lpDDHELCapsProxy);
+    HRESULT hr = m_proxy->GetCaps(lpDDDriverCaps, lpDDHELCaps);
     if (unlikely(FAILED(hr)))
       return hr;
 
-    lpDDDriverCapProxy.dwCaps2 |= DDCAPS2_FLIPINTERVAL | DDCAPS2_FLIPNOVSYNC;
-
     if (lpDDDriverCaps != nullptr)
-      *lpDDDriverCaps = lpDDDriverCapProxy;
+      lpDDDriverCaps->dwCaps2 |= DDCAPS2_FLIPINTERVAL | DDCAPS2_FLIPNOVSYNC;
     if (lpDDHELCaps != nullptr)
-      *lpDDHELCaps = lpDDHELCapsProxy;
+      lpDDHELCaps->dwCaps2 |= DDCAPS2_FLIPINTERVAL | DDCAPS2_FLIPNOVSYNC;
 
     return DD_OK;
   }

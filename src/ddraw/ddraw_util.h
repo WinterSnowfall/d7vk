@@ -120,7 +120,7 @@ namespace dxvk {
     return lockFlagsD3D9;
   }
 
-  inline DWORD ConvertD3D6UsageFlags(DWORD usageFlags, DWORD creationFlags, d3d9::D3DPOOL pool) {
+  inline DWORD ConvertD3D6UsageFlags(DWORD usageFlags, DWORD creationFlags) {
     DWORD usageFlagsD3D9 = 0;
 
     // The D3D6 docs do not mention the presence of a D3DVBCAPS_DONOTCLIP flag,
@@ -128,35 +128,30 @@ namespace dxvk {
     if ((usageFlags & D3DVBCAPS_DONOTCLIP) || (creationFlags & D3DDP_DONOTCLIP)) {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_DONOTCLIP;
     }
-    if (usageFlags & D3DVBCAPS_SYSTEMMEMORY) {
-      usageFlagsD3D9 |= (DWORD)D3DUSAGE_SOFTWAREPROCESSING;
-    }
     if (usageFlags & D3DVBCAPS_WRITEONLY) {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_WRITEONLY;
     }
 
     // D3D6 does not use DDLOCK_DISCARDCONTENTS or
-    // DDLOCK_NOOVERWRITE, however, still mark DEFAULT buffers
+    // DDLOCK_NOOVERWRITE, however, still mark all buffers
     // as DYNAMIC to handle any potential CPU read-backs
-    return pool == d3d9::D3DPOOL_DEFAULT ? usageFlagsD3D9 | D3DUSAGE_DYNAMIC : usageFlagsD3D9;
+    return usageFlagsD3D9 | D3DUSAGE_DYNAMIC;
   }
 
-  inline DWORD ConvertD3D7UsageFlags(DWORD usageFlags, d3d9::D3DPOOL pool) {
+  inline DWORD ConvertD3D7UsageFlags(DWORD usageFlags) {
     DWORD usageFlagsD3D9 = 0;
 
     if (usageFlags & D3DVBCAPS_DONOTCLIP) {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_DONOTCLIP;
     }
-    if (usageFlags & D3DVBCAPS_SYSTEMMEMORY) {
-      usageFlagsD3D9 |= (DWORD)D3DUSAGE_SOFTWAREPROCESSING;
-    }
     if (usageFlags & D3DVBCAPS_WRITEONLY) {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_WRITEONLY;
     }
 
-    // Though D3D7 does not specify it, all D3DPOOL_DEFAULT buffers need
-    // to be DYNAMIC, otherwise some lock flags will not work properly
-    return pool == d3d9::D3DPOOL_DEFAULT ? usageFlagsD3D9 | D3DUSAGE_DYNAMIC : usageFlagsD3D9;
+    // Though D3D7 does not specify it, all buffers need
+    // to be DYNAMIC, either due to some lock flags not
+    // working properly otherwise, or for performance reasons
+    return usageFlagsD3D9 | D3DUSAGE_DYNAMIC;
   }
 
   inline size_t GetFVFPositionSize(DWORD fvf) {

@@ -26,13 +26,11 @@ namespace dxvk {
     }
 
     if (m_commonD3DIntf == nullptr)
-      m_commonD3DIntf = new D3DCommonInterface();
+      m_commonD3DIntf = new D3DCommonInterface(D3DOptions(*m_bridge->GetConfig()));
 
     m_commonD3DIntf->SetD3D5Interface(this);
 
     m_bridge->EnableD3D5CompatibilityMode();
-
-    m_options = D3DOptions(*m_bridge->GetConfig());
 
     m_intfCount = ++s_intfCount;
 
@@ -124,13 +122,15 @@ namespace dxvk {
     if (unlikely(lpEnumDevicesCallback == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+
     // D3D5 reports both HAL and HEL caps for any time of device,
     // with minor differences between the two. Note that the
     // device listing order matters, so list RGB first, HAL second.
 
     // Software emulation, this is expected to be exposed (SWVP)
     GUID guidRGB = IID_IDirect3DRGBDevice;
-    D3DDEVICEDESC2 desc2RGB_HAL = GetD3D5Caps(IID_IDirect3DRGBDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
+    D3DDEVICEDESC2 desc2RGB_HAL = GetD3D5Caps(IID_IDirect3DRGBDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
     D3DDEVICEDESC2 desc2RGB_HEL = desc2RGB_HAL;
     D3DDEVICEDESC descRGB_HAL = { };
     D3DDEVICEDESC descRGB_HEL = { };
@@ -155,7 +155,7 @@ namespace dxvk {
 
     // Hardware acceleration (SWVP)
     GUID guidHAL = IID_IDirect3DHALDevice;
-    D3DDEVICEDESC2 desc2HAL_HAL = GetD3D5Caps(IID_IDirect3DHALDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
+    D3DDEVICEDESC2 desc2HAL_HAL = GetD3D5Caps(IID_IDirect3DHALDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
     D3DDEVICEDESC2 desc2HAL_HEL = desc2HAL_HAL;
     D3DDEVICEDESC descHAL_HAL = { };
     D3DDEVICEDESC descHAL_HEL = { };
@@ -232,8 +232,10 @@ namespace dxvk {
     if (unlikely(lpD3DFDS->dwSize != sizeof(D3DFINDDEVICESEARCH)))
       return DDERR_INVALIDPARAMS;
 
+    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+
     // Software emulation, this is expected to be exposed (SWVP)
-    D3DDEVICEDESC2 descRGB_HAL = GetD3D5Caps(IID_IDirect3DRGBDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
+    D3DDEVICEDESC2 descRGB_HAL = GetD3D5Caps(IID_IDirect3DRGBDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
     D3DDEVICEDESC2 descRGB_HEL = descRGB_HAL;
     descRGB_HAL.dwFlags = 0;
     descRGB_HAL.dcmColorModel = 0;
@@ -246,7 +248,7 @@ namespace dxvk {
     descRGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
 
     // Hardware acceleration (SWVP)
-    D3DDEVICEDESC2 descHAL_HAL = GetD3D5Caps(IID_IDirect3DHALDevice, m_options.emulateFSAA != FSAAEmulation::Disabled);
+    D3DDEVICEDESC2 descHAL_HAL = GetD3D5Caps(IID_IDirect3DHALDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
     D3DDEVICEDESC2 descHAL_HEL = descHAL_HAL;
     descHAL_HEL.dcmColorModel = 0;
     descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
@@ -314,13 +316,15 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
+    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
     bool  rgbFallback          = false;
-    bool  halFallback          = false;
 
-    if (likely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::None)) {
+    if (likely(!d3dOptions->forceSWVP)) {
       if (rclsid == IID_IDirect3DHALDevice) {
         Logger::info("D3D5Interface::CreateDevice: Creating a IID_IDirect3DHALDevice device");
+        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
       } else if (rclsid == IID_IDirect3DRGBDevice) {
         Logger::info("D3D5Interface::CreateDevice: Creating a IID_IDirect3DRGBDevice device");
       } else if (rclsid == IID_IDirect3DMMXDevice) {
@@ -330,23 +334,13 @@ namespace dxvk {
         Logger::warn("D3D5Interface::CreateDevice: Unsupported Ramp device, falling back to RGB");
         rgbFallback = true;
       } else {
-        Logger::warn("D3D5Interface::CreateDevice: Unknown device identifier, falling back to HAL");
+        Logger::warn("D3D5Interface::CreateDevice: Unknown device identifier, falling back to RGB");
         Logger::warn(str::format(rclsid));
-        halFallback = true;
-      }
-    } else {
-      // Will default to SWVP, nothing to do in that case
-      if (m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed) {
-        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
-      } else if (m_options.deviceTypeOverride == D3DDeviceTypeOverride::HWVP) {
-        deviceCreationFlags9 = D3DCREATE_HARDWARE_VERTEXPROCESSING;
-      } else if (m_options.deviceTypeOverride == D3DDeviceTypeOverride::HWVPMixed) {
-        deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+        rgbFallback = true;
       }
     }
 
-    const IID rclsidOverride = rgbFallback ? IID_IDirect3DRGBDevice :
-                               halFallback ? IID_IDirect3DHALDevice : rclsid;
+    const IID rclsidOverride = rgbFallback ? IID_IDirect3DRGBDevice : rclsid;
 
     DDrawCommonInterface* commonIntf = m_parent->GetCommonInterface();
 
@@ -393,8 +387,8 @@ namespace dxvk {
     DWORD backBufferWidth  = desc.dwWidth;
     DWORD BackBufferHeight = desc.dwHeight;
 
-    if (likely(!m_options.forceProxiedPresent &&
-                m_options.backBufferResize)) {
+    if (likely(!d3dOptions->forceProxiedPresent &&
+                d3dOptions->backBufferResize)) {
       const bool exclusiveMode = commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
@@ -415,7 +409,7 @@ namespace dxvk {
 
     // Determine the supported AA sample count by querying the D3D9 interface
     d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
-    if (likely(m_options.emulateFSAA != FSAAEmulation::Disabled)) {
+    if (likely(d3dOptions->emulateFSAA != FSAAEmulation::Disabled)) {
       HRESULT hr4S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
                                                         TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
       if (unlikely(FAILED(hr4S))) {
@@ -438,7 +432,7 @@ namespace dxvk {
     Logger::info(str::format("D3D5Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
 
     DWORD backBufferCount = 0;
-    if (likely(!m_options.forceSingleBackBuffer)) {
+    if (likely(!d3dOptions->forceSingleBackBuffer)) {
       IDirectDrawSurface* backBuffer = rt->GetProxied();
       while (backBuffer != nullptr) {
         IDirectDrawSurface* parentSurface = backBuffer;
@@ -471,7 +465,7 @@ namespace dxvk {
     params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
     params.PresentationInterval       = D3DPRESENT_INTERVAL_DEFAULT; // A D3D5 device always uses VSync
 
-    if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_options.forceMultiThreaded)
+    if ((cooperativeLevel & DDSCL_MULTITHREADED) || d3dOptions->forceMultiThreaded)
       deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
     // DDSCL_FPUPRESERVE does not exist prior to DDraw7,
     // and DDSCL_FPUSETUP is NOT the default state
@@ -495,7 +489,7 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC2 desc5 = GetD3D5Caps(rclsidOverride, m_options.emulateFSAA != FSAAEmulation::Disabled);
+    D3DDEVICEDESC2 desc5 = GetD3D5Caps(rclsidOverride, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
 
     try{
       Com<D3D5Device> device5 = new D3D5Device(std::move(d3d5DeviceProxy), this, desc5,
@@ -506,9 +500,6 @@ namespace dxvk {
       commonIntf->SetD3D5Device(device5.ptr());
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       device5->InitializeDS();
-      // Enable SWVP in case of mixed SWVP devices
-      if (unlikely(m_options.deviceTypeOverride == D3DDeviceTypeOverride::SWVPMixed))
-        device5->GetD3D9()->SetSoftwareVertexProcessing(TRUE);
 
       *lplpD3DDevice = device5.ref();
     } catch (const DxvkError& e) {

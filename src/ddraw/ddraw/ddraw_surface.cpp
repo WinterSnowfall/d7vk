@@ -110,23 +110,28 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
     // The standard way of creating a new D3D3 device. Outside of RGB and HAL,
     // some applications (e.g. Dark Rift) query for Wine's advertised custom device IID.
     if (riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DRGBDevice || riid == IID_WineD3DDevice) {
-      if (riid == IID_IDirect3DHALDevice) {
-        Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DHALDevice");
-      } else if (riid == IID_IDirect3DRGBDevice) {
-        Logger::info("DDrawSurface::QueryInterface: Query for IID_IDirect3DRGBDevice");
-      } else {
-        Logger::warn("DDrawSurface::QueryInterface: Query for unsupported device type");
+      DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+      bool  rgbFallback          = false;
+
+      if (likely(!d3dOptions->forceSWVP)) {
+        if (riid == IID_IDirect3DHALDevice) {
+          Logger::info("DDrawSurface::QueryInterface: Creating a IID_IDirect3DHALDevice device");
+          deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+        } else if (riid == IID_IDirect3DRGBDevice) {
+          Logger::info("DDrawSurface::QueryInterface: Creating a IID_IDirect3DRGBDevice device");
+        } else {
+          Logger::warn("DDrawSurface::QueryInterface: Unknown device identifier, falling back to RGB");
+          Logger::warn(str::format(riid));
+          rgbFallback = true;
+        }
       }
 
-      Com<IDirect3DDevice> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+      const IID rclsidOverride = rgbFallback ? IID_IDirect3DRGBDevice : riid;
 
       HWND hWnd = m_commonIntf->GetHWND();
       // Needed to sometimes safely skip intro playback on legacy devices
@@ -134,11 +139,16 @@ namespace dxvk {
         Logger::debug("DDrawSurface::QueryInterface: HWND is NULL");
       }
 
+      Com<IDirect3DDevice> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(rclsidOverride, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
       DWORD backBufferWidth  = m_commonSurf->GetDesc()->dwWidth;
       DWORD BackBufferHeight = m_commonSurf->GetDesc()->dwHeight;
 
-      if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent &&
-                  m_commonIntf->GetOptions()->backBufferResize)) {
+      if (likely(!d3dOptions->forceProxiedPresent &&
+                  d3dOptions->backBufferResize)) {
         const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
         // Ignore any mode size dimensions when in windowed present mode
@@ -163,7 +173,7 @@ namespace dxvk {
 
       // Determine the supported AA sample count by querying the D3D9 interface
       d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
-      if (likely(m_commonIntf->GetOptions()->emulateFSAA != FSAAEmulation::Disabled)) {
+      if (likely(d3dOptions->emulateFSAA != FSAAEmulation::Disabled)) {
         HRESULT hr4S = d3d3Intf->GetD3D9()->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, m_commonSurf->GetD3D9Format(),
                                                                        TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
         if (unlikely(FAILED(hr4S))) {
@@ -186,7 +196,7 @@ namespace dxvk {
       Logger::info(str::format("DDrawSurface::QueryInterface: Back buffer size: ", backBufferWidth, "x", BackBufferHeight));
 
       DWORD backBufferCount = 0;
-      if (likely(!m_commonIntf->GetOptions()->forceSingleBackBuffer)) {
+      if (likely(!d3dOptions->forceSingleBackBuffer)) {
         IDirectDrawSurface* backBuffer = m_proxy.ptr();
         while (backBuffer != nullptr) {
           IDirectDrawSurface* parentSurface = backBuffer;
@@ -219,7 +229,7 @@ namespace dxvk {
       params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
       params.PresentationInterval       = D3DPRESENT_INTERVAL_DEFAULT; // A D3D3 device always uses VSync
 
-      if ((cooperativeLevel & DDSCL_MULTITHREADED) || m_commonIntf->GetOptions()->forceMultiThreaded)
+      if ((cooperativeLevel & DDSCL_MULTITHREADED) || d3dOptions->forceMultiThreaded)
         deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
       // DDSCL_FPUPRESERVE does not exist prior to DDraw7,
       // and DDSCL_FPUSETUP is NOT the default state
@@ -243,7 +253,7 @@ namespace dxvk {
         return hr;
       }
 
-      Com<D3D3Device> device3 = new D3D3Device(std::move(ppvProxyObject), this, GetD3D3Caps(), riid,
+      Com<D3D3Device> device3 = new D3D3Device(std::move(ppvProxyObject), this, GetD3D3Caps(), rclsidOverride,
                                                params, std::move(device9), deviceCreationFlags9);
 
       // Set the newly created D3D3 device on the common interface
