@@ -38,6 +38,9 @@ namespace dxvk {
     /// Temporary workaround for bad behaving viewport MinZ/MaxZ use
     bool viewportCorrection;
 
+    /// Circumvents the texelFetch color key shader path
+    bool colorKeyCompatibility;
+
     /// Map all back buffers onto a single D3D9 back buffer
     bool forceSingleBackBuffer;
 
@@ -87,6 +90,7 @@ namespace dxvk {
       this->supportD16            = config.getOption<bool>   ("ddraw.supportD16",             true);
       this->forceLegacyDiscard    = config.getOption<bool>   ("ddraw.forceLegacyDiscard",    false);
       this->viewportCorrection    = config.getOption<bool>   ("ddraw.viewportCorrection",    false);
+      this->colorKeyCompatibility = config.getOption<bool>   ("ddraw.colorKeyCompatibility", false);
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);
       this->backBufferWriteBack   = config.getOption<bool>   ("ddraw.backBufferWriteBack",   false);
@@ -98,7 +102,7 @@ namespace dxvk {
       this->autoGenMipMaps        = config.getOption<bool>   ("ddraw.autoGenMipMaps",        false);
       this->apitraceMode          = config.getOption<bool>   ("ddraw.apitraceMode",          false);
       // D3D9 options
-      this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",      1024);
+      this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",      2040);
 
       std::string emulateFSAAStr = Config::toLower(config.getOption<std::string>("ddraw.emulateFSAA", "auto"));
       if (emulateFSAAStr == "true") {
