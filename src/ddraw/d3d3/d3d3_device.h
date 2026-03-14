@@ -138,7 +138,6 @@ namespace dxvk {
     static uint32_t                s_deviceCount;
     uint32_t                       m_deviceCount = 0;
 
-    DDrawInterface*                m_DDIntfParent = nullptr;
     DDrawCommonInterface*          m_commonIntf = nullptr;
 
     Com<DxvkD3D8Bridge>            m_bridge;

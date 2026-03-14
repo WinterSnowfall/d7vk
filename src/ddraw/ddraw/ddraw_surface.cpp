@@ -253,8 +253,8 @@ namespace dxvk {
         return hr;
       }
 
-      Com<D3D3Device> device3 = new D3D3Device(std::move(ppvProxyObject), this, GetD3D3Caps(), rclsidOverride,
-                                               params, std::move(device9), deviceCreationFlags9);
+      Com<D3D3Device> device3 = new D3D3Device(std::move(ppvProxyObject), this, GetD3D3Caps(d3dOptions->supportD16),
+                                               rclsidOverride, params, std::move(device9), deviceCreationFlags9);
 
       // Set the newly created D3D3 device on the common interface
       m_commonIntf->SetD3D3Device(device3.ptr());
