@@ -9,8 +9,8 @@ namespace dxvk {
 
   uint32_t D3D7Device::s_deviceCount = 0;
 
-  // Index buffer sizes of XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb
-  static constexpr UINT IndexCount[ddrawCaps::IndexBufferCount] = {256, 1024, 4096, 16384, D3DMAXNUMVERTICES};
+  // Index buffer sizes of XXS, XS, S, M, L, XL and XXL, corresponding to 0.1 kb, 0.5 kb, 2 kb, 8 kb, 32 kb, 64 kb and 128 kb
+  static constexpr UINT IndexCount[ddrawCaps::IndexBufferCount] = {64, 256, 1024, 4096, 16384, 32768, D3DMAXNUMVERTICES};
 
   D3D7Device::D3D7Device(
       Com<IDirect3DDevice7>&& d3d7DeviceProxy,
@@ -38,7 +38,9 @@ namespace dxvk {
     // Common D3D9 index buffers
     m_ib9.fill(nullptr);
 
-    if (unlikely(m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Forced)) {
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+    if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
       Logger::warn("D3D7Device: Force enabling AA");
       m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
     }
@@ -49,14 +51,15 @@ namespace dxvk {
   }
 
   D3D7Device::~D3D7Device() {
-    // If at least the smallest index buffer saw any use, then print the stats
-    if (m_ib9_uploads[0] > 0) {
-      Logger::info("D3D7Device: Common index buffer upload statistics:");
-      Logger::info(str::format("   XS: ", m_ib9_uploads[0]));
-      Logger::info(str::format("   S : ", m_ib9_uploads[1]));
-      Logger::info(str::format("   M : ", m_ib9_uploads[2]));
-      Logger::info(str::format("   L : ", m_ib9_uploads[3]));
-      Logger::info(str::format("   XL: ", m_ib9_uploads[4]));
+    if (LogIndexBufferUsageStats()) {
+      Logger::info("D3D7Device: Index buffer upload statistics:");
+      Logger::info(str::format("   XXS: ", m_ib9_uploads[0]));
+      Logger::info(str::format("   XS : ", m_ib9_uploads[1]));
+      Logger::info(str::format("   S  : ", m_ib9_uploads[2]));
+      Logger::info(str::format("   M  : ", m_ib9_uploads[3]));
+      Logger::info(str::format("   L  : ", m_ib9_uploads[4]));
+      Logger::info(str::format("   XL : ", m_ib9_uploads[5]));
+      Logger::info(str::format("   XXL: ", m_ib9_uploads[6]));
     }
 
     // Clear the common interface device pointer if it points to this device
@@ -240,7 +243,9 @@ namespace dxvk {
     HRESULT hr = m_d3d9->EndScene();
 
     if (likely(SUCCEEDED(hr))) {
-      if (m_parent->GetOptions()->forceProxiedPresent) {
+      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+      if (d3dOptions->forceProxiedPresent) {
         // If we have drawn anything, we need to make sure we blit back
         // the results onto the D3D7 render target before we flip it
         if (m_commonIntf->HasDrawn())
@@ -249,7 +254,7 @@ namespace dxvk {
         m_rt->GetProxied()->Flip(static_cast<IDirectDrawSurface7*>(m_commonIntf->GetFlipRTSurface()),
                                  m_commonIntf->GetFlipRTFlags());
 
-        if (likely(m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
+        if (likely(d3dOptions->backBufferGuard != D3DBackBufferGuard::Strict))
           m_commonIntf->ResetDrawTracking();
       }
 
@@ -287,7 +292,9 @@ namespace dxvk {
 
     DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
 
-    if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+    if (unlikely(d3dOptions->forceProxiedPresent)) {
       HRESULT hrRT7 = m_proxy->SetRenderTarget(rt7->GetProxied(), flags);
       if (unlikely(FAILED(hrRT7))) {
         Logger::warn("D3D7Device::SetRenderTarget: Failed to set RT");
@@ -417,9 +424,10 @@ namespace dxvk {
 
     d3d9::D3DVIEWPORT9* data9 = reinterpret_cast<d3d9::D3DVIEWPORT9*>(data);
 
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
     // (The) Summoner sets both to 0.0f and expects to get
     // the behavioral equivalent of setting 0.0f/1.0f
-    if (unlikely(m_parent->GetOptions()->viewportCorrection && data9->MinZ == 0.0f && data9->MaxZ == 0.0f))
+    if (unlikely(d3dOptions->viewportCorrection && data9->MinZ == 0.0f && data9->MaxZ == 0.0f))
       data9->MaxZ = 1.0f;
 
     return m_d3d9->SetViewport(data9);
@@ -473,7 +481,9 @@ namespace dxvk {
         break;
 
       case D3DRENDERSTATE_ANTIALIAS: {
-        if (likely(m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Disabled)) {
+        const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+        if (likely(d3dOptions->emulateFSAA == FSAAEmulation::Disabled)) {
           if (unlikely(dwRenderState == D3DANTIALIAS_SORTDEPENDENT
                     || dwRenderState == D3DANTIALIAS_SORTINDEPENDENT))
             Logger::warn("D3D7Device::SetRenderState: Device does not expose FSAA emulation");
@@ -484,7 +494,7 @@ namespace dxvk {
         m_antialias   = dwRenderState;
         dwRenderState = m_antialias == D3DANTIALIAS_SORTDEPENDENT
                      || m_antialias == D3DANTIALIAS_SORTINDEPENDENT
-                     || m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Forced ? TRUE : FALSE;
+                     || d3dOptions->emulateFSAA == FSAAEmulation::Forced ? TRUE : FALSE;
         break;
       }
 
@@ -1065,8 +1075,7 @@ namespace dxvk {
       InitializeIndexBuffers();
 
     uint8_t ibIndex = 0;
-    // Try to fit index buffer uploads into the smallest buffer size possible,
-    // out of the five available: XS, S, M, L and XL (XL being the theoretical max)
+    // Fit index buffer uploads into the smallest buffer size possible
     while (dwIndexCount > IndexCount[ibIndex]) {
       ibIndex++;
       if (unlikely(ibIndex > ddrawCaps::IndexBufferCount - 1)) {

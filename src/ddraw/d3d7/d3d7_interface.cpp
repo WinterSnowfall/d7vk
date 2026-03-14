@@ -123,8 +123,9 @@ namespace dxvk {
     // Note: The enumeration order seems to matter for some applications,
     // such as (The) Summoner, so always report RGB first, then HAL, then T&L HAL
 
-    // Software emulation, this is expected to be exposed (SWVP)
-    D3DDEVICEDESC7 desc7RGB = GetD3D7Caps(IID_IDirect3DRGBDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
+    // Software emulation, this is expected to be exposed
+    D3DDEVICEDESC7 desc7RGB = GetD3D7Caps(IID_IDirect3DRGBDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled,
+                                          d3dOptions->supportD16);
     char deviceDescRGB[100] = "D7VK RGB";
     char deviceNameRGB[100] = "D7VK RGB";
 
@@ -132,8 +133,9 @@ namespace dxvk {
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
-    // Hardware acceleration (no T&L, SWVP)
-    D3DDEVICEDESC7 desc7HAL = GetD3D7Caps(IID_IDirect3DHALDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
+    // Hardware acceleration (no T&L)
+    D3DDEVICEDESC7 desc7HAL = GetD3D7Caps(IID_IDirect3DHALDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled,
+                                          d3dOptions->supportD16);
     char deviceDescHAL[100] = "D7VK HAL";
     char deviceNameHAL[100] = "D7VK HAL";
 
@@ -141,8 +143,9 @@ namespace dxvk {
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
-    // Hardware acceleration with T&L (HWVP)
-    D3DDEVICEDESC7 desc7TNL = GetD3D7Caps(IID_IDirect3DTnLHalDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
+    // Hardware acceleration with T&L
+    D3DDEVICEDESC7 desc7TNL = GetD3D7Caps(IID_IDirect3DTnLHalDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled,
+                                          d3dOptions->supportD16);
     char deviceDescTNL[100] = "D7VK T&L HAL";
     char deviceNameTNL[100] = "D7VK T&L HAL";
 
@@ -324,7 +327,8 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC7 desc7 = GetD3D7Caps(rclsidOverride, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
+    D3DDEVICEDESC7 desc7 = GetD3D7Caps(rclsidOverride, d3dOptions->emulateFSAA != FSAAEmulation::Disabled,
+                                       d3dOptions->supportD16);
 
     try{
       Com<D3D7Device> device7 = new D3D7Device(std::move(d3d7DeviceProxy), this, desc7,

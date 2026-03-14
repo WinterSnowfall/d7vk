@@ -354,10 +354,54 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (lpDDDriverCaps != nullptr)
+    static constexpr DWORD Megabytes = 1024 * 1024;
+
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+    // Properly fill in the dwVidMemTotal / dwVidMemFree fields
+    DWORD total9 = 0;
+    DWORD free9  = 0;
+
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
+    if (likely(d3d9Device != nullptr)) {
+      Logger::debug("DDraw7Interface::GetCaps: Getting memory stats from D3D9");
+
+      total9 = static_cast<DWORD>(d3dOptions->maxAvailableMemory) * Megabytes;
+      free9  = static_cast<DWORD>(d3d9Device->GetAvailableTextureMem());
+
+      Logger::debug(str::format("DDraw7Interface::GetCaps: Total: ", total9));
+      Logger::debug(str::format("DDraw7Interface::GetCaps: Free : ", free9));
+    } else {
+      Logger::debug("DDraw7Interface::GetCaps: Getting memory stats from DDraw");
+
+      const DWORD total7 = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemTotal : 0;
+      const DWORD free7  = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemFree  : 0;
+
+      Logger::debug(str::format("DDraw7Interface::GetCaps: DDraw Total: ", total7));
+      Logger::debug(str::format("DDraw7Interface::GetCaps: DDraw Free : ", free7));
+
+      total9 = static_cast<DWORD>(d3dOptions->maxAvailableMemory) * Megabytes;
+      const DWORD delta  = total7 > total9 ? total7 - total9 : 0;
+      free9  = free7 > delta ? free7 - delta : 0;
+
+      Logger::debug(str::format("DDraw7Interface::GetCaps: Total: ", total9));
+      Logger::debug(str::format("DDraw7Interface::GetCaps: Free : ", free9));
+    }
+
+    // Report all possible flip capabilities as supported
+    if (lpDDDriverCaps != nullptr) {
       lpDDDriverCaps->dwCaps2 |= DDCAPS2_FLIPINTERVAL | DDCAPS2_FLIPNOVSYNC;
-    if (lpDDHELCaps != nullptr)
+      lpDDDriverCaps->dwZBufferBitDepths = d3dOptions->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
+      lpDDDriverCaps->dwVidMemTotal = total9;
+      lpDDDriverCaps->dwVidMemFree  = free9;
+      lpDDDriverCaps->dwNumFourCCCodes = ddrawCaps::NumberOfFOURCCCodes;
+    }
+    if (lpDDHELCaps != nullptr) {
       lpDDHELCaps->dwCaps2 |= DDCAPS2_FLIPINTERVAL | DDCAPS2_FLIPNOVSYNC;
+      lpDDHELCaps->dwZBufferBitDepths = d3dOptions->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
+      lpDDHELCaps->dwVidMemTotal = total9;
+      lpDDHELCaps->dwVidMemFree  = free9;
+      lpDDHELCaps->dwNumFourCCCodes = ddrawCaps::NumberOfFOURCCCodes;
+    }
 
     return DD_OK;
   }
@@ -370,25 +414,15 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes) {
     Logger::debug(">>> DDraw7Interface::GetFourCCCodes");
 
-    static const DWORD supportedFourCCs[] =
-    {
-        MAKEFOURCC('D', 'X', 'T', '1'),
-        MAKEFOURCC('D', 'X', 'T', '2'),
-        MAKEFOURCC('D', 'X', 'T', '3'),
-        MAKEFOURCC('D', 'X', 'T', '4'),
-        MAKEFOURCC('D', 'X', 'T', '5'),
-        MAKEFOURCC('Y', 'U', 'Y', '2'),
-    };
-
-    // TODO: Check passed lpNumCodes size is larger than 6
+    // TODO: Check passed lpNumCodes size is larger than NumberOfFOURCCCodes
     if (likely(lpNumCodes != nullptr && lpCodes != nullptr)) {
-      for (uint8_t i = 0; i < 6; i++) {
-        lpCodes[i] = supportedFourCCs[i];
+      for (uint8_t i = 0; i < ddrawCaps::NumberOfFOURCCCodes; i++) {
+        lpCodes[i] = ddrawCaps::SupportedFourCCs[i];
       }
     }
 
     if (lpNumCodes != nullptr)
-      *lpNumCodes = 6;
+      *lpNumCodes = ddrawCaps::NumberOfFOURCCCodes;
 
     return DD_OK;
   }
@@ -529,7 +563,7 @@ namespace dxvk {
     if (unlikely(lpdwTotal == nullptr && lpdwFree == nullptr))
       return DD_OK;
 
-    constexpr DWORD Megabytes = 1024 * 1024;
+    static constexpr DWORD Megabytes = 1024 * 1024;
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
     if (likely(d3d9Device != nullptr)) {

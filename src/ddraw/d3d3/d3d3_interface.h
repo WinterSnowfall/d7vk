@@ -2,7 +2,6 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
-#include "../ddraw_options.h"
 #include "../ddraw_format.h"
 
 #include "../ddraw_common_interface.h"
@@ -51,10 +50,6 @@ namespace dxvk {
 
     D3DCommonInterface* GetCommonD3DInterface() const {
       return m_commonD3DIntf.ptr();
-    }
-
-    const D3DOptions* GetOptions() const {
-      return m_commonD3DIntf->GetOptions();
     }
 
   private:

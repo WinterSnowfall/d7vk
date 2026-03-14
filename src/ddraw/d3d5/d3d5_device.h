@@ -107,10 +107,6 @@ namespace dxvk {
       return m_multithread.AcquireLock();
     }
 
-    const D3DOptions* GetOptions() const {
-      return m_parent->GetOptions();
-    }
-
     d3d9::D3DPRESENT_PARAMETERS GetPresentParameters() const {
       return m_params9;
     }
@@ -188,7 +184,6 @@ namespace dxvk {
 
     DWORD                          m_lighting     = FALSE;
 
-    DDrawInterface*                m_DDIntfParent = nullptr;
     DDrawCommonInterface*          m_commonIntf   = nullptr;
 
     Com<DxvkD3D8Bridge>            m_bridge;
