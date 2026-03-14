@@ -33,7 +33,6 @@ namespace dxvk {
       DDrawSurface* pSurface,
       DWORD CreationFlags9)
     : DDrawWrappedObject<D3D5Interface, IDirect3DDevice2, d3d9::IDirect3DDevice9>(pParent, std::move(d3d5DeviceProxy), std::move(pDevice9))
-    , m_DDIntfParent ( pParent->GetParent() )
     , m_commonIntf ( pParent->GetParent()->GetCommonInterface() )
     , m_creationFlags9 ( CreationFlags9 )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
@@ -48,7 +47,9 @@ namespace dxvk {
 
     m_rtOrig = m_rt.ptr();
 
-    if (unlikely(m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Forced)) {
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+    if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
       Logger::warn("D3D5Device: Force enabling AA");
       m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
     }
@@ -103,11 +104,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
+      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
       // Reuse the existing D3D9 device in situations where games want
       // to get access only to D3D3 execute buffers on a D3D5 device
       Com<d3d9::IDirect3DDevice9> device9 = m_d3d9.ptr();
-      *ppvObject = ref(new D3D3Device(std::move(ppvProxyObject), m_rt.ptr(), GetD3D3Caps(), m_deviceGUID,
-                                      m_params9, std::move(device9), m_creationFlags9));
+      *ppvObject = ref(new D3D3Device(std::move(ppvProxyObject), m_rt.ptr(), GetD3D3Caps(d3dOptions->supportD16),
+                                      m_deviceGUID, m_params9, std::move(device9), m_creationFlags9));
 
       return S_OK;
     }
@@ -307,7 +310,9 @@ namespace dxvk {
     HRESULT hr = m_d3d9->EndScene();
 
     if (likely(SUCCEEDED(hr))) {
-      if (m_parent->GetOptions()->forceProxiedPresent) {
+      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+      if (d3dOptions->forceProxiedPresent) {
         // If we have drawn anything, we need to make sure we blit back
         // the results onto the D3D5 render target before we flip it
         if (m_commonIntf->HasDrawn())
@@ -316,7 +321,7 @@ namespace dxvk {
         m_rt->GetProxied()->Flip(static_cast<IDirectDrawSurface*>(m_commonIntf->GetFlipRTSurface()),
                                  m_commonIntf->GetFlipRTFlags());
 
-        if (likely(m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
+        if (likely(d3dOptions->backBufferGuard != D3DBackBufferGuard::Strict))
           m_commonIntf->ResetDrawTracking();
       }
 
@@ -397,7 +402,9 @@ namespace dxvk {
 
     DDrawSurface* rt5 = static_cast<DDrawSurface*>(surface);
 
-    if (unlikely(m_parent->GetOptions()->forceProxiedPresent)) {
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+    if (unlikely(d3dOptions->forceProxiedPresent)) {
       HRESULT hrRT = m_proxy->SetRenderTarget(rt5->GetProxied(), flags);
       if (unlikely(FAILED(hrRT))) {
         Logger::warn("D3D5Device::SetRenderTarget: Failed to set RT");
@@ -771,7 +778,8 @@ namespace dxvk {
         DDrawSurface* surface = nullptr;
 
         if (likely(dwRenderState != 0)) {
-          surface = m_DDIntfParent->GetSurfaceFromTextureHandle(dwRenderState);
+          DDrawInterface* ddrawIntf = m_commonIntf->GetDDInterface();
+          surface = ddrawIntf->GetSurfaceFromTextureHandle(dwRenderState);
           if (unlikely(surface == nullptr))
             return DDERR_INVALIDPARAMS;
         }
@@ -787,7 +795,9 @@ namespace dxvk {
       }
 
       case D3DRENDERSTATE_ANTIALIAS: {
-        if (likely(m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Disabled)) {
+        const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+        if (likely(d3dOptions->emulateFSAA == FSAAEmulation::Disabled)) {
           if (unlikely(dwRenderState == D3DANTIALIAS_SORTDEPENDENT
                     || dwRenderState == D3DANTIALIAS_SORTINDEPENDENT))
             Logger::warn("D3D5Device::SetRenderState: Device does not expose FSAA emulation");
@@ -798,7 +808,7 @@ namespace dxvk {
         m_antialias   = dwRenderState;
         dwRenderState = m_antialias == D3DANTIALIAS_SORTDEPENDENT
                      || m_antialias == D3DANTIALIAS_SORTINDEPENDENT
-                     || m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Forced ? TRUE : FALSE;
+                     || d3dOptions->emulateFSAA == FSAAEmulation::Forced ? TRUE : FALSE;
         break;
       }
 
@@ -1036,7 +1046,8 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYENABLE: {
         m_colorKeyEnabled = dwRenderState;
 
-        DDrawSurface* surface = m_textureHandle != 0 ? m_DDIntfParent->GetSurfaceFromTextureHandle(m_textureHandle) : nullptr;
+        DDrawInterface* ddrawIntf = m_commonIntf->GetDDInterface();
+        DDrawSurface* surface = m_textureHandle != 0 ? ddrawIntf->GetSurfaceFromTextureHandle(m_textureHandle) : nullptr;
         const bool validColorKey = surface != nullptr ? surface->GetCommonSurface()->HasValidColorKey() : false;
         m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
         if (m_colorKeyEnabled && validColorKey) {

@@ -22,7 +22,6 @@ namespace dxvk {
       Com<d3d9::IDirect3DDevice9>&& pDevice9,
       DWORD CreationFlags9)
     : DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9>(pParent, std::move(d3d3DeviceProxy), std::move(pDevice9))
-    , m_DDIntfParent ( pParent->GetParent() )
     , m_commonIntf ( pParent->GetCommonInterface() )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
@@ -34,10 +33,20 @@ namespace dxvk {
       throw DxvkError("D3D3Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
-    if (unlikely(m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Forced)) {
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+    if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
       Logger::warn("D3D3Device: Force enabling AA");
       m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
     }
+
+    // The default value of D3DRENDERSTATE_TEXTUREMAPBLEND in D3D3 is D3DTBLEND_MODULATE
+    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
+    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
+    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
+    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
 
     m_deviceCount = ++s_deviceCount;
 
@@ -274,7 +283,9 @@ namespace dxvk {
     HRESULT hr = m_d3d9->EndScene();
 
     if (likely(SUCCEEDED(hr))) {
-      if (m_parent->GetOptions()->forceProxiedPresent) {
+      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+      if (d3dOptions->forceProxiedPresent) {
         // If we have drawn anything, we need to make sure we blit back
         // the results onto the D3D3 render target before we flip it
         if (m_commonIntf->HasDrawn())
@@ -283,7 +294,7 @@ namespace dxvk {
         m_rt->GetProxied()->Flip(static_cast<IDirectDrawSurface*>(m_commonIntf->GetFlipRTSurface()),
                                  m_commonIntf->GetFlipRTFlags());
 
-        if (likely(m_parent->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
+        if (likely(d3dOptions->backBufferGuard != D3DBackBufferGuard::Strict))
           m_commonIntf->ResetDrawTracking();
       }
 
@@ -773,7 +784,9 @@ namespace dxvk {
       }
 
       case D3DRENDERSTATE_ANTIALIAS: {
-        if (likely(m_parent->GetOptions()->emulateFSAA == FSAAEmulation::Disabled)) {
+        const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+        if (likely(d3dOptions->emulateFSAA == FSAAEmulation::Disabled)) {
           if (unlikely(dwRenderState))
             Logger::warn("D3D3Device::SetRenderStateInternal: Device does not expose FSAA emulation");
           return D3D_OK;

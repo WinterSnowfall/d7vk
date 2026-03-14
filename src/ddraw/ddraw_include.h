@@ -250,6 +250,15 @@ typedef struct _D3DFindDeviceResult2
     D3DDEVICEDESC2 ddSwDesc;
 } D3DFINDDEVICERESULT2;
 
+// Because of the above mess, D3DFINDDEVICERESULT is also affected in D3D3
+typedef struct _D3DFindDeviceResult3
+{
+    DWORD dwSize;
+    GUID guid;
+    D3DDEVICEDESC3 ddHwDesc;
+    D3DDEVICEDESC3 ddSwDesc;
+} D3DFINDDEVICERESULT3;
+
 namespace dxvk {
 
   // Some applications use CLSIDs as an entry point with DllGetClassObject and IClassFactory

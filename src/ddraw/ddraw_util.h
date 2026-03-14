@@ -411,7 +411,7 @@ namespace dxvk {
     return 0;
   }
 
-  inline D3DDEVICEDESC3 GetD3D3Caps() {
+  inline D3DDEVICEDESC3 GetD3D3Caps(bool supportD16) {
     D3DDEVICEDESC3 desc;
 
     desc.dwSize    = sizeof(D3DDEVICEDESC3);
@@ -565,14 +565,14 @@ namespace dxvk {
     desc.dpcTriCaps           = prim;
 
     desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
-    desc.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24;
+    desc.dwDeviceZBufferBitDepth  = supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc.dwMaxBufferSize          = 0;
     desc.dwMaxVertexCount         = D3DDD_MAXVERTEXCOUNT;
 
     return desc;
   }
 
-  inline D3DDEVICEDESC2 GetD3D5Caps(const IID rclsid, bool exposeFSAA) {
+  inline D3DDEVICEDESC2 GetD3D5Caps(const IID rclsid, bool exposeFSAA, bool supportD16) {
     D3DDEVICEDESC2 desc;
 
     desc.dwSize    = sizeof(D3DDEVICEDESC2);
@@ -760,7 +760,7 @@ namespace dxvk {
     desc.dpcTriCaps           = prim;
 
     desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
-    desc.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24;
+    desc.dwDeviceZBufferBitDepth  = supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc.dwMaxBufferSize          = 0;
     desc.dwMaxVertexCount         = D3DDD_MAXVERTEXCOUNT;
     desc.dwMinTextureWidth        = 1;
@@ -775,7 +775,7 @@ namespace dxvk {
     return desc;
   }
 
-  inline D3DDEVICEDESC GetD3D6Caps(const IID rclsid, bool exposeFSAA) {
+  inline D3DDEVICEDESC GetD3D6Caps(const IID rclsid, bool exposeFSAA, bool supportD16) {
     D3DDEVICEDESC desc;
 
     desc.dwSize    = sizeof(D3DDEVICEDESC);
@@ -977,7 +977,7 @@ namespace dxvk {
     desc.dpcTriCaps           = prim;
 
     desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
-    desc.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24;
+    desc.dwDeviceZBufferBitDepth  = supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc.dwMaxBufferSize          = 0;
     desc.dwMaxVertexCount         = D3DDD_MAXVERTEXCOUNT;
     desc.dwMinTextureWidth        = 1;
@@ -1040,7 +1040,7 @@ namespace dxvk {
     return desc;
   }
 
-  inline D3DDEVICEDESC7 GetD3D7Caps(const IID rclsid, bool exposeFSAA) {
+  inline D3DDEVICEDESC7 GetD3D7Caps(const IID rclsid, bool exposeFSAA, bool supportD16) {
     D3DDEVICEDESC7 desc7;
 
     desc7.dwDevCaps = D3DDEVCAPS_CANBLTSYSTONONLOCAL
@@ -1218,7 +1218,7 @@ namespace dxvk {
     desc7.dpcTriCaps          = prim;
 
     desc7.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
-    desc7.dwDeviceZBufferBitDepth  = DDBD_16 | DDBD_24;
+    desc7.dwDeviceZBufferBitDepth  = supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc7.dwMinTextureWidth        = 1;
     desc7.dwMinTextureHeight       = 1;
     desc7.dwMaxTextureWidth        = ddrawCaps::MaxTextureDimension;
