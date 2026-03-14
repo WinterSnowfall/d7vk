@@ -133,10 +133,6 @@ namespace dxvk {
       return m_commonIntf;
     }
 
-    const D3DOptions* GetOptions() const {
-      return m_commonIntf->GetOptions();
-    }
-
     d3d9::IDirect3DTexture9* GetD3D9Texture() const {
       return m_texture9.ptr();
     }

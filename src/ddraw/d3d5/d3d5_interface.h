@@ -53,10 +53,6 @@ namespace dxvk {
       return m_commonD3DIntf.ptr();
     }
 
-    const D3DOptions* GetOptions() const {
-      return m_commonD3DIntf->GetOptions();
-    }
-
   private:
 
     static uint32_t               s_intfCount;
