@@ -121,9 +121,10 @@ namespace dxvk {
     // with minor differences between the two. Note that the
     // device listing order matters, so list RGB first, HAL second.
 
-    // Software emulation, this is expected to be exposed (SWVP)
+    // Software emulation, this is expected to be exposed
     GUID guidRGB = IID_IDirect3DRGBDevice;
-    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
+    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled,
+                                d3dOptions->supportD16);
     D3DDEVICEDESC descRGB_HEL = descRGB_HAL;
     descRGB_HAL.dwFlags = 0;
     descRGB_HAL.dcmColorModel = 0;
@@ -142,9 +143,10 @@ namespace dxvk {
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
-    // Hardware acceleration (SWVP)
+    // Hardware acceleration
     GUID guidHAL = IID_IDirect3DHALDevice;
-    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
+    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled,
+                                            d3dOptions->supportD16);
     D3DDEVICEDESC descHAL_HEL = descHAL_HAL;
     descHAL_HEL.dcmColorModel = 0;
     descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
@@ -221,8 +223,9 @@ namespace dxvk {
 
     const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
 
-    // Software emulation, this is expected to be exposed (SWVP)
-    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
+    // Software emulation, this is expected to be exposed
+    D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled,
+                                            d3dOptions->supportD16);
     D3DDEVICEDESC descRGB_HEL = descRGB_HAL;
     descRGB_HAL.dwFlags = 0;
     descRGB_HAL.dcmColorModel = 0;
@@ -234,8 +237,9 @@ namespace dxvk {
     descRGB_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
     descRGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
 
-    // Hardware acceleration (SWVP)
-    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
+    // Hardware acceleration
+    D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled,
+                                            d3dOptions->supportD16);
     D3DDEVICEDESC descHAL_HEL = descHAL_HAL;
     descHAL_HEL.dcmColorModel = 0;
     descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
@@ -456,7 +460,8 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC desc6 = GetD3D6Caps(rclsidOverride, d3dOptions->emulateFSAA != FSAAEmulation::Disabled);
+    D3DDEVICEDESC desc6 = GetD3D6Caps(rclsidOverride, d3dOptions->emulateFSAA != FSAAEmulation::Disabled,
+                                      d3dOptions->supportD16);
 
     try{
       Com<D3D6Device> device6 = new D3D6Device(std::move(d3d6DeviceProxy), this, desc6,

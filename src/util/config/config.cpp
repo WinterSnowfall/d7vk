@@ -601,8 +601,8 @@ namespace dxvk {
       { "d3d9.hideNvidiaGpu",               "True" },
       { "d3d9.forceDrawTimeBufferUpload",   "True" },
     }} },
-    /* Vampire - The Masquerade Bloodlines        */
-    { R"(\\vampire\.exe$)", {{
+    /* Vampire: The Masquerade - Bloodlines       */
+    { R"(\\Vampire.*Bloodlines\\vampire\.exe$)", {{
       { "d3d9.deferSurfaceCreation",        "True" },
       { "d3d9.memoryTrackTest",             "True" },
       { "d3d9.maxAvailableMemory",          "1024" },

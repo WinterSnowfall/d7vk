@@ -106,14 +106,68 @@ namespace dxvk {
     }
   }
 
+  // Docs state: "This method is provided for compliance with the COM protocol.
+  // Returns DDERR_ALREADYINITIALIZED because the Direct3D object is initialized when it is created."
   HRESULT STDMETHODCALLTYPE D3D3Interface::Initialize(REFIID riid) {
-    Logger::debug("<<< D3D3Interface::Initialize: Proxy");
-    return m_proxy->Initialize(riid);
+    Logger::debug(">>> D3D3Interface::Initialize");
+    return DDERR_ALREADYINITIALIZED;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg) {
-    Logger::debug("<<< D3D3Interface::EnumDevices: Proxy");
-    return m_proxy->EnumDevices(lpEnumDevicesCallback, lpUserArg);
+    Logger::debug(">>> D3D3Interface::EnumDevices");
+
+    if (unlikely(lpEnumDevicesCallback == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+
+    // D3D3 reports both HAL and HEL caps for any time of device,
+    // with minor differences between the two. Note that the
+    // device listing order matters, so list RGB first, HAL second.
+
+    // Software emulation, this is expected to be exposed
+    GUID guidRGB = IID_IDirect3DRGBDevice;
+    D3DDEVICEDESC3 desc3RGB_HAL = GetD3D3Caps(d3dOptions->supportD16);
+    D3DDEVICEDESC3 desc3RGB_HEL = desc3RGB_HAL;
+    D3DDEVICEDESC descRGB_HAL = { };
+    D3DDEVICEDESC descRGB_HEL = { };
+    desc3RGB_HAL.dwFlags = 0;
+    desc3RGB_HAL.dcmColorModel = 0;
+    // Some applications apparently care about RGB texture caps
+    desc3RGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                            & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    desc3RGB_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                            & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    desc3RGB_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
+    desc3RGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
+    memcpy(&descRGB_HAL, &desc3RGB_HAL, sizeof(D3DDEVICEDESC3));
+    memcpy(&descRGB_HEL, &desc3RGB_HEL, sizeof(D3DDEVICEDESC3));
+    char deviceDescRGB[100] = "D3VK RGB";
+    char deviceNameRGB[100] = "D3VK RGB";
+
+    HRESULT hr = lpEnumDevicesCallback(const_cast<GUID*>(&guidRGB), &deviceDescRGB[0],
+                                       &deviceNameRGB[0], &descRGB_HAL, &descRGB_HEL, lpUserArg);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;
+
+    // Hardware acceleration
+    GUID guidHAL = IID_IDirect3DHALDevice;
+    D3DDEVICEDESC3 desc3HAL_HAL = GetD3D3Caps(d3dOptions->supportD16);
+    D3DDEVICEDESC3 desc3HAL_HEL = desc3HAL_HAL;
+    D3DDEVICEDESC descHAL_HAL = { };
+    D3DDEVICEDESC descHAL_HEL = { };
+    desc3HAL_HEL.dcmColorModel = 0;
+    memcpy(&descHAL_HAL, &desc3HAL_HAL, sizeof(D3DDEVICEDESC3));
+    memcpy(&descHAL_HEL, &desc3HAL_HEL, sizeof(D3DDEVICEDESC3));
+    char deviceDescHAL[100] = "D3VK HAL";
+    char deviceNameHAL[100] = "D3VK HAL";
+
+    hr = lpEnumDevicesCallback(const_cast<GUID*>(&guidHAL), &deviceDescHAL[0],
+                               &deviceNameHAL[0], &descHAL_HAL, &descHAL_HEL, lpUserArg);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Interface::CreateLight(LPDIRECT3DLIGHT *lplpDirect3DLight, IUnknown *pUnkOuter) {
@@ -165,8 +219,83 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Interface::FindDevice(D3DFINDDEVICESEARCH *lpD3DFDS, D3DFINDDEVICERESULT *lpD3DFDR) {
-    Logger::debug("<<< D3D3Interface::FindDevice: Proxy");
-    return m_proxy->FindDevice(lpD3DFDS, lpD3DFDR);
+    Logger::debug(">>> D3D3Interface::FindDevice");
+
+    if (unlikely(lpD3DFDS == nullptr || lpD3DFDR == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(lpD3DFDS->dwSize != sizeof(D3DFINDDEVICESEARCH)))
+      return DDERR_INVALIDPARAMS;
+
+    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+
+    // Software emulation, this is expected to be exposed
+    D3DDEVICEDESC3 descRGB_HAL = GetD3D3Caps(d3dOptions->supportD16);
+    D3DDEVICEDESC3 descRGB_HEL = descRGB_HAL;
+    descRGB_HAL.dwFlags = 0;
+    descRGB_HAL.dcmColorModel = 0;
+    // Some applications apparently care about RGB texture caps
+    descRGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    descRGB_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    descRGB_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
+    descRGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
+
+    // Hardware acceleration
+    D3DDEVICEDESC3 descHAL_HAL = GetD3D3Caps(d3dOptions->supportD16);
+    D3DDEVICEDESC3 descHAL_HEL = descHAL_HAL;
+    descHAL_HEL.dcmColorModel = 0;
+    descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                           & ~D3DDEVCAPS_DRAWPRIMITIVES2
+                           & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+
+    D3DFINDDEVICERESULT3 lpD3DFRD3 = { };
+    lpD3DFRD3.dwSize = sizeof(D3DFINDDEVICERESULT3);
+
+    if (lpD3DFDS->dwFlags & D3DFDS_GUID) {
+      Logger::debug("D3D3Interface::FindDevice: Matching by device GUID");
+
+      if (lpD3DFDS->guid == IID_IDirect3DRGBDevice ||
+          lpD3DFDS->guid == IID_IDirect3DMMXDevice ||
+          lpD3DFDS->guid == IID_IDirect3DRampDevice) {
+        Logger::debug("D3D3Interface::FindDevice: Matched IID_IDirect3DRGBDevice");
+        lpD3DFRD3.guid = IID_IDirect3DRGBDevice;
+        lpD3DFRD3.ddHwDesc = descRGB_HAL;
+        lpD3DFRD3.ddSwDesc = descRGB_HEL;
+      } else if (lpD3DFDS->guid == IID_IDirect3DHALDevice) {
+        Logger::debug("D3D3Interface::FindDevice: Matched IID_IDirect3DHALDevice");
+        lpD3DFRD3.guid = IID_IDirect3DHALDevice;
+        lpD3DFRD3.ddHwDesc = descHAL_HAL;
+        lpD3DFRD3.ddSwDesc = descHAL_HEL;
+      } else {
+        Logger::err(str::format("D3D3Interface::FindDevice: Unknown device type: ", lpD3DFDS->guid));
+        return DDERR_NOTFOUND;
+      }
+
+      memcpy(lpD3DFDR, &lpD3DFRD3, sizeof(D3DFINDDEVICERESULT3));
+    } else if (lpD3DFDS->dwFlags & D3DFDS_HARDWARE) {
+      Logger::debug("D3D3Interface::FindDevice: Matching by hardware flag");
+
+      if (likely(lpD3DFDS->bHardware == TRUE)) {
+        Logger::debug("D3D3Interface::FindDevice: Matched IID_IDirect3DHALDevice");
+        lpD3DFRD3.guid = IID_IDirect3DHALDevice;
+        lpD3DFRD3.ddHwDesc = descHAL_HAL;
+        lpD3DFRD3.ddSwDesc = descHAL_HEL;
+      } else {
+        Logger::debug("D3D3Interface::FindDevice: Matched IID_IDirect3DRGBDevice");
+        lpD3DFRD3.guid = IID_IDirect3DRGBDevice;
+        lpD3DFRD3.ddHwDesc = descRGB_HAL;
+        lpD3DFRD3.ddSwDesc = descRGB_HEL;
+      }
+
+      memcpy(lpD3DFDR, &lpD3DFRD3, sizeof(D3DFINDDEVICERESULT3));
+    } else {
+      Logger::err("D3D3Interface::FindDevice: Unhandled matching type");
+      return DDERR_NOTFOUND;
+    }
+
+    return D3D_OK;
   }
 
   D3D3Material* D3D3Interface::GetMaterialFromHandle(D3DMATERIALHANDLE handle) {

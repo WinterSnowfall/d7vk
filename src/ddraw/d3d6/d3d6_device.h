@@ -130,10 +130,6 @@ namespace dxvk {
       return m_multithread.AcquireLock();
     }
 
-    const D3DOptions* GetOptions() const {
-      return m_parent->GetOptions();
-    }
-
     d3d9::D3DPRESENT_PARAMETERS GetPresentParameters() const {
       return m_params9;
     }
@@ -173,6 +169,14 @@ namespace dxvk {
     // If the last index buffer is initialized, then all are initialized
     inline bool AreIndexBuffersInitialized() const {
       return m_ib9[ddrawCaps::IndexBufferCount - 1] != nullptr;
+    }
+
+    inline bool LogIndexBufferUsageStats() const {
+      for (uint32_t m_ib9_upload : m_ib9_uploads) {
+        if (m_ib9_upload > 0)
+          return true;
+      }
+      return false;
     }
 
     inline void RefreshLastUsedDevice() {
