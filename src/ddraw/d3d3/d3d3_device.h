@@ -133,12 +133,12 @@ namespace dxvk {
 
     inline void TextureLoadInternal(D3DTEXTURELOAD* textureLoad, DWORD count);
 
-    bool                           m_inScene      = false;
+    bool                           m_inScene     = false;
 
     static uint32_t                s_deviceCount;
     uint32_t                       m_deviceCount = 0;
 
-    DDrawCommonInterface*          m_commonIntf = nullptr;
+    DDrawCommonInterface*          m_commonIntf  = nullptr;
 
     Com<DxvkD3D8Bridge>            m_bridge;
 

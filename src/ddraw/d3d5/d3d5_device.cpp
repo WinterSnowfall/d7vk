@@ -1479,8 +1479,11 @@ namespace dxvk {
       Logger::debug("D3D5Device::SetTextureInternal: Skipping upload of texture and mip maps");
     }
 
-    if (unlikely(m_textureHandle == textureHandle))
-      return D3D_OK;
+    // Only fast skip on D3D9 side, since we want to ensure
+    // color keying is applied properly even in the case
+    // of the same texture being set again (color key may change)
+    //if (unlikely(m_textureHandle == textureHandle))
+      //return D3D_OK;
 
     d3d9::IDirect3DTexture9* tex9 = surface->GetD3D9Texture();
 
