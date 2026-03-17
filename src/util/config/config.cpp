@@ -1843,6 +1843,11 @@ namespace dxvk {
     { R"(\\Simon3D\.exe$)", {{
       { "ddraw.supportD16",                "False" },
     }} },
+    /* Crusaders of Might and Magic               */
+    { R"(\\crusaders\.exe$)", {{
+      { "ddraw.backBufferWriteBack",        "True" },
+      { "ddraw.backBufferGuard",        "Disabled" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */

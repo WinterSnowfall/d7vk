@@ -1628,8 +1628,11 @@ namespace dxvk {
     DDraw4Surface* surface6 = texture6->GetParent();
 
     // Only upload textures if any sort of blit/lock operation
-    // has been performed on them since the last SetTexture call
-    if (surface6->GetCommonSurface()->HasDirtyMipMaps()) {
+    // has been performed on them since the last SetTexture call,
+    // or textures which have been used on a different device, and
+    // need their D3D9 object to be reinitialized at this point
+    if (surface6->GetCommonSurface()->HasDirtyMipMaps() ||
+        unlikely(surface6->GetD3D9Device() != m_d3d9.ptr())) {
       hr = surface6->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D6Device::SetTexture: Failed to initialize/upload D3D9 texture");
