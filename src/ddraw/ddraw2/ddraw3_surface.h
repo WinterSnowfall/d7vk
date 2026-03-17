@@ -111,6 +111,10 @@ namespace dxvk {
       return m_commonIntf;
     }
 
+    d3d9::IDirect3DDevice9* GetD3D9Device() const {
+      return m_d3d9Device;
+    }
+
     HRESULT InitializeOrUploadD3D9() {
       if (m_parent != nullptr)
         return m_parent->InitializeOrUploadD3D9();
