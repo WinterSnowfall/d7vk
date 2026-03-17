@@ -1180,8 +1180,11 @@ namespace dxvk {
     DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
 
     // Only upload textures if any sort of blit/lock operation
-    // has been performed on them since the last SetTexture call
-    if (surface7->GetCommonSurface()->HasDirtyMipMaps()) {
+    // has been performed on them since the last SetTexture call,
+    // or textures which have been used on a different device, and
+    // need their D3D9 object to be reinitialized at this point
+    if (surface7->GetCommonSurface()->HasDirtyMipMaps() ||
+        unlikely(surface7->GetD3D9Device() != m_d3d9.ptr())) {
       hr = surface7->InitializeOrUploadD3D9();
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Device::SetTexture: Failed to initialize/upload D3D9 texture");

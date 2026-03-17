@@ -127,6 +127,10 @@ namespace dxvk {
       return m_commonIntf;
     }
 
+    d3d9::IDirect3DDevice9* GetD3D9Device() const {
+      return m_d3d9Device;
+    }
+
     d3d9::IDirect3DTexture9* GetD3D9Texture() const {
       return m_texture9.ptr();
     }
