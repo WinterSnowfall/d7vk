@@ -32,6 +32,9 @@ namespace dxvk {
     /// Advertise support for D16
     bool supportD16;
 
+    /// Report POW2 texture dimension restrictions
+    bool forcePOW2Textures;
+
     /// Respect DISCARD only on DYNAMIC + WRITEONLY buffers
     bool forceLegacyDiscard;
 
@@ -88,6 +91,7 @@ namespace dxvk {
       this->forceSWVP             = config.getOption<bool>   ("ddraw.forceSWVP",             false);
       this->useD24X8forD32        = config.getOption<bool>   ("ddraw.useD24X8forD32",        false);
       this->supportD16            = config.getOption<bool>   ("ddraw.supportD16",             true);
+      this->forcePOW2Textures     = config.getOption<bool>   ("ddraw.forcePOW2Textures",     false);
       this->forceLegacyDiscard    = config.getOption<bool>   ("ddraw.forceLegacyDiscard",    false);
       this->viewportCorrection    = config.getOption<bool>   ("ddraw.viewportCorrection",    false);
       this->colorKeyCompatibility = config.getOption<bool>   ("ddraw.colorKeyCompatibility", false);
