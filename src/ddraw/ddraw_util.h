@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ddraw_include.h"
+#include "ddraw_options.h"
 #include "ddraw_caps.h"
 
 #include <vector>
@@ -411,7 +412,7 @@ namespace dxvk {
     return 0;
   }
 
-  inline D3DDEVICEDESC3 GetD3D3Caps(bool supportD16) {
+  inline D3DDEVICEDESC3 GetD3D3Caps(const D3DOptions* options) {
     D3DDEVICEDESC3 desc;
 
     desc.dwSize    = sizeof(D3DDEVICEDESC3);
@@ -535,9 +536,12 @@ namespace dxvk {
     prim.dwTextureCaps        = D3DPTEXTURECAPS_ALPHA
                               | D3DPTEXTURECAPS_BORDER
                               | D3DPTEXTURECAPS_PERSPECTIVE
-                           // | D3DPTEXTURECAPS_POW2
                            // | D3DPTEXTURECAPS_SQUAREONLY
                               | D3DPTEXTURECAPS_TRANSPARENCY;
+
+    if (unlikely(options->forcePOW2Textures)) {
+      prim.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
+    }
 
     prim.dwTextureFilterCaps  = D3DPTFILTERCAPS_LINEAR
                               | D3DPTFILTERCAPS_LINEARMIPLINEAR
@@ -565,14 +569,14 @@ namespace dxvk {
     desc.dpcTriCaps           = prim;
 
     desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
-    desc.dwDeviceZBufferBitDepth  = supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
+    desc.dwDeviceZBufferBitDepth  = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc.dwMaxBufferSize          = 0;
     desc.dwMaxVertexCount         = D3DMAXNUMVERTICES;
 
     return desc;
   }
 
-  inline D3DDEVICEDESC2 GetD3D5Caps(const IID rclsid, bool exposeFSAA, bool supportD16) {
+  inline D3DDEVICEDESC2 GetD3D5Caps(const IID rclsid, const D3DOptions* options) {
     D3DDEVICEDESC2 desc;
 
     desc.dwSize    = sizeof(D3DDEVICEDESC2);
@@ -670,7 +674,7 @@ namespace dxvk {
                               | D3DPRASTERCAPS_ZFOG
                               | D3DPRASTERCAPS_ZTEST;
 
-    if (unlikely(exposeFSAA)) {
+    if (unlikely(options->emulateFSAA != FSAAEmulation::Disabled)) {
       prim.dwRasterCaps |= D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT
                         |  D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT;
     }
@@ -727,9 +731,12 @@ namespace dxvk {
     prim.dwTextureCaps        = D3DPTEXTURECAPS_ALPHA
                               | D3DPTEXTURECAPS_BORDER
                               | D3DPTEXTURECAPS_PERSPECTIVE
-                           // | D3DPTEXTURECAPS_POW2
                            // | D3DPTEXTURECAPS_SQUAREONLY
                               | D3DPTEXTURECAPS_TRANSPARENCY;
+
+    if (unlikely(options->forcePOW2Textures)) {
+      prim.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
+    }
 
     prim.dwTextureFilterCaps  = D3DPTFILTERCAPS_LINEAR
                               | D3DPTFILTERCAPS_LINEARMIPLINEAR
@@ -760,7 +767,7 @@ namespace dxvk {
     desc.dpcTriCaps           = prim;
 
     desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
-    desc.dwDeviceZBufferBitDepth  = supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
+    desc.dwDeviceZBufferBitDepth  = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc.dwMaxBufferSize          = 0;
     desc.dwMaxVertexCount         = D3DMAXNUMVERTICES;
     desc.dwMinTextureWidth        = 1;
@@ -775,7 +782,7 @@ namespace dxvk {
     return desc;
   }
 
-  inline D3DDEVICEDESC GetD3D6Caps(const IID rclsid, bool exposeFSAA, bool supportD16) {
+  inline D3DDEVICEDESC GetD3D6Caps(const IID rclsid, const D3DOptions* options) {
     D3DDEVICEDESC desc;
 
     desc.dwSize    = sizeof(D3DDEVICEDESC);
@@ -874,7 +881,7 @@ namespace dxvk {
                               | D3DPRASTERCAPS_ZFOG
                               | D3DPRASTERCAPS_ZTEST;
 
-    if (unlikely(exposeFSAA)) {
+    if (unlikely(options->emulateFSAA != FSAAEmulation::Disabled)) {
       prim.dwRasterCaps |= D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT
                         |  D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT;
     }
@@ -931,12 +938,15 @@ namespace dxvk {
     prim.dwTextureCaps        = D3DPTEXTURECAPS_ALPHA
                               | D3DPTEXTURECAPS_ALPHAPALETTE
                               | D3DPTEXTURECAPS_BORDER
-                           // | D3DPTEXTURECAPS_NONPOW2CONDITIONAL
                               | D3DPTEXTURECAPS_PERSPECTIVE
-                           // | D3DPTEXTURECAPS_POW2
                            // | D3DPTEXTURECAPS_SQUAREONLY
                               | D3DPTEXTURECAPS_TEXREPEATNOTSCALEDBYSIZE
                               | D3DPTEXTURECAPS_TRANSPARENCY;
+
+    if (unlikely(options->forcePOW2Textures)) {
+      prim.dwTextureCaps |= D3DPTEXTURECAPS_NONPOW2CONDITIONAL
+                          | D3DPTEXTURECAPS_POW2;
+    }
 
     prim.dwTextureFilterCaps  = D3DPTFILTERCAPS_LINEAR
                               | D3DPTFILTERCAPS_LINEARMIPLINEAR
@@ -977,7 +987,7 @@ namespace dxvk {
     desc.dpcTriCaps           = prim;
 
     desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
-    desc.dwDeviceZBufferBitDepth  = supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
+    desc.dwDeviceZBufferBitDepth  = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc.dwMaxBufferSize          = 0;
     desc.dwMaxVertexCount         = D3DMAXNUMVERTICES;
     desc.dwMinTextureWidth        = 1;
@@ -1040,7 +1050,7 @@ namespace dxvk {
     return desc;
   }
 
-  inline D3DDEVICEDESC7 GetD3D7Caps(const IID rclsid, bool exposeFSAA, bool supportD16) {
+  inline D3DDEVICEDESC7 GetD3D7Caps(const IID rclsid, const D3DOptions* options) {
     D3DDEVICEDESC7 desc7;
 
     desc7.dwDevCaps = D3DDEVCAPS_CANBLTSYSTONONLOCAL
@@ -1110,7 +1120,7 @@ namespace dxvk {
                               | D3DPRASTERCAPS_ZFOG
                               | D3DPRASTERCAPS_ZTEST;
 
-    if (unlikely(exposeFSAA)) {
+    if (unlikely(options->emulateFSAA != FSAAEmulation::Disabled)) {
       prim.dwRasterCaps |= D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT
                         |  D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT;
     }
@@ -1169,13 +1179,16 @@ namespace dxvk {
                               | D3DPTEXTURECAPS_BORDER
                            // | D3DPTEXTURECAPS_COLORKEYBLEND
                               | D3DPTEXTURECAPS_CUBEMAP
-                           // | D3DPTEXTURECAPS_NONPOW2CONDITIONAL
                               | D3DPTEXTURECAPS_PERSPECTIVE
-                           // | D3DPTEXTURECAPS_POW2
                               | D3DPTEXTURECAPS_PROJECTED
                            // | D3DPTEXTURECAPS_SQUAREONLY
                               | D3DPTEXTURECAPS_TEXREPEATNOTSCALEDBYSIZE
                               | D3DPTEXTURECAPS_TRANSPARENCY;
+
+    if (unlikely(options->forcePOW2Textures)) {
+      prim.dwTextureCaps |= D3DPTEXTURECAPS_NONPOW2CONDITIONAL
+                          | D3DPTEXTURECAPS_POW2;
+    }
 
     prim.dwTextureFilterCaps  = D3DPTFILTERCAPS_LINEAR
                               | D3DPTFILTERCAPS_LINEARMIPLINEAR
@@ -1218,7 +1231,7 @@ namespace dxvk {
     desc7.dpcTriCaps          = prim;
 
     desc7.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
-    desc7.dwDeviceZBufferBitDepth  = supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
+    desc7.dwDeviceZBufferBitDepth  = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc7.dwMinTextureWidth        = 1;
     desc7.dwMinTextureHeight       = 1;
     desc7.dwMaxTextureWidth        = ddrawCaps::MaxTextureDimension;
