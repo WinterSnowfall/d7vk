@@ -498,9 +498,12 @@ namespace dxvk {
           for (uint16_t i = 0; i < count; i++) {
             D3DSTATE& s = state[i];
 
+            if (unlikely(s.dwArg[0] == 0))
+              continue;
+
             HRESULT hr = GetMatrix(s.dwArg[0], &matrix);
             if (unlikely(FAILED(hr)))
-              Logger::warn(str::format("D3D3Device::Execute: Failed to retrieve matrix: ", s.dwArg[0]));
+              continue;
 
             hr = m_d3d9->SetTransform(ConvertTransformState(s.dtstTransformStateType), &matrix);
             if (unlikely(FAILED(hr)))
@@ -604,7 +607,7 @@ namespace dxvk {
     if (likely(matrixIter != m_matrices.end())) {
       *matrix = matrixIter->second;
     } else {
-      Logger::warn("D3D3Device::GetMatrix: Matrix not found");
+      Logger::warn(str::format("D3D3Device::GetMatrix: Matrix not found: ", handle));
       return DDERR_INVALIDPARAMS;
     }
 

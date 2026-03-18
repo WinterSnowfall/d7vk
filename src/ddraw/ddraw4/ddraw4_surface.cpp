@@ -246,12 +246,16 @@ namespace dxvk {
 
     DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSAttachedSurface);
 
+    if (unlikely(ddraw4Surface->GetCommonSurface()->IsBackBufferOrFlippable()))
+      Logger::warn("DDraw4Surface::AddAttachedSurface: Trying to attach a flippable surface");
+
     HRESULT hr = m_proxy->AddAttachedSurface(ddraw4Surface->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
     ddraw4Surface->SetParentSurface(this);
-    m_depthStencil = ddraw4Surface;
+    if (likely(ddraw4Surface->GetCommonSurface()->IsDepthStencil()))
+      m_depthStencil = ddraw4Surface;
 
     return hr;
   }

@@ -235,14 +235,18 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::AddAttachedSurface(LPDIRECTDRAWSURFACE2 lpDDSAttachedSurface) {
-    Logger::debug("<<< DDrawSurface::AddAttachedSurface: Proxy");
+    Logger::debug("<<< DDraw2Surface::AddAttachedSurface: Proxy");
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
-      Logger::warn("DDrawSurface::AddAttachedSurface: Received an unwrapped surface");
+      Logger::warn("DDraw2Surface::AddAttachedSurface: Received an unwrapped surface");
       return DDERR_GENERIC;
     }
 
     DDraw2Surface* ddraw2Surface = static_cast<DDraw2Surface*>(lpDDSAttachedSurface);
+
+    if (unlikely(ddraw2Surface->GetCommonSurface()->IsBackBufferOrFlippable()))
+      Logger::warn("DDraw2Surface::AddAttachedSurface: Trying to attach a flippable surface");
+
     return m_proxy->AddAttachedSurface(ddraw2Surface->GetProxied());
   }
 
