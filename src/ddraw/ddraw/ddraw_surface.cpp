@@ -261,7 +261,7 @@ namespace dxvk {
         return hr;
       }
 
-      Com<D3D3Device> device3 = new D3D3Device(std::move(ppvProxyObject), this, GetD3D3Caps(d3dOptions->supportD16),
+      Com<D3D3Device> device3 = new D3D3Device(std::move(ppvProxyObject), this, GetD3D3Caps(d3dOptions),
                                                rclsidOverride, params, std::move(device9), deviceCreationFlags9);
 
       // Set the newly created D3D3 device on the common interface
@@ -434,12 +434,16 @@ namespace dxvk {
 
     DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSAttachedSurface);
 
+    if (unlikely(ddrawSurface->GetCommonSurface()->IsBackBufferOrFlippable()))
+      Logger::warn("DDrawSurface::AddAttachedSurface: Trying to attach a flippable surface");
+
     HRESULT hr = m_proxy->AddAttachedSurface(ddrawSurface->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
     ddrawSurface->SetParentSurface(this);
-    m_depthStencil = ddrawSurface;
+    if (likely(ddrawSurface->GetCommonSurface()->IsDepthStencil()))
+      m_depthStencil = ddrawSurface;
 
     return hr;
   }

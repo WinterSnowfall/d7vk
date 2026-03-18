@@ -234,10 +234,8 @@ namespace dxvk {
     }
   }
 
-  // This call will only attach DDSCAPS_ZBUFFER type surfaces and will reject anything else.
-  // More than that, the attached surfaces do not need to be manageed by the object, the docs state:
-  // "Unlike complex surfaces that you create with a single call to IDirectDraw7::CreateSurface, surfaces
-  // attached with this method are not automatically released."
+  // On IDirectDrawSurface7, this call will only attach DDSCAPS_ZBUFFER
+  // type surfaces and will fail if called with any other surface type.
   HRESULT STDMETHODCALLTYPE DDraw7Surface::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSAttachedSurface) {
     Logger::debug("<<< DDraw7Surface::AddAttachedSurface: Proxy");
 
