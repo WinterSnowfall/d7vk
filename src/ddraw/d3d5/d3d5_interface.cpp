@@ -124,9 +124,40 @@ namespace dxvk {
 
     const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
 
-    // D3D5 reports both HAL and HEL caps for any time of device,
+    // D3D5 reports both HAL and HEL caps for any type of device,
     // with minor differences between the two. Note that the
-    // device listing order matters, so list RGB first, HAL second.
+    // device listing order matters, so list RAMP first, RGB second,
+    // and HAL last. A RAMP device also needs to be advertised in D3D5,
+    // since some games like Resident Evil expect it to be present.
+
+    // RAMP device (monochrome), this is expected to be exposed
+    GUID guidRAMP = IID_IDirect3DRampDevice;
+    // The caps of a RAMP device are mostly identical to an RGB device
+    D3DDEVICEDESC2 desc2RAMP_HAL = GetD3D5Caps(IID_IDirect3DRGBDevice, d3dOptions->emulateFSAA != FSAAEmulation::Disabled,
+                                              d3dOptions->supportD16);
+    D3DDEVICEDESC2 desc2RAMP_HEL = desc2RAMP_HAL;
+    D3DDEVICEDESC descRAMP_HAL = { };
+    D3DDEVICEDESC descRAMP_HEL = { };
+    desc2RAMP_HAL.dwFlags = 0;
+    desc2RAMP_HAL.dcmColorModel = 0;
+    // RAMP devices use a monochrome color model
+    desc2RAMP_HEL.dcmColorModel = D3DCOLOR_MONO;
+    // Some applications apparently care about RGB texture caps
+    desc2RAMP_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                            & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    desc2RAMP_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                            & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    desc2RAMP_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
+    desc2RAMP_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
+    memcpy(&descRAMP_HAL, &desc2RAMP_HAL, sizeof(D3DDEVICEDESC2));
+    memcpy(&descRAMP_HEL, &desc2RAMP_HEL, sizeof(D3DDEVICEDESC2));
+    char deviceDescRAMP[100] = "D5VK RAMP";
+    char deviceNameRAMP[100] = "D5VK RAMP";
+
+    HRESULT hr = lpEnumDevicesCallback(&guidRAMP, &deviceDescRAMP[0], &deviceNameRAMP[0],
+                                       &descRAMP_HAL, &descRAMP_HEL, lpUserArg);
+    if (hr == D3DENUMRET_CANCEL)
+      return D3D_OK;
 
     // Software emulation, this is expected to be exposed
     GUID guidRGB = IID_IDirect3DRGBDevice;
@@ -149,8 +180,8 @@ namespace dxvk {
     char deviceDescRGB[100] = "D5VK RGB";
     char deviceNameRGB[100] = "D5VK RGB";
 
-    HRESULT hr = lpEnumDevicesCallback(const_cast<GUID*>(&guidRGB), &deviceDescRGB[0],
-                                       &deviceNameRGB[0], &descRGB_HAL, &descRGB_HEL, lpUserArg);
+    hr = lpEnumDevicesCallback(&guidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
+                               &descRGB_HAL, &descRGB_HEL, lpUserArg);
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
@@ -162,6 +193,11 @@ namespace dxvk {
     D3DDEVICEDESC descHAL_HAL = { };
     D3DDEVICEDESC descHAL_HEL = { };
     desc2HAL_HEL.dcmColorModel = 0;
+    // Some applications apparently care about RGB texture caps
+    desc2HAL_HEL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                            & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    desc2HAL_HEL.dpcTriCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
     desc2HAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
                             & ~D3DDEVCAPS_DRAWPRIMITIVES2
                             & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
@@ -170,8 +206,8 @@ namespace dxvk {
     char deviceDescHAL[100] = "D5VK HAL";
     char deviceNameHAL[100] = "D5VK HAL";
 
-    hr = lpEnumDevicesCallback(const_cast<GUID*>(&guidHAL), &deviceDescHAL[0],
-                               &deviceNameHAL[0], &descHAL_HAL, &descHAL_HEL, lpUserArg);
+    hr = lpEnumDevicesCallback(&guidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
+                               &descHAL_HAL, &descHAL_HEL, lpUserArg);
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
@@ -257,6 +293,11 @@ namespace dxvk {
                                              d3dOptions->supportD16);
     D3DDEVICEDESC2 descHAL_HEL = descHAL_HAL;
     descHAL_HEL.dcmColorModel = 0;
+    // Some applications apparently care about RGB texture caps
+    descHAL_HEL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    descHAL_HEL.dpcTriCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
     descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
