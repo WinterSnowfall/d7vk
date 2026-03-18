@@ -138,8 +138,8 @@ namespace dxvk {
     char deviceDescRGB[100] = "D6VK RGB";
     char deviceNameRGB[100] = "D6VK RGB";
 
-    HRESULT hr = lpEnumDevicesCallback(const_cast<GUID*>(&guidRGB), &deviceDescRGB[0],
-                                       &deviceNameRGB[0], &descRGB_HAL, &descRGB_HEL, lpUserArg);
+    HRESULT hr = lpEnumDevicesCallback(&guidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
+                                       &descRGB_HAL, &descRGB_HEL, lpUserArg);
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
@@ -149,14 +149,19 @@ namespace dxvk {
                                             d3dOptions->supportD16);
     D3DDEVICEDESC descHAL_HEL = descHAL_HAL;
     descHAL_HEL.dcmColorModel = 0;
+    // Some applications apparently care about RGB texture caps
+    descHAL_HEL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    descHAL_HEL.dpcTriCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
     descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
     char deviceDescHAL[100] = "D6VK HAL";
     char deviceNameHAL[100] = "D6VK HAL";
 
-    hr = lpEnumDevicesCallback(const_cast<GUID*>(&guidHAL), &deviceDescHAL[0],
-                               &deviceNameHAL[0], &descHAL_HAL, &descHAL_HEL, lpUserArg);
+    hr = lpEnumDevicesCallback(&guidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
+                               &descHAL_HAL, &descHAL_HEL, lpUserArg);
     if (hr == D3DENUMRET_CANCEL)
       return D3D_OK;
 
@@ -242,6 +247,11 @@ namespace dxvk {
                                             d3dOptions->supportD16);
     D3DDEVICEDESC descHAL_HEL = descHAL_HAL;
     descHAL_HEL.dcmColorModel = 0;
+    // Some applications apparently care about RGB texture caps
+    descHAL_HEL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    descHAL_HEL.dpcTriCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
     descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;

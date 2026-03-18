@@ -20,9 +20,6 @@ namespace dxvk {
 
   uint32_t D3D5Device::s_deviceCount = 0;
 
-  // Index buffer sizes of XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb
-  static constexpr UINT IndexCount[ddrawCaps::IndexBufferCount] = {256, 1024, 4096, 16384, D3DMAXNUMVERTICES};
-
   D3D5Device::D3D5Device(
       Com<IDirect3DDevice2>&& d3d5DeviceProxy,
       D3D5Interface* pParent,

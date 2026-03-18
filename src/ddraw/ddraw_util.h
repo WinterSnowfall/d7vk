@@ -567,7 +567,7 @@ namespace dxvk {
     desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
     desc.dwDeviceZBufferBitDepth  = supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc.dwMaxBufferSize          = 0;
-    desc.dwMaxVertexCount         = D3DDD_MAXVERTEXCOUNT;
+    desc.dwMaxVertexCount         = D3DMAXNUMVERTICES;
 
     return desc;
   }
@@ -762,7 +762,7 @@ namespace dxvk {
     desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
     desc.dwDeviceZBufferBitDepth  = supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc.dwMaxBufferSize          = 0;
-    desc.dwMaxVertexCount         = D3DDD_MAXVERTEXCOUNT;
+    desc.dwMaxVertexCount         = D3DMAXNUMVERTICES;
     desc.dwMinTextureWidth        = 1;
     desc.dwMinTextureHeight       = 1;
     desc.dwMaxTextureWidth        = ddrawCaps::MaxTextureDimension;
@@ -979,7 +979,7 @@ namespace dxvk {
     desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
     desc.dwDeviceZBufferBitDepth  = supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc.dwMaxBufferSize          = 0;
-    desc.dwMaxVertexCount         = D3DDD_MAXVERTEXCOUNT;
+    desc.dwMaxVertexCount         = D3DMAXNUMVERTICES;
     desc.dwMinTextureWidth        = 1;
     desc.dwMinTextureHeight       = 1;
     desc.dwMaxTextureWidth        = ddrawCaps::MaxTextureDimension;
