@@ -112,9 +112,11 @@ namespace dxvk {
 
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
-    // The standard way of creating a new D3D3 device. Outside of RGB and HAL,
+    // The standard way of creating a new D3D3 device. Outside of RAMP, MMX, RGB and HAL,
     // some applications (e.g. Dark Rift) query for Wine's advertised custom device IID.
-    if (riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DRGBDevice || riid == IID_WineD3DDevice) {
+    if (riid == IID_IDirect3DHALDevice  || riid == IID_IDirect3DRGBDevice  ||
+        riid == IID_IDirect3DMMXDevice  || riid == IID_IDirect3DRampDevice ||
+        riid == IID_WineD3DDevice) {
       DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
       bool  rgbFallback          = false;
 
@@ -124,6 +126,12 @@ namespace dxvk {
           deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
         } else if (riid == IID_IDirect3DRGBDevice) {
           Logger::info("DDrawSurface::QueryInterface: Creating a IID_IDirect3DRGBDevice device");
+        } else if (riid == IID_IDirect3DMMXDevice) {
+          Logger::warn("DDrawSurface::QueryInterface: Unsupported MMX device, falling back to RGB");
+          rgbFallback = true;
+        } else if (riid == IID_IDirect3DRampDevice) {
+          Logger::warn("DDrawSurface::QueryInterface: Unsupported Ramp device, falling back to RGB");
+          rgbFallback = true;
         } else {
           Logger::warn("DDrawSurface::QueryInterface: Unknown device identifier, falling back to RGB");
           Logger::warn(str::format(riid));
