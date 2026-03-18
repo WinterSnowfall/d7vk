@@ -12,9 +12,6 @@ namespace dxvk {
 
   uint32_t D3D6Device::s_deviceCount = 0;
 
-  // Index buffer sizes of XXS, XS, S, M, L, XL and XXL, corresponding to 0.1 kb, 0.5 kb, 2 kb, 8 kb, 32 kb, 64 kb and 128 kb
-  static constexpr UINT IndexCount[ddrawCaps::IndexBufferCount] = {64, 256, 1024, 4096, 16384, 32768, D3DMAXNUMVERTICES};
-
   D3D6Device::D3D6Device(
       Com<IDirect3DDevice3>&& d3d6DeviceProxy,
       D3D6Interface* pParent,
@@ -1528,7 +1525,7 @@ namespace dxvk {
     uint8_t ibIndex = 0;
     // Try to fit index buffer uploads into the smallest buffer size possible,
     // out of the five available: XS, S, M, L and XL (XL being the theoretical max)
-    while (index_count > IndexCount[ibIndex]) {
+    while (index_count > ddrawCaps::IndexCount[ibIndex]) {
       ibIndex++;
       if (unlikely(ibIndex > ddrawCaps::IndexBufferCount - 1)) {
         Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Exceeded size of largest index buffer");
@@ -1803,7 +1800,7 @@ namespace dxvk {
     static constexpr DWORD Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 
     for (uint8_t ibIndex = 0; ibIndex < ddrawCaps::IndexBufferCount ; ibIndex++) {
-      const UINT ibSize = IndexCount[ibIndex] * sizeof(WORD);
+      const UINT ibSize = ddrawCaps::IndexCount[ibIndex] * sizeof(WORD);
 
       Logger::debug(str::format("D3D6Device::InitializeIndexBuffer: Creating index buffer, size: ", ibSize));
 
