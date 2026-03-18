@@ -1797,6 +1797,7 @@ namespace dxvk {
     /* Total Annihilation: Kingdoms               */
     { R"(\\KINGDOMS\.icd$)", {{
       { "ddraw.emulateFSAA",                "True" },
+      { "ddraw.forcePOW2Textures",          "True" },
     }} },
     /* Star Wars Episode I: Racer                 */
     { R"(\\SWEP1RCR\.exe$)", {{

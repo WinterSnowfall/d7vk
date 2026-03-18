@@ -252,6 +252,10 @@ namespace dxvk {
     }
 
     DDraw3Surface* ddraw3Surface = static_cast<DDraw3Surface*>(lpDDSAttachedSurface);
+
+    if (unlikely(ddraw3Surface->GetCommonSurface()->IsBackBufferOrFlippable()))
+      Logger::warn("DDraw3Surface::AddAttachedSurface: Trying to attach a flippable surface");
+
     return m_proxy->AddAttachedSurface(ddraw3Surface->GetProxied());
   }
 
