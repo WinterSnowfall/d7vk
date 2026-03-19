@@ -119,6 +119,8 @@ namespace dxvk {
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
     // Note: The list of formats exposed in D3D7 is restricted to the below
 
     DDPIXELFORMAT textureFormat = GetTextureFormat(d3d9::D3DFMT_X1R5G5B5);
@@ -154,10 +156,12 @@ namespace dxvk {
 
     // Not supported in D3D9, but some games need
     // it to be advertised (for offscreen plain surfaces?)
-    textureFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
-    hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
-      return D3D_OK;
+    if (unlikely(d3dOptions->supportR3G3B2)) {
+      textureFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
+      hr = cb(&textureFormat, ctx);
+      if (unlikely(hr == D3DENUMRET_CANCEL))
+        return D3D_OK;
+    }
 
     // Not supported in D3D9, but some games may use it
     // Note: Advertizing P8 support breaks Sacrifice

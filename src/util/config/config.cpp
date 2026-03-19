@@ -1456,13 +1456,17 @@ namespace dxvk {
     { R"(\\(Empire Earth|EE-AOC)\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
-    /* Etherlords                                 */
+    /* Etherlords                                 *
+     * Needs R3G3B2 support for text rendering    */
     { R"(\\Etherlords\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
+      { "ddraw.supportR3G3B2",              "True" },
     }} },
-    /* Etherlords 2                               */
+    /* Etherlords 2                               *
+     * Needs R3G3B2 support for text rendering    */
     { R"(\\Etherlords2\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
+      { "ddraw.supportR3G3B2",              "True" },
     }} },
     /* Evil Islands                               */
     { R"(\\Evil Islands\\game\.exe$)", {{
@@ -1854,6 +1858,10 @@ namespace dxvk {
     { R"(\\crusaders\.exe$)", {{
       { "ddraw.backBufferWriteBack",        "True" },
       { "ddraw.backBufferGuard",        "Disabled" },
+    }} },
+    /* DethKarz - fixes crash post intro playback */
+    { R"(\\Dethkarz\.exe$)", {{
+      { "ddraw.mask8BitModes",              "True" },
     }} },
 
     /**********************************************/
