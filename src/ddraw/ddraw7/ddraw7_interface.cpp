@@ -408,7 +408,20 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc) {
     Logger::debug("<<< DDraw7Interface::GetDisplayMode: Proxy");
-    return m_proxy->GetDisplayMode(lpDDSurfaceDesc);
+
+    if (unlikely(lpDDSurfaceDesc == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    HRESULT hr = m_proxy->GetDisplayMode(lpDDSurfaceDesc);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+    if (unlikely(d3dOptions->mask8BitModes && lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount == 8))
+      lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = 16;
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes) {

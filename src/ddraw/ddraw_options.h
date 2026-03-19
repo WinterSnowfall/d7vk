@@ -26,11 +26,17 @@ namespace dxvk {
     /// Use SWVP mode for all D3D9 devices
     bool forceSWVP;
 
-    /// Replaces any use of D32 with D24X8
-    bool useD24X8forD32;
+    /// Advertise support for R3G3B2
+    bool supportR3G3B2;
 
     /// Advertise support for D16
     bool supportD16;
+
+    /// Replaces any use of D32 with D24X8
+    bool useD24X8forD32;
+
+    /// Report any 8-bit display modes as being 16-bit
+    bool mask8BitModes;
 
     /// Report POW2 texture dimension restrictions
     bool forcePOW2Textures;
@@ -89,8 +95,10 @@ namespace dxvk {
       // D3D7/6/5/DDraw options
       this->forceMultiThreaded    = config.getOption<bool>   ("ddraw.forceMultiThreaded",    false);
       this->forceSWVP             = config.getOption<bool>   ("ddraw.forceSWVP",             false);
-      this->useD24X8forD32        = config.getOption<bool>   ("ddraw.useD24X8forD32",        false);
+      this->supportR3G3B2         = config.getOption<bool>   ("ddraw.supportR3G3B2",         false);
       this->supportD16            = config.getOption<bool>   ("ddraw.supportD16",             true);
+      this->useD24X8forD32        = config.getOption<bool>   ("ddraw.useD24X8forD32",        false);
+      this->mask8BitModes         = config.getOption<bool>   ("ddraw.mask8BitModes",         false);
       this->forcePOW2Textures     = config.getOption<bool>   ("ddraw.forcePOW2Textures",     false);
       this->forceLegacyDiscard    = config.getOption<bool>   ("ddraw.forceLegacyDiscard",    false);
       this->viewportCorrection    = config.getOption<bool>   ("ddraw.viewportCorrection",    false);
