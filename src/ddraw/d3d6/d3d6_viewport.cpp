@@ -370,10 +370,9 @@ namespace dxvk {
     // Similarly, the dvClipWidth member is typically 2.0 and dvClipHeight is
     // set to twice the aspect ratio set in dwClipY."
     data->dvClipX      = -1.0f;
-    data->dvClipY      = -1.0f * (static_cast<float>(viewport9->Height) /
-                                  static_cast<float>(viewport9->Width));
+    data->dvClipY      =  static_cast<float>(viewport9->Height) / static_cast<float>(viewport9->Width);
     data->dvClipWidth  =  2.0f;
-    data->dvClipHeight = -2.0f * data->dvClipY;
+    data->dvClipHeight =  2.0f * data->dvClipY;
 
     return D3D_OK;
   }

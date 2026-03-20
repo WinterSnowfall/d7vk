@@ -296,11 +296,16 @@ namespace dxvk {
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     if (unlikely(d3dOptions->forceProxiedPresent)) {
-      HRESULT hrRT7 = m_proxy->SetRenderTarget(rt7->GetProxied(), flags);
-      if (unlikely(FAILED(hrRT7))) {
+      HRESULT hrRT = m_proxy->SetRenderTarget(rt7->GetProxied(), flags);
+      if (unlikely(FAILED(hrRT))) {
         Logger::warn("D3D7Device::SetRenderTarget: Failed to set RT");
-        return hrRT7;
+        return hrRT;
       }
+    } else {
+      // Needed to ensure proxied Z/Stencil viewport clears will work
+      HRESULT hrRT = m_proxy->SetRenderTarget(rt7->GetProxied(), flags);
+      if (unlikely(FAILED(hrRT)))
+        Logger::debug("D3D7Device::SetRenderTarget: Failed to set RT");
     }
 
     // A render target surface needs to have the DDSCAPS_3DDEVICE cap
@@ -382,7 +387,7 @@ namespace dxvk {
     // we must also ensure the back buffer clear calls are proxied
     HRESULT hr = m_proxy->Clear(count, rects, flags, color, z, stencil);
     if (unlikely(FAILED(hr)))
-      Logger::debug("D3D7Device::Clear: Failed proxied clear call");
+      Logger::debug("D3D7Device::Clear: Failed proxied call");
 
     // Fast skip
     if (unlikely(!count && rects))
@@ -417,10 +422,28 @@ namespace dxvk {
     // Clear() calls are affected by the set viewport, so we
     // must ensure SetViewport() calls are also proxied
     HRESULT hr = m_proxy->SetViewport(data);
-    // TODO: Implement RT size viewport validations and return E_INVALIDARG on error
-    if (unlikely(FAILED(hr))) {
-      Logger::debug("D3D7Device::SetViewport: Failed proxied set viewport call");
-      return hr;
+    if (unlikely(FAILED(hr)))
+      Logger::debug("D3D7Device::SetViewport: Failed proxied call");
+
+    const DDSURFACEDESC2* rtDesc2 = m_rt->GetCommonSurface()->GetDesc2();
+
+    // D3D7 will fail when setting a viewport that's outside of the
+    // current render target, though that works in D3D9
+    if (unlikely(data->dwX + data->dwWidth  > rtDesc2->dwWidth ||
+                 data->dwY + data->dwHeight > rtDesc2->dwHeight)) {
+      // On Linux/Wine and in windowed mode, we can get in situations
+      // where the actual render target dimensions are off by one
+      // pixel to what the game sets them to. Allow this corner case
+      // to skip the validation, in order to prevent issues.
+      const bool isOnePixelWider  = data->dwX + data->dwWidth  == rtDesc2->dwWidth  + 1;
+      const bool isOnePixelTaller = data->dwY + data->dwHeight == rtDesc2->dwHeight + 1;
+
+      if (unlikely(isOnePixelWider || isOnePixelTaller)) {
+        Logger::debug("D3D7Device::SetViewport: Viewport exceeds render target dimensions by one pixel");
+      } else {
+        Logger::debug("D3D7Device::SetViewport: Viewport exceeds render target dimensions");
+        return E_INVALIDARG;
+      }
     }
 
     d3d9::D3DVIEWPORT9* data9 = reinterpret_cast<d3d9::D3DVIEWPORT9*>(data);
@@ -1429,6 +1452,8 @@ namespace dxvk {
     } else {
       // TODO: Cache and reset all surfaces tied to the D3D9 backbuffers
       m_rt->SetD3D9(nullptr);
+      // Note that the D3D9 depth stencil survives a swapchain reset,
+      // so there's no need to worry about it in this case
     }
 
     return hr;
