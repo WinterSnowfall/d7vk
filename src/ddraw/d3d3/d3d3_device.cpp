@@ -1099,9 +1099,9 @@ namespace dxvk {
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
       if (SUCCEEDED(hr)) {
-        Logger::debug(str::format("D3D3Device::Execute: D3DOP_TRIANGLE drawn triangles: ", vertices.size()));
+        Logger::debug(str::format("D3D3Device::Execute: D3DOP_TRIANGLE drawn vertices: ", vertices.size()));
       } else {
-        Logger::err(str::format("D3D3Device::Execute: D3DOP_TRIANGLE failed to draw triangles: ", vertices.size()));
+        Logger::err(str::format("D3D3Device::Execute: D3DOP_TRIANGLE failed to draw vertices: ", vertices.size()));
       }
       vertices.clear();
     }
@@ -1128,9 +1128,9 @@ namespace dxvk {
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
       if (SUCCEEDED(hr)) {
-        Logger::debug(str::format("D3D3Device::Execute: D3DOP_LINE drawn triangles: ", vertices.size()));
+        Logger::debug(str::format("D3D3Device::Execute: D3DOP_LINE drawn vertices: ", vertices.size()));
       } else {
-        Logger::err(str::format("D3D3Device::Execute: D3DOP_LINE failed to draw triangles: ", vertices.size()));
+        Logger::err(str::format("D3D3Device::Execute: D3DOP_LINE failed to draw vertices: ", vertices.size()));
       }
       vertices.clear();
     }
@@ -1158,9 +1158,9 @@ namespace dxvk {
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
       if (SUCCEEDED(hr)) {
-        Logger::debug(str::format("D3D3Device::Execute: D3DOP_POINT drawn triangles: ", vertices.size()));
+        Logger::debug(str::format("D3D3Device::Execute: D3DOP_POINT drawn vertices: ", vertices.size()));
       } else {
-        Logger::err(str::format("D3D3Device::Execute: D3DOP_POINT failed to draw triangles: ", vertices.size()));
+        Logger::err(str::format("D3D3Device::Execute: D3DOP_POINT failed to draw vertices: ", vertices.size()));
       }
       vertices.clear();
     }
@@ -1188,9 +1188,9 @@ namespace dxvk {
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
       if (SUCCEEDED(hr)) {
-        Logger::debug(str::format("D3D3Device::Execute: D3DOP_SPAN drawn triangles: ", vertices.size()));
+        Logger::debug(str::format("D3D3Device::Execute: D3DOP_SPAN drawn vertices: ", vertices.size()));
       } else {
-        Logger::err(str::format("D3D3Device::Execute: D3DOP_SPAN failed to draw triangles: ", vertices.size()));
+        Logger::err(str::format("D3D3Device::Execute: D3DOP_SPAN failed to draw vertices: ", vertices.size()));
       }
       vertices.clear();
     }
