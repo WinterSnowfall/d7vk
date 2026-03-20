@@ -436,6 +436,11 @@ namespace dxvk {
         Logger::warn("D3D6Device::SetRenderTarget: Failed to set RT");
         return hrRT;
       }
+    } else {
+      // Needed to ensure proxied Z/Stencil viewport clears will work
+      HRESULT hrRT = m_proxy->SetRenderTarget(rt6->GetProxied(), flags);
+      if (unlikely(FAILED(hrRT)))
+        Logger::debug("D3D6Device::SetRenderTarget: Failed to set RT");
     }
 
     // A render target surface needs to have the DDSCAPS_3DDEVICE cap
@@ -1795,6 +1800,8 @@ namespace dxvk {
     } else {
       // TODO: Cache and reset all surfaces tied to the D3D9 backbuffers
       m_rt->SetD3D9(nullptr);
+      // Note that the D3D9 depth stencil survives a swapchain reset,
+      // so there's no need to worry about it in this case
     }
 
     return hr;

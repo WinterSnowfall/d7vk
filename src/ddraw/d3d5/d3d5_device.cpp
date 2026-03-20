@@ -411,6 +411,11 @@ namespace dxvk {
         Logger::warn("D3D5Device::SetRenderTarget: Failed to set RT");
         return hrRT;
       }
+    } else {
+      // Needed to ensure proxied Z/Stencil viewport clears will work
+      HRESULT hrRT = m_proxy->SetRenderTarget(rt5->GetProxied(), flags);
+      if (unlikely(FAILED(hrRT)))
+        Logger::debug("D3D5Device::SetRenderTarget: Failed to set RT");
     }
 
     // A render target surface needs to have the DDSCAPS_3DDEVICE cap
