@@ -1781,6 +1781,10 @@ namespace dxvk {
     { R"(\\Shogo.*\\Client\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* KISS: Psycho Circus - The Nightmare Child  */
+    { R"(\\(KISS.*|Psycho.*)\\client\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
     /* Enemy Engaged: Apache vs Havoc             */
     { R"(\\aphavoc\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
@@ -1862,6 +1866,7 @@ namespace dxvk {
     /* DethKarz - fixes crash post intro playback */
     { R"(\\Dethkarz\.exe$)", {{
       { "ddraw.mask8BitModes",              "True" },
+      { "ddraw.colorKeyCompatibility",      "True" },
     }} },
 
     /**********************************************/
