@@ -150,8 +150,8 @@ namespace dxvk {
     desc2RAMP_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
     memcpy(&descRAMP_HAL, &desc2RAMP_HAL, sizeof(D3DDEVICEDESC2));
     memcpy(&descRAMP_HEL, &desc2RAMP_HEL, sizeof(D3DDEVICEDESC2));
-    char deviceDescRAMP[100] = "D5VK RAMP";
-    char deviceNameRAMP[100] = "D5VK RAMP";
+    static char deviceDescRAMP[100] = "D5VK RAMP";
+    static char deviceNameRAMP[100] = "D5VK RAMP";
 
     HRESULT hr = lpEnumDevicesCallback(&guidRAMP, &deviceDescRAMP[0], &deviceNameRAMP[0],
                                        &descRAMP_HAL, &descRAMP_HEL, lpUserArg);
@@ -175,8 +175,8 @@ namespace dxvk {
     desc2RGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
     memcpy(&descRGB_HAL, &desc2RGB_HAL, sizeof(D3DDEVICEDESC2));
     memcpy(&descRGB_HEL, &desc2RGB_HEL, sizeof(D3DDEVICEDESC2));
-    char deviceDescRGB[100] = "D5VK RGB";
-    char deviceNameRGB[100] = "D5VK RGB";
+    static char deviceDescRGB[100] = "D5VK RGB";
+    static char deviceNameRGB[100] = "D5VK RGB";
 
     hr = lpEnumDevicesCallback(&guidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
                                &descRGB_HAL, &descRGB_HEL, lpUserArg);
@@ -200,8 +200,8 @@ namespace dxvk {
                             & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
     memcpy(&descHAL_HAL, &desc2HAL_HAL, sizeof(D3DDEVICEDESC2));
     memcpy(&descHAL_HEL, &desc2HAL_HEL, sizeof(D3DDEVICEDESC2));
-    char deviceDescHAL[100] = "D5VK HAL";
-    char deviceNameHAL[100] = "D5VK HAL";
+    static char deviceDescHAL[100] = "D5VK HAL";
+    static char deviceNameHAL[100] = "D5VK HAL";
 
     hr = lpEnumDevicesCallback(&guidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
                                &descHAL_HAL, &descHAL_HEL, lpUserArg);

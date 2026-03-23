@@ -1571,9 +1571,23 @@ namespace dxvk {
     return hr;
   }
 
-  // No actual use of it seen in the wild yet
-  HRESULT STDMETHODCALLTYPE D3D6Device::ComputeSphereVisibility(D3DVECTOR *centers, D3DVALUE *radii, DWORD sphere_count, DWORD flags, DWORD *ret) {
-    Logger::warn("!!! D3D6Device::ComputeSphereVisibility: Stub");
+  HRESULT STDMETHODCALLTYPE D3D6Device::ComputeSphereVisibility(D3DVECTOR *lpCenters, D3DVALUE *lpRadii, DWORD dwNumSpheres, DWORD dwFlags, DWORD *lpdwReturnValues) {
+    Logger::debug(">>> D3D6Device::ComputeSphereVisibility");
+
+    if (unlikely(lpCenters == nullptr || lpRadii == nullptr || lpdwReturnValues == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(dwNumSpheres == 0))
+      return D3D_OK;
+
+    // Docs state: "The array need not be initialized, but it must be large enough to contain a DWORD for
+    // each sphere being tested. When the method returns, each element in the array contains a combination
+    // of flags that describe the visibility of that sphere within the current viewport for this device.
+    // If a sphere is completely visible, the corresponding entry in lpdwReturnValues is 0."
+    // Consider everything to be visible as a minimal implementation, which makes Space Empires V happy.
+    for (DWORD i = 0; i < dwNumSpheres; i++)
+      lpdwReturnValues[i] = 0;
+
     return D3D_OK;
   }
 
