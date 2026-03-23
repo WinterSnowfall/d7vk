@@ -136,8 +136,8 @@ namespace dxvk {
                                            & ~D3DPTEXTURECAPS_POW2;
     descRGB_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
     descRGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
-    char deviceDescRGB[100] = "D6VK RGB";
-    char deviceNameRGB[100] = "D6VK RGB";
+    static char deviceDescRGB[100] = "D6VK RGB";
+    static char deviceNameRGB[100] = "D6VK RGB";
 
     HRESULT hr = lpEnumDevicesCallback(&guidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
                                        &descRGB_HAL, &descRGB_HEL, lpUserArg);
@@ -159,8 +159,8 @@ namespace dxvk {
     descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
-    char deviceDescHAL[100] = "D6VK HAL";
-    char deviceNameHAL[100] = "D6VK HAL";
+    static char deviceDescHAL[100] = "D6VK HAL";
+    static char deviceNameHAL[100] = "D6VK HAL";
 
     hr = lpEnumDevicesCallback(&guidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
                                &descHAL_HAL, &descHAL_HEL, lpUserArg);
