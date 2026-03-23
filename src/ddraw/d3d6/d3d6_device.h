@@ -110,7 +110,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE primitive_type, IDirect3DVertexBuffer *vb, WORD *indices, DWORD index_count, DWORD flags);
 
-    HRESULT STDMETHODCALLTYPE ComputeSphereVisibility(D3DVECTOR *centers, D3DVALUE *radii, DWORD sphere_count, DWORD flags, DWORD *ret);
+    HRESULT STDMETHODCALLTYPE ComputeSphereVisibility(D3DVECTOR *lpCenters, D3DVALUE *lpRadii, DWORD dwNumSpheres, DWORD dwFlags, DWORD *lpdwReturnValues);
 
     HRESULT STDMETHODCALLTYPE GetTexture(DWORD stage, IDirect3DTexture2 **texture);
 
