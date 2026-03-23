@@ -1702,6 +1702,10 @@ namespace dxvk {
       { "ddraw.ignoreExclusiveMode",        "True" },
       { "ddraw.forceSWVP",                  "True" },
     }} },
+    /* Space Empires V                            */
+    { R"(\\SE5\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
