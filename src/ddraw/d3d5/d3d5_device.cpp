@@ -1272,6 +1272,7 @@ namespace dxvk {
     DWORD vertex_type5 = ConvertVertexType(vertex_type);
 
     HandlePreDrawFlags(flags, vertex_type5);
+    HandlePreDrawLegacyProjection(flags);
 
     m_d3d9->SetFVF(vertex_type5);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
@@ -1280,6 +1281,7 @@ namespace dxvk {
                      vertices,
                      GetFVFSize(vertex_type5));
 
+    HandlePostDrawLegacyProjection();
     HandlePostDrawFlags(flags, vertex_type5);
 
     if (unlikely(FAILED(hr))) {
@@ -1311,6 +1313,7 @@ namespace dxvk {
     DWORD fvf5 = ConvertVertexType(fvf);
 
     HandlePreDrawFlags(flags, fvf5);
+    HandlePreDrawLegacyProjection(flags);
 
     m_d3d9->SetFVF(fvf5);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
@@ -1323,6 +1326,7 @@ namespace dxvk {
                       vertices,
                       GetFVFSize(fvf5));
 
+    HandlePostDrawLegacyProjection();
     HandlePostDrawFlags(flags, fvf5);
 
     if (unlikely(FAILED(hr))) {

@@ -207,6 +207,25 @@ namespace dxvk {
       }
     }
 
+    inline void HandlePreDrawLegacyProjection(DWORD drawFlags) {
+      if (likely(m_currentViewport != nullptr)) {
+        m_legacyProjection = m_currentViewport->GetCommonViewport()->GetLegacyProjectionMatrix(drawFlags);
+
+        if (m_legacyProjection != nullptr) {
+          //Logger::debug("D3D6Device: Applying legacy projection");
+          m_d3d9->GetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
+          m_d3d9->MultiplyTransform(d3d9::D3DTS_PROJECTION, m_legacyProjection);
+        }
+      }
+    }
+
+    inline void HandlePostDrawLegacyProjection() {
+      if (m_legacyProjection != nullptr) {
+        //Logger::debug("D3D6Device: Reverting legacy projection");
+        m_d3d9->SetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
+      }
+    }
+
     bool                           m_inScene     = false;
     bool                           m_alphaOpSet  = false;
 
@@ -243,15 +262,18 @@ namespace dxvk {
     std::array<Com<D3D6Texture, false>, ddrawCaps::TextureStageCount> m_textures;
 
     // Value of D3DRENDERSTATE_COLORKEYENABLE
-    DWORD           m_colorKeyEnabled = 0;
+    DWORD            m_colorKeyEnabled  = 0;
     // Value of D3DRENDERSTATE_ANTIALIAS
-    DWORD           m_antialias       = D3DANTIALIAS_NONE;
+    DWORD            m_antialias        = D3DANTIALIAS_NONE;
     // Value of D3DRENDERSTATE_LINEPATTERN
-    D3DLINEPATTERN  m_linePattern     = {};
+    D3DLINEPATTERN   m_linePattern      = {};
     // Value of D3DRENDERSTATE_ZVISIBLE (although the RS is not supported, its value is stored)
-    DWORD           m_zVisible        = 0;
+    DWORD            m_zVisible         = 0;
     // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
-    DWORD           m_textureMapBlend = D3DTBLEND_MODULATE;
+    DWORD            m_textureMapBlend  = D3DTBLEND_MODULATE;
+
+    D3DMATRIX        m_projectionMatrix = {};
+    const D3DMATRIX* m_legacyProjection = nullptr;
 
     // Common index buffers used for indexed draws, split up into five sizes:
     // XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb

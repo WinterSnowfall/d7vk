@@ -1285,6 +1285,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     HandlePreDrawFlags(flags, vertex_type);
+    HandlePreDrawLegacyProjection(flags);
 
     m_d3d9->SetFVF(vertex_type);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
@@ -1293,6 +1294,7 @@ namespace dxvk {
                      vertices,
                      GetFVFSize(vertex_type));
 
+    HandlePostDrawLegacyProjection();
     HandlePostDrawFlags(flags, vertex_type);
 
     if (unlikely(FAILED(hr))) {
@@ -1322,6 +1324,7 @@ namespace dxvk {
       Logger::warn("D3D6Device::DrawIndexedPrimitive: D3DPT_POINTLIST primitive type");
 
     HandlePreDrawFlags(flags, fvf);
+    HandlePreDrawLegacyProjection(flags);
 
     m_d3d9->SetFVF(fvf);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
@@ -1334,6 +1337,7 @@ namespace dxvk {
                       vertices,
                       GetFVFSize(fvf));
 
+    HandlePostDrawLegacyProjection();
     HandlePostDrawFlags(flags, fvf);
 
     if (unlikely(FAILED(hr))) {
@@ -1402,6 +1406,7 @@ namespace dxvk {
     PackedVertexBuffer pvb = TransformStridedtoUP(fvf, strided_data, vertex_count);
 
     HandlePreDrawFlags(flags, fvf);
+    HandlePreDrawLegacyProjection(flags);
 
     m_d3d9->SetFVF(fvf);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
@@ -1410,6 +1415,7 @@ namespace dxvk {
                      pvb.vertexData.data(),
                      pvb.stride);
 
+    HandlePostDrawLegacyProjection();
     HandlePostDrawFlags(flags, fvf);
 
     if (unlikely(FAILED(hr))) {
@@ -1439,6 +1445,7 @@ namespace dxvk {
     PackedVertexBuffer pvb = TransformStridedtoUP(fvf, strided_data, vertex_count);
 
     HandlePreDrawFlags(flags, fvf);
+    HandlePreDrawLegacyProjection(flags);
 
     m_d3d9->SetFVF(fvf);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
@@ -1451,6 +1458,7 @@ namespace dxvk {
                       pvb.vertexData.data(),
                       pvb.stride);
 
+    HandlePostDrawLegacyProjection();
     HandlePostDrawFlags(flags, fvf);
 
     if (unlikely(FAILED(hr))) {
@@ -1484,6 +1492,7 @@ namespace dxvk {
     }
 
     HandlePreDrawFlags(flags, vb6->GetFVF());
+    HandlePreDrawLegacyProjection(flags);
 
     m_d3d9->SetFVF(vb6->GetFVF());
     m_d3d9->SetStreamSource(0, vb6->GetD3D9(), 0, vb6->GetStride());
@@ -1492,6 +1501,7 @@ namespace dxvk {
                            start_vertex,
                            GetPrimitiveCount(primitive_type, vertex_count));
 
+    HandlePostDrawLegacyProjection();
     HandlePostDrawFlags(flags, vb6->GetFVF());
 
     if (unlikely(FAILED(hr))) {
@@ -1543,6 +1553,7 @@ namespace dxvk {
     }
 
     HandlePreDrawFlags(flags, vb6->GetFVF());
+    HandlePreDrawLegacyProjection(flags);
 
     d3d9::IDirect3DIndexBuffer9* ib9 = m_ib9[ibIndex].ptr();
 
@@ -1559,6 +1570,7 @@ namespace dxvk {
                     0,
                     GetPrimitiveCount(primitive_type, index_count));
 
+    HandlePostDrawLegacyProjection();
     HandlePostDrawFlags(flags, vb6->GetFVF());
 
     if(unlikely(FAILED(hr))) {

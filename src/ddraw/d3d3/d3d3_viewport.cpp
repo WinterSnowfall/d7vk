@@ -133,13 +133,12 @@ namespace dxvk {
     data->dwHeight = viewport9->Height;
     data->dvMinZ   = viewport9->MinZ;
     data->dvMaxZ   = viewport9->MaxZ;
-    // Docs state: "Values of the D3DVALUE type describing the maximum and minimum
-    // nonhomogeneous coordinates of x, y, and z. Again, the relevant coordinates
-    // are the nonhomogeneous coordinates that result from the perspective division."
+
     data->dvMaxX   = 1.0f;
     data->dvMaxY   = 1.0f;
-    data->dvScaleX = 1.0f;
-    data->dvScaleY = 1.0f;
+    D3DVECTOR* legacyScale = m_commonViewport->GetLegacyScale();
+    data->dvScaleX = legacyScale->x * (float)data->dwWidth / 2.0f;
+    data->dvScaleY = legacyScale->y * (float)data->dwHeight / 2.0f;
 
     return D3D_OK;
   }
@@ -160,7 +159,8 @@ namespace dxvk {
     if (unlikely(m_device == nullptr))
       return D3DERR_VIEWPORTHASNODEVICE;
 
-    // TODO: Check viewport dimensions against the currently set RT
+    // TODO: Check viewport dimensions against the currently set RT,
+    // and perform some sanity checks (positive, non-zero dimensions)
 
     d3d9::D3DVIEWPORT9* viewport9 = m_commonViewport->GetD3D9Viewport();
 
@@ -172,6 +172,15 @@ namespace dxvk {
     viewport9->Height = data->dwHeight;
     viewport9->MinZ   = 0.0f;
     viewport9->MaxZ   = 1.0f;
+
+    D3DVECTOR* legacyScale = m_commonViewport->GetLegacyScale();
+    legacyScale->x = 2.0f * data->dvScaleX / (float)data->dwWidth;
+    legacyScale->y = 2.0f * data->dvScaleY / (float)data->dwHeight;
+    legacyScale->z = 1.0f;
+    D3DVECTOR* legacyClip = m_commonViewport->GetLegacyClip();
+    legacyClip->x = 0.0f;
+    legacyClip->y = 0.0f;
+    legacyClip->z = 0.0f;
 
     m_commonViewport->MarkViewportAsSet();
 

@@ -134,13 +134,12 @@ namespace dxvk {
     data->dwHeight = viewport9->Height;
     data->dvMinZ   = viewport9->MinZ;
     data->dvMaxZ   = viewport9->MaxZ;
-    // Docs state: "Values of the D3DVALUE type describing the maximum and minimum
-    // nonhomogeneous coordinates of x, y, and z. Again, the relevant coordinates
-    // are the nonhomogeneous coordinates that result from the perspective division."
+
     data->dvMaxX   = 1.0f;
     data->dvMaxY   = 1.0f;
-    data->dvScaleX = 1.0f;
-    data->dvScaleY = 1.0f;
+    D3DVECTOR* legacyScale = m_commonViewport->GetLegacyScale();
+    data->dvScaleX = legacyScale->x * (float)data->dwWidth / 2.0f;
+    data->dvScaleY = legacyScale->y * (float)data->dwHeight / 2.0f;
 
     return D3D_OK;
   }
@@ -161,7 +160,8 @@ namespace dxvk {
     if (unlikely(m_device == nullptr))
       return D3DERR_VIEWPORTHASNODEVICE;
 
-    // TODO: Check viewport dimensions against the currently set RT
+    // TODO: Check viewport dimensions against the currently set RT,
+    // and perform some sanity checks (positive, non-zero dimensions)
 
     d3d9::D3DVIEWPORT9* viewport9 = m_commonViewport->GetD3D9Viewport();
 
@@ -173,6 +173,15 @@ namespace dxvk {
     viewport9->Height = data->dwHeight;
     viewport9->MinZ   = 0.0f;
     viewport9->MaxZ   = 1.0f;
+
+    D3DVECTOR* legacyScale = m_commonViewport->GetLegacyScale();
+    legacyScale->x = 2.0f * data->dvScaleX / (float)data->dwWidth;
+    legacyScale->y = 2.0f * data->dvScaleY / (float)data->dwHeight;
+    legacyScale->z = 1.0f;
+    D3DVECTOR* legacyClip = m_commonViewport->GetLegacyClip();
+    legacyClip->x = 0.0f;
+    legacyClip->y = 0.0f;
+    legacyClip->z = 0.0f;
 
     m_commonViewport->MarkViewportAsSet();
 
@@ -364,15 +373,13 @@ namespace dxvk {
     data->dwHeight     = viewport9->Height;
     data->dvMinZ       = viewport9->MinZ;
     data->dvMaxZ       = viewport9->MaxZ;
-    // Docs state: "In most cases, dvClipX is set to -1.0 and dvClipY is set
-    // to the inverse of the viewport's aspect ratio on the target surface,
-    // which can be calculated by dividing the dwHeight member by dwWidth.
-    // Similarly, the dvClipWidth member is typically 2.0 and dvClipHeight is
-    // set to twice the aspect ratio set in dwClipY."
-    data->dvClipX      = -1.0f;
-    data->dvClipY      =  static_cast<float>(viewport9->Height) / static_cast<float>(viewport9->Width);
-    data->dvClipWidth  =  2.0f;
-    data->dvClipHeight =  2.0f * data->dvClipY;
+
+    D3DVECTOR* legacyScale = m_commonViewport->GetLegacyScale();
+    data->dvClipWidth  = 2.0f / legacyScale->x;
+    data->dvClipHeight = 2.0f / legacyScale->y;
+    D3DVECTOR* legacyClip = m_commonViewport->GetLegacyClip();
+    data->dvClipX      = data->dvClipWidth  * (legacyClip->x + 1.0f) / -2.0f;
+    data->dvClipY      = data->dvClipHeight * (legacyClip->y - 1.0f) / -2.0f;
 
     return D3D_OK;
   }
@@ -393,7 +400,8 @@ namespace dxvk {
     if (unlikely(m_device == nullptr))
       return D3DERR_VIEWPORTHASNODEVICE;
 
-    // TODO: Check viewport dimensions against the currently set RT
+    // TODO: Check viewport dimensions against the currently set RT,
+    // and perform some sanity checks (positive, non-zero dimensions)
 
     d3d9::D3DVIEWPORT9* viewport9 = m_commonViewport->GetD3D9Viewport();
 
@@ -401,23 +409,17 @@ namespace dxvk {
     viewport9->Y      = data->dwY;
     viewport9->Width  = data->dwWidth;
     viewport9->Height = data->dwHeight;
-    // Empire of the Ants uses 1.0f and 1000000.0f, so the expectation
-    // is most likely for these values to be normalized to [0.0f, 1.0f]
-    viewport9->MinZ   = data->dvMaxZ <= 1.0f ? data->dvMinZ : data->dvMinZ / data->dvMaxZ;
-    viewport9->MaxZ   = data->dvMaxZ <= 1.0f ? data->dvMaxZ : 1.0f;
+    viewport9->MinZ   = 0.0f;
+    viewport9->MaxZ   = 1.0f;
 
-    const D3DOptions* d3dOptions = m_commonViewport->GetCommonD3DInterface()->GetOptions();
-
-    if (unlikely(d3dOptions->viewportCorrection)) {
-      // The Summoner sets both to 0.0f and expects to end up with 0.0f / 1.0f
-      if (viewport9->MinZ == 0.0f && viewport9->MaxZ == 0.0f) {
-        viewport9->MaxZ = 1.0f;
-      // Urban Chaos mixes up MinZ / MaxZ, and this somehow works on native...
-      } else if (viewport9->MinZ == 1.0f && viewport9->MaxZ == 0.0f) {
-        viewport9->MinZ = 0.0f;
-        viewport9->MaxZ = 1.0f;
-      }
-    }
+    D3DVECTOR* legacyScale = m_commonViewport->GetLegacyScale();
+    legacyScale->x = 2.0f / data->dvClipWidth;
+    legacyScale->y = 2.0f / data->dvClipHeight;
+    legacyScale->z = 1.0f / (data->dvMaxZ - data->dvMinZ);
+    D3DVECTOR* legacyClip = m_commonViewport->GetLegacyClip();
+    legacyClip->x = -2.0f * data->dvClipX / data->dvClipWidth - 1.0f;
+    legacyClip->y = -2.0f * data->dvClipY / data->dvClipHeight + 1.0f;
+    legacyClip->z = -data->dvMinZ / (data->dvMaxZ - data->dvMinZ);
 
     m_commonViewport->MarkViewportAsSet();
 
