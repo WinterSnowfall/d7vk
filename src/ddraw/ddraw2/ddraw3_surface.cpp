@@ -286,6 +286,41 @@ namespace dxvk {
 
     RefreshD3D9Device();
     if (likely(m_d3d9Device != nullptr)) {
+      // Forward DDBLT_DEPTHFILL clears to D3D9 if done on the current depth stencil
+      if (unlikely(lpDDSrcSurface == nullptr &&
+                  (dwFlags & DDBLT_DEPTHFILL) &&
+                  lpDDBltFx != nullptr &&
+                  m_commonIntf->IsCurrentD3D9DepthStencil(m_d3d9.ptr()))) {
+        Logger::debug("DDraw3Surface::Blt: Clearing d3d9 depth stencil");
+
+        HRESULT hrClear;
+        const float zClear = m_commonSurf->GetNormalizedFloatDepth(lpDDBltFx->dwFillDepth);
+
+        if (lpDestRect == nullptr) {
+          hrClear = m_d3d9Device->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, zClear, 0);
+        } else {
+          hrClear = m_d3d9Device->Clear(1, reinterpret_cast<D3DRECT*>(lpDestRect), D3DCLEAR_ZBUFFER, 0, zClear, 0);
+        }
+        if (unlikely(FAILED(hrClear)))
+          Logger::warn("DDraw3Surface::Blt: Failed to clear d3d9 depth");
+      }
+      // Forward DDBLT_COLORFILL clears to D3D9 if done on the current render target
+      if (unlikely(lpDDSrcSurface == nullptr &&
+                  (dwFlags & DDBLT_COLORFILL) &&
+                  lpDDBltFx != nullptr &&
+                  m_commonIntf->IsCurrentD3D9RenderTarget(m_d3d9.ptr()))) {
+        Logger::debug("DDraw3Surface::Blt: Clearing d3d9 render target");
+
+        HRESULT hrClear;
+        if (lpDestRect == nullptr) {
+          hrClear = m_d3d9Device->Clear(0, NULL, D3DCLEAR_TARGET, lpDDBltFx->dwFillColor, 0.0f, 0);
+        } else {
+          hrClear = m_d3d9Device->Clear(1, reinterpret_cast<D3DRECT*>(lpDestRect), D3DCLEAR_TARGET, lpDDBltFx->dwFillColor, 0.0f, 0);
+        }
+        if (unlikely(FAILED(hrClear)))
+          Logger::warn("DDraw3Surface::Blt: Failed to clear d3d9 render target");
+      }
+
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
                               && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
 
@@ -300,41 +335,6 @@ namespace dxvk {
         m_d3d9Device->Present(NULL, NULL, NULL, NULL);
         return DD_OK;
       }
-    }
-
-    // Forward DDBLT_DEPTHFILL clears to D3D9 if done on the current depth stencil
-    if (unlikely(lpDDSrcSurface == nullptr &&
-                 (dwFlags & DDBLT_DEPTHFILL) &&
-                 lpDDBltFx != nullptr &&
-                 m_commonIntf->IsCurrentD3D9DepthStencil(m_d3d9.ptr()))) {
-      Logger::debug("DDraw3Surface::Blt: Clearing d3d9 depth stencil");
-
-      HRESULT hrClear;
-      const float zClear = m_commonSurf->GetNormalizedFloatDepth(lpDDBltFx->dwFillDepth);
-
-      if (lpDestRect == nullptr) {
-        hrClear = m_d3d9Device->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, zClear, 0);
-      } else {
-        hrClear = m_d3d9Device->Clear(1, reinterpret_cast<D3DRECT*>(lpDestRect), D3DCLEAR_ZBUFFER, 0, zClear, 0);
-      }
-      if (unlikely(FAILED(hrClear)))
-        Logger::warn("DDraw3Surface::Blt: Failed to clear d3d9 depth");
-    }
-    // Forward DDBLT_COLORFILL clears to D3D9 if done on the current render target
-    if (unlikely(lpDDSrcSurface == nullptr &&
-                 (dwFlags & DDBLT_COLORFILL) &&
-                 lpDDBltFx != nullptr &&
-                 m_commonIntf->IsCurrentD3D9RenderTarget(m_d3d9.ptr()))) {
-      Logger::debug("DDraw3Surface::Blt: Clearing d3d9 render target");
-
-      HRESULT hrClear;
-      if (lpDestRect == nullptr) {
-        hrClear = m_d3d9Device->Clear(0, NULL, D3DCLEAR_TARGET, lpDDBltFx->dwFillColor, 0.0f, 0);
-      } else {
-        hrClear = m_d3d9Device->Clear(1, reinterpret_cast<D3DRECT*>(lpDestRect), D3DCLEAR_TARGET, lpDDBltFx->dwFillColor, 0.0f, 0);
-      }
-      if (unlikely(FAILED(hrClear)))
-        Logger::warn("DDraw3Surface::Blt: Failed to clear d3d9 render target");
     }
 
     HRESULT hr;
