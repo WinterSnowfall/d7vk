@@ -133,6 +133,25 @@ namespace dxvk {
 
     inline void TextureLoadInternal(D3DTEXTURELOAD* textureLoad, DWORD count);
 
+    inline void HandlePreDrawLegacyProjection() {
+      if (likely(m_currentViewport != nullptr)) {
+        m_legacyProjection = m_currentViewport->GetCommonViewport()->GetLegacyProjectionMatrix(0);
+
+        if (m_legacyProjection != nullptr) {
+          //Logger::debug("D3D3Device: Applying legacy projection");
+          m_d3d9->GetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
+          m_d3d9->MultiplyTransform(d3d9::D3DTS_PROJECTION, m_legacyProjection);
+        }
+      }
+    }
+
+    inline void HandlePostDrawLegacyProjection() {
+      if (m_legacyProjection != nullptr) {
+        //Logger::debug("D3D3Device: Reverting legacy projection");
+        m_d3d9->SetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
+      }
+    }
+
     bool                           m_inScene     = false;
 
     static uint32_t                s_deviceCount;
@@ -159,7 +178,10 @@ namespace dxvk {
     std::vector<Com<D3D3Viewport>> m_viewports;
 
     // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
-    DWORD                          m_textureMapBlend = D3DTBLEND_MODULATE;
+    DWORD                          m_textureMapBlend  = D3DTBLEND_MODULATE;
+
+    D3DMATRIX                      m_projectionMatrix = {};
+    const D3DMATRIX*               m_legacyProjection = nullptr;
 
     D3DMATRIXHANDLE                m_matrixHandle = 0;
     std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> m_matrices;
