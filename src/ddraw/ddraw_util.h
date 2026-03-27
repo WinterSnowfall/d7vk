@@ -264,13 +264,13 @@ namespace dxvk {
 
       if ((dwFVF & D3DFVF_POSITION_MASK) && lpVBStrided->position.lpvData) {
         size_t size = GetFVFPositionSize(dwFVF);
-        memcpy(ptr, (uint8_t*)lpVBStrided->position.lpvData + i * lpVBStrided->position.dwStride, size);
+        memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->position.lpvData) + i * lpVBStrided->position.dwStride, size);
         ptr += size;
       }
 
       if ((dwFVF & D3DFVF_NORMAL) && lpVBStrided->normal.lpvData) {
         size_t size = 3 * sizeof(FLOAT);
-        memcpy(ptr, (uint8_t*)lpVBStrided->normal.lpvData + i * lpVBStrided->normal.dwStride, size);
+        memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->normal.lpvData) + i * lpVBStrided->normal.dwStride, size);
         ptr += size;
       }
 
@@ -281,20 +281,20 @@ namespace dxvk {
 
       if ((dwFVF & D3DFVF_DIFFUSE) && lpVBStrided->diffuse.lpvData) {
         size_t size = sizeof(D3DCOLOR);
-        memcpy(ptr, (uint8_t*)lpVBStrided->diffuse.lpvData + i * lpVBStrided->diffuse.dwStride, size);
+        memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->diffuse.lpvData) + i * lpVBStrided->diffuse.dwStride, size);
         ptr += size;
       }
 
       if ((dwFVF & D3DFVF_SPECULAR) && lpVBStrided->specular.lpvData) {
         size_t size = sizeof(D3DCOLOR);
-        memcpy(ptr, (uint8_t*)lpVBStrided->specular.lpvData + i * lpVBStrided->specular.dwStride, size);
+        memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->specular.lpvData) + i * lpVBStrided->specular.dwStride, size);
         ptr += size;
       }
 
       for (DWORD t = 0; t < dwNumTextures; t++) {
         if (lpVBStrided->textureCoords[t].lpvData) {
           size_t size = GetFVFTexCoordSize(dwFVF, t);
-          memcpy(ptr, (uint8_t*)lpVBStrided->textureCoords[t].lpvData + i * lpVBStrided->textureCoords[t].dwStride, size);
+          memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->textureCoords[t].lpvData) + i * lpVBStrided->textureCoords[t].dwStride, size);
           ptr += size;
         }
       }
