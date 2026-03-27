@@ -32,7 +32,9 @@ namespace dxvk {
     }
 
     void MarkViewportAsSet() {
-      m_isViewportSet = true;
+      m_isViewportSet   = true;
+      // Also dirty legacy projection on any viewport updates
+      m_dirtyProjection = true;
     }
 
     bool IsViewportSet() const {
@@ -99,17 +101,67 @@ namespace dxvk {
       return m_origin == origin;
     }
 
+    D3DVECTOR* GetLegacyScale() {
+      return &m_legacyScale;
+    }
+
+    D3DVECTOR* GetLegacyClip() {
+      return &m_legacyClip;
+    }
+
+    const D3DMATRIX* GetLegacyProjectionMatrix(DWORD drawFlags) {
+      // Fast skip if viewport values haven't been set
+      if (unlikely(!m_isViewportSet))
+        return nullptr;
+
+      const bool needsClipping = !(drawFlags & D3DDP_DONOTCLIP);
+      if (unlikely(m_needsClipping != needsClipping)) {
+        m_dirtyProjection = true;
+        m_needsClipping = needsClipping;
+      }
+
+      // Recalculate legacy projection matrix only when needed
+      if (unlikely(m_dirtyProjection)) {
+        m_legacyProjection._11 = m_legacyScale.x;
+        m_legacyProjection._22 = m_legacyScale.y;
+        m_legacyProjection._33 = m_legacyScale.z;
+        m_legacyProjection._41 = m_needsClipping ? m_legacyClip.x : 0.0f;
+        m_legacyProjection._42 = m_needsClipping ? m_legacyClip.y : 0.0f;
+        m_legacyProjection._43 = m_needsClipping ? m_legacyClip.z : 0.0f;
+        m_legacyProjection._44 = 1.0f;
+        // Determine if the projection matrix is an identity matrix
+        m_isIdentityMatrix = m_legacyProjection._11 == 1.0f &&
+                             m_legacyProjection._22 == 1.0f &&
+                             m_legacyProjection._33 == 1.0f &&
+                             m_legacyProjection._41 == 0.0f &&
+                             m_legacyProjection._42 == 0.0f &&
+                             m_legacyProjection._43 == 0.0f;
+        m_dirtyProjection = false;
+      }
+
+      return m_isIdentityMatrix ? nullptr : &m_legacyProjection;
+    }
+
   private:
 
     bool                m_isViewportSet     = false;
     bool                m_isCurrentViewport = false;
     bool                m_isMaterialSet     = false;
 
+    // Legacy projection state
+    bool                m_isIdentityMatrix  = false;
+    bool                m_needsClipping     = false;
+    bool                m_dirtyProjection   = false;
+
     D3DCommonInterface* m_commonD3DIntf     = nullptr;
 
     D3DMATERIALHANDLE   m_materialHandle    = 0;
 
     d3d9::D3DVIEWPORT9  m_viewport9 = { };
+
+    D3DVECTOR           m_legacyScale       = { };
+    D3DVECTOR           m_legacyClip        = { };
+    D3DMATRIX           m_legacyProjection  = { };
 
     // Track all possible viewport versions of the same object
     D3D6Viewport*       m_d3d6Viewport      = nullptr;
