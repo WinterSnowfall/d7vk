@@ -446,15 +446,18 @@ namespace dxvk {
       }
     }
 
-    d3d9::D3DVIEWPORT9* data9 = reinterpret_cast<d3d9::D3DVIEWPORT9*>(data);
-
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
     // (The) Summoner sets both to 0.0f and expects to get
-    // the behavioral equivalent of setting 0.0f/1.0f
-    if (unlikely(d3dOptions->viewportCorrection && data9->MinZ == 0.0f && data9->MaxZ == 0.0f))
-      data9->MaxZ = 1.0f;
+    // the behavioral equivalent of setting 0.0f/1.0f, although
+    // the actual D3D7 behavior will result in 0.0f/0.001f.
+    //
+    // It is somewhat unclear why this works properly on native,
+    // however it is possible some corrections were performed at
+    // driver level or in the runtime, but without affecting
+    // reported viewport dvMinZ/dvMaxZ values.
+    if (unlikely(data->dvMinZ == 0.0f && data->dvMaxZ == 0.0f))
+      data->dvMaxZ = 1.0f;
 
-    return m_d3d9->SetViewport(data9);
+    return m_d3d9->SetViewport(reinterpret_cast<d3d9::D3DVIEWPORT9*>(data));
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetViewport(D3DVIEWPORT7 *data) {
