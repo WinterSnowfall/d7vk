@@ -138,7 +138,7 @@ namespace dxvk {
 
     data->dltType         = D3DLIGHTTYPE(m_light9.Type);
     data->dcvColor        = m_light9.Diffuse;
-    data->dcvColor        = m_light9.Specular;
+    //data->dcvColor      = m_light9.Specular;
     data->dvPosition      = m_light9.Position;
     data->dvDirection     = m_light9.Direction;
     data->dvRange         = m_light9.Range;

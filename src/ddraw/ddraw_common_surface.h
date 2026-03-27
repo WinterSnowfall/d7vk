@@ -37,7 +37,7 @@ namespace dxvk {
       return m_isDesc2Set;
     }
 
-    void SetDesc2(DDSURFACEDESC2& desc2) {
+    void SetDesc2(const DDSURFACEDESC2& desc2) {
       m_desc2 = desc2;
       m_isDesc2Set = true;
       m_format9 = ConvertFormat(m_desc2.ddpfPixelFormat);
@@ -59,7 +59,7 @@ namespace dxvk {
       return m_isDescSet;
     }
 
-    void SetDesc(DDSURFACEDESC& desc) {
+    void SetDesc(const DDSURFACEDESC& desc) {
       m_desc = desc;
       m_isDescSet = true;
       m_format9 = ConvertFormat(m_desc.ddpfPixelFormat);
