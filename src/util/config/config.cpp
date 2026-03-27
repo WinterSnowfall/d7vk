@@ -1200,6 +1200,7 @@ namespace dxvk {
       { "d3d9.memoryTrackTest",             "True" },
       { "d3d9.maxAvailableMemory",          "1024" },
       { "d3d8.batching",                    "True" },
+      { "ddraw.forceSWVP",                  "True" },
       { "ddraw.forceSingleBackBuffer",      "True" },
       { "ddraw.backBufferGuard",          "Strict" },
     }} },
@@ -1438,6 +1439,7 @@ namespace dxvk {
     /* Dungeon Siege                              */
     { R"(\\DungeonSiege\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
+      { "ddraw.backBufferWriteBack",        "True" },
     }} },
     /* Empire Earth / Art of Conquest             */
     { R"(\\(Empire Earth|EE-AOC)\.exe$)", {{
@@ -1594,6 +1596,8 @@ namespace dxvk {
      * Fixes missing mip maps on car models       */
     { R"(\\(Porsche|nfs5)\.exe$)", {{
       { "ddraw.autoGenMipMaps",             "True" },
+      { "ddraw.backBufferWriteBack",        "True" },
+      { "ddraw.backBufferGuard",        "Disabled" },
     }} },
     /* Soulbringer - Uses legacy ddraw interfaces *
      * and has broken rendering with direct       *

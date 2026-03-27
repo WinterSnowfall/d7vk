@@ -12,7 +12,7 @@ Please describe your issue as accurately as possible. Include screenshots or vid
 If you use Windows, please check the following page: https://github.com/doitsujin/dxvk/wiki/Windows
 
 ### Software information
-Name of the game, settings used etc. If using mods or addons, list them aswell.
+Name of the game, settings used etc. If using mods or addons, list them as well.
 
 ### System information
 - GPU:
