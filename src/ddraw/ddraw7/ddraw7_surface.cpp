@@ -79,10 +79,10 @@ namespace dxvk {
 
     // Release all public references on all attached surfaces
     for (auto & attachedSurface : m_attachedSurfaces) {
-      uint32_t ref;
+      uint32_t attachedRef;
       do {
-        ref = attachedSurface.second->Release();
-      } while (ref > 0);
+        attachedRef = attachedSurface.second->Release();
+      } while (attachedRef > 0);
     }
 
     if (m_parent != nullptr && m_isChildObject)

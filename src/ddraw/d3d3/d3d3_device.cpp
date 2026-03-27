@@ -389,7 +389,7 @@ namespace dxvk {
 
           D3DBRANCH* branch = reinterpret_cast<D3DBRANCH*>(operation);
           for (uint16_t i = 0; i < count; i++) {
-            D3DBRANCH& b = branch[i];
+            const D3DBRANCH& b = branch[i];
 
             bool masked = (data.dsStatus.dwStatus & b.dwMask) == b.dwValue;
             if (b.bNegate) {
@@ -478,7 +478,7 @@ namespace dxvk {
 
           D3DSTATE* state = reinterpret_cast<D3DSTATE*>(operation);
           for (uint16_t i = 0; i < count; i++) {
-            D3DSTATE& s = state[i];
+            const D3DSTATE& s = state[i];
             SetLightStateInternal(s.dlstLightStateType, s.dwArg[0]);
           }
           break;
@@ -488,7 +488,7 @@ namespace dxvk {
 
           D3DSTATE* state = reinterpret_cast<D3DSTATE*>(operation);
           for (uint16_t i = 0; i < count; i++) {
-            D3DSTATE& s = state[i];
+            const D3DSTATE& s = state[i];
             SetRenderStateInternal(s.drstRenderStateType, s.dwArg[0]);
           }
 
@@ -500,7 +500,7 @@ namespace dxvk {
           D3DSTATE* state = reinterpret_cast<D3DSTATE*>(operation);
           D3DMATRIX matrix;
           for (uint16_t i = 0; i < count; i++) {
-            D3DSTATE& s = state[i];
+            const D3DSTATE& s = state[i];
 
             if (unlikely(s.dwArg[0] == 0))
               continue;
@@ -1198,7 +1198,7 @@ namespace dxvk {
 
   inline void D3D3Device::TextureLoadInternal(D3DTEXTURELOAD* textureLoad, DWORD count) {
     for (DWORD i = 0; i < count; i++) {
-      D3DTEXTURELOAD& tl = textureLoad[i];
+      const D3DTEXTURELOAD& tl = textureLoad[i];
 
       DDrawSurface* destSurf = m_commonIntf->GetDDInterface()->GetSurfaceFromTextureHandle(tl.hDestTexture);
       DDrawSurface* srcSurf = m_commonIntf->GetDDInterface()->GetSurfaceFromTextureHandle(tl.hSrcTexture);
