@@ -1092,17 +1092,23 @@ namespace dxvk {
     }
 
     if (!vertices.empty() && m_d3d9 != nullptr) {
+      HandlePreDrawLegacyProjection();
+
       m_d3d9->SetFVF(D3DFVF_TLVERTEX);
       HRESULT hr = m_d3d9->DrawPrimitiveUP(
            d3d9::D3DPT_TRIANGLELIST,
            GetPrimitiveCount(D3DPT_TRIANGLELIST, vertices.size()),
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
+
+      HandlePostDrawLegacyProjection();
+
       if (SUCCEEDED(hr)) {
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_TRIANGLE drawn vertices: ", vertices.size()));
       } else {
         Logger::err(str::format("D3D3Device::Execute: D3DOP_TRIANGLE failed to draw vertices: ", vertices.size()));
       }
+
       vertices.clear();
     }
   }
@@ -1121,17 +1127,23 @@ namespace dxvk {
     }
 
     if (!vertices.empty() && m_d3d9 != nullptr) {
+      HandlePreDrawLegacyProjection();
+
       m_d3d9->SetFVF(D3DFVF_TLVERTEX);
       HRESULT hr = m_d3d9->DrawPrimitiveUP(
            d3d9::D3DPT_LINELIST,
            GetPrimitiveCount(D3DPT_LINELIST, vertices.size()),
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
+
+      HandlePostDrawLegacyProjection();
+
       if (SUCCEEDED(hr)) {
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_LINE drawn vertices: ", vertices.size()));
       } else {
         Logger::err(str::format("D3D3Device::Execute: D3DOP_LINE failed to draw vertices: ", vertices.size()));
       }
+
       vertices.clear();
     }
   }
@@ -1151,12 +1163,17 @@ namespace dxvk {
     }
 
     if (!vertices.empty() && m_d3d9 != nullptr) {
+      HandlePreDrawLegacyProjection();
+
       m_d3d9->SetFVF(D3DFVF_TLVERTEX);
       HRESULT hr = m_d3d9->DrawPrimitiveUP(
            d3d9::D3DPT_POINTLIST,
            GetPrimitiveCount(D3DPT_POINTLIST, vertices.size()),
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
+
+      HandlePostDrawLegacyProjection();
+
       if (SUCCEEDED(hr)) {
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_POINT drawn vertices: ", vertices.size()));
       } else {
@@ -1181,17 +1198,23 @@ namespace dxvk {
     }
 
     if (!vertices.empty() && m_d3d9 != nullptr) {
+      HandlePreDrawLegacyProjection();
+
       m_d3d9->SetFVF(D3DFVF_TLVERTEX);
       HRESULT hr = m_d3d9->DrawPrimitiveUP(
            d3d9::D3DPT_LINESTRIP,
            GetPrimitiveCount(D3DPT_LINESTRIP, vertices.size()),
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
+
+      HandlePostDrawLegacyProjection();
+
       if (SUCCEEDED(hr)) {
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_SPAN drawn vertices: ", vertices.size()));
       } else {
         Logger::err(str::format("D3D3Device::Execute: D3DOP_SPAN failed to draw vertices: ", vertices.size()));
       }
+
       vertices.clear();
     }
   }
