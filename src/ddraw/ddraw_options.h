@@ -44,9 +44,6 @@ namespace dxvk {
     /// Respect DISCARD only on DYNAMIC + WRITEONLY buffers
     bool forceLegacyDiscard;
 
-    /// Temporary workaround for bad behaving viewport MinZ/MaxZ use
-    bool viewportCorrection;
-
     /// Circumvents the texelFetch color key shader path
     bool colorKeyCompatibility;
 
@@ -101,7 +98,6 @@ namespace dxvk {
       this->mask8BitModes         = config.getOption<bool>   ("ddraw.mask8BitModes",         false);
       this->forcePOW2Textures     = config.getOption<bool>   ("ddraw.forcePOW2Textures",     false);
       this->forceLegacyDiscard    = config.getOption<bool>   ("ddraw.forceLegacyDiscard",    false);
-      this->viewportCorrection    = config.getOption<bool>   ("ddraw.viewportCorrection",    false);
       this->colorKeyCompatibility = config.getOption<bool>   ("ddraw.colorKeyCompatibility", false);
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);

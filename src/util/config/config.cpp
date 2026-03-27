@@ -1578,7 +1578,6 @@ namespace dxvk {
     { R"(\\Sum\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.emulateFSAA",                "True" },
-      { "ddraw.viewportCorrection",         "True" },
     }} },
     /* Wizardry 8 - Fixes broken input handling   */
     { R"(\\Wiz8\.exe$)", {{
@@ -1753,7 +1752,6 @@ namespace dxvk {
     { R"(\\fallen\.exe$)", {{
       { "ddraw.ignoreExclusiveMode",        "True" },
       { "ddraw.forceSingleBackBuffer",      "True" },
-      { "ddraw.viewportCorrection",         "True" },
     }} },
     /* Redline - Fixes missing weapon mip maps    */
     { R"(\\Redline\.exe$)", {{
