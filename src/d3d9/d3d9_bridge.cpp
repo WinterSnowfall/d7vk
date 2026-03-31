@@ -94,6 +94,12 @@ namespace dxvk {
     return mapping.IsValid();
   }
 
+  uint32_t DxvkD3D8Bridge::DetermineInitialTextureMemory() {
+    const int64_t initialTextureMemory = m_device->DetermineInitialTextureMemory();
+
+    return initialTextureMemory > 0 ? static_cast<uint32_t>(initialTextureMemory) : 0;
+  }
+
   HRESULT DxvkD3D8Bridge::ResetSwapChain(D3DPRESENT_PARAMETERS* Params) {
     return m_device->ResetSwapChain(Params, nullptr);
   }
