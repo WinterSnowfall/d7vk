@@ -66,14 +66,14 @@ namespace dxvk {
 
   private:
 
-    static uint32_t        s_viewportCount;
-    uint32_t               m_viewportCount   = 0;
+    static uint32_t            s_viewportCount;
+    uint32_t                   m_viewportCount = 0;
 
-    Com<D3DCommonViewport> m_commonViewport;
+    Com<D3DCommonViewport>     m_commonViewport;
 
-    D3D3Device*            m_device = nullptr;
+    D3D3Device*                m_device = nullptr;
 
-    std::vector<D3DLight*> m_lights;
+    std::vector<Com<D3DLight>> m_lights;
 
   };
 
