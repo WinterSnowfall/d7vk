@@ -329,8 +329,6 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    static constexpr DWORD Megabytes = 1024 * 1024;
-
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
     // Properly fill in the dwVidMemTotal / dwVidMemFree fields
     DWORD total9 = 0;
@@ -340,7 +338,7 @@ namespace dxvk {
     if (likely(d3d9Device != nullptr)) {
       Logger::debug("DDraw2Interface::GetCaps: Getting memory stats from D3D9");
 
-      total9 = static_cast<DWORD>(d3dOptions->maxAvailableMemory) * Megabytes;
+      total9 = static_cast<DWORD>(m_commonIntf->GetTotalTextureMemory());
       free9  = static_cast<DWORD>(d3d9Device->GetAvailableTextureMem());
 
       Logger::debug(str::format("DDraw2Interface::GetCaps: Total: ", total9));
@@ -348,15 +346,25 @@ namespace dxvk {
     } else {
       Logger::debug("DDraw2Interface::GetCaps: Getting memory stats from DDraw");
 
-      const DWORD total7 = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemTotal : 0;
-      const DWORD free7  = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemFree  : 0;
+      static constexpr DWORD Megabytes = 1024 * 1024;
+      static constexpr DWORD ReservedMemory = 8 * Megabytes;
 
-      Logger::debug(str::format("DDraw2Interface::GetCaps: DDraw Total: ", total7));
-      Logger::debug(str::format("DDraw2Interface::GetCaps: DDraw Free : ", free7));
+      const DWORD total5 = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemTotal : 0;
+      const DWORD free5  = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemFree  : 0;
+
+      Logger::debug(str::format("DDraw2Interface::GetCaps: DDraw Total: ", total5));
+      Logger::debug(str::format("DDraw2Interface::GetCaps: DDraw Free : ", free5));
 
       total9 = static_cast<DWORD>(d3dOptions->maxAvailableMemory) * Megabytes;
-      const DWORD delta  = total7 > total9 ? total7 - total9 : 0;
-      free9  = free7 > delta ? free7 - delta : 0;
+
+      if (unlikely(total9 >= total5)) {
+        total9 = total5;
+        free9 = free5;
+      } else {
+        const DWORD delta = total5 - total9;
+        total9 -= ReservedMemory;
+        free9 = free5 > delta + ReservedMemory ? free5 - (delta + ReservedMemory) : 0;
+      }
 
       Logger::debug(str::format("DDraw2Interface::GetCaps: Total: ", total9));
       Logger::debug(str::format("DDraw2Interface::GetCaps: Free : ", free9));
@@ -499,13 +507,11 @@ namespace dxvk {
     if (unlikely(lpdwTotal == nullptr && lpdwFree == nullptr))
       return DD_OK;
 
-    static constexpr DWORD Megabytes = 1024 * 1024;
-
     D3D5Device* d3d5Device = m_commonIntf->GetD3D5Device();
     if (likely(d3d5Device != nullptr)) {
       Logger::debug("DDraw2Interface::GetAvailableVidMem: Getting memory stats from D3D9");
 
-      const DWORD total9 = static_cast<DWORD>(m_commonIntf->GetOptions()->maxAvailableMemory) * Megabytes;
+      const DWORD total9 = static_cast<DWORD>(m_commonIntf->GetTotalTextureMemory());
       const DWORD free9  = static_cast<DWORD>(d3d5Device->GetD3D9()->GetAvailableTextureMem());
 
       Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Total: ", total9));
@@ -519,10 +525,13 @@ namespace dxvk {
     } else {
       Logger::debug("DDraw2Interface::GetAvailableVidMem: Getting memory stats from DDraw");
 
-      DWORD total6 = 0;
-      DWORD free6  = 0;
+      static constexpr DWORD Megabytes = 1024 * 1024;
+      static constexpr DWORD ReservedMemory = 8 * Megabytes;
 
-      HRESULT hr = m_proxy->GetAvailableVidMem(lpDDCaps, &total6, &free6);
+      DWORD total5 = 0;
+      DWORD free5  = 0;
+
+      HRESULT hr = m_proxy->GetAvailableVidMem(lpDDCaps, &total5, &free5);
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw2Interface::GetAvailableVidMem: Failed proxied call");
         if (lpdwTotal != nullptr)
@@ -532,12 +541,20 @@ namespace dxvk {
         return hr;
       }
 
-      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: DDraw Total: ", total6));
-      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: DDraw Free : ", free6));
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: DDraw Total: ", total5));
+      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: DDraw Free : ", free5));
 
-      const DWORD total9 = static_cast<DWORD>(m_commonIntf->GetOptions()->maxAvailableMemory) * Megabytes;
-      const DWORD delta  = total6 > total9 ? total6 - total9 : 0;
-      const DWORD free9  = free6 > delta ? free6 - delta : 0;
+      DWORD total9 = static_cast<DWORD>(m_commonIntf->GetOptions()->maxAvailableMemory) * Megabytes;
+      DWORD free9  = 0;
+
+      if (unlikely(total9 >= total5)) {
+        total9 = total5;
+        free9 = free5;
+      } else {
+        const DWORD delta = total5 - total9;
+        total9 -= ReservedMemory;
+        free9 = free5 > delta + ReservedMemory ? free5 - (delta + ReservedMemory) : 0;
+      }
 
       Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Total: ", total9));
       Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Free : ", free9));

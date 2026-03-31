@@ -63,6 +63,8 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* GetD3D9Device();
 
+    uint32_t GetTotalTextureMemory();
+
     d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType();
 
     d3d9::D3DPRESENT_PARAMETERS GetPresentParameters();
