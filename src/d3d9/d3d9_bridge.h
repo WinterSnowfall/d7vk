@@ -45,6 +45,11 @@ IDxvkD3D8Bridge : public IUnknown {
   virtual bool IsSupportedSurfaceFormat(D3DFORMAT Format) = 0;
 
   /**
+   * \brief Determines the initial amount of texture memory for a device
+   */
+  virtual uint32_t DetermineInitialTextureMemory() = 0;
+
+  /**
    * \brief Resets the D3D9 swapchain, skipping a general device reset
    *
    * \param [in] Params D3DPRESENT_PARAMETERS* value to be used
@@ -135,6 +140,8 @@ namespace dxvk {
         const POINT*              pDestPoint);
 
     bool IsSupportedSurfaceFormat(D3DFORMAT Format);
+
+    uint32_t DetermineInitialTextureMemory();
 
     HRESULT ResetSwapChain(D3DPRESENT_PARAMETERS* Params);
 

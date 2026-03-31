@@ -389,8 +389,6 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    static constexpr DWORD Megabytes = 1024 * 1024;
-
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
     // Properly fill in the dwVidMemTotal / dwVidMemFree fields
     DWORD total9 = 0;
@@ -400,7 +398,7 @@ namespace dxvk {
     if (likely(d3d9Device != nullptr)) {
       Logger::debug("DDrawInterface::GetCaps: Getting memory stats from D3D9");
 
-      total9 = static_cast<DWORD>(d3dOptions->maxAvailableMemory) * Megabytes;
+      total9 = static_cast<DWORD>(m_commonIntf->GetTotalTextureMemory());
       free9  = static_cast<DWORD>(d3d9Device->GetAvailableTextureMem());
 
       Logger::debug(str::format("DDrawInterface::GetCaps: Total: ", total9));
@@ -408,15 +406,25 @@ namespace dxvk {
     } else {
       Logger::debug("DDrawInterface::GetCaps: Getting memory stats from DDraw");
 
-      const DWORD total7 = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemTotal : 0;
-      const DWORD free7  = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemFree  : 0;
+      static constexpr DWORD Megabytes = 1024 * 1024;
+      static constexpr DWORD ReservedMemory = 8 * Megabytes;
 
-      Logger::debug(str::format("DDrawInterface::GetCaps: DDraw Total: ", total7));
-      Logger::debug(str::format("DDrawInterface::GetCaps: DDraw Free : ", free7));
+      const DWORD total3 = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemTotal : 0;
+      const DWORD free3  = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemFree  : 0;
+
+      Logger::debug(str::format("DDrawInterface::GetCaps: DDraw Total: ", total3));
+      Logger::debug(str::format("DDrawInterface::GetCaps: DDraw Free : ", free3));
 
       total9 = static_cast<DWORD>(d3dOptions->maxAvailableMemory) * Megabytes;
-      const DWORD delta  = total7 > total9 ? total7 - total9 : 0;
-      free9  = free7 > delta ? free7 - delta : 0;
+
+      if (unlikely(total9 >= total3)) {
+        total9 = total3;
+        free9 = free3;
+      } else {
+        const DWORD delta = total3 - total9;
+        total9 -= ReservedMemory;
+        free9 = free3 > delta + ReservedMemory ? free3 - (delta + ReservedMemory) : 0;
+      }
 
       Logger::debug(str::format("DDrawInterface::GetCaps: Total: ", total9));
       Logger::debug(str::format("DDrawInterface::GetCaps: Free : ", free9));
