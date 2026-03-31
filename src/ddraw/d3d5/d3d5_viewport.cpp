@@ -282,7 +282,7 @@ namespace dxvk {
       m_device->GetD3D9()->SetViewport(m_commonViewport->GetD3D9Viewport());
     }
 
-    static constexpr D3DCOLOR defaultColor = D3DCOLOR_ARGB(0, 0, 0, 0);
+    static constexpr D3DCOLOR defaultColor = D3DCOLOR_RGBA(0, 0, 0, 0);
     D3DMATERIALHANDLE handle = m_commonViewport->GetMaterialHandle();
     D3DCommonMaterial* commonMaterial = m_commonViewport->GetCommonD3DInterface()->GetCommonMaterialFromHandle(handle);
     D3DCOLOR clearColor = commonMaterial != nullptr ? commonMaterial->GetMaterialColor() : defaultColor;
@@ -310,13 +310,10 @@ namespace dxvk {
     if (unlikely(d3dLight->HasViewport()))
       return D3DERR_LIGHTHASVIEWPORT;
 
-    auto it = std::find(m_lights.begin(), m_lights.end(), d3dLight);
-    if (unlikely(it != m_lights.end())) {
-      Logger::warn("D3D5Viewport::AddLight: Pre-existing light found");
-    } else {
-      m_lights.push_back(d3dLight);
-      d3dLight->SetViewport5(this);
-    }
+    // No need to check if the light is already attached, since
+    // if that's the case it will have a set viewport above
+    m_lights.push_back(d3dLight);
+    d3dLight->SetViewport5(this);
 
     if (m_device != nullptr && m_commonViewport->IsCurrentViewport())
       ApplyAndActivateLight(d3dLight->GetIndex(), d3dLight);
@@ -332,6 +329,9 @@ namespace dxvk {
 
     D3DLight* d3dLight = reinterpret_cast<D3DLight*>(light);
 
+    if (unlikely(!d3dLight->HasViewport()))
+      return DDERR_INVALIDPARAMS;
+
     auto it = std::find(m_lights.begin(), m_lights.end(), d3dLight);
     if (likely(it != m_lights.end())) {
       const DWORD lightIndex = d3dLight->GetIndex();
@@ -343,6 +343,7 @@ namespace dxvk {
       d3dLight->SetViewport5(nullptr);
     } else {
       Logger::warn("D3D5Viewport::DeleteLight: Light not found");
+      return DDERR_INVALIDPARAMS;
     }
 
     return D3D_OK;
@@ -449,7 +450,7 @@ namespace dxvk {
     Logger::debug("D3D5Viewport: Applying lights to D3D9");
 
     for (auto light: m_lights)
-      ApplyAndActivateLight(light->GetIndex(), light);
+      ApplyAndActivateLight(light->GetIndex(), light.ptr());
 
     return D3D_OK;
   }
