@@ -199,6 +199,20 @@ namespace dxvk {
     return nullptr;
   }
 
+  uint32_t DDrawCommonInterface::GetTotalTextureMemory() {
+    if (m_device7 != nullptr) {
+      return m_device7->GetTotalTextureMemory();
+    } else if (m_device6 != nullptr) {
+      return m_device6->GetTotalTextureMemory();
+    } else if (m_device5 != nullptr) {
+      return m_device5->GetTotalTextureMemory();
+    } else if (m_device3 != nullptr) {
+      return m_device3->GetTotalTextureMemory();
+    }
+
+    return 0;
+  }
+
   d3d9::D3DMULTISAMPLE_TYPE DDrawCommonInterface::GetMultiSampleType() {
     if (m_device7 != nullptr) {
       return m_device7->GetMultiSampleType();

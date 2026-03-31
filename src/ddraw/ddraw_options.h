@@ -110,7 +110,7 @@ namespace dxvk {
       this->autoGenMipMaps        = config.getOption<bool>   ("ddraw.autoGenMipMaps",        false);
       this->apitraceMode          = config.getOption<bool>   ("ddraw.apitraceMode",          false);
       // D3D9 options
-      this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",      2040);
+      this->maxAvailableMemory    = config.getOption<int32_t>("d3d9.maxAvailableMemory",      2048);
 
       std::string emulateFSAAStr = Config::toLower(config.getOption<std::string>("ddraw.emulateFSAA", "auto"));
       if (emulateFSAAStr == "true") {
