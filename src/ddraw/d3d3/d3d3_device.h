@@ -82,6 +82,10 @@ namespace dxvk {
       return m_multithread.AcquireLock();
     }
 
+    uint32_t GetTotalTextureMemory() const {
+      return m_totalMemory;
+    }
+
     d3d9::D3DPRESENT_PARAMETERS GetPresentParameters() const {
       return m_params9;
     }
@@ -156,6 +160,8 @@ namespace dxvk {
 
     static uint32_t                s_deviceCount;
     uint32_t                       m_deviceCount = 0;
+
+    uint32_t                       m_totalMemory = 0;
 
     DDrawCommonInterface*          m_commonIntf  = nullptr;
 

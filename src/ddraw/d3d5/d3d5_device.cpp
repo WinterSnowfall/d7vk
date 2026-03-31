@@ -42,6 +42,8 @@ namespace dxvk {
       throw DxvkError("D3D5Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
+    m_totalMemory = m_bridge->DetermineInitialTextureMemory();
+
     m_rtOrig = m_rt.ptr();
 
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
