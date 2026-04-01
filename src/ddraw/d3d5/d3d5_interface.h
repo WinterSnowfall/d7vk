@@ -14,16 +14,19 @@
 
 namespace dxvk {
 
-  class DDrawInterface;
   class D3D5Material;
 
   /**
   * \brief D3D5 interface implementation
   */
-  class D3D5Interface final : public DDrawWrappedObject<DDrawInterface, IDirect3D2, d3d9::IDirect3D9> {
+  class D3D5Interface final : public DDrawWrappedObject<IUnknown, IDirect3D2, d3d9::IDirect3D9> {
 
   public:
-    D3D5Interface(D3DCommonInterface* commonD3DIntf, Com<IDirect3D2>&& d3d5Intf, DDrawInterface* pParent);
+    D3D5Interface(
+        DDrawCommonInterface* commonIntf,
+        D3DCommonInterface* commonD3DIntf,
+        Com<IDirect3D2>&& d3d5Intf,
+        IUnknown* pParent);
 
     ~D3D5Interface();
 
@@ -49,6 +52,10 @@ namespace dxvk {
 
     void ReleaseMaterialHandle(D3DMATERIALHANDLE handle);
 
+    DDrawCommonInterface* GetCommonInterface() const {
+      return m_commonIntf;
+    }
+
     D3DCommonInterface* GetCommonD3DInterface() const {
       return m_commonD3DIntf.ptr();
     }
@@ -56,9 +63,11 @@ namespace dxvk {
   private:
 
     static uint32_t               s_intfCount;
-    uint32_t                      m_intfCount = 0;
+    uint32_t                      m_intfCount  = 0;
 
     Com<IDxvkD3D8InterfaceBridge> m_bridge;
+
+    DDrawCommonInterface*         m_commonIntf = nullptr;
 
     Com<D3DCommonInterface>       m_commonD3DIntf;
 
