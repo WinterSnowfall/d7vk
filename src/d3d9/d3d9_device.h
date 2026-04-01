@@ -86,6 +86,7 @@ namespace dxvk {
 
     FFColorKeyState,
     FFColorKey,
+    FFLegacyLightsState,
 
     SpecializationEntries,
   };
@@ -1001,6 +1002,8 @@ namespace dxvk {
 
     void UpdateColorKey();
 
+    void UpdateLegacyLightState();
+
     void BindFramebuffer();
 
     void BindViewportAndScissor();
@@ -1494,6 +1497,15 @@ namespace dxvk {
       return D3D_OK;
     }
 
+    HRESULT SetLegacyLightsState(bool legacyLightState) {
+      if (likely(m_useLegacyLights != legacyLightState)) {
+        m_dirty.set(D3D9DeviceDirtyFlag::FFLegacyLightsState);
+        m_useLegacyLights = legacyLightState;
+      }
+
+      return D3D_OK;
+    }
+
     HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh) {
       if (likely(m_state.colorKeyLow != colorKeyLow || m_state.colorKeyHigh != colorKeyHigh)) {
         m_dirty.set(D3D9DeviceDirtyFlag::FFColorKey);
@@ -1707,6 +1719,8 @@ namespace dxvk {
 
     // D3D7 and earlier color key transparency state
     bool                            m_colorKeyEnabled  = false;
+    // D3D6 and earlier legacy light model state
+    bool                            m_useLegacyLights  = false;
 
     // the enablement of below features is tracked independently
     // of render states both due to complexity and to avoid

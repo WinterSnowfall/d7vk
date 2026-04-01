@@ -198,6 +198,7 @@ namespace dxvk {
 
     m_dirty.set(D3D9DeviceDirtyFlag::FFColorKeyState);
     m_dirty.set(D3D9DeviceDirtyFlag::FFColorKey);
+    m_dirty.set(D3D9DeviceDirtyFlag::FFLegacyLightsState);
 
     m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
 
@@ -6954,6 +6955,14 @@ namespace dxvk {
   }
 
 
+  void D3D9DeviceEx::UpdateLegacyLightState() {
+    m_dirty.clr(D3D9DeviceDirtyFlag::FFLegacyLightsState);
+
+    if (m_specInfo.set<SpecFFUseLegacyLights>(m_useLegacyLights))
+      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
+  }
+
+
   void D3D9DeviceEx::BindFramebuffer() {
     m_dirty.clr(D3D9DeviceDirtyFlag::Framebuffer);
 
@@ -7687,6 +7696,9 @@ namespace dxvk {
 
     if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFColorKey)))
       UpdateColorKey();
+
+    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFLegacyLightsState)))
+      UpdateLegacyLightState();
 
     if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::Framebuffer)))
       BindFramebuffer();

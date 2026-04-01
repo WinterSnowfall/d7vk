@@ -112,6 +112,10 @@ namespace dxvk {
     return m_device->SetColorKey(colorKeyLow, colorKeyHigh);
   }
 
+  HRESULT DxvkD3D8Bridge::SetLegacyLightsState(bool legacyLightsState) {
+    return m_device->SetLegacyLightsState(legacyLightsState);
+  }
+
   DxvkD3D8InterfaceBridge::DxvkD3D8InterfaceBridge(D3D9InterfaceEx* pObject)
     : m_interface(pObject) {
   }

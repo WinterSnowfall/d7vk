@@ -606,18 +606,29 @@ void main() {
 
             vec3 vtx3 = vtx.xyz;
 
+            const bool useLegacyLights = specBool(SpecFFUseLegacyLights);
+
             vec3 delta = position - vtx3;
             float d = length(delta);
+                  if (useLegacyLights) {
+                    d = (range - d) / range;
+                  }
             vec3 hitDir = -direction;
                  hitDir = mix(delta, hitDir, isDirectional3);
                  hitDir = normalize(hitDir);
 
             float atten = fma(d, atten2, atten1);
                   atten = fma(d, atten, atten0);
-                  atten = 1.0 / atten;
+                  if (!useLegacyLights) {
+                    atten = 1.0 / atten;
+                  }
                   atten = spvNMin(atten, FloatMaxValue);
 
-                  atten = d > range ? 0.0 : atten;
+                  if (!useLegacyLights) {
+                    atten = d > range ? 0.0 : atten;
+                  } else {
+                    atten = d < 0.0 ? 0.0 : atten; // d > range
+                  }
                   atten = isDirectional ? 1.0 : atten;
 
             // Spot Lighting
@@ -656,6 +667,9 @@ void main() {
                   midDot = clamp(midDot, 0.0, 1.0);
             bool doSpec = midDot > 0.0;
                  doSpec = doSpec && hitDot > 0.0;
+                 if (useLegacyLights) {
+                    doSpec = doSpec && data.Material.Power > 0.0;
+                 }
 
             float specularness = pow(midDot, data.Material.Power);
                   specularness *= atten;

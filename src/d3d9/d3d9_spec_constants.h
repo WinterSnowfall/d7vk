@@ -121,6 +121,7 @@ namespace dxvk {
     SpecFFTextureStage7AlphaArg0, // Range: 0 -> 6 + 2 flags  | Bits: 5
     SpecFFColorKeyEnabled,        // Range: 0 -> 1            | Bits: 1
     SpecFFColorKeyCompatibility,  // Range: 0 -> 1            | Bits: 1
+    SpecFFUseLegacyLights,        // Range: 0 -> 1            | Bits: 1
 
     SpecFFColorKeyLow,            // Range: 8 bits * 3        | Bits: 24
 
@@ -257,6 +258,7 @@ namespace dxvk {
       { 16, 15, 5 },  // FFTextureStage7AlphaArg0
       { 16, 20, 1 },  // FFColorKeyEnable
       { 16, 21, 1 },  // FFColorKeyCompatibility
+      { 16, 22, 1 },  // FFUseLegacyLights
 
       { 17,  0, 24 }, // FFColorKeyLow
 

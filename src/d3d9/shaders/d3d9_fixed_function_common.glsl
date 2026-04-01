@@ -156,9 +156,10 @@ const uint SpecFFTextureStage6AlphaArg0 = 88;
 const uint SpecFFTextureStage7AlphaArg0 = 89;
 const uint SpecFFColorKeyEnabled        = 90;
 const uint SpecFFColorKeyCompatibility  = 91;
-const uint SpecFFColorKeyLow            = 92;
-const uint SpecFFColorKeyHigh           = 93;
-const uint SpecConstantCount = 94;
+const uint SpecFFUseLegacyLights        = 92;
+const uint SpecFFColorKeyLow            = 93;
+const uint SpecFFColorKeyHigh           = 94;
+const uint SpecConstantCount = 95;
 
 struct BitfieldPosition {
     uint dwordOffset;
@@ -277,6 +278,7 @@ BitfieldPosition SpecConstLayout[SpecConstantCount] = {
     { 16, 15, 5 },  // FFTextureStage7AlphaArg0
     { 16, 20, 1 },  // FFColorKeyEnable
     { 16, 21, 1 },  // FFColorKeyCompatibility
+    { 16, 22, 1 },  // FFUseLegacyLights
 
     { 17,  0, 24 }, // FFColorKeyLow
 
