@@ -151,7 +151,8 @@ namespace dxvk {
                 D3D9DeviceDirtyFlag::DepthBounds,
                 D3D9DeviceDirtyFlag::PointScale,
                 D3D9DeviceDirtyFlag::FFColorKeyState,
-                D3D9DeviceDirtyFlag::FFColorKey);
+                D3D9DeviceDirtyFlag::FFColorKey,
+                D3D9DeviceDirtyFlag::FFLegacyLightsState);
 
     m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
 
@@ -6661,6 +6662,14 @@ namespace dxvk {
   }
 
 
+  void D3D9DeviceEx::UpdateLegacyLightState() {
+    m_dirty.clr(D3D9DeviceDirtyFlag::FFLegacyLightsState);
+
+    if (m_specInfo.set<SpecFFUseLegacyLights>(m_useLegacyLights))
+      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
+  }
+
+
   template<typename T>
   void D3D9DeviceEx::UpdatePushDataBlock(const T& Block) {
     EmitCs([cBlock = Block] (DxvkContext* ctx) {
@@ -7398,6 +7407,9 @@ namespace dxvk {
 
     if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFColorKey)))
       UpdateColorKey();
+
+    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFLegacyLightsState)))
+      UpdateLegacyLightState();
 
     if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::Framebuffer)))
       BindFramebuffer();
