@@ -69,6 +69,13 @@ IDxvkD3D8Bridge : public IUnknown {
    * \param [in] Params DWORD, DWORD low and high values to be used
    */
   virtual HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh) = 0;
+
+  /**
+   * \brief Updates the legacy light state in D3D9
+   *
+   * \param [in] Params bool value to be used
+   */
+  virtual HRESULT SetLegacyLightsState(bool legacyLightsState) = 0;
 };
 
 /**
@@ -148,6 +155,8 @@ namespace dxvk {
     HRESULT SetColorKeyState(bool colorKeyState);
 
     HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh);
+
+    HRESULT SetLegacyLightsState(bool legacyLightsState);
 
   private:
 
