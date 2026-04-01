@@ -82,6 +82,10 @@ namespace dxvk {
       return m_multithread.AcquireLock();
     }
 
+    void EnableLegacyLights() {
+      m_bridge->SetLegacyLightsState(true);
+    }
+
     uint32_t GetTotalTextureMemory() const {
       return m_totalMemory;
     }
