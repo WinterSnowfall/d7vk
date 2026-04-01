@@ -12,15 +12,17 @@
 
 namespace dxvk {
 
-  class DDraw7Interface;
-
   /**
   * \brief D3D7 interface implementation
   */
-  class D3D7Interface final : public DDrawWrappedObject<DDraw7Interface, IDirect3D7, d3d9::IDirect3D9> {
+  class D3D7Interface final : public DDrawWrappedObject<IUnknown, IDirect3D7, d3d9::IDirect3D9> {
 
   public:
-    D3D7Interface(D3DCommonInterface* commonD3DIntf, Com<IDirect3D7>&& d3d7Intf, DDraw7Interface* pParent);
+    D3D7Interface(
+        DDrawCommonInterface* commonIntf,
+        D3DCommonInterface* commonD3DIntf,
+        Com<IDirect3D7>&& d3d7Intf,
+        IUnknown* pParent);
 
     ~D3D7Interface();
 
@@ -40,6 +42,10 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE EvictManagedTextures();
 
+    DDrawCommonInterface* GetCommonInterface() const {
+      return m_commonIntf;
+    }
+
     D3DCommonInterface* GetCommonD3DInterface() const {
       return m_commonD3DIntf.ptr();
     }
@@ -47,9 +53,11 @@ namespace dxvk {
   private:
 
     static uint32_t               s_intfCount;
-    uint32_t                      m_intfCount = 0;
+    uint32_t                      m_intfCount  = 0;
 
     Com<IDxvkD3D8InterfaceBridge> m_bridge;
+
+    DDrawCommonInterface*         m_commonIntf = nullptr;
 
     Com<D3DCommonInterface>       m_commonD3DIntf;
 

@@ -17,7 +17,7 @@ namespace dxvk {
             DWORD creationFlags,
             D3DVERTEXBUFFERDESC desc)
     : DDrawWrappedObject<D3D6Interface, IDirect3DVertexBuffer, d3d9::IDirect3DVertexBuffer9>(pParent, std::move(buffProxy), std::move(pBuffer9))
-    , m_commonIntf ( pParent->GetParent()->GetCommonInterface() )
+    , m_commonIntf ( pParent->GetCommonInterface() )
     , m_creationFlags ( creationFlags )
     , m_desc ( desc )
     , m_stride ( GetFVFSize(desc.dwFVF) )
@@ -41,8 +41,7 @@ namespace dxvk {
     if (riid == __uuidof(IDirect3DVertexBuffer))
       return this;
 
-    Logger::debug("D3D6VertexBuffer::QueryInterface: Forwarding interface query to parent");
-    return m_parent->GetInterface(riid);
+    throw DxvkError("D3D6VertexBuffer::QueryInterface: Unknown interface query");
   }
 
   HRESULT STDMETHODCALLTYPE D3D6VertexBuffer::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC lpVBDesc) {

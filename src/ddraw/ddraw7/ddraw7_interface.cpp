@@ -94,7 +94,7 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        m_d3d7Intf = new D3D7Interface(nullptr, std::move(ppvProxyObject), this);
+        m_d3d7Intf = new D3D7Interface(m_commonIntf.ptr(), nullptr, std::move(ppvProxyObject), this);
       }
 
       *ppvObject = m_d3d7Intf.ref();
