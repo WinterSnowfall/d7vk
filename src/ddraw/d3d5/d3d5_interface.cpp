@@ -17,8 +17,13 @@ namespace dxvk {
 
   uint32_t D3D5Interface::s_intfCount = 0;
 
-  D3D5Interface::D3D5Interface(D3DCommonInterface* commonD3DIntf, Com<IDirect3D2>&& d3d5IntfProxy, DDrawInterface* pParent)
-    : DDrawWrappedObject<DDrawInterface, IDirect3D2, d3d9::IDirect3D9>(pParent, std::move(d3d5IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)))
+  D3D5Interface::D3D5Interface(
+      DDrawCommonInterface* m_commonIntf,
+      D3DCommonInterface* commonD3DIntf,
+      Com<IDirect3D2>&& d3d5IntfProxy,
+      IUnknown* pParent)
+    : DDrawWrappedObject<IUnknown, IDirect3D2, d3d9::IDirect3D9>(pParent, std::move(d3d5IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)))
+    , m_commonIntf ( m_commonIntf )
     , m_commonD3DIntf ( commonD3DIntf ) {
     // Get the bridge interface to D3D9.
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
@@ -26,7 +31,7 @@ namespace dxvk {
     }
 
     if (m_commonD3DIntf == nullptr)
-      m_commonD3DIntf = new D3DCommonInterface(D3DOptions(*m_bridge->GetConfig()));
+      m_commonD3DIntf = new D3DCommonInterface();
 
     m_commonD3DIntf->SetD3D5Interface(this);
 
@@ -47,7 +52,7 @@ namespace dxvk {
   // Interlocked refcount with the parent IDirectDraw
   ULONG STDMETHODCALLTYPE D3D5Interface::AddRef() {
     if (likely(m_parent != nullptr)) {
-      IUnknown* origin = m_parent->GetCommonInterface()->GetOrigin();
+      IUnknown* origin = m_commonIntf->GetOrigin();
       if (likely(origin != nullptr))
         return origin->AddRef();
       else
@@ -60,7 +65,7 @@ namespace dxvk {
   // Interlocked refcount with the parent IDirectDraw
   ULONG STDMETHODCALLTYPE D3D5Interface::Release() {
     if (likely(m_parent != nullptr)) {
-      IUnknown* origin = m_parent->GetCommonInterface()->GetOrigin();
+      IUnknown* origin = m_commonIntf->GetOrigin();
       if (likely(origin != nullptr))
         return origin->Release();
       else
@@ -71,14 +76,13 @@ namespace dxvk {
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<DDrawInterface, IDirect3D2, d3d9::IDirect3D9>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<IUnknown, IDirect3D2, d3d9::IDirect3D9>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
     if (riid == __uuidof(IDirect3D2))
       return this;
 
-    Logger::debug("D3D5Interface::QueryInterface: Forwarding interface query to parent");
-    return m_parent->GetInterface(riid);
+    throw DxvkError("D3D5Interface::QueryInterface: Unknown interface query");
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Interface::QueryInterface(REFIID riid, void** ppvObject) {
@@ -96,7 +100,9 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new D3D3Interface(m_commonD3DIntf.ptr(), std::move(ppvProxyObject), m_parent));
+      Com<D3D3Interface> d3d3Intf = new D3D3Interface(m_commonIntf, m_commonD3DIntf.ptr(), std::move(ppvProxyObject), m_parent);
+      m_commonIntf->SetD3D3Interface(d3d3Intf.ptr());
+      *ppvObject = d3d3Intf.ref();
 
       return S_OK;
     }
@@ -122,7 +128,7 @@ namespace dxvk {
     if (unlikely(lpEnumDevicesCallback == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     // D3D5 reports both HAL and HEL caps for any type of device,
     // with minor differences between the two. Note that the
@@ -269,7 +275,7 @@ namespace dxvk {
     if (unlikely(lpD3DFDS->dwSize != sizeof(D3DFINDDEVICESEARCH)))
       return DDERR_INVALIDPARAMS;
 
-    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     // Software emulation, this is expected to be exposed
     D3DDEVICEDESC2 descRGB_HAL = GetD3D5Caps(IID_IDirect3DRGBDevice, d3dOptions);
@@ -358,7 +364,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
     bool  rgbFallback          = false;
@@ -384,18 +390,16 @@ namespace dxvk {
 
     const IID rclsidOverride = rgbFallback ? IID_IDirect3DRGBDevice : rclsid;
 
-    DDrawCommonInterface* commonIntf = m_parent->GetCommonInterface();
-
-    HWND hWnd = commonIntf->GetHWND();
+    HWND hWnd = m_commonIntf->GetHWND();
     // Needed to sometimes safely skip intro playback on legacy devices
     if (unlikely(hWnd == nullptr)) {
       Logger::debug("D3D5Interface::CreateDevice: HWND is NULL");
     }
 
     Com<DDrawSurface> rt;
-    if (unlikely(!m_parent->GetCommonInterface()->IsWrappedSurface(lpDDS))) {
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDS))) {
       // Nightmare Creatures passes an IDirectDrawSurface3 surface as RT
-      if (unlikely(m_parent->GetCommonInterface()->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface3*>(lpDDS)))) {
+      if (unlikely(m_commonIntf->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface3*>(lpDDS)))) {
         Logger::debug("D3D5Interface::CreateDevice: IDirectDrawSurface3 surface passed as RT");
         DDraw3Surface* ddraw3Surface = reinterpret_cast<DDraw3Surface*>(lpDDS);
         // A DDrawSurface usually exists, because a DDraw3Surface is obtained from it via
@@ -405,7 +409,7 @@ namespace dxvk {
         if (unlikely(rt == nullptr)) {
           Com<IDirectDrawSurface> surface;
           ddraw3Surface->GetProxied()->QueryInterface(__uuidof(IDirectDrawSurface), reinterpret_cast<void**>(&surface));
-          rt = new DDrawSurface(nullptr, std::move(surface), m_parent, nullptr, false);
+          rt = new DDrawSurface(nullptr, std::move(surface), m_commonIntf->GetDDInterface(), nullptr, false);
         }
       } else {
         Logger::err("D3D5Interface::CreateDevice: Unwrapped surface passed as RT");
@@ -431,11 +435,11 @@ namespace dxvk {
 
     if (likely(!d3dOptions->forceProxiedPresent &&
                 d3dOptions->backBufferResize)) {
-      const bool exclusiveMode = commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+      const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
       if (exclusiveMode) {
-        DDrawModeSize* modeSize = commonIntf->GetModeSize();
+        DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
         // Wayland apparently needs this for somewhat proper back buffer sizing
         if ((modeSize->width  && modeSize->width  < desc.dwWidth)
          || (modeSize->height && modeSize->height < desc.dwHeight)) {
@@ -489,7 +493,7 @@ namespace dxvk {
     // Consider the front buffer as well when reporting the overall count
     Logger::info(str::format("D3D5Interface::CreateDevice: Back buffer count: ", backBufferCount + 1));
 
-    const DWORD cooperativeLevel = commonIntf->GetCooperativeLevel();
+    const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
 
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = backBufferWidth;
@@ -539,7 +543,7 @@ namespace dxvk {
                                                rt.ptr(), deviceCreationFlags9);
 
       // Set the newly created D3D5 device on the common interface
-      commonIntf->SetD3D5Device(device5.ptr());
+      m_commonIntf->SetD3D5Device(device5.ptr());
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       device5->InitializeDS();
 

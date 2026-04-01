@@ -11,8 +11,7 @@
 
 namespace dxvk {
 
-  D3DCommonInterface::D3DCommonInterface(const D3DOptions& d3dOptions)
-  : m_d3dOptions ( d3dOptions ) {
+  D3DCommonInterface::D3DCommonInterface() {
   }
 
   D3DCommonInterface::~D3DCommonInterface() {

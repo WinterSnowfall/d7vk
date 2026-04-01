@@ -31,8 +31,7 @@ namespace dxvk {
     if (riid == __uuidof(IDirect3DExecuteBuffer))
       return this;
 
-    Logger::debug("D3D3ExecuteBuffer::QueryInterface: Forwarding interface query to parent");
-    return m_parent->GetInterface(riid);
+    throw DxvkError("D3D3ExecuteBuffer::QueryInterface: Unknown interface query");
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpData) {

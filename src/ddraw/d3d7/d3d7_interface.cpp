@@ -11,8 +11,13 @@ namespace dxvk {
 
   uint32_t D3D7Interface::s_intfCount = 0;
 
-  D3D7Interface::D3D7Interface(D3DCommonInterface* commonD3DIntf, Com<IDirect3D7>&& d3d7IntfProxy, DDraw7Interface* pParent)
-    : DDrawWrappedObject<DDraw7Interface, IDirect3D7, d3d9::IDirect3D9>(pParent, std::move(d3d7IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)))
+  D3D7Interface::D3D7Interface(
+      DDrawCommonInterface* commonIntf,
+      D3DCommonInterface* commonD3DIntf,
+      Com<IDirect3D7>&& d3d7IntfProxy,
+      IUnknown* pParent)
+    : DDrawWrappedObject<IUnknown, IDirect3D7, d3d9::IDirect3D9>(pParent, std::move(d3d7IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)))
+    , m_commonIntf ( commonIntf )
     , m_commonD3DIntf ( commonD3DIntf ) {
     // Get the bridge interface to D3D9.
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
@@ -20,7 +25,7 @@ namespace dxvk {
     }
 
     if (m_commonD3DIntf == nullptr)
-      m_commonD3DIntf = new D3DCommonInterface(D3DOptions(*m_bridge->GetConfig()));
+      m_commonD3DIntf = new D3DCommonInterface();
 
     m_commonD3DIntf->SetD3D7Interface(this);
 
@@ -41,7 +46,7 @@ namespace dxvk {
   // Interlocked refcount with the parent IDirectDraw7
   ULONG STDMETHODCALLTYPE D3D7Interface::AddRef() {
     if (likely(m_parent != nullptr)) {
-      IUnknown* origin = m_parent->GetCommonInterface()->GetOrigin();
+      IUnknown* origin = m_commonIntf->GetOrigin();
       if (likely(origin != nullptr))
         return origin->AddRef();
       else
@@ -54,7 +59,7 @@ namespace dxvk {
   // Interlocked refcount with the parent IDirectDraw7
   ULONG STDMETHODCALLTYPE D3D7Interface::Release() {
     if (likely(m_parent != nullptr)) {
-      IUnknown* origin = m_parent->GetCommonInterface()->GetOrigin();
+      IUnknown* origin = m_commonIntf->GetOrigin();
       if (likely(origin != nullptr))
         return origin->Release();
       else
@@ -65,14 +70,13 @@ namespace dxvk {
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<DDraw7Interface, IDirect3D7, d3d9::IDirect3D9>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<IUnknown, IDirect3D7, d3d9::IDirect3D9>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
     if (riid == __uuidof(IDirect3D7))
       return this;
 
-    Logger::debug("D3D7Interface::QueryInterface: Forwarding interface query to parent");
-    return m_parent->GetInterface(riid);
+    throw DxvkError("D3D7Interface::QueryInterface: Unknown interface query");
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::QueryInterface(REFIID riid, void** ppvObject) {
@@ -114,7 +118,7 @@ namespace dxvk {
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     // Ideally we should take all the adapters into account, however
     // D3D7 supports one RGB (software emulation) device, one HAL device,
@@ -166,7 +170,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
     bool  rgbFallback          = false;
@@ -189,16 +193,14 @@ namespace dxvk {
 
     const IID rclsidOverride = rgbFallback ? IID_IDirect3DRGBDevice : rclsid;
 
-    DDrawCommonInterface* commonIntf = m_parent->GetCommonInterface();
-
-    HWND hWnd = commonIntf->GetHWND();
+    HWND hWnd = m_commonIntf->GetHWND();
     // Needed to sometimes safely skip intro playback on legacy devices
     if (unlikely(hWnd == nullptr)) {
       Logger::debug("D3D7Interface::CreateDevice: HWND is NULL");
     }
 
     Com<DDraw7Surface> rt7;
-    if (unlikely(!m_parent->GetCommonInterface()->IsWrappedSurface(surface))) {
+    if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
       Logger::err("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
       return DDERR_GENERIC;
     } else {
@@ -221,11 +223,11 @@ namespace dxvk {
 
     if (likely(!d3dOptions->forceProxiedPresent &&
                 d3dOptions->backBufferResize)) {
-      const bool exclusiveMode = commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+      const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
       if (exclusiveMode) {
-        DDrawModeSize* modeSize = commonIntf->GetModeSize();
+        DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
         // Wayland apparently needs this for somewhat proper back buffer sizing
         if ((modeSize->width  && modeSize->width  < desc.dwWidth)
          || (modeSize->height && modeSize->height < desc.dwHeight)) {
@@ -279,9 +281,9 @@ namespace dxvk {
     // Consider the front buffer as well when reporting the overall count
     Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer count: ", backBufferCount + 1));
 
-    const DWORD cooperativeLevel = commonIntf->GetCooperativeLevel();
+    const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
     // Always appears to be enabled when running in non-exclusive mode
-    const bool vBlankStatus = commonIntf->GetWaitForVBlank();
+    const bool vBlankStatus = m_commonIntf->GetWaitForVBlank();
 
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = backBufferWidth;
@@ -332,7 +334,7 @@ namespace dxvk {
                                                rt7.ptr(), deviceCreationFlags9);
 
       // Set the newly created D3D7 device on the common interface
-      commonIntf->SetD3D7Device(device7.ptr());
+      m_commonIntf->SetD3D7Device(device7.ptr());
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       device7->InitializeDS();
 
@@ -378,7 +380,7 @@ namespace dxvk {
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     // There are just 3 supported depth stencil formats to worry about
     // in D3D9, so let's just enumerate them liniarly, for better clarity
@@ -412,7 +414,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    D3D7Device* d3d7Device = m_parent->GetCommonInterface()->GetD3D7Device();
+    D3D7Device* d3d7Device = m_commonIntf->GetD3D7Device();
     if (likely(d3d7Device != nullptr)) {
       D3D7DeviceLock lock = d3d7Device->LockDevice();
 

@@ -11,8 +11,13 @@ namespace dxvk {
 
   uint32_t D3D3Interface::s_intfCount = 0;
 
-  D3D3Interface::D3D3Interface(D3DCommonInterface* commonD3DIntf, Com<IDirect3D>&& d3d3IntfProxy, DDrawInterface* pParent)
-    : DDrawWrappedObject<DDrawInterface, IDirect3D, d3d9::IDirect3D9>(pParent, std::move(d3d3IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)))
+  D3D3Interface::D3D3Interface(
+      DDrawCommonInterface* commonIntf,
+      D3DCommonInterface* commonD3DIntf,
+      Com<IDirect3D>&& d3d3IntfProxy,
+      IUnknown* pParent)
+    : DDrawWrappedObject<IUnknown, IDirect3D, d3d9::IDirect3D9>(pParent, std::move(d3d3IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)))
+    , m_commonIntf ( commonIntf )
     , m_commonD3DIntf ( commonD3DIntf ) {
     // Get the bridge interface to D3D9.
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
@@ -20,7 +25,7 @@ namespace dxvk {
     }
 
     if (m_commonD3DIntf == nullptr)
-      m_commonD3DIntf = new D3DCommonInterface(D3DOptions(*m_bridge->GetConfig()));
+      m_commonD3DIntf = new D3DCommonInterface();
 
     m_commonD3DIntf->SetD3D3Interface(this);
 
@@ -35,9 +40,9 @@ namespace dxvk {
     if (m_commonD3DIntf->GetD3D3Interface() == this)
       m_commonD3DIntf->SetD3D3Interface(nullptr);
 
-    // Clear the common interface pointer if it points to this interface
-    if (m_parent != nullptr && m_parent->GetCommonInterface()->GetD3D3Interface() == this)
-      m_parent->GetCommonInterface()->SetD3D3Interface(nullptr);
+    // Needed for D3D3 device creation from an IDirectDrawSurface object
+    if (m_commonIntf->GetD3D3Interface() == this)
+      m_commonIntf->SetD3D3Interface(nullptr);
 
     Logger::debug(str::format("D3D3Interface: Interface nr. ((1-", m_intfCount, ")) bites the dust"));
   }
@@ -45,7 +50,7 @@ namespace dxvk {
   // Interlocked refcount with the parent IDirectDraw
   ULONG STDMETHODCALLTYPE D3D3Interface::AddRef() {
     if (likely(m_parent != nullptr)) {
-      IUnknown* origin = m_parent->GetCommonInterface()->GetOrigin();
+      IUnknown* origin = m_commonIntf->GetOrigin();
       if (likely(origin != nullptr))
         return origin->AddRef();
       else
@@ -58,7 +63,7 @@ namespace dxvk {
   // Interlocked refcount with the parent IDirectDraw
   ULONG STDMETHODCALLTYPE D3D3Interface::Release() {
     if (likely(m_parent != nullptr)) {
-      IUnknown* origin = m_parent->GetCommonInterface()->GetOrigin();
+      IUnknown* origin = m_commonIntf->GetOrigin();
       if (likely(origin != nullptr))
         return origin->Release();
       else
@@ -69,14 +74,13 @@ namespace dxvk {
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<DDrawInterface, IDirect3D, d3d9::IDirect3D9>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<IUnknown, IDirect3D, d3d9::IDirect3D9>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
     if (riid == __uuidof(IDirect3D))
       return this;
 
-    Logger::debug("D3D3Interface::QueryInterface: Forwarding interface query to parent");
-    return m_parent->GetInterface(riid);
+    throw DxvkError("D3D3Interface::QueryInterface: Unknown interface query");
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Interface::QueryInterface(REFIID riid, void** ppvObject) {
@@ -119,7 +123,7 @@ namespace dxvk {
     if (unlikely(lpEnumDevicesCallback == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     // D3D3 reports both HAL and HEL caps for any type of device,
     // with minor differences between the two. Note that the
@@ -261,7 +265,7 @@ namespace dxvk {
     if (unlikely(lpD3DFDS->dwSize != sizeof(D3DFINDDEVICESEARCH)))
       return DDERR_INVALIDPARAMS;
 
-    const D3DOptions* d3dOptions = m_commonD3DIntf->GetOptions();
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     // Software emulation, this is expected to be exposed
     D3DDEVICEDESC3 descRGB_HAL = GetD3D3Caps(d3dOptions);

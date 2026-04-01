@@ -87,7 +87,7 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        m_d3d6Intf = new D3D6Interface(nullptr, std::move(ppvProxyObject), this);
+        m_d3d6Intf = new D3D6Interface(m_commonIntf.ptr(), nullptr, std::move(ppvProxyObject), this);
       }
 
       *ppvObject = m_d3d6Intf.ref();
@@ -163,7 +163,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      Com<D3D3Interface> d3d3Intf = new D3D3Interface(nullptr, std::move(ppvProxyObject), m_commonIntf->GetDDInterface());
+      Com<D3D3Interface> d3d3Intf = new D3D3Interface(m_commonIntf.ptr(), nullptr, std::move(ppvProxyObject), this);
       m_commonIntf->SetD3D3Interface(d3d3Intf.ptr());
       *ppvObject = d3d3Intf.ref();
 
@@ -183,7 +183,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      Com<D3D5Interface> d3d5Intf = new D3D5Interface(nullptr, std::move(ppvProxyObject), nullptr);
+      Com<D3D5Interface> d3d5Intf = new D3D5Interface(m_commonIntf.ptr(), nullptr, std::move(ppvProxyObject), this);
       *ppvObject = d3d5Intf.ref();
 
       return S_OK;
