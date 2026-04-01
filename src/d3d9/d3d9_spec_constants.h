@@ -122,6 +122,7 @@ namespace dxvk {
     SpecFFColorKeyEnabled,        // Range: 0 -> 1            | Bits: 1
     SpecFFColorKeyCompatibility,  // Range: 0 -> 1            | Bits: 1
     SpecFFUseLegacyLights,        // Range: 0 -> 1            | Bits: 1
+    SpecFFIsLegacyD3DLight2,      // Range: 0 -> 1            | Bits: 1
 
     SpecFFColorKeyLow,            // Range: 8 bits * 3        | Bits: 24
 
@@ -259,6 +260,7 @@ namespace dxvk {
       { 16, 20, 1 },  // FFColorKeyEnable
       { 16, 21, 1 },  // FFColorKeyCompatibility
       { 16, 22, 1 },  // FFUseLegacyLights
+      { 16, 23, 1 },  // FFIsLegacyD3DLight2
 
       { 17,  0, 24 }, // FFColorKeyLow
 
