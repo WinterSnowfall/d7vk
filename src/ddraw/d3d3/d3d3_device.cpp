@@ -87,13 +87,15 @@ namespace dxvk {
     InitReturnPtr(ppvObject);
 
     if (unlikely(riid == __uuidof(IDirect3DDevice2))) {
-      if (likely(m_parent != nullptr)) {
+      if (likely(m_commonIntf->GetD3D5Device() != nullptr)) {
         Logger::debug("D3D3Device::QueryInterface: Query for IDirect3DDevice2");
-        m_parent->QueryInterface(riid, ppvObject);
+        return m_commonIntf->GetD3D5Device()->QueryInterface(riid, ppvObject);
       }
 
+      // A D3D3 device shouldn't be able to create a D3D5 device
+      // if it doesn't previously exist as a parent/origin device
       Logger::warn("D3D3Device::QueryInterface: Query for IDirect3DDevice2");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      return E_NOINTERFACE;
     }
 
     try {
