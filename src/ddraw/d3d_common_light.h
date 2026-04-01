@@ -53,9 +53,14 @@ namespace dxvk {
       return m_isActive;
     }
 
+    bool IsD3DLight2() const {
+      return m_isD3DLight2;
+    }
+
   private:
 
     bool             m_isActive    = false;
+    bool             m_isD3DLight2 = false;
 
     static uint32_t  s_lightCount;
     uint32_t         m_lightCount  = 0;
