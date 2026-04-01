@@ -80,8 +80,9 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    const bool hasSpecular = data->dwSize == sizeof(D3DLIGHT2) ? !(reinterpret_cast<D3DLIGHT2*>(data)->dwFlags & D3DLIGHT_NO_SPECULAR)
-                                                               : true;
+    m_isD3DLight2 = data->dwSize == sizeof(D3DLIGHT2);
+
+    const bool hasSpecular = m_isD3DLight2 ? !(reinterpret_cast<D3DLIGHT2*>(data)->dwFlags & D3DLIGHT_NO_SPECULAR) : true;
 
     // Docs: "Although this method's declaration specifies the lpLight parameter as being
     // the address of a D3DLIGHT structure, that structure is not normally used. Rather,
@@ -101,8 +102,7 @@ namespace dxvk {
     m_light9.Theta        = data->dvTheta;
     m_light9.Phi          = data->dvPhi;
     // D3DLIGHT structure lights are, apparently, considered to be active by default
-    m_isActive            = data->dwSize == sizeof(D3DLIGHT2) ? (reinterpret_cast<D3DLIGHT2*>(data)->dwFlags & D3DLIGHT_ACTIVE)
-                                                              : true;
+    m_isActive            = m_isD3DLight2 ? (reinterpret_cast<D3DLIGHT2*>(data)->dwFlags & D3DLIGHT_ACTIVE) : true;
 
     Logger::debug(str::format(">>> D3DLight::SetLight: Updated light nr. ", m_lightCount));
     Logger::debug(str::format("   Type:         ", m_light9.Type));
@@ -149,7 +149,7 @@ namespace dxvk {
     data->dvTheta         = m_light9.Theta;
     data->dvPhi           = m_light9.Phi;
 
-    if (data->dwSize == sizeof(D3DLIGHT2))
+    if (m_isD3DLight2)
       reinterpret_cast<D3DLIGHT2*>(data)->dwFlags = m_isActive;
 
     return D3D_OK;

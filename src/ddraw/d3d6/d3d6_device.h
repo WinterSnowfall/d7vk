@@ -130,8 +130,8 @@ namespace dxvk {
       return m_multithread.AcquireLock();
     }
 
-    void EnableLegacyLights() {
-      m_bridge->SetLegacyLightsState(true);
+    void EnableLegacyLights(bool isD3DLight2) {
+      m_bridge->SetLegacyLightsState(true, isD3DLight2);
     }
 
     uint32_t GetTotalTextureMemory() const {
