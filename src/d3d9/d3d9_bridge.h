@@ -74,8 +74,9 @@ IDxvkD3D8Bridge : public IUnknown {
    * \brief Updates the legacy light state in D3D9
    *
    * \param [in] Params bool value to be used
+   * \param [in] Params determines if D3DLIGHT2 objects are in use
    */
-  virtual HRESULT SetLegacyLightsState(bool legacyLightsState) = 0;
+  virtual HRESULT SetLegacyLightsState(bool legacyLightsState, bool isD3DLight2) = 0;
 };
 
 /**
@@ -156,7 +157,7 @@ namespace dxvk {
 
     HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh);
 
-    HRESULT SetLegacyLightsState(bool legacyLightsState);
+    HRESULT SetLegacyLightsState(bool legacyLightsState, bool isD3DLight2);
 
   private:
 
