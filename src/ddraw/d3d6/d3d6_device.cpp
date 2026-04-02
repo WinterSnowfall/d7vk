@@ -35,8 +35,6 @@ namespace dxvk {
 
     m_totalMemory = m_bridge->DetermineInitialTextureMemory();
 
-    m_rtOrig = m_rt.ptr();
-
     // Textures
     m_textures.fill(nullptr);
     // Common D3D9 index buffers
@@ -76,7 +74,7 @@ namespace dxvk {
 
     // Dissasociate every bound viewport from this device
     for (auto viewport : m_viewports) {
-      viewport->SetDevice(nullptr);
+      viewport->GetCommonViewport()->SetD3D6Device(nullptr);
     }
 
     // Clear the common interface device pointer if it points to this device
@@ -150,8 +148,8 @@ namespace dxvk {
       Logger::warn("D3D6Device::GetCaps: Unhandled device type");
     }
 
-    *hal_desc = desc_HAL;
-    *hel_desc = desc_HEL;
+    memcpy(hal_desc, &desc_HAL, hal_desc->dwSize);
+    memcpy(hel_desc, &desc_HEL, hel_desc->dwSize);
 
     return D3D_OK;
   }
@@ -220,33 +218,33 @@ namespace dxvk {
 
     DDPIXELFORMAT textureFormat = GetTextureFormat(d3d9::D3DFMT_X1R5G5B5);
     HRESULT hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_A1R5G5B5);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     // D3DFMT_X4R4G4B4 is not supported by D3D6
     textureFormat = GetTextureFormat(d3d9::D3DFMT_A4R4G4B4);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_R5G6B5);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_X8R8G8B8);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_A8R8G8B8);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     // Not supported in D3D9, but some games need
@@ -254,54 +252,54 @@ namespace dxvk {
     if (unlikely(d3dOptions->supportR3G3B2)) {
       textureFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
       hr = cb(&textureFormat, ctx);
-      if (unlikely(hr == D3DENUMRET_CANCEL))
+      if (unlikely(hr != D3DENUMRET_OK))
         return D3D_OK;
     }
 
     // Not supported in D3D9, but some games may use it
     /*textureFormat = GetTextureFormat(d3d9::D3DFMT_P8);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;*/
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_V8U8);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_L6V5U5);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_X8L8V8U8);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT1);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT2);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT3);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT4);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT5);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     return D3D_OK;
@@ -1862,7 +1860,7 @@ namespace dxvk {
       Logger::warn("D3D6Device::AddViewportInternal: Pre-existing viewport found");
     } else {
       m_viewports.push_back(d3d6Viewport);
-      d3d6Viewport->SetDevice(this);
+      d3d6Viewport->GetCommonViewport()->SetD3D6Device(this);
     }
   }
 
@@ -1872,7 +1870,7 @@ namespace dxvk {
     auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d6Viewport);
     if (likely(it != m_viewports.end())) {
       m_viewports.erase(it);
-      d3d6Viewport->SetDevice(nullptr);
+       d3d6Viewport->GetCommonViewport()->SetD3D6Device(nullptr);
     } else {
       Logger::warn("D3D6Device::DeleteViewportInternal: Viewport not found");
     }
