@@ -248,7 +248,7 @@ namespace dxvk {
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
       Logger::warn("DDraw3Surface::AddAttachedSurface: Received an unwrapped surface");
-      return DDERR_GENERIC;
+      return DDERR_CANNOTATTACHSURFACE;
     }
 
     DDraw3Surface* ddraw3Surface = static_cast<DDraw3Surface*>(lpDDSAttachedSurface);

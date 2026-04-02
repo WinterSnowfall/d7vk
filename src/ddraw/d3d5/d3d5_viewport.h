@@ -13,7 +13,6 @@
 namespace dxvk {
 
   class D3DLight;
-  class D3D5Device;
 
   class D3D5Viewport final : public DDrawWrappedObject<D3D5Interface, IDirect3DViewport2, IUnknown> {
 
@@ -49,7 +48,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE DeleteLight(IDirect3DLight *light);
 
-    HRESULT STDMETHODCALLTYPE NextLight(IDirect3DLight *ref, IDirect3DLight **light, DWORD flags);
+    HRESULT STDMETHODCALLTYPE NextLight(IDirect3DLight *lpDirect3DLight, IDirect3DLight **lplpDirect3DLight, DWORD flags);
 
     HRESULT STDMETHODCALLTYPE GetViewport2(D3DVIEWPORT2 *data);
 
@@ -65,18 +64,12 @@ namespace dxvk {
       return m_commonViewport.ptr();
     }
 
-    void SetDevice(D3D5Device* device) {
-      m_device = device;
-    }
-
   private:
 
     static uint32_t            s_viewportCount;
     uint32_t                   m_viewportCount = 0;
 
     Com<D3DCommonViewport>     m_commonViewport;
-
-    D3D5Device*                m_device = nullptr;
 
     std::vector<Com<D3DLight>> m_lights;
 

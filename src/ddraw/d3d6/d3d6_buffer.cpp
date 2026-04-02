@@ -24,9 +24,6 @@ namespace dxvk {
     , m_size ( m_stride * desc.dwNumVertices ) {
     m_buffCount = ++s_buffCount;
 
-    // 0 the size to cater for future GetVertexBufferDesc calls
-    m_desc.dwSize = 0;
-
     ListBufferDetails();
   }
 
@@ -50,11 +47,12 @@ namespace dxvk {
     if (unlikely(lpVBDesc == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // Will be passed as 0, and is expected to be returned as 0
-    //if (unlikely(lpVBDesc->dwSize != sizeof(LPD3DVERTEXBUFFERDESC)))
-      //return DDERR_INVALIDOBJECT;
+    const DWORD dwSize = lpVBDesc->dwSize;
 
     *lpVBDesc = m_desc;
+    // The value passed in dwSize during the query is expected to be
+    // preserved, even if it is not equal to sizeof(D3DVERTEXBUFFERDESC)
+    lpVBDesc->dwSize = dwSize;
 
     return D3D_OK;
   }
