@@ -429,7 +429,7 @@ namespace dxvk {
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
       Logger::warn("DDrawSurface::AddAttachedSurface: Received an unwrapped surface");
-      return DDERR_GENERIC;
+      return DDERR_CANNOTATTACHSURFACE;
     }
 
     DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSAttachedSurface);
@@ -701,7 +701,7 @@ namespace dxvk {
 
     // Wrap surfaces as needed and perform the actual callback the application is requesting
     auto surfaceIt = attachedSurfaces.begin();
-    while (surfaceIt != attachedSurfaces.end() && hr != DDENUMRET_CANCEL) {
+    while (surfaceIt != attachedSurfaces.end() && hr == DDENUMRET_OK) {
       Com<IDirectDrawSurface> surface = surfaceIt->surface;
 
       auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());

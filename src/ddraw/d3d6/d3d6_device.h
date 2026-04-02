@@ -258,7 +258,6 @@ namespace dxvk {
     GUID                           m_deviceGUID;
 
     Com<DDraw4Surface>             m_rt;
-    Com<DDraw4Surface, false>      m_rtOrig;
     DDraw4Surface*                 m_ds = nullptr;
 
     Com<D3D6Viewport>              m_currentViewport;

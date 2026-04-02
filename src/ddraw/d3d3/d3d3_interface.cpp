@@ -155,7 +155,7 @@ namespace dxvk {
 
     HRESULT hr = lpEnumDevicesCallback(&guidRAMP, &deviceDescRAMP[0], &deviceNameRAMP[0],
                                        &descRAMP_HAL, &descRAMP_HEL, lpUserArg);
-    if (hr == D3DENUMRET_CANCEL)
+    if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
     // Software emulation, this is expected to be exposed
@@ -180,7 +180,7 @@ namespace dxvk {
 
     hr = lpEnumDevicesCallback(&guidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
                                &descRGB_HAL, &descRGB_HEL, lpUserArg);
-    if (hr == D3DENUMRET_CANCEL)
+    if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
     // Hardware acceleration
@@ -202,7 +202,7 @@ namespace dxvk {
 
     hr = lpEnumDevicesCallback(&guidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
                                &descHAL_HAL, &descHAL_HEL, lpUserArg);
-    if (hr == D3DENUMRET_CANCEL)
+    if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
     return D3D_OK;

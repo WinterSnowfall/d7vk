@@ -156,7 +156,7 @@ namespace dxvk {
     if (unlikely(data->dwSize != sizeof(D3DVIEWPORT)))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(m_device == nullptr))
+    if (unlikely(!m_commonViewport->HasDevice()))
       return D3DERR_VIEWPORTHASNODEVICE;
 
     // TODO: Check viewport dimensions against the currently set RT,
@@ -272,19 +272,21 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (unlikely(m_device == nullptr))
+    if (unlikely(!m_commonViewport->HasDevice()))
       return D3DERR_VIEWPORTHASNODEVICE;
+
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetD3D9Device();
 
     // Temporarily activate this viewport in order to clear it
     d3d9::D3DVIEWPORT9 currentViewport9;
     if (!m_commonViewport->IsCurrentViewport()) {
-      D3D3Viewport* currentViewport = m_device->GetCurrentViewportInternal();
+      D3D3Viewport* currentViewport = m_commonViewport->GetCurrentD3D3Viewport();
       if (currentViewport != nullptr) {
         currentViewport9 = *currentViewport->GetCommonViewport()->GetD3D9Viewport();
       } else {
-        m_device->GetD3D9()->GetViewport(&currentViewport9);
+        d3d9Device->GetViewport(&currentViewport9);
       }
-      m_device->GetD3D9()->SetViewport(m_commonViewport->GetD3D9Viewport());
+      d3d9Device->SetViewport(m_commonViewport->GetD3D9Viewport());
     }
 
     static constexpr D3DCOLOR defaultColor = D3DCOLOR_RGBA(0, 0, 0, 0);
@@ -292,13 +294,13 @@ namespace dxvk {
     D3DCommonMaterial* commonMaterial = m_commonViewport->GetCommonD3DInterface()->GetCommonMaterialFromHandle(handle);
     D3DCOLOR clearColor = commonMaterial != nullptr ? commonMaterial->GetMaterialColor() : defaultColor;
 
-    HRESULT hr9 = m_device->GetD3D9()->Clear(count, rects, flags, clearColor, 1.0f, 0u);
+    HRESULT hr9 = d3d9Device->Clear(count, rects, flags, clearColor, 1.0f, 0u);
     if (unlikely(FAILED(hr9)))
       Logger::err("D3D3Viewport::Clear: Failed D3D9 Clear call");
 
     // Restore the previously active viewport
     if (!m_commonViewport->IsCurrentViewport()) {
-      m_device->GetD3D9()->SetViewport(&currentViewport9);
+      d3d9Device->SetViewport(&currentViewport9);
     }
 
     return D3D_OK;
@@ -315,9 +317,9 @@ namespace dxvk {
     if (unlikely(d3dLight->HasViewport()))
       return D3DERR_LIGHTHASVIEWPORT;
 
-    if (m_device != nullptr) {
+    if (m_commonViewport->HasDevice()) {
       Logger::debug("D3D3Viewport::AddLight: Enabling device legacy light model");
-      m_device->EnableLegacyLights(d3dLight->IsD3DLight2());
+      m_commonViewport->EnableLegacyLights(d3dLight->IsD3DLight2());
     }
 
     // No need to check if the light is already attached, since
@@ -325,7 +327,7 @@ namespace dxvk {
     m_lights.push_back(d3dLight);
     d3dLight->SetViewport3(this);
 
-    if (m_device != nullptr && m_commonViewport->IsCurrentViewport())
+    if (m_commonViewport->HasDevice() && m_commonViewport->IsCurrentViewport())
       ApplyAndActivateLight(d3dLight->GetIndex(), d3dLight);
 
     return D3D_OK;
@@ -345,9 +347,9 @@ namespace dxvk {
     auto it = std::find(m_lights.begin(), m_lights.end(), d3dLight);
     if (likely(it != m_lights.end())) {
       const DWORD lightIndex = d3dLight->GetIndex();
-      if (m_device != nullptr && m_commonViewport->IsCurrentViewport() && d3dLight->IsActive()) {
+      if (m_commonViewport->HasDevice() && m_commonViewport->IsCurrentViewport() && d3dLight->IsActive()) {
         Logger::debug(str::format("D3D3Viewport: Disabling light nr. ", lightIndex));
-        m_device->GetD3D9()->LightEnable(lightIndex, FALSE);
+        m_commonViewport->GetD3D9Device()->LightEnable(lightIndex, FALSE);
       }
       m_lights.erase(it);
       d3dLight->SetViewport3(nullptr);
@@ -359,8 +361,28 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D3Viewport::NextLight(IDirect3DLight *ref, IDirect3DLight **light, DWORD flags) {
-    Logger::warn("!!! D3D3Viewport::NextLight: Stub");
+  HRESULT STDMETHODCALLTYPE D3D3Viewport::NextLight(IDirect3DLight *lpDirect3DLight, IDirect3DLight **lplpDirect3DLight, DWORD flags) {
+    Logger::debug(">>> D3D3Viewport::NextLight");
+
+    if (unlikely(lplpDirect3DLight == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpDirect3DLight);
+
+    if (flags & D3DNEXT_HEAD) {
+      if (likely(m_lights.size() > 0))
+        *lplpDirect3DLight = m_lights.front().ref();
+    } else if (flags & D3DNEXT_NEXT) {
+      if (unlikely(lpDirect3DLight == nullptr))
+        return DDERR_INVALIDPARAMS;
+
+      if (likely(m_lights.size() > 0))
+        Logger::warn("D3D3Viewport::NextLight: Unimplemented D3DNEXT_NEXT flag");
+    } else if (flags & D3DNEXT_TAIL) {
+      if (likely(m_lights.size() > 0))
+        *lplpDirect3DLight = m_lights.back().ref();
+    }
+
     return D3D_OK;
   }
 
@@ -370,7 +392,7 @@ namespace dxvk {
 
     Logger::debug("D3D3Viewport: Applying viewport to D3D9");
 
-    HRESULT hr = m_device->GetD3D9()->SetViewport(m_commonViewport->GetD3D9Viewport());
+    HRESULT hr = m_commonViewport->GetD3D9Device()->SetViewport(m_commonViewport->GetD3D9Viewport());
     if(unlikely(FAILED(hr)))
       Logger::err("D3D3Viewport: Failed to set the D3D9 viewport");
 
@@ -390,19 +412,21 @@ namespace dxvk {
   }
 
   HRESULT D3D3Viewport::ApplyAndActivateLight(DWORD index, D3DLight* light) {
-    HRESULT hr = m_device->GetD3D9()->SetLight(index, light->GetD3D9Light());
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetD3D9Device();
+
+    HRESULT hr = d3d9Device->SetLight(index, light->GetD3D9Light());
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D3Viewport: Failed D3D9 SetLight call");
     } else {
       HRESULT hrLE;
       if (light->IsActive()) {
         Logger::debug(str::format("D3D3Viewport: Enabling light nr. ", index));
-        hrLE = m_device->GetD3D9()->LightEnable(index, TRUE);
+        hrLE = d3d9Device->LightEnable(index, TRUE);
         if (unlikely(FAILED(hrLE)))
           Logger::err("D3D3Viewport: Failed D3D9 LightEnable call (TRUE)");
       } else {
         Logger::debug(str::format("D3D3Viewport: Disabling light nr. ", index));
-        hrLE = m_device->GetD3D9()->LightEnable(index, FALSE);
+        hrLE = d3d9Device->LightEnable(index, FALSE);
         if (unlikely(FAILED(hrLE)))
           Logger::err("D3D3Viewport: Failed D3D9 LightEnable call (FALSE)");
       }
