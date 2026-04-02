@@ -30,8 +30,6 @@ namespace dxvk {
 
     m_totalMemory = m_bridge->DetermineInitialTextureMemory();
 
-    m_rtOrig = m_rt.ptr();
-
     // Textures
     m_textures.fill(nullptr);
     // Common D3D9 index buffers
@@ -127,33 +125,33 @@ namespace dxvk {
 
     DDPIXELFORMAT textureFormat = GetTextureFormat(d3d9::D3DFMT_X1R5G5B5);
     HRESULT hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_A1R5G5B5);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     // D3DFMT_X4R4G4B4 is not supported by D3D7
     textureFormat = GetTextureFormat(d3d9::D3DFMT_A4R4G4B4);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_R5G6B5);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_X8R8G8B8);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_A8R8G8B8);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     // Not supported in D3D9, but some games need
@@ -161,7 +159,7 @@ namespace dxvk {
     if (unlikely(d3dOptions->supportR3G3B2)) {
       textureFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
       hr = cb(&textureFormat, ctx);
-      if (unlikely(hr == D3DENUMRET_CANCEL))
+      if (unlikely(hr != D3DENUMRET_OK))
         return D3D_OK;
     }
 
@@ -169,47 +167,47 @@ namespace dxvk {
     // Note: Advertizing P8 support breaks Sacrifice
     /*textureFormat = GetTextureFormat(d3d9::D3DFMT_P8);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;*/
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_V8U8);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_L6V5U5);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_X8L8V8U8);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT1);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT2);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT3);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT4);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat = GetTextureFormat(d3d9::D3DFMT_DXT5);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     return D3D_OK;
@@ -323,6 +321,10 @@ namespace dxvk {
     }
 
     hr = m_d3d9->SetRenderTarget(0, rt7->GetD3D9());
+
+    // TODO: Test suggest that the passed surface is saved as the
+    // current RT even if the call fails, or it is an invalid surface...
+    // The current viewport values however must remain unaffected.
 
     if (likely(SUCCEEDED(hr))) {
       Logger::debug("D3D7Device::SetRenderTarget: Set a new D3D9 RT");
@@ -467,27 +469,69 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::GetViewport");
 
+    if (unlikely(data == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     return m_d3d9->GetViewport(reinterpret_cast<d3d9::D3DVIEWPORT9*>(data));
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetMaterial(D3DMATERIAL7 *data) {
     Logger::debug(">>> D3D7Device::SetMaterial");
+
+    if (unlikely(data == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     return m_d3d9->SetMaterial(reinterpret_cast<d3d9::D3DMATERIAL9*>(data));
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetMaterial(D3DMATERIAL7 *data) {
     Logger::debug(">>> D3D7Device::GetMaterial");
+
+    if (unlikely(data == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     return m_d3d9->GetMaterial(reinterpret_cast<d3d9::D3DMATERIAL9*>(data));
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetLight(DWORD idx, D3DLIGHT7 *data) {
     Logger::debug(">>> D3D7Device::SetLight");
-    return m_d3d9->SetLight(idx, reinterpret_cast<d3d9::D3DLIGHT9*>(data));
+
+    if (unlikely(data == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    // D3DLIGHT_PARALLELPOINT can not be used in D3D7
+    if (unlikely(data->dltType != D3DLIGHT_POINT
+              && data->dltType != D3DLIGHT_SPOT
+              && data->dltType != D3DLIGHT_DIRECTIONAL))
+      return DDERR_INVALIDPARAMS;
+
+    // For POINT/SPOT lights, attenuation should be positive, as per docs:
+    // "Valid values for these members range from 0.0 to infinity."
+    if (unlikely((data->dltType == D3DLIGHT_POINT
+               || data->dltType == D3DLIGHT_SPOT) &&
+                 (data->dvAttenuation0 < 0.0f
+               || data->dvAttenuation1 < 0.0f
+               || data->dvAttenuation2 < 0.0f)))
+      return DDERR_INVALIDPARAMS;
+
+    HRESULT hr = m_d3d9->SetLight(idx, reinterpret_cast<d3d9::D3DLIGHT9*>(data));
+    if (unlikely(FAILED(hr)))
+      return DDERR_INVALIDPARAMS;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetLight(DWORD idx, D3DLIGHT7 *data) {
     Logger::debug(">>> D3D7Device::GetLight");
-    return m_d3d9->GetLight(idx, reinterpret_cast<d3d9::D3DLIGHT9*>(data));
+
+    if (unlikely(data == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    HRESULT hr = m_d3d9->GetLight(idx, reinterpret_cast<d3d9::D3DLIGHT9*>(data));
+    if (unlikely(FAILED(hr)))
+      return DDERR_INVALIDPARAMS;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
@@ -1407,7 +1451,15 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetLightEnable(DWORD dwLightIndex, BOOL *pbEnable) {
     Logger::debug(">>> D3D7Device::GetLightEnable");
-    return m_d3d9->GetLightEnable(dwLightIndex, pbEnable);
+
+    if (unlikely(pbEnable == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    HRESULT hr = m_d3d9->GetLightEnable(dwLightIndex, pbEnable);
+    if (unlikely(FAILED(hr)))
+      return DDERR_INVALIDPARAMS;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetClipPlane(DWORD dwIndex, D3DVALUE *pPlaneEquation) {

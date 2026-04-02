@@ -10,6 +10,10 @@ namespace dxvk {
   class D3D5Viewport;
   class D3D3Viewport;
 
+  class D3D6Device;
+  class D3D5Device;
+  class D3D3Device;
+
   class D3DCommonViewport : public ComObjectClamp<IUnknown> {
 
   public:
@@ -22,6 +26,16 @@ namespace dxvk {
       *ppvObject = this;
       return S_OK;
     }
+
+    D3D6Viewport* GetCurrentD3D6Viewport();
+
+    D3D5Viewport* GetCurrentD3D5Viewport();
+
+    D3D3Viewport* GetCurrentD3D3Viewport();
+
+    void EnableLegacyLights(bool isD3DLight2);
+
+    d3d9::IDirect3DDevice9* GetD3D9Device();
 
     D3DCommonInterface* GetCommonD3DInterface() const {
       return m_commonD3DIntf;
@@ -87,6 +101,34 @@ namespace dxvk {
 
     D3D3Viewport* GetD3D3Viewport() const {
       return m_d3d3Viewport;
+    }
+
+    void SetD3D6Device(D3D6Device* device6) {
+      m_device6 = device6;
+    }
+
+    D3D6Device* GetD3D6Device() const {
+      return m_device6;
+    }
+
+    void SetD3D5Device(D3D5Device* device5) {
+      m_device5 = device5;
+    }
+
+    D3D5Device* GetD3D5Device() const {
+      return m_device5;
+    }
+
+    void SetD3D3Device(D3D3Device* device3) {
+      m_device3 = device3;
+    }
+
+    D3D3Device* GetD3D3Device() const {
+      return m_device3;
+    }
+
+    bool HasDevice() const {
+      return m_device6 != nullptr || m_device5 != nullptr || m_device3 != nullptr;
     }
 
     void SetOrigin(IUnknown* origin) {
@@ -167,6 +209,10 @@ namespace dxvk {
     D3D6Viewport*       m_d3d6Viewport      = nullptr;
     D3D5Viewport*       m_d3d5Viewport      = nullptr;
     D3D3Viewport*       m_d3d3Viewport      = nullptr;
+
+    D3D6Device*         m_device6           = nullptr;
+    D3D5Device*         m_device5           = nullptr;
+    D3D3Device*         m_device3           = nullptr;
 
     IUnknown*           m_origin            = nullptr;
 
