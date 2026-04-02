@@ -44,8 +44,6 @@ namespace dxvk {
 
     m_totalMemory = m_bridge->DetermineInitialTextureMemory();
 
-    m_rtOrig = m_rt.ptr();
-
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
@@ -69,7 +67,7 @@ namespace dxvk {
   D3D5Device::~D3D5Device() {
     // Dissasociate every bound viewport from this device
     for (auto viewport : m_viewports) {
-      viewport->SetDevice(nullptr);
+      viewport->GetCommonViewport()->SetD3D5Device(nullptr);
     }
 
     // Clear the common interface device pointer if it points to this device
@@ -156,8 +154,8 @@ namespace dxvk {
       Logger::warn("D3D5Device::GetCaps: Unhandled device type");
     }
 
-    memcpy(hal_desc, &desc_HAL, sizeof(D3DDEVICEDESC2));
-    memcpy(hel_desc, &desc_HEL, sizeof(D3DDEVICEDESC2));
+    memcpy(hal_desc, &desc_HAL, hal_desc->dwSize);
+    memcpy(hel_desc, &desc_HEL, hel_desc->dwSize);
 
     return D3D_OK;
   }
@@ -235,33 +233,33 @@ namespace dxvk {
 
     textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_X1R5G5B5);
     HRESULT hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_A1R5G5B5);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     // D3DFMT_X4R4G4B4 is not supported by D3D5
     textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_A4R4G4B4);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_R5G6B5);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_X8R8G8B8);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_A8R8G8B8);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     // Not supported in D3D9, but some games need
@@ -269,14 +267,14 @@ namespace dxvk {
     if (unlikely(d3dOptions->supportR3G3B2)) {
       textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_R3G3B2);
       hr = cb(&textureFormat, ctx);
-      if (unlikely(hr == D3DENUMRET_CANCEL))
+      if (unlikely(hr != D3DENUMRET_OK))
         return D3D_OK;
     }
 
     // Not supported in D3D9, but some games may use it
     /*textureFormat.ddpfPixelFormat = GetTextureFormat(d3d9::D3DFMT_P8);
     hr = cb(&textureFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;*/
 
     return D3D_OK;
@@ -1424,7 +1422,7 @@ namespace dxvk {
       Logger::warn("D3D5Device::AddViewportInternal: Pre-existing viewport found");
     } else {
       m_viewports.push_back(d3d5Viewport);
-      d3d5Viewport->SetDevice(this);
+      d3d5Viewport->GetCommonViewport()->SetD3D5Device(this);
     }
   }
 
@@ -1434,7 +1432,7 @@ namespace dxvk {
     auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d5Viewport);
     if (likely(it != m_viewports.end())) {
       m_viewports.erase(it);
-      d3d5Viewport->SetDevice(nullptr);
+      d3d5Viewport->GetCommonViewport()->SetD3D5Device(nullptr);
     } else {
       Logger::warn("D3D5Device::DeleteViewportInternal: Viewport not found");
     }

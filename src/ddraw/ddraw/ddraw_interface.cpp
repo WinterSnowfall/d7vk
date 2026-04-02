@@ -365,7 +365,7 @@ namespace dxvk {
 
     // Wrap surfaces as needed and perform the actual callback the application is requesting
     auto surfaceIt = attachedSurfaces.begin();
-    while (surfaceIt != attachedSurfaces.end() && hr != DDENUMRET_CANCEL) {
+    while (surfaceIt != attachedSurfaces.end() && hr == DDENUMRET_OK) {
       Com<IDirectDrawSurface> surface = surfaceIt->surface;
 
       Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), this, nullptr, false);

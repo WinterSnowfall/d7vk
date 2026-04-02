@@ -208,7 +208,6 @@ namespace dxvk {
 
     D3DDEVICEDESC7              m_desc;
     Com<DDraw7Surface>          m_rt;
-    Com<DDraw7Surface, false>   m_rtOrig;
     DDraw7Surface*              m_ds = nullptr;
 
     std::array<Com<DDraw7Surface, false>, ddrawCaps::TextureStageCount> m_textures;

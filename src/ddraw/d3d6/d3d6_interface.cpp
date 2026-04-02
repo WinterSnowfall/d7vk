@@ -145,7 +145,7 @@ namespace dxvk {
 
     HRESULT hr = lpEnumDevicesCallback(&guidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
                                        &descRGB_HAL, &descRGB_HEL, lpUserArg);
-    if (hr == D3DENUMRET_CANCEL)
+    if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
     // Hardware acceleration
@@ -168,7 +168,7 @@ namespace dxvk {
 
     hr = lpEnumDevicesCallback(&guidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
                                &descHAL_HAL, &descHAL_HEL, lpUserArg);
-    if (hr == D3DENUMRET_CANCEL)
+    if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
     return D3D_OK;
@@ -505,10 +505,6 @@ namespace dxvk {
 
     InitReturnPtr(lpD3DVertexBuffer);
 
-    // TODO: This, apparently, isn't validated by native D3D6 (to check)
-    //if (unlikely(lpVBDesc->dwSize != sizeof(D3DVERTEXBUFFERDESC)))
-      //return DDERR_INVALIDPARAMS;
-
     Com<IDirect3DVertexBuffer> vertexBuffer;
     // We don't really need a proxy buffer any longer
     /*HRESULT hr = m_proxy->CreateVertexBuffer(desc, &vertexBuffer, usage);
@@ -542,18 +538,18 @@ namespace dxvk {
     if (likely(d3dOptions->supportD16)) {
       depthFormat = GetZBufferFormat(d3d9::D3DFMT_D16);
       hr = lpEnumCallback(&depthFormat, lpContext);
-      if (unlikely(hr == D3DENUMRET_CANCEL))
+      if (unlikely(hr != D3DENUMRET_OK))
         return D3D_OK;
     }
 
     depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
     hr = lpEnumCallback(&depthFormat, lpContext);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24S8);
     hr = lpEnumCallback(&depthFormat, lpContext);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     return D3D_OK;
