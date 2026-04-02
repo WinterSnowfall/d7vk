@@ -133,7 +133,7 @@ namespace dxvk {
     static char deviceNameRGB[100] = "D7VK RGB";
 
     HRESULT hr = cb(&deviceDescRGB[0], &deviceNameRGB[0], &desc7RGB, ctx);
-    if (hr == D3DENUMRET_CANCEL)
+    if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
     // Hardware acceleration (no T&L)
@@ -142,7 +142,7 @@ namespace dxvk {
     static char deviceNameHAL[100] = "D7VK HAL";
 
     hr = cb(&deviceDescHAL[0], &deviceNameHAL[0], &desc7HAL, ctx);
-    if (hr == D3DENUMRET_CANCEL)
+    if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
     // Hardware acceleration with T&L
@@ -151,7 +151,7 @@ namespace dxvk {
     static char deviceNameTNL[100] = "D7VK T&L HAL";
 
     hr = cb(&deviceDescTNL[0], &deviceNameTNL[0], &desc7TNL, ctx);
-    if (hr == D3DENUMRET_CANCEL)
+    if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
     return D3D_OK;
@@ -355,10 +355,6 @@ namespace dxvk {
 
     InitReturnPtr(ppVertexBuffer);
 
-    // TODO: This, apparently, isn't validated by native D3D7 (to check)
-    //if (unlikely(desc->dwSize != sizeof(D3DVERTEXBUFFERDESC)))
-      //return DDERR_INVALIDPARAMS;
-
     Com<IDirect3DVertexBuffer7> vertexBuffer7;
     // We don't really need a proxy buffer any longer
     /*HRESULT hr = m_proxy->CreateVertexBuffer(desc, &vertexBuffer7, usage);
@@ -390,18 +386,18 @@ namespace dxvk {
     if (likely(d3dOptions->supportD16)) {
       depthFormat = GetZBufferFormat(d3d9::D3DFMT_D16);
       hr = cb(&depthFormat, ctx);
-      if (unlikely(hr == D3DENUMRET_CANCEL))
+      if (unlikely(hr != D3DENUMRET_OK))
         return D3D_OK;
     }
 
     depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
     hr = cb(&depthFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24S8);
     hr = cb(&depthFormat, ctx);
-    if (unlikely(hr == D3DENUMRET_CANCEL))
+    if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     return D3D_OK;
