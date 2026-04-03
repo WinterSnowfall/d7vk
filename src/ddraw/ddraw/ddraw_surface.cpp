@@ -112,6 +112,68 @@ namespace dxvk {
 
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
+    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
+      if (unlikely(m_parent == nullptr)) {
+        Logger::warn("DDrawSurface::QueryInterface: Query for IDirect3DTexture");
+        return E_NOINTERFACE;
+      }
+
+      Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture");
+
+      if (unlikely(m_texture3 == nullptr)) {
+        Com<IDirect3DTexture> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
+        m_texture3 = new D3D3Texture(std::move(ppvProxyObject), this, nextHandle);
+        D3DCommonTexture* commonTex = m_texture3->GetCommonTexture();
+        m_parent->EmplaceTexture(commonTex, nextHandle);
+      }
+
+      *ppvObject = m_texture3.ref();
+
+      return S_OK;
+    }
+    if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
+      if (unlikely(m_parent == nullptr)) {
+        Logger::warn("DDrawSurface::QueryInterface: Query for IDirect3DTexture2");
+        return E_NOINTERFACE;
+      }
+
+      Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture2");
+
+      if (unlikely(m_texture5 == nullptr)) {
+        Com<IDirect3DTexture2> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
+        m_texture5 = new D3D5Texture(std::move(ppvProxyObject), this, nextHandle);
+        D3DCommonTexture* commonTex = m_texture5->GetCommonTexture();
+        m_parent->EmplaceTexture(commonTex, nextHandle);
+      }
+
+      *ppvObject = m_texture5.ref();
+
+      return S_OK;
+    }
+    // Wrap IDirectDrawGammaControl, to potentially ignore application set gamma ramps
+    if (riid == __uuidof(IDirectDrawGammaControl)) {
+      Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawGammaControl");
+      void* gammaControlProxiedVoid = nullptr;
+      // This can never reasonably fail
+      m_proxy->QueryInterface(__uuidof(IDirectDrawGammaControl), &gammaControlProxiedVoid);
+      Com<IDirectDrawGammaControl> gammaControlProxied = static_cast<IDirectDrawGammaControl*>(gammaControlProxiedVoid);
+      *ppvObject = ref(new DDrawGammaControl(m_commonSurf.ptr(), std::move(gammaControlProxied), this));
+      return S_OK;
+    }
+    if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
+      Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawColorControl");
+      return E_NOINTERFACE;
+    }
     // The standard way of creating a new D3D3 device. Outside of RAMP, MMX, RGB and HAL,
     // some applications (e.g. Dark Rift) query for Wine's advertised custom device IID.
     if (riid == IID_IDirect3DHALDevice  || riid == IID_IDirect3DRGBDevice  ||
@@ -273,20 +335,6 @@ namespace dxvk {
 
       return S_OK;
     }
-    // Wrap IDirectDrawGammaControl, to potentially ignore application set gamma ramps
-    if (riid == __uuidof(IDirectDrawGammaControl)) {
-      Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawGammaControl");
-      void* gammaControlProxiedVoid = nullptr;
-      // This can never reasonably fail
-      m_proxy->QueryInterface(__uuidof(IDirectDrawGammaControl), &gammaControlProxiedVoid);
-      Com<IDirectDrawGammaControl> gammaControlProxied = static_cast<IDirectDrawGammaControl*>(gammaControlProxiedVoid);
-      *ppvObject = ref(new DDrawGammaControl(m_commonSurf.ptr(), std::move(gammaControlProxied), this));
-      return S_OK;
-    }
-    if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
-      Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawColorControl");
-      return m_proxy->QueryInterface(riid, ppvObject);
-    }
     // Some applications check the supported API level by querying the various newer surface GUIDs...
     if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
       if (m_commonSurf->GetDD2Surface() != nullptr) {
@@ -356,58 +404,10 @@ namespace dxvk {
 
       return S_OK;
     }
-    if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
-      if (m_parent == nullptr) {
-        Logger::warn("DDrawSurface::QueryInterface: Query for IDirect3DTexture2");
-        return m_proxy->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture2");
-
-      if (unlikely(m_texture5 == nullptr)) {
-        Com<IDirect3DTexture2> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
-
-        D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
-        m_texture5 = new D3D5Texture(std::move(ppvProxyObject), this, nextHandle);
-        D3DCommonTexture* commonTex = m_texture5->GetCommonTexture();
-        m_parent->EmplaceTexture(commonTex, nextHandle);
-      }
-
-      *ppvObject = m_texture5.ref();
-
-      return S_OK;
-    }
-    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
-      if (m_parent == nullptr) {
-        Logger::warn("DDrawSurface::QueryInterface: Query for IDirect3DTexture");
-        return m_proxy->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture");
-
-      if (unlikely(m_texture3 == nullptr)) {
-        Com<IDirect3DTexture> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
-
-        D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
-        m_texture3 = new D3D3Texture(std::move(ppvProxyObject), this, nextHandle);
-        D3DCommonTexture* commonTex = m_texture3->GetCommonTexture();
-        m_parent->EmplaceTexture(commonTex, nextHandle);
-      }
-
-      *ppvObject = m_texture3.ref();
-
-      return S_OK;
-    }
-    // Some games are known to query for the clipper
-    // from the surface, for some reason, though that won't work
-    // and GetClipper exists anyway...
+    // Some games are known to query the clipper from the surface,
+    // though that won't work and GetClipper exists anyway...
     if (unlikely(riid == __uuidof(IDirectDrawClipper))) {
+      Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawClipper");
       return E_NOINTERFACE;
     }
 
