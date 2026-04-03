@@ -89,13 +89,17 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // Some games query for ddraw interfaces
-    if (unlikely(riid == __uuidof(IDirectDraw))) {
+    if (riid == __uuidof(IDirectDraw)) {
       Logger::debug("D3D3Interface::QueryInterface: Query for IDirectDraw");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     // Deathtrap Dungeon queries for IDirect3D2... not sure if this ever worked
     if (unlikely(riid == __uuidof(IDirect3D2))) {
+      if (likely(m_commonD3DIntf->GetD3D5Interface() != nullptr)) {
+        Logger::debug("D3D3Interface::QueryInterface: Query for existing IDirect3D2");
+        return m_commonD3DIntf->GetD3D5Interface()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::warn("D3D3Interface::QueryInterface: Query for IDirect3D2");
       return m_parent->QueryInterface(riid, ppvObject);
     }

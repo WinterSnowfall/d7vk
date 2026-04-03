@@ -1925,6 +1925,20 @@ namespace dxvk {
     { R"(\\LOL3\.dat$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Virtua Fighter 2                           */
+    { R"(\\VF2\.exe$)", {{
+      { "ddraw.backBufferWriteBack",        "True" },
+      { "ddraw.backBufferGuard",        "Disabled" },
+    }} },
+    /* Return to Krondor                          */
+    { R"(\\RtK\.exe$)", {{
+      { "ddraw.backBufferWriteBack",        "True" },
+      { "ddraw.backBufferGuard",        "Disabled" },
+    }} },
+    /* RoBoRumble                                 */
+    { R"(\\rr_dx5\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
     /**********************************************/
     /* D3D3 GAMES                                 */
