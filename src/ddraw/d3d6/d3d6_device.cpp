@@ -100,12 +100,6 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    if (unlikely(riid == __uuidof(IDirect3DDevice)
-              || riid == __uuidof(IDirect3DDevice2))) {
-      Logger::debug("D3D6Device::QueryInterface: Query for legacy IDirect3DDevice");
-      return m_proxy->QueryInterface(riid, ppvObject);
-    }
-
     try {
       *ppvObject = ref(this->GetInterface(riid));
       return S_OK;
