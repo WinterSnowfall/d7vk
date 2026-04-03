@@ -8,8 +8,6 @@
 
 #include "ddraw7_interface.h"
 
-#include "../d3d6/d3d6_texture.h"
-
 #include <array>
 #include <unordered_map>
 
@@ -245,8 +243,6 @@ namespace dxvk {
 
     Com<d3d9::IDirect3DCubeTexture9>    m_cubeMap;
     std::array<IDirectDrawSurface7*, 6> m_cubeMapSurfaces;
-
-    Com<D3D6Texture, false>             m_texture6;
 
     Com<d3d9::IDirect3DTexture9>        m_texture9;
 

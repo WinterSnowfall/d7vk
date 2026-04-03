@@ -91,8 +91,21 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
+    if (riid == __uuidof(IDirectDraw)) {
+      Logger::debug("D3D5Interface::QueryInterface: Query for IDirectDraw");
+      return m_parent->QueryInterface(riid, ppvObject);
+    }
+    if (riid == __uuidof(IDirectDraw2)) {
+      Logger::debug("D3D5Interface::QueryInterface: Query for IDirectDraw2");
+      return m_parent->QueryInterface(riid, ppvObject);
+    }
     // Some games query for legacy d3d interfaces
     if (unlikely(riid == __uuidof(IDirect3D))) {
+      if (m_commonD3DIntf->GetD3D3Interface() != nullptr) {
+        Logger::debug("D3D5Interface::QueryInterface: Query for existing IDirect3D");
+        return m_commonD3DIntf->GetD3D3Interface()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("D3D5Interface::QueryInterface: Query for IDirect3D");
 
       Com<IDirect3D> ppvProxyObject;
@@ -105,11 +118,6 @@ namespace dxvk {
       *ppvObject = d3d3Intf.ref();
 
       return S_OK;
-    }
-    // Some games query for ddraw interfaces
-    if (unlikely(riid == __uuidof(IDirectDraw))) {
-      Logger::debug("D3D5Interface::QueryInterface: Query for IDirectDraw");
-      return m_parent->QueryInterface(riid, ppvObject);
     }
 
     try {

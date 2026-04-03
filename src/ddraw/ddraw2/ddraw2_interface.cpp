@@ -187,7 +187,12 @@ namespace dxvk {
     }
     // Quite a lot of games query for this IID during intro playback
     if (unlikely(riid == GUID_IAMMediaStream)) {
-      Logger::debug("DDrawInterface::QueryInterface: Query for IAMMediaStream");
+      Logger::debug("DDraw2Interface::QueryInterface: Query for IAMMediaStream");
+      return m_proxy->QueryInterface(riid, ppvObject);
+    }
+    // Also seen queried by some games, such as V-Rally 2: Expert Edition
+    if (unlikely(riid == GUID_IMediaStream)) {
+      Logger::debug("DDraw2Interface::QueryInterface: Query for IMediaStream");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
 

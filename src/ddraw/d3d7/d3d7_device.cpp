@@ -84,14 +84,6 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // These aren't supported, but some games query for them anyway
-    if (unlikely(riid == __uuidof(IDirect3DDevice)
-              || riid == __uuidof(IDirect3DDevice2)
-              || riid == __uuidof(IDirect3DDevice3))) {
-      Logger::debug("D3D7Device::QueryInterface: Query for legacy IDirect3DDevice");
-      return m_proxy->QueryInterface(riid, ppvObject);
-    }
-
     try {
       *ppvObject = ref(this->GetInterface(riid));
       return S_OK;

@@ -92,6 +92,56 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
+    if (riid == __uuidof(IDirect3DTexture2)) {
+      if (unlikely(m_parent == nullptr)) {
+        Logger::warn("DDraw2Surface::QueryInterface: Query for IDirect3DTexture2");
+        return E_NOINTERFACE;
+      }
+
+      Logger::debug("DDraw2Surface::QueryInterface: Query for IDirect3DTexture2");
+
+      if (unlikely(m_parent->GetD3D5Texture() == nullptr)) {
+        Com<IDirect3DTexture2> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
+        Com<D3D5Texture> texture5 = new D3D5Texture(std::move(ppvProxyObject), m_parent, nextHandle);
+        D3DCommonTexture* commonTex = texture5->GetCommonTexture();
+        m_parent->SetD3D5Texture(texture5.ptr());
+        m_parent->GetParent()->EmplaceTexture(commonTex, nextHandle);
+      }
+
+      *ppvObject = ref(m_parent->GetD3D5Texture());
+
+      return S_OK;
+    }
+    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
+      if (unlikely(m_parent == nullptr)) {
+        Logger::warn("DDraw2Surface::QueryInterface: Query for IDirect3DTexture");
+        return E_NOINTERFACE;
+      }
+
+      Logger::debug("DDraw2Surface::QueryInterface: Query for IDirect3DTexture");
+
+      if (unlikely(m_parent->GetD3D3Texture() == nullptr)) {
+        Com<IDirect3DTexture> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
+        Com<D3D3Texture> texture3 = new D3D3Texture(std::move(ppvProxyObject), m_parent, nextHandle);
+        D3DCommonTexture* commonTex = texture3->GetCommonTexture();
+        m_parent->SetD3D3Texture(texture3.ptr());
+        m_parent->GetParent()->EmplaceTexture(commonTex, nextHandle);
+      }
+
+      *ppvObject = ref(m_parent->GetD3D3Texture());
+
+      return S_OK;
+    }
     if (riid == __uuidof(IDirectDrawGammaControl)) {
       Logger::debug("DDraw2Surface::QueryInterface: Query for IDirectDrawGammaControl");
       void* gammaControlProxiedVoid = nullptr;
@@ -102,7 +152,8 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
-      return m_proxy->QueryInterface(riid, ppvObject);
+      Logger::debug("DDraw2Surface::QueryInterface: Query for IDirectDrawColorControl");
+      return E_NOINTERFACE;
     }
     if (unlikely(riid == __uuidof(IUnknown)
               || riid == __uuidof(IDirectDrawSurface))) {
@@ -170,56 +221,6 @@ namespace dxvk {
         return hr;
 
       *ppvObject = ref(new DDraw7Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD7Interface(), nullptr, false));
-
-      return S_OK;
-    }
-    if (riid == __uuidof(IDirect3DTexture2)) {
-      if (m_parent == nullptr) {
-        Logger::warn("DDraw2Surface::QueryInterface: Query for IDirect3DTexture2");
-        return m_proxy->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("DDraw2Surface::QueryInterface: Query for IDirect3DTexture2");
-
-      if (unlikely(m_parent->GetD3D5Texture() == nullptr)) {
-        Com<IDirect3DTexture2> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
-
-        D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
-        Com<D3D5Texture> texture5 = new D3D5Texture(std::move(ppvProxyObject), m_parent, nextHandle);
-        D3DCommonTexture* commonTex = texture5->GetCommonTexture();
-        m_parent->SetD3D5Texture(texture5.ptr());
-        m_parent->GetParent()->EmplaceTexture(commonTex, nextHandle);
-      }
-
-      *ppvObject = ref(m_parent->GetD3D5Texture());
-
-      return S_OK;
-    }
-    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
-      if (m_parent == nullptr) {
-        Logger::warn("DDraw2Surface::QueryInterface: Query for IDirect3DTexture");
-        return m_proxy->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("DDraw2Surface::QueryInterface: Query for IDirect3DTexture");
-
-      if (unlikely(m_parent->GetD3D3Texture() == nullptr)) {
-        Com<IDirect3DTexture> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
-
-        D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
-        Com<D3D3Texture> texture3 = new D3D3Texture(std::move(ppvProxyObject), m_parent, nextHandle);
-        D3DCommonTexture* commonTex = texture3->GetCommonTexture();
-        m_parent->SetD3D3Texture(texture3.ptr());
-        m_parent->GetParent()->EmplaceTexture(commonTex, nextHandle);
-      }
-
-      *ppvObject = ref(m_parent->GetD3D3Texture());
 
       return S_OK;
     }
