@@ -111,6 +111,11 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
+    // Black & White queries for IDirect3DTexture2 for whatever reason...
+    if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
+      Logger::debug("DDraw7Surface::QueryInterface: Query for IDirect3DTexture2");
+      return E_NOINTERFACE;
+    }
     // Wrap IDirectDrawGammaControl, to potentially ignore application set gamma ramps
     if (riid == __uuidof(IDirectDrawGammaControl)) {
       Logger::debug("DDraw7Surface::QueryInterface: Query for IDirectDrawGammaControl");
@@ -123,7 +128,7 @@ namespace dxvk {
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
       Logger::debug("DDraw7Surface::QueryInterface: Query for IDirectDrawColorControl");
-      return m_proxy->QueryInterface(riid, ppvObject);
+      return E_NOINTERFACE;
     }
     // Some games query for legacy ddraw surfaces
     if (unlikely(riid == __uuidof(IUnknown)
@@ -193,35 +198,6 @@ namespace dxvk {
       *ppvObject = ref(new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD4Interface(), nullptr, false));
 
       return S_OK;
-    }
-    // Black & White queries for IDirect3DTexture2 for whatever reason...
-    if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
-      Logger::debug("DDraw7Surface::QueryInterface: Query for IDirect3DTexture2");
-
-      if (unlikely(m_texture6 == nullptr)) {
-        Com<IDirect3DTexture2> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
-
-        D3DTEXTUREHANDLE nextHandle = 0;
-        if (likely(m_commonIntf->GetDDInterface() != nullptr))
-          nextHandle = m_commonIntf->GetDDInterface()->GetNextTextureHandle();
-        m_texture6 = new D3D6Texture(std::move(ppvProxyObject), m_commonSurf->GetDD4Surface(), nextHandle);
-        if (likely(m_commonIntf->GetDDInterface() != nullptr)) {
-          D3DCommonTexture* commonTex = m_texture6->GetCommonTexture();
-          m_commonIntf->GetDDInterface()->EmplaceTexture(commonTex, nextHandle);
-        }
-      }
-
-      *ppvObject = m_texture6.ref();
-
-      return S_OK;
-    }
-    // Shouldn't ever be called in practice
-    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
-      Logger::warn("DDraw7Surface::QueryInterface: Query for IDirect3DTexture");
-      return m_proxy->QueryInterface(riid, ppvObject);
     }
 
     try {
