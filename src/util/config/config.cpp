@@ -1709,6 +1709,12 @@ namespace dxvk {
     { R"(\\SE5\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Will Rock                                  *
+     * Fixes missing save game screenshots        */
+    { R"(\\WillRock\.exe$)", {{
+      { "ddraw.emulateFSAA",                "True" },
+      { "ddraw.backBufferWriteBack",        "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
@@ -1873,6 +1879,10 @@ namespace dxvk {
     { R"(\\Dethkarz\.exe$)", {{
       { "ddraw.mask8BitModes",              "True" },
       { "ddraw.colorKeyCompatibility",      "True" },
+    }} },
+    /* Tomb Raider Chronicles                     */
+    { R"(\\PCTomb5\.exe$)", {{
+      { "ddraw.backBufferWriteBack",        "True" },
     }} },
 
     /**********************************************/
