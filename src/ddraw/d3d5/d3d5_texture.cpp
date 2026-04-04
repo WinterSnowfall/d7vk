@@ -18,7 +18,7 @@ namespace dxvk {
   }
 
   D3D5Texture::~D3D5Texture() {
-    m_parent->GetParent()->ReleaseTextureHandle(m_commonTex->GetTextureHandle());
+    m_parent->GetCommonInterface()->ReleaseTextureHandle(m_commonTex->GetTextureHandle());
 
     Logger::debug(str::format("D3D5Texture: Texture nr. [[2-", m_texCount, "]] bites the dust"));
   }
@@ -55,9 +55,13 @@ namespace dxvk {
       Logger::debug("D3D5Texture::QueryInterface: Query for IDirect3DTexture");
       return m_parent->QueryInterface(riid, ppvObject);
     }
-    if (unlikely(riid == __uuidof(IDirectDrawGammaControl)
-              || riid == __uuidof(IDirectDrawColorControl))) {
+    if (unlikely(riid == __uuidof(IDirectDrawGammaControl))) {
+      Logger::debug("D3D5Texture::QueryInterface: Query for IDirectDrawGammaControl");
       return m_parent->QueryInterface(riid, ppvObject);
+    }
+    if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
+      Logger::debug("D3D5Texture::QueryInterface: Query for IDirectDrawColorControl");
+      return E_NOINTERFACE;
     }
     if (unlikely(riid == __uuidof(IUnknown)
               || riid == __uuidof(IDirectDrawSurface))) {
@@ -89,16 +93,7 @@ namespace dxvk {
     if(unlikely(lpDirect3DDevice2 == nullptr || lpHandle == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3DTEXTUREHANDLE texHandle = m_commonTex->GetTextureHandle();
-
-    if (unlikely(!texHandle)) {
-      Logger::warn("D3D5Texture::GetHandle: Null handle returned");
-
-      D3D5Device* d3d5Device = static_cast<D3D5Device*>(lpDirect3DDevice2);
-      return m_proxy->GetHandle(d3d5Device->GetProxied(), lpHandle);
-    }
-
-    *lpHandle = texHandle;
+    *lpHandle = m_commonTex->GetTextureHandle();
 
     return D3D_OK;
   }

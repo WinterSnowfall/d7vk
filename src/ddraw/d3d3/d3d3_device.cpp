@@ -2,7 +2,6 @@
 
 #include "d3d3_execute_buffer.h"
 
-#include "../ddraw/ddraw_interface.h"
 #include "../ddraw/ddraw_surface.h"
 
 #include "../d3d5/d3d5_device.h"
@@ -784,7 +783,7 @@ namespace dxvk {
         DDrawSurface* surface = nullptr;
 
         if (likely(dwRenderState != 0)) {
-          surface = m_commonIntf->GetDDInterface()->GetSurfaceFromTextureHandle(dwRenderState);
+          surface = m_commonIntf->GetSurfaceFromTextureHandle(dwRenderState);
           if (unlikely(surface == nullptr))
             return DDERR_INVALIDPARAMS;
         }
@@ -1227,8 +1226,8 @@ namespace dxvk {
     for (DWORD i = 0; i < count; i++) {
       const D3DTEXTURELOAD& tl = textureLoad[i];
 
-      DDrawSurface* destSurf = m_commonIntf->GetDDInterface()->GetSurfaceFromTextureHandle(tl.hDestTexture);
-      DDrawSurface* srcSurf = m_commonIntf->GetDDInterface()->GetSurfaceFromTextureHandle(tl.hSrcTexture);
+      DDrawSurface* destSurf = m_commonIntf->GetSurfaceFromTextureHandle(tl.hDestTexture);
+      DDrawSurface* srcSurf = m_commonIntf->GetSurfaceFromTextureHandle(tl.hSrcTexture);
       if (destSurf != nullptr && srcSurf != nullptr)
         destSurf->GetD3D3Texture()->Load(srcSurf->GetD3D3Texture());
       else
