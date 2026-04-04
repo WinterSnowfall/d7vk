@@ -417,7 +417,10 @@ namespace dxvk {
         if (unlikely(rt == nullptr)) {
           Com<IDirectDrawSurface> surface;
           ddraw3Surface->GetProxied()->QueryInterface(__uuidof(IDirectDrawSurface), reinterpret_cast<void**>(&surface));
-          rt = new DDrawSurface(nullptr, std::move(surface), m_commonIntf->GetDDInterface(), nullptr, false);
+          rt = new DDrawSurface(ddraw3Surface->GetCommonSurface(), std::move(surface),
+                                ddraw3Surface->GetCommonInterface()->GetDDInterface(), nullptr, false);
+          // Treat the new surface as the previously non-existent parent for our DDraw3Surface
+          ddraw3Surface->UpdateParent(rt.ptr());
         }
       } else {
         Logger::err("D3D5Interface::CreateDevice: Unwrapped surface passed as RT");
