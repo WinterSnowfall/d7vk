@@ -16,8 +16,6 @@ namespace dxvk {
   }
 
   D3D6Texture::~D3D6Texture() {
-    m_parent->GetCommonInterface()->ReleaseTextureHandle(m_commonTex->GetTextureHandle());
-
     Logger::debug(str::format("D3D6Texture: Texture nr. [[2-", m_texCount, "]] bites the dust"));
   }
 
