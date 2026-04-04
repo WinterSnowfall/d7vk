@@ -32,12 +32,14 @@ namespace dxvk {
       throw DxvkError("D3D6Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
+    // Common D3D9 index buffers
+    if (unlikely(FAILED(InitializeIndexBuffers()))) {
+      throw DxvkError("D3D6Device: ERROR! Failed to initialize D3D9 index buffers.");
+    }
+
     m_totalMemory = m_bridge->DetermineInitialTextureMemory();
 
-    // Textures
     m_textures.fill(nullptr);
-    // Common D3D9 index buffers
-    m_ib9.fill(nullptr);
 
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
@@ -194,8 +196,28 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Device::NextViewport(IDirect3DViewport3 *ref, IDirect3DViewport3 **viewport, DWORD flags) {
-    Logger::warn("!!! D3D6Device::NextViewport: Stub");
+  HRESULT STDMETHODCALLTYPE D3D6Device::NextViewport(IDirect3DViewport3 *lpDirect3DViewport, IDirect3DViewport3 **lplpAnotherViewport, DWORD flags) {
+    Logger::debug(">>> D3D6Device::NextViewport");
+
+    if (unlikely(lplpAnotherViewport == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpAnotherViewport);
+
+    if (flags & D3DNEXT_HEAD) {
+      if (likely(m_viewports.size() > 0))
+        *lplpAnotherViewport = m_viewports.front().ref();
+    } else if (flags & D3DNEXT_NEXT) {
+      if (unlikely(lpDirect3DViewport == nullptr))
+        return DDERR_INVALIDPARAMS;
+
+      if (likely(m_viewports.size() > 0))
+        Logger::warn("D3D6Device::NextViewport: Unimplemented D3DNEXT_NEXT flag");
+    } else if (flags & D3DNEXT_TAIL) {
+      if (likely(m_viewports.size() > 0))
+        *lplpAnotherViewport = m_viewports.back().ref();
+    }
+
     return D3D_OK;
   }
 
@@ -371,8 +393,13 @@ namespace dxvk {
 
     Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
     HRESULT hr = m_proxy->SetCurrentViewport(d3d6Viewport->GetProxied());
-    if (unlikely(FAILED(hr)))
+    if (unlikely(FAILED(hr))) {
+      Logger::debug("D3D6Device::SetCurrentViewport: Failed to set proxied viewport");
       return hr;
+    }
+
+    if (unlikely(m_currentViewport == d3d6Viewport))
+      return D3D_OK;
 
     if (likely(m_currentViewport != nullptr))
       m_currentViewport->GetCommonViewport()->SetIsCurrentViewport(false);
@@ -509,12 +536,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Device::Begin(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, DWORD dwFlags) {
     Logger::debug(">>> D3D6Device::Begin");
 
-    // All FVF combinations are supported technically,
+    // All FVF combinations are technically supported,
     // but I doubt that is the case in practice
     if (dwVertexTypeDesc != D3DFVF_VERTEX &&
         dwVertexTypeDesc != D3DFVF_LVERTEX &&
         dwVertexTypeDesc != D3DFVF_TLVERTEX) {
-      Logger::err("D3D6Device::Begin: Unsupported FVF format");
+      Logger::warn("D3D6Device::Begin: Unsupported FVF format");
       return DDERR_INVALIDPARAMS;
     }
 
@@ -620,8 +647,7 @@ namespace dxvk {
         m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_ADDRESSU, lpdwRenderState);
         return D3D_OK;
 
-      // Always enabled on later APIs, so it can't really be turned off
-      // Even the D3D6 docs state: "Note that many 3-D adapters apply texture perspective correction unconditionally."
+      // Always enabled on later APIs, default TRUE in D3D6
       case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
         *lpdwRenderState = TRUE;
         return D3D_OK;
@@ -675,9 +701,9 @@ namespace dxvk {
         *lpdwRenderState = m_textureMapBlend;
         return D3D_OK;
 
-      // Not supported by D3D6 either, but its value is stored.
+      // Not supported by D3D6
       case D3DRENDERSTATE_ZVISIBLE:
-        *lpdwRenderState = m_zVisible;
+        *lpdwRenderState = FALSE;
         return D3D_OK;
 
       case D3DRENDERSTATE_SUBPIXEL:
@@ -685,12 +711,10 @@ namespace dxvk {
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
-      // TODO:
       case D3DRENDERSTATE_STIPPLEDALPHA:
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
-      // TODO:
       case D3DRENDERSTATE_STIPPLEENABLE:
         *lpdwRenderState = FALSE;
         return D3D_OK;
@@ -720,11 +744,11 @@ namespace dxvk {
         return D3D_OK;
 
       case D3DRENDERSTATE_ZBIAS: {
-        DWORD bias  = 0;
-        HRESULT res = m_d3d9->GetRenderState(d3d9::D3DRS_DEPTHBIAS, &bias);
+        DWORD bias = 0;
+        m_d3d9->GetRenderState(d3d9::D3DRS_DEPTHBIAS, &bias);
         *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(bias) * ddrawCaps::ZBIAS_SCALE_INV);
-        return res;
-      } break;
+        return D3D_OK;
+      }
 
       case D3DRENDERSTATE_ANISOTROPY:
         m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MAXANISOTROPY, lpdwRenderState);
@@ -736,12 +760,10 @@ namespace dxvk {
         *lpdwRenderState = TRUE;
         return D3D_OK;
 
-      // TODO:
       case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
-      // TODO:
       case D3DRENDERSTATE_STIPPLEPATTERN00:
       case D3DRENDERSTATE_STIPPLEPATTERN01:
       case D3DRENDERSTATE_STIPPLEPATTERN02:
@@ -803,11 +825,6 @@ namespace dxvk {
 
       // "Texture handle for use when rendering with the IDirect3DDevice2 or earlier interfaces."
       case D3DRENDERSTATE_TEXTUREHANDLE:
-        static bool s_textureHandleErrorShown;
-
-        if (dwRenderState && !std::exchange(s_textureHandleErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: D3DRENDERSTATE_TEXTUREHANDLE is not supported");
-
         return D3D_OK;
 
       case D3DRENDERSTATE_ANTIALIAS: {
@@ -833,15 +850,8 @@ namespace dxvk {
         m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_ADDRESSV, dwRenderState);
         return D3D_OK;
 
-      // Always enabled on later APIs, so it can't really be turned off
-      // Even the D3D6 docs state: "Note that many 3-D adapters
-      // apply texture perspective correction unconditionally."
+      // Always enabled on later APIs, default TRUE in D3D6
       case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
-        static bool s_texturePerspectiveErrorShown;
-
-        if (!dwRenderState && !std::exchange(s_texturePerspectiveErrorShown, true))
-          Logger::debug("D3D6Device::SetRenderState: Disabling of D3DRENDERSTATE_TEXTUREPERSPECTIVE is not supported");
-
         return D3D_OK;
 
       // Not implemented in DXVK, but forward it anyway
@@ -895,7 +905,8 @@ namespace dxvk {
 
         return D3D_OK;
 
-      // "This render state is not supported by the software rasterizers, and is often ignored by hardware drivers."
+      // Docs state: "This render state is not supported by the software
+      // rasterizers, and is often ignored by hardware drivers."
       case D3DRENDERSTATE_PLANEMASK:
         return D3D_OK;
 
@@ -1015,9 +1026,8 @@ namespace dxvk {
 
         return D3D_OK;
 
-      // Not supported by D3D6 either, but its value is stored.
+      // Not supported by D3D6
       case D3DRENDERSTATE_ZVISIBLE:
-        m_zVisible = dwRenderState;
         return D3D_OK;
 
       // Docs state: "Most hardware either doesn't support it (always off) or
@@ -1045,7 +1055,6 @@ namespace dxvk {
 
         return D3D_OK;
 
-      // TODO: Implement D3DRS_ANTIALIASEDLINEENABLE in D9VK.
       case D3DRENDERSTATE_EDGEANTIALIAS:
         State9 = d3d9::D3DRS_ANTIALIASEDLINEENABLE;
         break;
@@ -1094,13 +1103,10 @@ namespace dxvk {
       case D3DRENDERSTATE_FLUSHBATCH:
         return D3D_OK;
 
-      // TODO:
+      // Unclear if this ever did much as far as the runtime was concered.
+      // Most likely it was passed to the driver, though I don't expect
+      // it was ever implemented, as it's a D3D6-only render state.
       case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:
-        static bool s_translucentErrorShown;
-
-        if (dwRenderState && !std::exchange(s_translucentErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT");
-
         return D3D_OK;
 
       // TODO:
@@ -1139,7 +1145,7 @@ namespace dxvk {
         static bool s_stipplePatternErrorShown;
 
         if (!std::exchange(s_stipplePatternErrorShown, true))
-          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEPATTERNXX");
+          Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEPATTERN");
 
         return D3D_OK;
     }
@@ -1161,7 +1167,6 @@ namespace dxvk {
         m_d3d9->GetRenderState(d3d9::D3DRS_AMBIENT, lpdwLightState);
         break;
       case D3DLIGHTSTATE_COLORMODEL:
-        Logger::warn("D3D6Device::GetLightState: Unsupported D3DLIGHTSTATE_COLORMODEL");
         *lpdwLightState = D3DCOLOR_RGB;
         break;
       case D3DLIGHTSTATE_FOGMODE:
@@ -1313,9 +1318,6 @@ namespace dxvk {
     if (unlikely(vertices == nullptr || indices == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(primitive_type == D3DPT_POINTLIST))
-      Logger::warn("D3D6Device::DrawIndexedPrimitive: D3DPT_POINTLIST primitive type");
-
     HandlePreDrawFlags(flags, fvf);
     HandlePreDrawLegacyProjection(flags);
 
@@ -1351,12 +1353,9 @@ namespace dxvk {
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    d3d9::D3DCLIPSTATUS9 clipStatus9;
-    // TODO: Split the union and intersection flags
-    clipStatus9.ClipUnion        = clip_status->dwStatus;
-    clipStatus9.ClipIntersection = clip_status->dwStatus;
+    m_clipStatus = *clip_status;
 
-    return m_d3d9->SetClipStatus(&clipStatus9);
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetClipStatus(D3DCLIPSTATUS *clip_status) {
@@ -1367,17 +1366,7 @@ namespace dxvk {
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    d3d9::D3DCLIPSTATUS9 clipStatus9;
-    HRESULT hr = m_d3d9->GetClipStatus(&clipStatus9);
-
-    if (FAILED(hr))
-      return hr;
-
-    D3DCLIPSTATUS clipStatus = { };
-    clipStatus.dwFlags  = D3DCLIPSTATUS_STATUS;
-    clipStatus.dwStatus = D3DSTATUS_DEFAULT | clipStatus9.ClipUnion | clipStatus9.ClipIntersection;
-
-    *clip_status = clipStatus;
+    *clip_status = m_clipStatus;
 
     return D3D_OK;
   }
@@ -1520,19 +1509,12 @@ namespace dxvk {
     if (unlikely(vb == nullptr || indices == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(primitive_type == D3DPT_POINTLIST))
-      Logger::warn("D3D6Device::DrawIndexedPrimitiveVB: D3DPT_POINTLIST primitive type");
-
     Com<D3D6VertexBuffer> vb6 = static_cast<D3D6VertexBuffer*>(vb);
 
     if (unlikely(vb6->IsLocked())) {
       Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Buffer is locked");
       return D3DERR_VERTEXBUFFERLOCKED;
     }
-
-    // Initialize here, since not all application use indexed draws
-    if (unlikely(!AreIndexBuffersInitialized()))
-      InitializeIndexBuffers();
 
     uint8_t ibIndex = 0;
     // Try to fit index buffer uploads into the smallest buffer size possible,
@@ -1771,7 +1753,12 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D6Device::ValidateDevice(LPDWORD lpdwPasses) {
     Logger::debug(">>> D3D6Device::ValidateDevice");
-    return m_d3d9->ValidateDevice(lpdwPasses);
+
+    HRESULT hr = m_d3d9->ValidateDevice(lpdwPasses);
+    if (unlikely(FAILED(hr)))
+      return DDERR_INVALIDPARAMS;
+
+    return D3D_OK;
   }
 
   void D3D6Device::InitializeDS() {
@@ -1836,13 +1823,23 @@ namespace dxvk {
 
       HRESULT hr = m_d3d9->CreateIndexBuffer(ibSize, Usage, d3d9::D3DFMT_INDEX16,
                                              d3d9::D3DPOOL_DEFAULT, &m_ib9[ibIndex], nullptr);
-      if (FAILED(hr)) {
-        Logger::err("D3D6Device::InitializeIndexBuffer: Failed to initialize D3D9 index buffer");
+      if (unlikely(FAILED(hr)))
         return hr;
-      }
     }
 
     return D3D_OK;
+  }
+
+  inline void D3D6Device::UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount) {
+    Logger::debug(str::format("D3D6Device::UploadIndices: Uploading ", indexCount, " indices"));
+
+    const size_t size = indexCount * sizeof(WORD);
+    void* pData = nullptr;
+
+    // Locking and unlocking are generally expected to work here
+    ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
+    memcpy(pData, static_cast<void*>(indices), size);
+    ib9->Unlock();
   }
 
   inline void D3D6Device::AddViewportInternal(IDirect3DViewport3* viewport) {
@@ -1867,18 +1864,6 @@ namespace dxvk {
     } else {
       Logger::warn("D3D6Device::DeleteViewportInternal: Viewport not found");
     }
-  }
-
-  inline void D3D6Device::UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount) {
-    Logger::debug(str::format("D3D6Device::UploadIndices: Uploading ", indexCount, " indices"));
-
-    const size_t size = indexCount * sizeof(WORD);
-    void* pData = nullptr;
-
-    // Locking and unlocking are generally expected to work here
-    ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
-    memcpy(pData, static_cast<void*>(indices), size);
-    ib9->Unlock();
   }
 
 }

@@ -2,6 +2,8 @@
 
 #include "../ddraw_util.h"
 
+#include "../d3d_common_texture.h"
+
 #include "../d3d3/d3d3_device.h"
 
 #include "../ddraw/ddraw_surface.h"
@@ -93,6 +95,11 @@ namespace dxvk {
     InitReturnPtr(ppvObject);
 
     if (unlikely(riid == __uuidof(IDirect3DDevice))) {
+      if (m_commonIntf->GetD3D3Device() != nullptr) {
+        Logger::debug("D3D3Device::QueryInterface: Query for existing IDirect3DDevice");
+        return m_commonIntf->GetD3D3Device()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("D3D5Device::QueryInterface: Query for IDirect3DDevice");
 
       Com<IDirect3DDevice> ppvProxyObject;
@@ -160,13 +167,51 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SwapTextureHandles(IDirect3DTexture2 *tex1, IDirect3DTexture2 *tex2) {
-    Logger::warn("!!! D3D5Device::SwapTextureHandles: Stub");
+    D3D5DeviceLock lock = LockDevice();
+
+    Logger::debug(">>> D3D5Device::SwapTextureHandles");
+
+    D3D5Texture* texture1 = static_cast<D3D5Texture*>(tex1);
+    D3D5Texture* texture2 = static_cast<D3D5Texture*>(tex2);
+
+    D3DCommonTexture* commonTex1 = texture1->GetCommonTexture();
+    D3DCommonTexture* commonTex2 = texture2->GetCommonTexture();
+
+    const D3DTEXTUREHANDLE handle1 = commonTex1->GetTextureHandle();
+    const D3DTEXTUREHANDLE handle2 = commonTex2->GetTextureHandle();
+
+    m_parent->GetCommonInterface()->ReleaseTextureHandle(handle1);
+    m_parent->GetCommonInterface()->ReleaseTextureHandle(handle2);
+
+    commonTex1->SetTextureHandle(handle2);
+    commonTex2->SetTextureHandle(handle1);
+
+    m_commonIntf->EmplaceTexture(commonTex1, handle2);
+    m_commonIntf->EmplaceTexture(commonTex2, handle1);
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetStats(D3DSTATS *stats) {
-    Logger::debug("<<< D3D5Device::GetStats: Proxy");
-    return m_proxy->GetStats(stats);
+    Logger::debug(">>> D3D5Device::GetStats");
+
+    if (unlikely(stats == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(stats->dwSize != sizeof(D3DSTATS)))
+      return DDERR_INVALIDPARAMS;
+
+    D3DSTATS newStats = { };
+
+    if (likely(m_commonIntf->GetD3D3Device() != nullptr))
+      newStats = m_commonIntf->GetD3D3Device()->GetStatsInternal();
+
+    const DWORD dwSize = stats->dwSize;
+
+    *stats = newStats;
+    stats->dwSize = dwSize;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::AddViewport(IDirect3DViewport2 *viewport) {
@@ -209,8 +254,28 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D5Device::NextViewport(IDirect3DViewport2 *ref, IDirect3DViewport2 **viewport, DWORD flags) {
-    Logger::warn("!!! D3D5Device::NextViewport: Stub");
+  HRESULT STDMETHODCALLTYPE D3D5Device::NextViewport(IDirect3DViewport2 *lpDirect3DViewport, IDirect3DViewport2 **lplpAnotherViewport, DWORD flags) {
+    Logger::debug(">>> D3D5Device::NextViewport");
+
+    if (unlikely(lplpAnotherViewport == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpAnotherViewport);
+
+    if (flags & D3DNEXT_HEAD) {
+      if (likely(m_viewports.size() > 0))
+        *lplpAnotherViewport = m_viewports.front().ref();
+    } else if (flags & D3DNEXT_NEXT) {
+      if (unlikely(lpDirect3DViewport == nullptr))
+        return DDERR_INVALIDPARAMS;
+
+      if (likely(m_viewports.size() > 0))
+        Logger::warn("D3D5Device::NextViewport: Unimplemented D3DNEXT_NEXT flag");
+    } else if (flags & D3DNEXT_TAIL) {
+      if (likely(m_viewports.size() > 0))
+        *lplpAnotherViewport = m_viewports.back().ref();
+    }
+
     return D3D_OK;
   }
 
@@ -352,8 +417,13 @@ namespace dxvk {
 
     Com<D3D5Viewport> d3d5Viewport = static_cast<D3D5Viewport*>(viewport);
     HRESULT hr = m_proxy->SetCurrentViewport(d3d5Viewport->GetProxied());
-    if (unlikely(FAILED(hr)))
+    if (unlikely(FAILED(hr))) {
+      Logger::debug("D3D5Device::SetCurrentViewport: Failed to set proxied viewport");
       return hr;
+    }
+
+    if (unlikely(m_currentViewport == d3d5Viewport))
+      return D3D_OK;
 
     if (likely(m_currentViewport != nullptr))
       m_currentViewport->GetCommonViewport()->SetIsCurrentViewport(false);
@@ -592,8 +662,7 @@ namespace dxvk {
         m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_ADDRESSU, lpdwRenderState);
         return D3D_OK;
 
-      // Always enabled on later APIs, so it can't really be turned off
-      // Even the D3D5 docs state: "Note that many 3-D adapters apply texture perspective correction unconditionally."
+      // Always enabled on later APIs, though default FALSE in D3D5
       case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
         *lpdwRenderState = TRUE;
         return D3D_OK;
@@ -661,12 +730,10 @@ namespace dxvk {
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
-      // TODO:
       case D3DRENDERSTATE_STIPPLEDALPHA:
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
-      // TODO:
       case D3DRENDERSTATE_STIPPLEENABLE:
         *lpdwRenderState = FALSE;
         return D3D_OK;
@@ -700,11 +767,11 @@ namespace dxvk {
         return D3D_OK;
 
       case D3DRENDERSTATE_ZBIAS: {
-        DWORD bias  = 0;
-        HRESULT res = m_d3d9->GetRenderState(d3d9::D3DRS_DEPTHBIAS, &bias);
+        DWORD bias = 0;
+        m_d3d9->GetRenderState(d3d9::D3DRS_DEPTHBIAS, &bias);
         *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(bias) * ddrawCaps::ZBIAS_SCALE_INV);
-        return res;
-      } break;
+        return D3D_OK;
+      }
 
       case D3DRENDERSTATE_ANISOTROPY:
         m_d3d9->GetSamplerState(0, d3d9::D3DSAMP_MAXANISOTROPY, lpdwRenderState);
@@ -718,7 +785,6 @@ namespace dxvk {
         *lpdwRenderState = TRUE;
         return D3D_OK;
 
-      // TODO:
       case D3DRENDERSTATE_STIPPLEPATTERN00:
       case D3DRENDERSTATE_STIPPLEPATTERN01:
       case D3DRENDERSTATE_STIPPLEPATTERN02:
@@ -821,15 +887,8 @@ namespace dxvk {
         m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_ADDRESSV, dwRenderState);
         return D3D_OK;
 
-      // Always enabled on later APIs, so it can't really be turned off
-      // Even the D3D7 docs state: "Note that many 3-D adapters
-      // apply texture perspective correction unconditionally."
+      // Always enabled on later APIs, though default FALSE in D3D5
       case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
-        static bool s_texturePerspectiveErrorShown;
-
-        if (!dwRenderState && !std::exchange(s_texturePerspectiveErrorShown, true))
-          Logger::debug("D3D5Device::SetRenderState: Disabling of D3DRENDERSTATE_TEXTUREPERSPECTIVE is not supported");
-
         return D3D_OK;
 
       // Not implemented in DXVK, but forward it anyway
@@ -1008,13 +1067,10 @@ namespace dxvk {
         State9 = d3d9::D3DRS_ALPHABLENDENABLE;
         break;
 
-      // TODO:
+      // Safe to ignore. Docs state: "Direct3D's retained mode uses this operation as a
+      // quick-reject test: it does the z-visible test on the bounding box of a set of
+      // primitives and only renders them if it returns TRUE."
       case D3DRENDERSTATE_ZVISIBLE:
-        static bool s_zVisibleErrorShown;
-
-        if (dwRenderState && !std::exchange(s_zVisibleErrorShown, true))
-          Logger::warn("D3D5Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_ZVISIBLE");
-
         return D3D_OK;
 
       // Docs state: "Most hardware either doesn't support it (always off) or
@@ -1042,7 +1098,6 @@ namespace dxvk {
 
         return D3D_OK;
 
-      // TODO: Implement D3DRS_ANTIALIASEDLINEENABLE in D9VK.
       case D3DRENDERSTATE_EDGEANTIALIAS:
         State9 = d3d9::D3DRS_ANTIALIASEDLINEENABLE;
         break;
@@ -1134,7 +1189,7 @@ namespace dxvk {
         static bool s_stipplePatternErrorShown;
 
         if (!std::exchange(s_stipplePatternErrorShown, true))
-          Logger::warn("D3D5Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEPATTERNXX");
+          Logger::warn("D3D5Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_STIPPLEPATTERN");
 
         return D3D_OK;
     }
@@ -1156,7 +1211,6 @@ namespace dxvk {
         m_d3d9->GetRenderState(d3d9::D3DRS_AMBIENT, lpdwLightState);
         break;
       case D3DLIGHTSTATE_COLORMODEL:
-        Logger::warn("D3D5Device::GetLightState: Unsupported D3DLIGHTSTATE_COLORMODEL");
         *lpdwLightState = D3DCOLOR_RGB;
         break;
       case D3DLIGHTSTATE_FOGMODE:
@@ -1304,10 +1358,7 @@ namespace dxvk {
     if (unlikely(vertices == nullptr || indices == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(primitive_type == D3DPT_POINTLIST))
-      Logger::warn("D3D5Device::DrawIndexedPrimitive: D3DPT_POINTLIST primitive type");
-
-    DWORD fvf5 = ConvertVertexType(fvf);
+    const DWORD fvf5 = ConvertVertexType(fvf);
 
     HandlePreDrawFlags(flags, fvf5);
     HandlePreDrawLegacyProjection(flags);
@@ -1344,12 +1395,9 @@ namespace dxvk {
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    d3d9::D3DCLIPSTATUS9 clipStatus9;
-    // TODO: Split the union and intersection flags
-    clipStatus9.ClipUnion        = clip_status->dwStatus;
-    clipStatus9.ClipIntersection = clip_status->dwStatus;
+    m_clipStatus = *clip_status;
 
-    return m_d3d9->SetClipStatus(&clipStatus9);
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetClipStatus(D3DCLIPSTATUS *clip_status) {
@@ -1360,17 +1408,7 @@ namespace dxvk {
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    d3d9::D3DCLIPSTATUS9 clipStatus9;
-    HRESULT hr = m_d3d9->GetClipStatus(&clipStatus9);
-
-    if (FAILED(hr))
-      return hr;
-
-    D3DCLIPSTATUS clipStatus = { };
-    clipStatus.dwFlags  = D3DCLIPSTATUS_STATUS;
-    clipStatus.dwStatus = D3DSTATUS_DEFAULT | clipStatus9.ClipUnion | clipStatus9.ClipIntersection;
-
-    *clip_status = clipStatus;
+    *clip_status = m_clipStatus;
 
     return D3D_OK;
   }
@@ -1433,18 +1471,6 @@ namespace dxvk {
     } else {
       Logger::warn("D3D5Device::DeleteViewportInternal: Viewport not found");
     }
-  }
-
-  inline void D3D5Device::UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount) {
-    Logger::debug(str::format("D3D5Device::UploadIndices: Uploading ", indexCount, " indices"));
-
-    const size_t size = indexCount * sizeof(WORD);
-    void* pData = nullptr;
-
-    // Locking and unlocking are generally expected to work here
-    ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
-    memcpy(pData, static_cast<void*>(indices), size);
-    ib9->Unlock();
   }
 
   inline HRESULT D3D5Device::SetTextureInternal(DDrawSurface* surface, DWORD textureHandle) {
