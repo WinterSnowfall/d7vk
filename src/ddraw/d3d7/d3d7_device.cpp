@@ -28,12 +28,14 @@ namespace dxvk {
       throw DxvkError("D3D7Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
+    // Common D3D9 index buffers
+    if (unlikely(FAILED(InitializeIndexBuffers()))) {
+      throw DxvkError("D3D7Device: ERROR! Failed to initialize D3D9 index buffers.");
+    }
+
     m_totalMemory = m_bridge->DetermineInitialTextureMemory();
 
-    // Textures
     m_textures.fill(nullptr);
-    // Common D3D9 index buffers
-    m_ib9.fill(nullptr);
 
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
@@ -385,10 +387,6 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       Logger::debug("D3D7Device::Clear: Failed proxied call");
 
-    // Fast skip
-    if (unlikely(!count && rects))
-      return D3D_OK;
-
     return m_d3d9->Clear(count, rects, flags, color, static_cast<float>(z), stencil);
   }
 
@@ -413,7 +411,7 @@ namespace dxvk {
     Logger::debug(">>> D3D7Device::SetViewport");
 
     if (unlikely(data == nullptr))
-      return E_INVALIDARG;
+      return DDERR_INVALIDPARAMS;
 
     // Clear() calls are affected by the set viewport, so we
     // must ensure SetViewport() calls are also proxied
@@ -438,7 +436,7 @@ namespace dxvk {
         Logger::debug("D3D7Device::SetViewport: Viewport exceeds render target dimensions by one pixel");
       } else {
         Logger::debug("D3D7Device::SetViewport: Viewport exceeds render target dimensions");
-        return E_INVALIDARG;
+        return DDERR_INVALIDPARAMS;
       }
     }
 
@@ -564,13 +562,9 @@ namespace dxvk {
       }
 
       // Always enabled on later APIs, so it can't really be turned off
-      // Even the D3D7 docs state: "Note that many 3-D adapters apply texture perspective correction unconditionally."
+      // Even the D3D7 docs state: "Note that many 3-D adapters apply
+      // texture perspective correction unconditionally."
       case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
-        static bool s_texturePerspectiveErrorShown;
-
-        if (!dwRenderState && !std::exchange(s_texturePerspectiveErrorShown, true))
-          Logger::debug("D3D7Device::SetRenderState: Disabling of D3DRENDERSTATE_TEXTUREPERSPECTIVE is not supported");
-
         return D3D_OK;
 
       // TODO: Implement D3DRS_LINEPATTERN - vkCmdSetLineRasterizationModeEXT
@@ -584,9 +578,8 @@ namespace dxvk {
         m_linePattern = bit::cast<D3DLINEPATTERN>(dwRenderState);
         return D3D_OK;
 
-      // Not supported by D3D7 either, but its value is stored.
+      // Not supported by D3D7
       case D3DRENDERSTATE_ZVISIBLE:
-        m_zVisible = dwRenderState;
         return D3D_OK;
 
       // TODO:
@@ -598,7 +591,6 @@ namespace dxvk {
 
         return D3D_OK;
 
-      // TODO: Implement D3DRS_ANTIALIASEDLINEENABLE in D9VK.
       case D3DRENDERSTATE_EDGEANTIALIAS:
         State9 = d3d9::D3DRS_ANTIALIASEDLINEENABLE;
         break;
@@ -631,13 +623,9 @@ namespace dxvk {
 
         return D3D_OK;
 
-      // TODO:
+      // Used in conjunction with D3DRENDERSTATE_COLORKEYENABLE
       case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-        static bool s_colorKeyBlendEnableErrorShown;
-
-        if (dwRenderState && !std::exchange(s_colorKeyBlendEnableErrorShown, true))
-          Logger::warn("D3D7Device::SetRenderState: Unimplemented render state D3DRENDERSTATE_COLORKEYBLENDENABLE");
-
+        m_colorKeyBlendEnabled = dwRenderState;
         return D3D_OK;
     }
 
@@ -672,7 +660,8 @@ namespace dxvk {
         return D3D_OK;
 
       // Always enabled on later APIs, so it can't really be turned off
-      // Even the D3D7 docs state: "Note that many 3-D adapters apply texture perspective correction unconditionally."
+      // Even the D3D7 docs state: "Note that many 3-D adapters apply
+      // texture perspective correction unconditionally."
       case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
         *lpdwRenderState = TRUE;
         return D3D_OK;
@@ -681,12 +670,11 @@ namespace dxvk {
         *lpdwRenderState = bit::cast<DWORD>(m_linePattern);
         return D3D_OK;
 
-      // Not supported by D3D7 either, but its value is stored.
+      // Not supported by D3D7
       case D3DRENDERSTATE_ZVISIBLE:
-        *lpdwRenderState = m_zVisible;
+        *lpdwRenderState = FALSE;
         return D3D_OK;
 
-      // TODO:
       case D3DRENDERSTATE_STIPPLEDALPHA:
         *lpdwRenderState = FALSE;
         return D3D_OK;
@@ -700,20 +688,18 @@ namespace dxvk {
         return D3D_OK;
 
       case D3DRENDERSTATE_ZBIAS: {
-        DWORD bias  = 0;
-        HRESULT res = m_d3d9->GetRenderState(d3d9::D3DRS_DEPTHBIAS, &bias);
+        DWORD bias = 0;
+        m_d3d9->GetRenderState(d3d9::D3DRS_DEPTHBIAS, &bias);
         *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(bias) * ddrawCaps::ZBIAS_SCALE_INV);
-        return res;
-      } break;
+        return D3D_OK;
+      }
 
-      // TODO:
       case D3DRENDERSTATE_EXTENTS:
         *lpdwRenderState = FALSE;
         return D3D_OK;
 
-      // TODO:
       case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-        *lpdwRenderState = FALSE;
+        *lpdwRenderState = m_colorKeyBlendEnabled;
         return D3D_OK;
     }
 
@@ -879,8 +865,14 @@ namespace dxvk {
 
     DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
 
+    HRESULT hr = m_proxy->PreLoad(surface7->GetProxied());
+    if (unlikely(FAILED(hr))) {
+      Logger::warn("D3D7Device::PreLoad: Failed to preload proxied surface");
+      return hr;
+    }
+
     // Make sure the texture or surface is initialized and updated
-    HRESULT hr = surface7->InitializeOrUploadD3D9();
+    hr = surface7->InitializeOrUploadD3D9();
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::PreLoad: Failed to initialize/upload D3D9 surface");
@@ -889,12 +881,6 @@ namespace dxvk {
 
     // Does not return an HRESULT
     surface7->GetD3D9()->PreLoad();
-
-    hr = m_proxy->PreLoad(surface7->GetProxied());
-    if (unlikely(FAILED(hr))) {
-      Logger::warn("D3D7Device::PreLoad: Failed to preload proxied surface");
-      return hr;
-    }
 
     return D3D_OK;
   }
@@ -942,9 +928,6 @@ namespace dxvk {
     if (unlikely(lpvVertices == nullptr || lpwIndices == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(d3dptPrimitiveType == D3DPT_POINTLIST))
-      Logger::warn("D3D7Device::DrawIndexedPrimitiveVB: D3DPT_POINTLIST primitive type");
-
     m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
                       d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
@@ -974,12 +957,9 @@ namespace dxvk {
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    d3d9::D3DCLIPSTATUS9 clipStatus9;
-    // TODO: Split the union and intersection flags
-    clipStatus9.ClipUnion        = clip_status->dwStatus;
-    clipStatus9.ClipIntersection = clip_status->dwStatus;
+    m_clipStatus = *clip_status;
 
-    return m_d3d9->SetClipStatus(&clipStatus9);
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetClipStatus(D3DCLIPSTATUS *clip_status) {
@@ -990,17 +970,7 @@ namespace dxvk {
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    d3d9::D3DCLIPSTATUS9 clipStatus9;
-    HRESULT hr = m_d3d9->GetClipStatus(&clipStatus9);
-
-    if (FAILED(hr))
-      return hr;
-
-    D3DCLIPSTATUS clipStatus = { };
-    clipStatus.dwFlags  = D3DCLIPSTATUS_STATUS;
-    clipStatus.dwStatus = D3DSTATUS_DEFAULT | clipStatus9.ClipUnion | clipStatus9.ClipIntersection;
-
-    *clip_status = clipStatus;
+    *clip_status = m_clipStatus;
 
     return D3D_OK;
   }
@@ -1125,19 +1095,12 @@ namespace dxvk {
     if (unlikely(lpd3dVertexBuffer == nullptr || lpwIndices == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(d3dptPrimitiveType == D3DPT_POINTLIST))
-      Logger::warn("D3D7Device::DrawIndexedPrimitiveVB: D3DPT_POINTLIST primitive type");
-
     Com<D3D7VertexBuffer> vb = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
 
     if (unlikely(vb->IsLocked())) {
       Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Buffer is locked");
       return D3DERR_VERTEXBUFFERLOCKED;
     }
-
-    // Initialize here, since not all application use indexed draws
-    if (unlikely(!AreIndexBuffersInitialized()))
-      InitializeIndexBuffers();
 
     uint8_t ibIndex = 0;
     // Fit index buffer uploads into the smallest buffer size possible
@@ -1374,10 +1337,15 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D7Device::ValidateDevice(LPDWORD lpdwPasses) {
     Logger::debug(">>> D3D7Device::ValidateDevice");
-    return m_d3d9->ValidateDevice(lpdwPasses);
+
+    HRESULT hr = m_d3d9->ValidateDevice(lpdwPasses);
+    if (unlikely(FAILED(hr)))
+      return DDERR_INVALIDPARAMS;
+
+    return D3D_OK;
   }
 
-  // This is a precursor of our ol' pal CopyRects
+  // This is a precursor of our ol' D3D8 pal CopyRects
   HRESULT STDMETHODCALLTYPE D3D7Device::Load(IDirectDrawSurface7 *dst_surface, POINT *dst_point, IDirectDrawSurface7 *src_surface, RECT *src_rect, DWORD flags) {
     D3D7DeviceLock lock = LockDevice();
 
@@ -1532,10 +1500,8 @@ namespace dxvk {
 
       HRESULT hr = m_d3d9->CreateIndexBuffer(ibSize, Usage, d3d9::D3DFMT_INDEX16,
                                              d3d9::D3DPOOL_DEFAULT, &m_ib9[ibIndex], nullptr);
-      if (FAILED(hr)) {
-        Logger::err("D3D7Device::InitializeIndexBuffer: Failed to initialize D3D9 index buffer");
+      if (unlikely(FAILED(hr)))
         return hr;
-      }
     }
 
     return D3D_OK;

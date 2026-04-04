@@ -5,7 +5,7 @@
 #include "../ddraw_options.h"
 #include "../ddraw_caps.h"
 
-#include "ddraw_common_interface.h"
+#include "../ddraw_common_interface.h"
 
 #include "../../d3d9/d3d9_bridge.h"
 
@@ -51,7 +51,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE DeleteViewport(IDirect3DViewport2 *viewport);
 
-    HRESULT STDMETHODCALLTYPE NextViewport(IDirect3DViewport2 *ref, IDirect3DViewport2 **viewport, DWORD flags);
+    HRESULT STDMETHODCALLTYPE NextViewport(IDirect3DViewport2 *lpDirect3DViewport, IDirect3DViewport2 **lplpAnotherViewport, DWORD flags);
 
     HRESULT STDMETHODCALLTYPE EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK cb, void *ctx);
 
@@ -145,15 +145,9 @@ namespace dxvk {
 
   private:
 
-    inline HRESULT InitializeIndexBuffers();
-
     inline void AddViewportInternal(IDirect3DViewport2* viewport);
 
     inline void DeleteViewportInternal(IDirect3DViewport2* viewport);
-
-    inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
-
-    inline float GetZBiasFactor();
 
     inline HRESULT SetTextureInternal(DDrawSurface* surface, DWORD textureHandle);
 
@@ -244,11 +238,13 @@ namespace dxvk {
     // Value of D3DRENDERSTATE_ANTIALIAS
     DWORD            m_antialias        = D3DANTIALIAS_NONE;
     // Value of D3DRENDERSTATE_LINEPATTERN
-    D3DLINEPATTERN   m_linePattern      = {};
+    D3DLINEPATTERN   m_linePattern      = { };
+    // Value of D3DCLIPSTATUS
+    D3DCLIPSTATUS    m_clipStatus       = { };
     // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
     DWORD            m_textureMapBlend  = D3DTBLEND_MODULATE;
 
-    D3DMATRIX        m_projectionMatrix = {};
+    D3DMATRIX        m_projectionMatrix = { };
     const D3DMATRIX* m_legacyProjection = nullptr;
 
   };
