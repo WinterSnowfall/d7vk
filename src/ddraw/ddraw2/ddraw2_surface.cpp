@@ -259,20 +259,38 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw2Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE2 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
     Logger::debug("<<< DDraw2Surface::Blt: Proxy");
 
-    // It's highly unlikely anyone would do depth blits with IDirectDrawSurface2
+    // Write back any flippable surfaces or depth stencils from D3D9
     if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
       DDraw2Surface* sourceSurface = static_cast<DDraw2Surface*>(lpDDSrcSurface);
       if (unlikely(sourceSurface->GetCommonSurface()->IsGuardableSurface())) {
-        static bool s_swapchainSurfaceWarningShown;
+        if (m_parent != nullptr && (m_commonIntf->GetOptions()->backBufferWriteBack ||
+                                    m_commonIntf->GetOptions()->apitraceMode)) {
+          Logger::debug("DDraw2Surface::Blt: Source surface is a swapchain surface");
 
-        if (!std::exchange(s_swapchainSurfaceWarningShown, true))
-          Logger::warn("DDraw2Surface::Blt: Source surface is a swapchain surface");
+          if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !sourceSurface->IsInitialized()))
+            sourceSurface->InitializeOrUploadD3D9();
 
+          if (likely(sourceSurface->IsInitialized()))
+            BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_parent->GetProxied(), m_parent->GetD3D9());
+        } else {
+          static bool s_swapchainWarningShown;
+
+          if (!std::exchange(s_swapchainWarningShown, true))
+            Logger::warn("DDraw2Surface::Blt: Source surface is a swapchain surface");
+        }
       } else if (unlikely(sourceSurface->GetCommonSurface()->IsDepthStencil())) {
-        static bool s_depthStencilWarningShown;
+        if (m_parent != nullptr && (m_commonIntf->GetOptions()->depthWriteBack ||
+                                    m_commonIntf->GetOptions()->apitraceMode)) {
+          Logger::debug("DDraw2Surface::Blt: Source surface is a depth stencil");
 
-        if (!std::exchange(s_depthStencilWarningShown, true))
-          Logger::warn("DDraw2Surface::Blt: Source surface is a depth stencil");
+          if (likely(sourceSurface->IsInitialized()))
+            BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_parent->GetProxied(), m_parent->GetD3D9());
+        } else {
+          static bool s_depthStencilWarningShown;
+
+          if (!std::exchange(s_depthStencilWarningShown, true))
+            Logger::warn("DDraw2Surface::Blt: Source surface is a depth stencil");
+        }
       }
     }
 
@@ -364,20 +382,38 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw2Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE2 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDraw2Surface::BltFast: Proxy");
 
-    // It's highly unlikely anyone would do depth blits with IDirectDrawSurface2
+    // Write back any flippable surfaces or depth stencils from D3D9
     if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
       DDraw2Surface* sourceSurface = static_cast<DDraw2Surface*>(lpDDSrcSurface);
       if (unlikely(sourceSurface->GetCommonSurface()->IsGuardableSurface())) {
-        static bool s_swapchainSurfaceWarningShown;
+        if (m_parent != nullptr && (m_commonIntf->GetOptions()->backBufferWriteBack ||
+                                    m_commonIntf->GetOptions()->apitraceMode)) {
+          Logger::debug("DDraw2Surface::BltFast: Source surface is a swapchain surface");
 
-        if (!std::exchange(s_swapchainSurfaceWarningShown, true))
-          Logger::warn("DDraw2Surface::BltFast: Source surface is a swapchain surface");
+          if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !sourceSurface->IsInitialized()))
+            sourceSurface->InitializeOrUploadD3D9();
 
+          if (likely(sourceSurface->IsInitialized()))
+            BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_parent->GetProxied(), m_parent->GetD3D9());
+        } else {
+          static bool s_swapchainWarningShown;
+
+          if (!std::exchange(s_swapchainWarningShown, true))
+            Logger::warn("DDraw2Surface::BltFast: Source surface is a swapchain surface");
+        }
       } else if (unlikely(sourceSurface->GetCommonSurface()->IsDepthStencil())) {
-        static bool s_depthStencilWarningShown;
+        if (m_parent != nullptr && (m_commonIntf->GetOptions()->depthWriteBack ||
+                                    m_commonIntf->GetOptions()->apitraceMode)) {
+          Logger::debug("DDraw2Surface::BltFast: Source surface is a depth stencil");
 
-        if (!std::exchange(s_depthStencilWarningShown, true))
-          Logger::warn("DDraw2Surface::BltFast: Source surface is a depth stencil");
+          if (likely(sourceSurface->IsInitialized()))
+            BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_parent->GetProxied(), m_parent->GetD3D9());
+        } else {
+          static bool s_depthStencilWarningShown;
+
+          if (!std::exchange(s_depthStencilWarningShown, true))
+            Logger::warn("DDraw2Surface::BltFast: Source surface is a depth stencil");
+        }
       }
     }
 

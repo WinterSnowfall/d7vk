@@ -19,6 +19,10 @@ namespace dxvk {
       , m_d3d9  ( std::move(object) ) {
     }
 
+    void UpdateParent(Parent* parent) {
+      m_parent = parent;
+    }
+
     Parent* GetParent() const {
       return m_parent;
     }
