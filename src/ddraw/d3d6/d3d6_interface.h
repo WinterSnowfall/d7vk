@@ -3,7 +3,6 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_options.h"
-#include "../ddraw_util.h"
 #include "../ddraw_format.h"
 
 #include "../ddraw_common_interface.h"
@@ -11,12 +10,7 @@
 
 #include "../../d3d9/d3d9_bridge.h"
 
-#include <unordered_map>
-
 namespace dxvk {
-
-  class D3D6Device;
-  class D3D6Material;
 
   /**
   * \brief D3D6 interface implementation
@@ -56,10 +50,6 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE EvictManagedTextures();
 
-    D3D6Material* GetMaterialFromHandle(D3DMATERIALHANDLE handle);
-
-    void ReleaseMaterialHandle(D3DMATERIALHANDLE handle);
-
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf;
     }
@@ -78,8 +68,6 @@ namespace dxvk {
     DDrawCommonInterface*         m_commonIntf = nullptr;
 
     Com<D3DCommonInterface>       m_commonD3DIntf;
-
-    std::unordered_map<D3DMATERIALHANDLE, D3D6Material*> m_materials;
 
   };
 

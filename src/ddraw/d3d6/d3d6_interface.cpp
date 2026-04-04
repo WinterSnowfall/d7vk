@@ -194,10 +194,7 @@ namespace dxvk {
 
     D3DMATERIALHANDLE handle = m_commonD3DIntf->GetNextMaterialHandle();
     Com<D3D6Material> d3d6Material = new D3D6Material(nullptr, this, handle);
-
-    m_materials.emplace(std::piecewise_construct,
-                        std::forward_as_tuple(handle),
-                        std::forward_as_tuple(d3d6Material.ptr()));
+    m_commonD3DIntf->EmplaceMaterial(d3d6Material->GetCommonMaterial(), handle);
 
     *lplpDirect3DMaterial = d3d6Material.ref();
 
@@ -571,22 +568,6 @@ namespace dxvk {
     }
 
     return D3D_OK;
-  }
-
-  D3D6Material* D3D6Interface::GetMaterialFromHandle(D3DMATERIALHANDLE handle) {
-    auto materialsIter = m_materials.find(handle);
-
-    if (unlikely(materialsIter == m_materials.end()))
-      return nullptr;
-
-    return materialsIter->second;
-  }
-
-  void D3D6Interface::ReleaseMaterialHandle(D3DMATERIALHANDLE handle) {
-    auto materialsIter = m_materials.find(handle);
-
-    if (likely(materialsIter != m_materials.end()))
-      m_materials.erase(materialsIter);
   }
 
 }

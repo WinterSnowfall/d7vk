@@ -2,6 +2,7 @@
 
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
+#include "../ddraw_caps.h"
 
 #include "../ddraw_common_interface.h"
 

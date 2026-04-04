@@ -2,16 +2,16 @@
 
 #include "ddraw_include.h"
 
-#include "d3d_common_material.h"
+#include <unordered_map>
 
 namespace dxvk {
+
+  class D3DCommonMaterial;
 
   class D3D7Interface;
   class D3D6Interface;
   class D3D5Interface;
   class D3D3Interface;
-
-  class D3DCommonMaterial;
 
   class D3DCommonInterface : public ComObjectClamp<IUnknown> {
 
@@ -29,6 +29,10 @@ namespace dxvk {
     d3d9::D3DMATERIAL9* GetD3D9MaterialFromHandle(D3DMATERIALHANDLE handle) const;
 
     D3DCommonMaterial* GetCommonMaterialFromHandle(D3DMATERIALHANDLE handle) const;
+
+    void EmplaceMaterial(D3DCommonMaterial* commonMaterial, D3DMATERIALHANDLE handle);
+
+    void ReleaseMaterialHandle(D3DMATERIALHANDLE handle);
 
     D3DMATERIALHANDLE GetNextMaterialHandle() {
       return ++m_materialHandle;
@@ -75,6 +79,8 @@ namespace dxvk {
     D3D3Interface*    m_d3d3Intf       = nullptr;
 
     D3DMATERIALHANDLE m_materialHandle = 0;
+
+    std::unordered_map<D3DMATERIALHANDLE, D3DCommonMaterial*> m_materials;
 
   };
 
