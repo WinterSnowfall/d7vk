@@ -22,6 +22,11 @@ namespace dxvk {
       return S_OK;
     }
 
+    // Needed for SwapTextureHandles device calls
+    void SetTextureHandle(D3DTEXTUREHANDLE handle) {
+      m_textureHandle = handle;
+    }
+
     D3DTEXTUREHANDLE GetTextureHandle() const {
       return m_textureHandle;
     }
