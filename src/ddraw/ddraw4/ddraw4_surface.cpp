@@ -112,11 +112,6 @@ namespace dxvk {
 
     // Standard way of retrieving a texture for d3d6 SetTexture calls
     if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
-      if (unlikely(m_commonIntf->GetDDInterface() == nullptr)) {
-        Logger::warn("DDrawSurface::QueryInterface: Query for IDirect3DTexture2");
-        return E_NOINTERFACE;
-      }
-
       Logger::debug("DDraw4Surface::QueryInterface: Query for IDirect3DTexture2");
 
       if (unlikely(m_texture6 == nullptr)) {
@@ -125,14 +120,10 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        D3DTEXTUREHANDLE nextHandle = 0;
-        if (likely(m_commonIntf->GetDDInterface() != nullptr))
-          nextHandle = m_commonIntf->GetDDInterface()->GetNextTextureHandle();
+        D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
         m_texture6 = new D3D6Texture(std::move(ppvProxyObject), this, nextHandle);
-        if (likely(m_commonIntf->GetDDInterface() != nullptr)) {
-          D3DCommonTexture* commonTex = m_texture6->GetCommonTexture();
-          m_commonIntf->GetDDInterface()->EmplaceTexture(commonTex, nextHandle);
-        }
+        D3DCommonTexture* commonTex = m_texture6->GetCommonTexture();
+        m_commonIntf->EmplaceTexture(commonTex, nextHandle);
       }
 
       *ppvObject = m_texture6.ref();

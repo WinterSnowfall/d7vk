@@ -1,6 +1,6 @@
 #include "ddraw_common_interface.h"
 
-#include <algorithm>
+#include "d3d_common_texture.h"
 
 #include "ddraw/ddraw_surface.h"
 #include "ddraw4/ddraw4_surface.h"
@@ -10,6 +10,8 @@
 #include "d3d5/d3d5_device.h"
 #include "d3d6/d3d6_device.h"
 #include "d3d7/d3d7_device.h"
+
+#include <algorithm>
 
 namespace dxvk {
 
@@ -310,6 +312,17 @@ namespace dxvk {
     }
 
     return false;
+  }
+
+  DDrawSurface* DDrawCommonInterface::GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle) const {
+    auto texturesIter = m_textures.find(handle);
+
+    if (unlikely(texturesIter == m_textures.end())) {
+      Logger::warn(str::format("DDrawCommonInterface::GetSurfaceFromTextureHandle: Invalid handle: ", handle));
+      return nullptr;
+    }
+
+    return texturesIter->second->GetDDSurface();
   }
 
 }

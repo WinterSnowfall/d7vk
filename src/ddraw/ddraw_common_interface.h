@@ -4,8 +4,11 @@
 #include "ddraw_options.h"
 
 #include <vector>
+#include <unordered_map>
 
 namespace dxvk {
+
+  class D3DCommonTexture;
 
   class D3D3Interface;
 
@@ -86,6 +89,8 @@ namespace dxvk {
     bool IsCurrentDepthStencil(DDraw7Surface* surface) const;
 
     bool IsCurrentD3D9DepthStencil(d3d9::IDirect3DSurface9* surface) const;
+
+    DDrawSurface* GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle) const;
 
     void SetFlipRTSurfaceAndFlags(IUnknown* surf, DWORD flags) {
       m_flipRTSurf  = surf;
@@ -248,6 +253,23 @@ namespace dxvk {
       return m_device3;
     }
 
+    D3DTEXTUREHANDLE GetNextTextureHandle() {
+      return ++m_textureHandle;
+    }
+
+    void EmplaceTexture(D3DCommonTexture* commonTex, D3DTEXTUREHANDLE handle) {
+      m_textures.emplace(std::piecewise_construct,
+                         std::forward_as_tuple(handle),
+                         std::forward_as_tuple(commonTex));
+    }
+
+    void ReleaseTextureHandle(D3DTEXTUREHANDLE handle) {
+      auto textureIter = m_textures.find(handle);
+
+      if (likely(textureIter != m_textures.end()))
+        m_textures.erase(textureIter);
+    }
+
   private:
 
     // Track draw state on the common interface, since the back buffer
@@ -291,6 +313,9 @@ namespace dxvk {
     std::vector<IDirectDrawSurface3*> m_surfaces3;
     std::vector<IDirectDrawSurface2*> m_surfaces2;
     std::vector<IDirectDrawSurface*>  m_surfaces;
+
+    D3DTEXTUREHANDLE                  m_textureHandle = 0;
+    std::unordered_map<D3DTEXTUREHANDLE, D3DCommonTexture*> m_textures;
 
   };
 
