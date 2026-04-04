@@ -106,11 +106,11 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
+        D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
         Com<D3D5Texture> texture5 = new D3D5Texture(std::move(ppvProxyObject), m_parent, nextHandle);
         D3DCommonTexture* commonTex = texture5->GetCommonTexture();
         m_parent->SetD3D5Texture(texture5.ptr());
-        m_parent->GetParent()->EmplaceTexture(commonTex, nextHandle);
+        m_commonIntf->EmplaceTexture(commonTex, nextHandle);
       }
 
       *ppvObject = ref(m_parent->GetD3D5Texture());
@@ -131,11 +131,11 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        D3DTEXTUREHANDLE nextHandle = m_parent->GetParent()->GetNextTextureHandle();
+        D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
         Com<D3D3Texture> texture3 = new D3D3Texture(std::move(ppvProxyObject), m_parent, nextHandle);
         D3DCommonTexture* commonTex = texture3->GetCommonTexture();
         m_parent->SetD3D3Texture(texture3.ptr());
-        m_parent->GetParent()->EmplaceTexture(commonTex, nextHandle);
+        m_commonIntf->EmplaceTexture(commonTex, nextHandle);
       }
 
       *ppvObject = ref(m_parent->GetD3D3Texture());

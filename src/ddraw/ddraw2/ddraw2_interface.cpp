@@ -6,7 +6,6 @@
 #include "../ddraw7/ddraw7_interface.h"
 
 #include "../d3d3/d3d3_interface.h"
-#include "../d3d5/d3d5_device.h"
 #include "../d3d5/d3d5_interface.h"
 #include "../d3d6/d3d6_interface.h"
 
@@ -541,12 +540,12 @@ namespace dxvk {
     if (unlikely(lpdwTotal == nullptr && lpdwFree == nullptr))
       return DD_OK;
 
-    D3D5Device* d3d5Device = m_commonIntf->GetD3D5Device();
-    if (likely(d3d5Device != nullptr)) {
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
+    if (likely(d3d9Device != nullptr)) {
       Logger::debug("DDraw2Interface::GetAvailableVidMem: Getting memory stats from D3D9");
 
       const DWORD total9 = static_cast<DWORD>(m_commonIntf->GetTotalTextureMemory());
-      const DWORD free9  = static_cast<DWORD>(d3d5Device->GetD3D9()->GetAvailableTextureMem());
+      const DWORD free9  = static_cast<DWORD>(d3d9Device->GetAvailableTextureMem());
 
       Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Total: ", total9));
       Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Free : ", free9));
