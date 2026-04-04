@@ -174,6 +174,13 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
+    // Check and initialize the destination buffer (this buffer)
+    if (unlikely(!IsInitialized())) {
+      HRESULT hrInit = InitializeD3D9();
+      if (unlikely(FAILED(hrInit)))
+        return hrInit;
+    }
+
     D3D7DeviceLock lock = device->LockDevice();
 
     HandlePreProcessVerticesFlags(dwVertexOp);
