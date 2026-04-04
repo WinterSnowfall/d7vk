@@ -9,11 +9,7 @@
 
 #include "../../d3d9/d3d9_bridge.h"
 
-#include <unordered_map>
-
 namespace dxvk {
-
-  class D3D3Material;
 
   /**
   * \brief D3D3 interface implementation
@@ -47,10 +43,6 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE FindDevice(D3DFINDDEVICESEARCH *lpD3DFDS, D3DFINDDEVICERESULT *lpD3DFDR);
 
-    D3D3Material* GetMaterialFromHandle(D3DMATERIALHANDLE handle);
-
-    void ReleaseMaterialHandle(D3DMATERIALHANDLE handle);
-
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf;
     }
@@ -69,8 +61,6 @@ namespace dxvk {
     DDrawCommonInterface*         m_commonIntf = nullptr;
 
     Com<D3DCommonInterface>       m_commonD3DIntf;
-
-    std::unordered_map<D3DMATERIALHANDLE, D3D3Material*> m_materials;
 
   };
 
