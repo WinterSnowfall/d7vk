@@ -4,7 +4,6 @@
 
 #include "../d3d3/d3d3_device.h"
 
-#include "../ddraw/ddraw_interface.h"
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw2/ddraw2_interface.h"
 
@@ -784,8 +783,7 @@ namespace dxvk {
         DDrawSurface* surface = nullptr;
 
         if (likely(dwRenderState != 0)) {
-          DDrawInterface* ddrawIntf = m_commonIntf->GetDDInterface();
-          surface = ddrawIntf->GetSurfaceFromTextureHandle(dwRenderState);
+          surface = m_commonIntf->GetSurfaceFromTextureHandle(dwRenderState);
           if (unlikely(surface == nullptr))
             return DDERR_INVALIDPARAMS;
         }
@@ -1052,8 +1050,7 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYENABLE: {
         m_colorKeyEnabled = dwRenderState;
 
-        DDrawInterface* ddrawIntf = m_commonIntf->GetDDInterface();
-        DDrawSurface* surface = m_textureHandle != 0 ? ddrawIntf->GetSurfaceFromTextureHandle(m_textureHandle) : nullptr;
+        DDrawSurface* surface = m_textureHandle != 0 ? m_commonIntf->GetSurfaceFromTextureHandle(m_textureHandle) : nullptr;
         const bool validColorKey = surface != nullptr ? surface->GetCommonSurface()->HasValidColorKey() : false;
         m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
         if (m_colorKeyEnabled && validColorKey) {

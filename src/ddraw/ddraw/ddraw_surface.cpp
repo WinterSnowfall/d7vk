@@ -113,11 +113,6 @@ namespace dxvk {
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     if (unlikely(riid == __uuidof(IDirect3DTexture))) {
-      if (unlikely(m_parent == nullptr)) {
-        Logger::warn("DDrawSurface::QueryInterface: Query for IDirect3DTexture");
-        return E_NOINTERFACE;
-      }
-
       Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture");
 
       if (unlikely(m_texture3 == nullptr)) {
@@ -126,10 +121,10 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
+        D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
         m_texture3 = new D3D3Texture(std::move(ppvProxyObject), this, nextHandle);
         D3DCommonTexture* commonTex = m_texture3->GetCommonTexture();
-        m_parent->EmplaceTexture(commonTex, nextHandle);
+        m_commonIntf->EmplaceTexture(commonTex, nextHandle);
       }
 
       *ppvObject = m_texture3.ref();
@@ -137,11 +132,6 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
-      if (unlikely(m_parent == nullptr)) {
-        Logger::warn("DDrawSurface::QueryInterface: Query for IDirect3DTexture2");
-        return E_NOINTERFACE;
-      }
-
       Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture2");
 
       if (unlikely(m_texture5 == nullptr)) {
@@ -150,10 +140,10 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        D3DTEXTUREHANDLE nextHandle = m_parent->GetNextTextureHandle();
+        D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
         m_texture5 = new D3D5Texture(std::move(ppvProxyObject), this, nextHandle);
         D3DCommonTexture* commonTex = m_texture5->GetCommonTexture();
-        m_parent->EmplaceTexture(commonTex, nextHandle);
+        m_commonIntf->EmplaceTexture(commonTex, nextHandle);
       }
 
       *ppvObject = m_texture5.ref();
