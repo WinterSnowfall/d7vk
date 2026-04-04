@@ -18,7 +18,7 @@ namespace dxvk {
   }
 
   D3D3Texture::~D3D3Texture() {
-    m_parent->GetParent()->ReleaseTextureHandle(m_commonTex->GetTextureHandle());
+    m_parent->GetCommonInterface()->ReleaseTextureHandle(m_commonTex->GetTextureHandle());
 
     Logger::debug(str::format("D3D3Texture: Texture nr. [[1-", m_texCount, "]] bites the dust"));
   }
@@ -55,9 +55,13 @@ namespace dxvk {
       Logger::debug("D3D3Texture::QueryInterface: Query for IDirect3DTexture");
       return m_parent->QueryInterface(riid, ppvObject);
     }
-    if (unlikely(riid == __uuidof(IDirectDrawGammaControl)
-              || riid == __uuidof(IDirectDrawColorControl))) {
+    if (unlikely(riid == __uuidof(IDirectDrawGammaControl))) {
+      Logger::debug("D3D3Texture::QueryInterface: Query for IDirectDrawGammaControl");
       return m_parent->QueryInterface(riid, ppvObject);
+    }
+    if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
+      Logger::debug("D3D3Texture::QueryInterface: Query for IDirectDrawColorControl");
+      return E_NOINTERFACE;
     }
     if (unlikely(riid == __uuidof(IUnknown)
               || riid == __uuidof(IDirectDrawSurface))) {
@@ -83,24 +87,14 @@ namespace dxvk {
     }
   }
 
+  // Frogger gets texture handles from IDirect3DTexture objects and uses them in calls on a IDirect3DDevice2
   HRESULT STDMETHODCALLTYPE D3D3Texture::GetHandle(LPDIRECT3DDEVICE lpDirect3DDevice, LPD3DTEXTUREHANDLE lpHandle) {
-    // Frogger gets texture handles from IDirect3DTexture objects
-    // and uses them in calls on a IDirect3DDevice2
     Logger::debug(">>> D3D3Texture::GetHandle");
 
     if(unlikely(lpDirect3DDevice == nullptr || lpHandle == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3DTEXTUREHANDLE texHandle = m_commonTex->GetTextureHandle();
-
-    if (unlikely(!texHandle)) {
-      Logger::warn("D3D3Texture::GetHandle: Null handle returned");
-
-      D3D3Device* d3d3Device = static_cast<D3D3Device*>(lpDirect3DDevice);
-      return m_proxy->GetHandle(d3d3Device->GetProxied(), lpHandle);
-    }
-
-    *lpHandle = texHandle;
+    *lpHandle = m_commonTex->GetTextureHandle();
 
     return D3D_OK;
   }

@@ -8,9 +8,7 @@
 
 #include "../d3d3/d3d3_interface.h"
 #include "../d3d5/d3d5_interface.h"
-#include "../d3d5/d3d5_device.h"
 #include "../d3d6/d3d6_interface.h"
-#include "../d3d5/d3d5_texture.h"
 
 namespace dxvk {
 
@@ -559,17 +557,6 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawInterface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
     Logger::debug("<<< DDrawInterface::WaitForVerticalBlank: Proxy");
     return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
-  }
-
-  DDrawSurface* DDrawInterface::GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle) {
-    auto texturesIter = m_textures.find(handle);
-
-    if (unlikely(texturesIter == m_textures.end())) {
-      Logger::warn(str::format("DDrawInterface::GetTextureFromHandle: Invalid handle: ", handle));
-      return nullptr;
-    }
-
-    return texturesIter->second->GetDDSurface();
   }
 
 }
