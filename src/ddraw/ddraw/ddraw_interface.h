@@ -4,11 +4,8 @@
 #include "../ddraw_wrapped_object.h"
 
 #include "../ddraw_common_interface.h"
-#include "../d3d_common_texture.h"
 
 #include "../../d3d9/d3d9_bridge.h"
-
-#include <unordered_map>
 
 namespace dxvk {
 
@@ -71,27 +68,8 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent);
 
-    DDrawSurface* GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle);
-
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf.ptr();
-    }
-
-    D3DTEXTUREHANDLE GetNextTextureHandle() {
-      return ++m_textureHandle;
-    }
-
-    void EmplaceTexture(D3DCommonTexture* commonTex, D3DTEXTUREHANDLE handle) {
-      m_textures.emplace(std::piecewise_construct,
-                         std::forward_as_tuple(handle),
-                         std::forward_as_tuple(commonTex));
-    }
-
-    void ReleaseTextureHandle(D3DTEXTUREHANDLE handle) {
-      auto textureIter = m_textures.find(handle);
-
-      if (likely(textureIter != m_textures.end()))
-        m_textures.erase(textureIter);
     }
 
   private:
@@ -106,9 +84,6 @@ namespace dxvk {
 
     Com<D3D3Interface, false> m_d3d3Intf;
     Com<D3D5Interface, false> m_d3d5Intf;
-
-    D3DTEXTUREHANDLE          m_textureHandle = 0;
-    std::unordered_map<D3DTEXTUREHANDLE, D3DCommonTexture*> m_textures;
 
   };
 
