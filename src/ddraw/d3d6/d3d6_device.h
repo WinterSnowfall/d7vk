@@ -52,7 +52,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE DeleteViewport(IDirect3DViewport3 *viewport);
 
-    HRESULT STDMETHODCALLTYPE NextViewport(IDirect3DViewport3 *ref, IDirect3DViewport3 **viewport, DWORD flags);
+    HRESULT STDMETHODCALLTYPE NextViewport(IDirect3DViewport3 *lpDirect3DViewport, IDirect3DViewport3 **lplpAnotherViewport, DWORD flags);
 
     HRESULT STDMETHODCALLTYPE EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx);
 
@@ -166,18 +166,11 @@ namespace dxvk {
 
     inline HRESULT InitializeIndexBuffers();
 
+    inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
+
     inline void AddViewportInternal(IDirect3DViewport3* viewport);
 
     inline void DeleteViewportInternal(IDirect3DViewport3* viewport);
-
-    inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
-
-    inline float GetZBiasFactor();
-
-    // If the last index buffer is initialized, then all are initialized
-    inline bool AreIndexBuffersInitialized() const {
-      return m_ib9[ddrawCaps::IndexBufferCount - 1] != nullptr;
-    }
 
     inline bool LogIndexBufferUsageStats() const {
       for (uint32_t m_ib9_upload : m_ib9_uploads) {
@@ -275,19 +268,19 @@ namespace dxvk {
     // Value of D3DRENDERSTATE_ANTIALIAS
     DWORD            m_antialias        = D3DANTIALIAS_NONE;
     // Value of D3DRENDERSTATE_LINEPATTERN
-    D3DLINEPATTERN   m_linePattern      = {};
-    // Value of D3DRENDERSTATE_ZVISIBLE (although the RS is not supported, its value is stored)
-    DWORD            m_zVisible         = 0;
+    D3DLINEPATTERN   m_linePattern      = { };
+    // Value of D3DCLIPSTATUS
+    D3DCLIPSTATUS    m_clipStatus       = { };
     // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
     DWORD            m_textureMapBlend  = D3DTBLEND_MODULATE;
 
-    D3DMATRIX        m_projectionMatrix = {};
+    D3DMATRIX        m_projectionMatrix = { };
     const D3DMATRIX* m_legacyProjection = nullptr;
 
     // Common index buffers used for indexed draws, split up into five sizes:
     // XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb
     std::array<Com<d3d9::IDirect3DIndexBuffer9>, ddrawCaps::IndexBufferCount> m_ib9;
-    uint32_t m_ib9_uploads[ddrawCaps::IndexBufferCount] = {};
+    uint32_t m_ib9_uploads[ddrawCaps::IndexBufferCount] = { };
 
   };
 
