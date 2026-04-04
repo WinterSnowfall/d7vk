@@ -48,7 +48,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE DeleteViewport(IDirect3DViewport *viewport);
 
-    HRESULT STDMETHODCALLTYPE NextViewport(IDirect3DViewport *ref, IDirect3DViewport **viewport, DWORD flags);
+    HRESULT STDMETHODCALLTYPE NextViewport(IDirect3DViewport *lpDirect3DViewport, IDirect3DViewport **lplpAnotherViewport, DWORD flags);
 
     HRESULT STDMETHODCALLTYPE EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK cb, void *ctx);
 
@@ -88,6 +88,10 @@ namespace dxvk {
 
     uint32_t GetTotalTextureMemory() const {
       return m_totalMemory;
+    }
+
+    D3DSTATS GetStatsInternal() const {
+      return m_stats;
     }
 
     d3d9::D3DPRESENT_PARAMETERS GetPresentParameters() const {
@@ -190,8 +194,10 @@ namespace dxvk {
     // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
     DWORD                          m_textureMapBlend  = D3DTBLEND_MODULATE;
 
-    D3DMATRIX                      m_projectionMatrix = {};
+    D3DMATRIX                      m_projectionMatrix = { };
     const D3DMATRIX*               m_legacyProjection = nullptr;
+
+    D3DSTATS                       m_stats            = { };
 
     D3DMATRIXHANDLE                m_matrixHandle = 0;
     std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> m_matrices;

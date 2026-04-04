@@ -1,5 +1,7 @@
 #include "d3d3_device.h"
 
+#include "../d3d_common_texture.h"
+
 #include "d3d3_execute_buffer.h"
 
 #include "../ddraw/ddraw_surface.h"
@@ -87,7 +89,7 @@ namespace dxvk {
 
     if (unlikely(riid == __uuidof(IDirect3DDevice2))) {
       if (likely(m_commonIntf->GetD3D5Device() != nullptr)) {
-        Logger::debug("D3D3Device::QueryInterface: Query for IDirect3DDevice2");
+        Logger::debug("D3D3Device::QueryInterface: Query for existing IDirect3DDevice2");
         return m_commonIntf->GetD3D5Device()->QueryInterface(riid, ppvObject);
       }
 
@@ -143,13 +145,46 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::SwapTextureHandles(IDirect3DTexture *tex1, IDirect3DTexture *tex2) {
-    Logger::warn("!!! D3D3Device::SwapTextureHandles: Stub");
+    D3D3DeviceLock lock = LockDevice();
+
+    Logger::debug(">>> D3D5Device::SwapTextureHandles");
+
+    D3D3Texture* texture1 = static_cast<D3D3Texture*>(tex1);
+    D3D3Texture* texture2 = static_cast<D3D3Texture*>(tex2);
+
+    D3DCommonTexture* commonTex1 = texture1->GetCommonTexture();
+    D3DCommonTexture* commonTex2 = texture2->GetCommonTexture();
+
+    const D3DTEXTUREHANDLE handle1 = commonTex1->GetTextureHandle();
+    const D3DTEXTUREHANDLE handle2 = commonTex2->GetTextureHandle();
+
+    m_parent->GetCommonInterface()->ReleaseTextureHandle(handle1);
+    m_parent->GetCommonInterface()->ReleaseTextureHandle(handle2);
+
+    commonTex1->SetTextureHandle(handle2);
+    commonTex2->SetTextureHandle(handle1);
+
+    m_commonIntf->EmplaceTexture(commonTex1, handle2);
+    m_commonIntf->EmplaceTexture(commonTex2, handle1);
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::GetStats(D3DSTATS *stats) {
-    Logger::debug("<<< D3D3Device::GetStats: Proxy");
-    return m_proxy->GetStats(stats);
+    Logger::debug(">>> D3D3Device::GetStats");
+
+    if (unlikely(stats == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(stats->dwSize != sizeof(D3DSTATS)))
+      return DDERR_INVALIDPARAMS;
+
+    const DWORD dwSize = stats->dwSize;
+
+    *stats = m_stats;
+    stats->dwSize = dwSize;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::AddViewport(IDirect3DViewport *viewport) {
@@ -192,8 +227,28 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D3Device::NextViewport(IDirect3DViewport *ref, IDirect3DViewport **viewport, DWORD flags) {
-    Logger::warn("!!! D3D3Device::NextViewport: Stub");
+  HRESULT STDMETHODCALLTYPE D3D3Device::NextViewport(IDirect3DViewport *lpDirect3DViewport, IDirect3DViewport **lplpAnotherViewport, DWORD flags) {
+    Logger::debug(">>> D3D3Device::NextViewport");
+
+    if (unlikely(lplpAnotherViewport == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpAnotherViewport);
+
+    if (flags & D3DNEXT_HEAD) {
+      if (likely(m_viewports.size() > 0))
+        *lplpAnotherViewport = m_viewports.front().ref();
+    } else if (flags & D3DNEXT_NEXT) {
+      if (unlikely(lpDirect3DViewport == nullptr))
+        return DDERR_INVALIDPARAMS;
+
+      if (likely(m_viewports.size() > 0))
+        Logger::warn("D3D3Device::NextViewport: Unimplemented D3DNEXT_NEXT flag");
+    } else if (flags & D3DNEXT_TAIL) {
+      if (likely(m_viewports.size() > 0))
+        *lplpAnotherViewport = m_viewports.back().ref();
+    }
+
     return D3D_OK;
   }
 
@@ -382,7 +437,7 @@ namespace dxvk {
         break;
 
       if (unlikely(ptr + instructionSize > end)) {
-        Logger::warn("D3D3Device::Execute: reached the end but there are no D3DOP_EXIT!");
+        Logger::warn("D3D3Device::Execute: Reached the end but found no D3DOP_EXIT!");
         break;
       }
 
@@ -550,26 +605,30 @@ namespace dxvk {
     return D3D_OK;
   }
 
+  // Equivalent of the later ZVISIBLE render state
   HRESULT STDMETHODCALLTYPE D3D3Device::Pick(IDirect3DExecuteBuffer *buffer, IDirect3DViewport *viewport, DWORD flags, D3DRECT *rect) {
-    Logger::debug("<<< D3D3Device::Pick: Proxy");
+    Logger::warn("!!! D3D3Device::Pick: Stub");
 
     if (unlikely(buffer == nullptr || viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D3ExecuteBuffer* d3d3ExecuteBuffer = static_cast<D3D3ExecuteBuffer*>(buffer);
-    D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
-
-    if (m_currentViewport != d3d3Viewport)
-      m_currentViewport = d3d3Viewport;
-
-    m_commonIntf->UpdateDrawTracking();
-
-    return m_proxy->Pick(d3d3ExecuteBuffer->GetProxied(), d3d3Viewport->GetProxied(), flags, rect);
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::GetPickRecords(DWORD *count, D3DPICKRECORD *records) {
-    Logger::debug("<<< D3D3Device::GetPickRecords: Proxy");
-    return m_proxy->GetPickRecords(count, records);
+    Logger::warn("!!! D3D3Device::GetPickRecords: Stub");
+
+    if (unlikely(!count))
+      return D3D_OK;
+
+    if (unlikely(records == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    D3DPICKRECORD newRecords = { };
+
+    *records = newRecords;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::CreateMatrix(D3DMATRIXHANDLE *matrix) {
@@ -813,15 +872,8 @@ namespace dxvk {
         m_d3d9->SetSamplerState(0, d3d9::D3DSAMP_ADDRESSV, dwRenderState);
         return D3D_OK;
 
-      // Always enabled on later APIs, so it can't really be turned off
-      // Even the D3D7 docs state: "Note that many 3-D adapters
-      // apply texture perspective correction unconditionally."
+      // Always enabled on later APIs, though default FALSE in D3D3
       case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
-        static bool s_texturePerspectiveErrorShown;
-
-        if (!dwRenderState && !std::exchange(s_texturePerspectiveErrorShown, true))
-          Logger::debug("D3D3Device::SetRenderStateInternal: Disabling of D3DRENDERSTATE_TEXTUREPERSPECTIVE is not supported");
-
         return D3D_OK;
 
       // Not implemented in DXVK, but forward it anyway
@@ -999,13 +1051,10 @@ namespace dxvk {
         State9 = d3d9::D3DRS_ALPHABLENDENABLE;
         break;
 
-      // TODO:
+      // Safe to ignore. Docs state: "Direct3D's retained mode uses this operation as a
+      // quick-reject test: it does the z-visible test on the bounding box of a set of
+      // primitives and only renders them if it returns TRUE."
       case D3DRENDERSTATE_ZVISIBLE:
-        static bool s_zVisibleErrorShown;
-
-        if (dwRenderState && !std::exchange(s_zVisibleErrorShown, true))
-          Logger::warn("D3D3Device::SetRenderStateInternal: Unimplemented render state D3DRENDERSTATE_ZVISIBLE");
-
         return D3D_OK;
 
       // Docs state: "Most hardware either doesn't support it (always off) or
@@ -1069,7 +1118,7 @@ namespace dxvk {
         static bool s_stipplePatternErrorShown;
 
         if (!std::exchange(s_stipplePatternErrorShown, true))
-          Logger::warn("D3D3Device::SetRenderStateInternal: Unimplemented render state D3DRENDERSTATE_STIPPLEPATTERNXX");
+          Logger::warn("D3D3Device::SetRenderStateInternal: Unimplemented render state D3DRENDERSTATE_STIPPLEPATTERN");
 
         return D3D_OK;
     }
@@ -1087,7 +1136,9 @@ namespace dxvk {
       if (t.v1 >= vertexCount || t.v2 >= vertexCount || t.v3 >= vertexCount)
         continue;
 
-      // TODO: Ignoring t.wFlags for now as they are relevant only for wireframe mode? (D3DTRIFLAG_START, D3DTRIFLAG_STARTFLAT(1-29), D3DTRIFLAG_ODD(strip), D3DTRIFLAG_EVEN(fan) and D3DTRIFLAG_EDGEENABLE)
+      // TODO: Ignoring t.wFlags for now as they are relevant only for wireframe mode?
+      // (D3DTRIFLAG_START, D3DTRIFLAG_STARTFLAT(1-29), D3DTRIFLAG_ODD(strip),
+      // D3DTRIFLAG_EVEN(fan) and D3DTRIFLAG_EDGEENABLE).
 
       vertices.push_back(vertexBuffer[t.v1]);
       vertices.push_back(vertexBuffer[t.v2]);
@@ -1108,6 +1159,7 @@ namespace dxvk {
 
       if (SUCCEEDED(hr)) {
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_TRIANGLE drawn vertices: ", vertices.size()));
+        m_stats.dwTrianglesDrawn += std::max<DWORD>(vertices.size() / 3, 0u);
       } else {
         Logger::err(str::format("D3D3Device::Execute: D3DOP_TRIANGLE failed to draw vertices: ", vertices.size()));
       }
@@ -1143,6 +1195,7 @@ namespace dxvk {
 
       if (SUCCEEDED(hr)) {
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_LINE drawn vertices: ", vertices.size()));
+        m_stats.dwLinesDrawn += std::max<DWORD>(vertices.size() / 2, 0u);
       } else {
         Logger::err(str::format("D3D3Device::Execute: D3DOP_LINE failed to draw vertices: ", vertices.size()));
       }
@@ -1179,6 +1232,7 @@ namespace dxvk {
 
       if (SUCCEEDED(hr)) {
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_POINT drawn vertices: ", vertices.size()));
+        m_stats.dwPointsDrawn += static_cast<DWORD>(vertices.size());
       } else {
         Logger::err(str::format("D3D3Device::Execute: D3DOP_POINT failed to draw vertices: ", vertices.size()));
       }
@@ -1214,6 +1268,7 @@ namespace dxvk {
 
       if (SUCCEEDED(hr)) {
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_SPAN drawn vertices: ", vertices.size()));
+        m_stats.dwSpansDrawn += std::max<DWORD>(vertices.size() - 1, 0u);
       } else {
         Logger::err(str::format("D3D3Device::Execute: D3DOP_SPAN failed to draw vertices: ", vertices.size()));
       }
@@ -1228,10 +1283,11 @@ namespace dxvk {
 
       DDrawSurface* destSurf = m_commonIntf->GetSurfaceFromTextureHandle(tl.hDestTexture);
       DDrawSurface* srcSurf = m_commonIntf->GetSurfaceFromTextureHandle(tl.hSrcTexture);
-      if (destSurf != nullptr && srcSurf != nullptr)
+      if (destSurf != nullptr && srcSurf != nullptr) {
         destSurf->GetD3D3Texture()->Load(srcSurf->GetD3D3Texture());
-      else
+      } else {
         Logger::warn("D3D3Device::Execute: D3DOP_TEXTURELOAD source or/and destination texture is null");
+      }
     }
   }
 
