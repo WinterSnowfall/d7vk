@@ -4,12 +4,12 @@
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_options.h"
 
+#include "../d3d_multithread.h"
 #include "../ddraw_common_interface.h"
 
 #include "../../d3d9/d3d9_bridge.h"
 
 #include "d3d3_interface.h"
-#include "d3d3_multithread.h"
 #include "d3d3_viewport.h"
 
 #include <vector>
@@ -78,7 +78,7 @@ namespace dxvk {
 
     void InitializeDS();
 
-    D3D3DeviceLock LockDevice() {
+    D3DDeviceLock LockDevice() {
       return m_multithread.AcquireLock();
     }
 
@@ -175,7 +175,7 @@ namespace dxvk {
 
     Com<DxvkD3D8Bridge>            m_bridge;
 
-    D3D3Multithread                m_multithread;
+    D3DMultithread                 m_multithread;
 
     d3d9::D3DPRESENT_PARAMETERS    m_params9;
 
@@ -203,7 +203,7 @@ namespace dxvk {
     D3DMATRIXHANDLE                m_viewHandle       = 0;
     D3DMATRIXHANDLE                m_projectionHandle = 0;
 
-    D3DMATRIXHANDLE                m_matrixHandle     = 0;
+    std::atomic<D3DMATRIXHANDLE>   m_matrixHandle     = 0;
     std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> m_matrices;
 
   };
