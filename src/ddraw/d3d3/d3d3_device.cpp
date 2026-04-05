@@ -145,7 +145,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::SwapTextureHandles(IDirect3DTexture *tex1, IDirect3DTexture *tex2) {
-    D3D3DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D5Device::SwapTextureHandles");
 
@@ -171,6 +171,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::GetStats(D3DSTATS *stats) {
+    D3DDeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D3Device::GetStats");
 
     if (unlikely(stats == nullptr))
@@ -188,7 +190,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::AddViewport(IDirect3DViewport *viewport) {
-    D3D3DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D3Device::AddViewport");
 
@@ -206,7 +208,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::DeleteViewport(IDirect3DViewport *viewport) {
-    D3D3DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D3Device::DeleteViewport");
 
@@ -228,6 +230,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::NextViewport(IDirect3DViewport *lpDirect3DViewport, IDirect3DViewport **lplpAnotherViewport, DWORD flags) {
+    D3DDeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D3Device::NextViewport");
 
     if (unlikely(lplpAnotherViewport == nullptr))
@@ -317,7 +321,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::BeginScene() {
-    D3D3DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D3Device::BeginScene");
 
@@ -335,7 +339,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::EndScene() {
-    D3D3DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D3Device::EndScene");
 
@@ -404,6 +408,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::Execute(IDirect3DExecuteBuffer *buffer, IDirect3DViewport *viewport, DWORD flags) {
+    D3DDeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D3Device::Execute");
 
     if (unlikely(buffer == nullptr || viewport == nullptr))
@@ -616,6 +622,8 @@ namespace dxvk {
 
   // Equivalent of the later ZVISIBLE render state
   HRESULT STDMETHODCALLTYPE D3D3Device::Pick(IDirect3DExecuteBuffer *buffer, IDirect3DViewport *viewport, DWORD flags, D3DRECT *rect) {
+    D3DDeviceLock lock = LockDevice();
+
     Logger::warn("!!! D3D3Device::Pick: Stub");
 
     if (unlikely(buffer == nullptr || viewport == nullptr))
@@ -625,6 +633,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::GetPickRecords(DWORD *count, D3DPICKRECORD *records) {
+    D3DDeviceLock lock = LockDevice();
+
     Logger::warn("!!! D3D3Device::GetPickRecords: Stub");
 
     if (unlikely(!count))
@@ -641,6 +651,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::CreateMatrix(D3DMATRIXHANDLE *matrix) {
+    D3DDeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D3Device::CreateMatrix");
 
     m_matrixHandle++;
@@ -654,6 +666,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::SetMatrix(D3DMATRIXHANDLE handle, D3DMATRIX *matrix) {
+    D3DDeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D3Device::SetMatrix");
 
     if (unlikely(matrix == nullptr))
@@ -689,6 +703,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::GetMatrix(D3DMATRIXHANDLE handle, D3DMATRIX *matrix) {
+    D3DDeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D3Device::GetMatrix");
 
     if (unlikely(matrix == nullptr))
@@ -707,6 +723,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::DeleteMatrix(D3DMATRIXHANDLE D3DMatHandle) {
+    D3DDeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D3Device::DeleteMatrix");
 
     auto matrixIter = m_matrices.find(D3DMatHandle);

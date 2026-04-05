@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ddraw_include.h"
+#include "ddraw_include.h"
 
 namespace dxvk {
 
@@ -12,24 +12,24 @@ namespace dxvk {
    * \c std::unique_lock, with the goal of being
    * cheaper to construct and destroy.
    */
-  class D3D6DeviceLock {
+  class D3DDeviceLock {
 
   public:
 
-    D3D6DeviceLock()
+    D3DDeviceLock()
       : m_mutex(nullptr) { }
 
-    D3D6DeviceLock(sync::RecursiveSpinlock& mutex)
+    D3DDeviceLock(sync::RecursiveSpinlock& mutex)
       : m_mutex(&mutex) {
       mutex.lock();
     }
 
-    D3D6DeviceLock(D3D6DeviceLock&& other)
+    D3DDeviceLock(D3DDeviceLock&& other)
       : m_mutex(other.m_mutex) {
       other.m_mutex = nullptr;
     }
 
-    D3D6DeviceLock& operator = (D3D6DeviceLock&& other) {
+    D3DDeviceLock& operator = (D3DDeviceLock&& other) {
       if (m_mutex)
         m_mutex->unlock();
 
@@ -38,7 +38,7 @@ namespace dxvk {
       return *this;
     }
 
-    ~D3D6DeviceLock() {
+    ~D3DDeviceLock() {
       if (m_mutex != nullptr)
         m_mutex->unlock();
     }
@@ -51,19 +51,19 @@ namespace dxvk {
 
 
   /**
-   * \brief D3D6 context lock
+   * \brief D3D context lock
    */
-  class D3D6Multithread {
+  class D3DMultithread {
 
   public:
 
-    D3D6Multithread(
+    D3DMultithread(
       BOOL                  Protected);
 
-    D3D6DeviceLock AcquireLock() {
+    D3DDeviceLock AcquireLock() {
       return m_protected
-        ? D3D6DeviceLock(m_mutex)
-        : D3D6DeviceLock();
+        ? D3DDeviceLock(m_mutex)
+        : D3DDeviceLock();
     }
 
   private:
