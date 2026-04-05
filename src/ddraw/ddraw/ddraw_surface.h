@@ -26,11 +26,11 @@ namespace dxvk {
   public:
 
     DDrawSurface(
-        DDrawCommonSurface* commonSurf,
-        Com<IDirectDrawSurface>&& surfProxy,
-        DDrawInterface* pParent,
-        DDrawSurface* pParentSurf,
-        bool isChildObject);
+          DDrawCommonSurface* commonSurf,
+          Com<IDirectDrawSurface>&& surfProxy,
+          DDrawInterface* pParent,
+          DDrawSurface* pParentSurf,
+          bool isChildObject);
 
     ~DDrawSurface();
 
@@ -153,10 +153,12 @@ namespace dxvk {
 
     void SetParentSurface(DDrawSurface* surface) {
       m_parentSurf = surface;
+      m_commonSurf->SetIsAttached(true);
     }
 
     void ClearParentSurface() {
       m_parentSurf = nullptr;
+      m_commonSurf->SetIsAttached(false);
     }
 
     HRESULT InitializeD3D9RenderTarget();
@@ -184,35 +186,6 @@ namespace dxvk {
         }
         m_d3d9Device = d3d9Device;
       }
-    }
-
-    inline void ListSurfaceDetails() const {
-      const char* type = "generic surface";
-
-      if (m_commonSurf->IsFrontBuffer())                type = "front buffer";
-      else if (m_commonSurf->IsBackBuffer())            type = "back buffer";
-      else if (m_commonSurf->IsTextureMip())            type = "texture mipmap";
-      else if (m_commonSurf->IsTexture())               type = "texture";
-      else if (m_commonSurf->IsDepthStencil())          type = "depth stencil";
-      else if (m_commonSurf->IsOffScreenPlainSurface()) type = "offscreen plain surface";
-      else if (m_commonSurf->IsOverlay())               type = "overlay";
-      else if (m_commonSurf->Is3DSurface())             type = "render target";
-      else if (m_commonSurf->IsPrimarySurface())        type = "primary surface";
-      else if (m_commonSurf->IsNotKnown())              type = "unknown";
-
-      const DDSURFACEDESC* desc = m_commonSurf->GetDesc();
-
-      Logger::debug(str::format("DDrawSurface: Created a new surface nr. [[1-", m_surfCount, "]]:"));
-      Logger::debug(str::format("   Type:        ", type));
-      Logger::debug(str::format("   Dimensions:  ", desc->dwWidth, "x", desc->dwHeight));
-      Logger::debug(str::format("   Format:      ", m_commonSurf->GetD3D9Format()));
-      Logger::debug(str::format("   IsComplex:   ", m_commonSurf->IsComplex() ? "yes" : "no"));
-      Logger::debug(str::format("   HasMipMaps:  ", desc->dwMipMapCount ? "yes" : "no"));
-      Logger::debug(str::format("   IsAttached:  ", m_parentSurf != nullptr ? "yes" : "no"));
-      if (m_commonSurf->IsFrontBuffer())
-        Logger::debug(str::format("   BackBuffers: ", desc->dwBackBufferCount));
-      if (m_commonSurf->HasColorKey())
-        Logger::debug(str::format("   ColorKey:    ", m_commonSurf->GetColorKey()->dwColorSpaceLowValue));
     }
 
     bool             m_isChildObject   = true;

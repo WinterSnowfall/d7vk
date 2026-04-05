@@ -21,9 +21,9 @@ namespace dxvk {
 
   public:
     DDrawInterface(
-      DDrawCommonInterface* commonIntf,
-      Com<IDirectDraw>&& proxyIntf,
-      bool needsInitialization);
+          DDrawCommonInterface* commonIntf,
+          Com<IDirectDraw>&& proxyIntf,
+          bool needsInitialization);
 
     ~DDrawInterface();
 
