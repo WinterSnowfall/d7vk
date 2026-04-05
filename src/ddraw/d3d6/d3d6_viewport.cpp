@@ -10,6 +10,7 @@
 #include "../d3d5/d3d5_viewport.h"
 #include "../d3d3/d3d3_viewport.h"
 
+#include <vector>
 #include <algorithm>
 
 namespace dxvk {
@@ -34,8 +35,10 @@ namespace dxvk {
   }
 
   D3D6Viewport::~D3D6Viewport() {
+    std::vector<Com<D3DLight>>& lights = m_commonViewport->GetLights();
+
     // Dissasociate every bound light from this viewport
-    for (auto light : m_lights) {
+    for (auto light : lights) {
       light->SetViewport6(nullptr);
     }
 
@@ -317,9 +320,10 @@ namespace dxvk {
       m_commonViewport->EnableLegacyLights(d3dLight->IsD3DLight2());
     }
 
+    std::vector<Com<D3DLight>>& lights = m_commonViewport->GetLights();
     // No need to check if the light is already attached, since
     // if that's the case it will have a set viewport above
-    m_lights.push_back(d3dLight);
+    lights.push_back(d3dLight);
     d3dLight->SetViewport6(this);
 
     if (m_commonViewport->HasDevice() && m_commonViewport->IsCurrentViewport())
@@ -339,14 +343,16 @@ namespace dxvk {
     if (unlikely(!d3dLight->HasViewport()))
       return DDERR_INVALIDPARAMS;
 
-    auto it = std::find(m_lights.begin(), m_lights.end(), d3dLight);
-    if (likely(it != m_lights.end())) {
+    std::vector<Com<D3DLight>>& lights = m_commonViewport->GetLights();
+
+    auto it = std::find(lights.begin(), lights.end(), d3dLight);
+    if (likely(it != lights.end())) {
       const DWORD lightIndex = d3dLight->GetIndex();
       if (m_commonViewport->HasDevice() && m_commonViewport->IsCurrentViewport() && d3dLight->IsActive()) {
         Logger::debug(str::format("D3D6Viewport: Disabling light nr. ", lightIndex));
         m_commonViewport->GetD3D9Device()->LightEnable(lightIndex, FALSE);
       }
-      m_lights.erase(it);
+      lights.erase(it);
       d3dLight->SetViewport6(nullptr);
     } else {
       Logger::warn("D3D6Viewport::DeleteLight: Light not found");
@@ -364,18 +370,20 @@ namespace dxvk {
 
     InitReturnPtr(lplpDirect3DLight);
 
+    std::vector<Com<D3DLight>>& lights = m_commonViewport->GetLights();
+
     if (flags & D3DNEXT_HEAD) {
-      if (likely(m_lights.size() > 0))
-        *lplpDirect3DLight = m_lights.front().ref();
+      if (likely(lights.size() > 0))
+        *lplpDirect3DLight = lights.front().ref();
     } else if (flags & D3DNEXT_NEXT) {
       if (unlikely(lpDirect3DLight == nullptr))
         return DDERR_INVALIDPARAMS;
 
-      if (likely(m_lights.size() > 0))
+      if (likely(lights.size() > 0))
         Logger::warn("D3D6Viewport::NextLight: Unimplemented D3DNEXT_NEXT flag");
     } else if (flags & D3DNEXT_TAIL) {
-      if (likely(m_lights.size() > 0))
-        *lplpDirect3DLight = m_lights.back().ref();
+      if (likely(lights.size() > 0))
+        *lplpDirect3DLight = lights.back().ref();
     }
 
     return D3D_OK;
@@ -537,12 +545,14 @@ namespace dxvk {
   }
 
   HRESULT D3D6Viewport::ApplyAndActivateLights() {
-    if (!m_lights.size())
+    std::vector<Com<D3DLight>>& lights = m_commonViewport->GetLights();
+
+    if (!lights.size())
       return D3D_OK;
 
     Logger::debug("D3D6Viewport: Applying lights to D3D9");
 
-    for (auto light: m_lights)
+    for (auto light: lights)
       ApplyAndActivateLight(light->GetIndex(), light.ptr());
 
     return D3D_OK;
