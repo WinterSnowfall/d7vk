@@ -199,7 +199,11 @@ namespace dxvk {
 
     D3DSTATS                       m_stats            = { };
 
-    D3DMATRIXHANDLE                m_matrixHandle = 0;
+    D3DMATRIXHANDLE                m_worldHandle      = 0;
+    D3DMATRIXHANDLE                m_viewHandle       = 0;
+    D3DMATRIXHANDLE                m_projectionHandle = 0;
+
+    D3DMATRIXHANDLE                m_matrixHandle     = 0;
     std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> m_matrices;
 
   };
