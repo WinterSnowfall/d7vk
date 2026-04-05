@@ -5,6 +5,8 @@
 
 #include "../d3d_common_light.h"
 
+#include "../d3d5/d3d5_interface.h"
+
 #include "../ddraw/ddraw_interface.h"
 
 namespace dxvk {
