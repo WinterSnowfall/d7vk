@@ -22,10 +22,10 @@ namespace dxvk {
 
   public:
     DDraw4Interface(
-      DDrawCommonInterface* commonIntf,
-      Com<IDirectDraw4>&& proxyIntf,
-      DDrawInterface* pParent,
-      bool needsInitialization);
+          DDrawCommonInterface* commonIntf,
+          Com<IDirectDraw4>&& proxyIntf,
+          DDrawInterface* pParent,
+          bool needsInitialization);
 
     ~DDraw4Interface();
 

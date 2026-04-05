@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../ddraw_include.h"
-#include "../ddraw_wrapped_object.h"
+#include "ddraw_include.h"
+#include "ddraw_wrapped_object.h"
 
-#include "../ddraw_common_surface.h"
+#include "ddraw_common_surface.h"
 
 namespace dxvk {
 
@@ -12,9 +12,9 @@ namespace dxvk {
   public:
 
     DDrawGammaControl(
-        DDrawCommonSurface* commonSurf,
-        Com<IDirectDrawGammaControl>&& proxyGamma,
-        IUnknown* pParent);
+         DDrawCommonSurface* commonSurf,
+         Com<IDirectDrawGammaControl>&& proxyGamma,
+         IUnknown* pParent);
 
     ~DDrawGammaControl();
 

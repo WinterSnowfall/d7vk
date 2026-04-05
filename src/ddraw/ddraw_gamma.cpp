@@ -3,9 +3,9 @@
 namespace dxvk {
 
   DDrawGammaControl::DDrawGammaControl(
-    DDrawCommonSurface* commonSurf,
-    Com<IDirectDrawGammaControl>&& proxyGamma,
-    IUnknown* pParent)
+        DDrawCommonSurface* commonSurf,
+        Com<IDirectDrawGammaControl>&& proxyGamma,
+        IUnknown* pParent)
     : DDrawWrappedObject<IUnknown, IDirectDrawGammaControl, IUnknown>(pParent, std::move(proxyGamma), nullptr)
     , m_commonSurf ( commonSurf ) {
     Logger::debug("DDrawGammaControl: Created a new gamma control interface");

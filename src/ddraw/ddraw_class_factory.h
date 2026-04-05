@@ -15,7 +15,7 @@ namespace dxvk {
     HRESULT STDMETHODCALLTYPE CreateInstance(IUnknown *pUnkOuter, REFIID riid, void **ppvObject);
 
     HRESULT STDMETHODCALLTYPE LockServer(BOOL fLock) {
-      Logger::warn(">>> DDrawClassFactory::LockServer: Stub");
+      Logger::warn("!!! DDrawClassFactory::LockServer: Stub");
       return S_OK;
     }
 

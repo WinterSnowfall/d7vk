@@ -17,15 +17,15 @@ namespace dxvk {
 
   uint32_t D3D6Viewport::s_viewportCount = 0;
 
-  D3D6Viewport::D3D6Viewport(D3DCommonViewport* commonViewport, Com<IDirect3DViewport3>&& proxyViewport, D3D6Interface* pParent)
+  D3D6Viewport::D3D6Viewport(
+        D3DCommonViewport* commonViewport,
+        Com<IDirect3DViewport3>&& proxyViewport,
+        D3D6Interface* pParent)
     : DDrawWrappedObject<D3D6Interface, IDirect3DViewport3, IUnknown>(pParent, std::move(proxyViewport), nullptr)
     , m_commonViewport ( commonViewport ) {
 
     if (m_commonViewport == nullptr)
       m_commonViewport = new D3DCommonViewport(m_parent->GetCommonD3DInterface());
-
-    if (m_commonViewport->GetOrigin() == nullptr)
-      m_commonViewport->SetOrigin(this);
 
     m_commonViewport->SetD3D6Viewport(this);
 

@@ -2,7 +2,7 @@
 
 #include "ddraw_class_factory.h"
 
-#include "ddraw/ddraw_clipper.h"
+#include "ddraw_clipper.h"
 #include "ddraw/ddraw_interface.h"
 #include "ddraw7/ddraw7_interface.h"
 

@@ -5,9 +5,9 @@ namespace dxvk {
   uint32_t D3D3ExecuteBuffer::s_buffCount = 0;
 
   D3D3ExecuteBuffer::D3D3ExecuteBuffer(
-      Com<IDirect3DExecuteBuffer>&& buffProxy,
-      D3DEXECUTEBUFFERDESC desc,
-      D3D3Device* pParent)
+        Com<IDirect3DExecuteBuffer>&& buffProxy,
+        D3DEXECUTEBUFFERDESC desc,
+        D3D3Device* pParent)
     : DDrawWrappedObject<D3D3Device, IDirect3DExecuteBuffer, IUnknown>(pParent, std::move(buffProxy), nullptr)
     , m_desc (desc) {
     if (likely(m_buffer.size() == 0 && (m_desc.dwFlags & D3DDEB_BUFSIZE))) {

@@ -13,7 +13,10 @@ namespace dxvk {
 
   public:
 
-    D3D5Texture(Com<IDirect3DTexture2>&& proxyTexture, DDrawSurface* pParent, D3DTEXTUREHANDLE handle);
+    D3D5Texture(
+          Com<IDirect3DTexture2>&& proxyTexture,
+          DDrawSurface* pParent,
+          D3DTEXTUREHANDLE handle);
 
     ~D3D5Texture();
 

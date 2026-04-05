@@ -1,6 +1,6 @@
 #include "ddraw3_surface.h"
 
-#include "../ddraw/ddraw_gamma.h"
+#include "../ddraw_gamma.h"
 
 #include "../ddraw/ddraw_interface.h"
 #include "../ddraw/ddraw_surface.h"
@@ -38,8 +38,6 @@ namespace dxvk {
       throw DxvkError("DDraw3Surface: ERROR! Failed to retrieve the common interface!");
     }
 
-    m_commonIntf->AddWrappedSurface(this);
-
     if (m_commonSurf == nullptr)
       m_commonSurf = new DDrawCommonSurface(m_commonIntf);
 
@@ -56,14 +54,15 @@ namespace dxvk {
       }
     }
 
-    if (m_commonSurf->GetOrigin() == nullptr)
-      m_commonSurf->SetOrigin(this);
+    m_commonIntf->AddWrappedSurface(this);
 
     m_commonSurf->SetDD3Surface(this);
 
     m_surfCount = ++s_surfCount;
 
     Logger::debug(str::format("DDraw3Surface: Created a new surface nr. [[3-", m_surfCount, "]]"));
+
+    // Note: IDirectDrawSurface3 can't ever be the origin surface
   }
 
   DDraw3Surface::~DDraw3Surface() {
@@ -260,9 +259,11 @@ namespace dxvk {
     return m_proxy->AddAttachedSurface(ddraw3Surface->GetProxied());
   }
 
+  // Docs: "This method is used for the software implementation.
+  // It is not needed if the overlay support is provided by the hardware."
   HRESULT STDMETHODCALLTYPE DDraw3Surface::AddOverlayDirtyRect(LPRECT lpRect) {
-    Logger::debug("<<< DDraw3Surface::AddOverlayDirtyRect: Proxy");
-    return m_proxy->AddOverlayDirtyRect(lpRect);
+    Logger::debug(">>> DDraw3Surface::AddOverlayDirtyRect");
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE3 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
@@ -391,6 +392,7 @@ namespace dxvk {
     return hr;
   }
 
+  // Docs: "The IDirectDrawSurface3::BltBatch method is not currently implemented."
   HRESULT STDMETHODCALLTYPE DDraw3Surface::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags) {
     Logger::debug(">>> DDraw3Surface::BltBatch");
     return DDERR_UNSUPPORTED;
@@ -481,7 +483,15 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE3 lpDDSAttachedSurface) {
     Logger::warn("<<< DDraw3Surface::DeleteAttachedSurface: Proxy");
-    return m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
+
+    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
+      Logger::warn("DDraw3Surface::DeleteAttachedSurface: Received an unwrapped surface");
+      return DDERR_GENERIC;
+    }
+
+    DDraw3Surface* ddraw3Surface = static_cast<DDraw3Surface*>(lpDDSAttachedSurface);
+
+    return m_proxy->DeleteAttachedSurface(dwFlags, ddraw3Surface->GetProxied());
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback) {
@@ -618,9 +628,19 @@ namespace dxvk {
     return DD_OK;
   }
 
+  // Blitting can be done at any time and completes within its call frame
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetBltStatus(DWORD dwFlags) {
-    Logger::debug("<<< DDraw3Surface::GetBltStatus: Proxy");
-    return m_proxy->GetBltStatus(dwFlags);
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("<<< DDraw3Surface::GetBltStatus: Proxy");
+      m_proxy->GetBltStatus(dwFlags);
+    }
+
+    Logger::debug(">>> DDraw3Surface::GetBltStatus");
+
+    if (likely(dwFlags == DDGBS_CANBLT || dwFlags == DDGBS_ISBLTDONE))
+      return DD_OK;
+
+    return DDERR_INVALIDPARAMS;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetCaps(LPDDSCAPS lpDDSCaps) {
@@ -687,9 +707,19 @@ namespace dxvk {
     return m_proxy->GetDC(lphDC);
   }
 
+  // Flipping can be done at any time and completes within its call frame
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetFlipStatus(DWORD dwFlags) {
-    Logger::debug("<<< DDraw3Surface::GetFlipStatus: Proxy");
-    return m_proxy->GetFlipStatus(dwFlags);
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("<<< DDraw3Surface::GetFlipStatus: Proxy");
+      m_proxy->GetFlipStatus(dwFlags);
+    }
+
+    Logger::debug(">>> DDraw3Surface::GetFlipStatus");
+
+    if (likely(dwFlags == DDGFS_CANFLIP || dwFlags == DDGFS_ISFLIPDONE))
+      return DD_OK;
+
+    return DDERR_INVALIDPARAMS;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetOverlayPosition(LPLONG lplX, LPLONG lplY) {
@@ -916,9 +946,10 @@ namespace dxvk {
     return m_proxy->UpdateOverlay(lpSrcRect, ddraw3Surface->GetProxied(), lpDestRect, dwFlags, lpDDOverlayFx);
   }
 
+  // Docs: "This method is for software emulation only; it does nothing if the hardware supports overlays."
   HRESULT STDMETHODCALLTYPE DDraw3Surface::UpdateOverlayDisplay(DWORD dwFlags) {
-    Logger::debug("<<< DDraw3Surface::UpdateOverlayDisplay: Proxy");
-    return m_proxy->UpdateOverlayDisplay(dwFlags);
+    Logger::debug(">>> DDraw3Surface::UpdateOverlayDisplay");
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE3 lpDDSReference) {
