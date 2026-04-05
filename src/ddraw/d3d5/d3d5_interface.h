@@ -3,6 +3,7 @@
 #include "../ddraw_include.h"
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_options.h"
+#include "../ddraw_util.h"
 #include "../ddraw_format.h"
 
 #include "../ddraw_common_interface.h"
