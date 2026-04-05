@@ -1,5 +1,9 @@
 #include "d3d_common_light.h"
 
+#include "d3d3/d3d3_viewport.h"
+#include "d3d5/d3d5_viewport.h"
+#include "d3d6/d3d6_viewport.h"
+
 namespace dxvk {
 
   uint32_t D3DLight::s_lightCount = 0;

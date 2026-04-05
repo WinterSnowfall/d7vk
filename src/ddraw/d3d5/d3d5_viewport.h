@@ -8,8 +8,6 @@
 
 #include "d3d5_interface.h"
 
-#include <vector>
-
 namespace dxvk {
 
   class D3DLight;
@@ -66,12 +64,10 @@ namespace dxvk {
 
   private:
 
-    static uint32_t            s_viewportCount;
-    uint32_t                   m_viewportCount = 0;
+    static uint32_t        s_viewportCount;
+    uint32_t               m_viewportCount = 0;
 
-    Com<D3DCommonViewport>     m_commonViewport;
-
-    std::vector<Com<D3DLight>> m_lights;
+    Com<D3DCommonViewport> m_commonViewport;
 
   };
 
