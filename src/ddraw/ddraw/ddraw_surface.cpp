@@ -1,6 +1,6 @@
 #include "ddraw_surface.h"
 
-#include "ddraw_gamma.h"
+#include "../ddraw_gamma.h"
 
 #include "../d3d3/d3d3_device.h"
 #include "../d3d3/d3d3_interface.h"
@@ -35,8 +35,6 @@ namespace dxvk {
       throw DxvkError("DDrawSurface: ERROR! Failed to retrieve the common interface!");
     }
 
-    m_commonIntf->AddWrappedSurface(this);
-
     if (m_commonSurf == nullptr)
       m_commonSurf = new DDrawCommonSurface(m_commonIntf);
 
@@ -53,8 +51,7 @@ namespace dxvk {
       }
     }
 
-    if (m_commonSurf->GetOrigin() == nullptr)
-      m_commonSurf->SetOrigin(this);
+    m_commonIntf->AddWrappedSurface(this);
 
     m_commonSurf->SetDDSurface(this);
 
@@ -70,10 +67,19 @@ namespace dxvk {
 
     m_surfCount = ++s_surfCount;
 
-    ListSurfaceDetails();
+    Logger::debug(str::format("DDrawSurface: Created a new surface nr. [[1-", m_surfCount, "]]:"));
+
+    if (m_commonSurf->GetOrigin() == nullptr) {
+      m_commonSurf->SetOrigin(this);
+      m_commonSurf->SetIsAttached(m_parentSurf != nullptr);
+      m_commonSurf->ListSurfaceDetails();
+    }
   }
 
   DDrawSurface::~DDrawSurface() {
+    if (m_commonSurf->GetOrigin() == this)
+      m_commonSurf->SetOrigin(nullptr);
+
     m_commonIntf->RemoveWrappedSurface(this);
 
     // Release all public references on all attached surfaces
@@ -288,9 +294,11 @@ namespace dxvk {
     return hr;
   }
 
+  // Docs: "This method is used for the software implementation.
+  // It is not needed if the overlay support is provided by the hardware."
   HRESULT STDMETHODCALLTYPE DDrawSurface::AddOverlayDirtyRect(LPRECT lpRect) {
-    Logger::debug("<<< DDrawSurface::AddOverlayDirtyRect: Proxy");
-    return m_proxy->AddOverlayDirtyRect(lpRect);
+    Logger::debug(">>> DDrawSurface::AddOverlayDirtyRect");
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
@@ -409,6 +417,7 @@ namespace dxvk {
     return hr;
   }
 
+  // Docs: "The IDirectDrawSurface::BltBatch method is not currently implemented."
   HRESULT STDMETHODCALLTYPE DDrawSurface::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags) {
     Logger::debug("<<< DDrawSurface::BltBatch: Proxy");
     return DDERR_UNSUPPORTED;
@@ -711,9 +720,19 @@ namespace dxvk {
     return DD_OK;
   }
 
+  // Blitting can be done at any time and completes within its call frame
   HRESULT STDMETHODCALLTYPE DDrawSurface::GetBltStatus(DWORD dwFlags) {
-    Logger::debug("<<< DDrawSurface::GetBltStatus: Proxy");
-    return m_proxy->GetBltStatus(dwFlags);
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("<<< DDrawSurface::GetBltStatus: Proxy");
+      m_proxy->GetBltStatus(dwFlags);
+    }
+
+    Logger::debug(">>> DDrawSurface::GetBltStatus");
+
+    if (likely(dwFlags == DDGBS_CANBLT || dwFlags == DDGBS_ISBLTDONE))
+      return DD_OK;
+
+    return DDERR_INVALIDPARAMS;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::GetCaps(LPDDSCAPS lpDDSCaps) {
@@ -780,9 +799,19 @@ namespace dxvk {
     return m_proxy->GetDC(lphDC);
   }
 
+  // Flipping can be done at any time and completes within its call frame
   HRESULT STDMETHODCALLTYPE DDrawSurface::GetFlipStatus(DWORD dwFlags) {
-    Logger::debug("<<< DDrawSurface::GetFlipStatus: Proxy");
-    return m_proxy->GetFlipStatus(dwFlags);
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("<<< DDrawSurface::GetFlipStatus: Proxy");
+      m_proxy->GetFlipStatus(dwFlags);
+    }
+
+    Logger::debug(">>> DDrawSurface::GetFlipStatus");
+
+    if (likely(dwFlags == DDGFS_CANFLIP || dwFlags == DDGFS_ISFLIPDONE))
+      return DD_OK;
+
+    return DDERR_INVALIDPARAMS;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::GetOverlayPosition(LPLONG lplX, LPLONG lplY) {
@@ -1031,9 +1060,10 @@ namespace dxvk {
     return m_proxy->UpdateOverlay(lpSrcRect, ddrawSurface->GetProxied(), lpDestRect, dwFlags, lpDDOverlayFx);
   }
 
+  // Docs: "This method is for software emulation only; it does nothing if the hardware supports overlays."
   HRESULT STDMETHODCALLTYPE DDrawSurface::UpdateOverlayDisplay(DWORD dwFlags) {
-    Logger::debug("<<< DDrawSurface::UpdateOverlayDisplay: Proxy");
-    return m_proxy->UpdateOverlayDisplay(dwFlags);
+    Logger::debug(">>> DDrawSurface::UpdateOverlayDisplay");
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE lpDDSReference) {

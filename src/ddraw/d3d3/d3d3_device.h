@@ -26,13 +26,13 @@ namespace dxvk {
 
   public:
     D3D3Device(
-        Com<IDirect3DDevice>&& d3d3DeviceProxy,
-        DDrawSurface* pParent,
-        D3DDEVICEDESC3 Desc,
-        GUID deviceGUID,
-        d3d9::D3DPRESENT_PARAMETERS Params9,
-        Com<d3d9::IDirect3DDevice9>&& pDevice9,
-        DWORD CreationFlags9);
+          Com<IDirect3DDevice>&& d3d3DeviceProxy,
+          DDrawSurface* pParent,
+          D3DDEVICEDESC3 Desc,
+          GUID deviceGUID,
+          d3d9::D3DPRESENT_PARAMETERS Params9,
+          Com<d3d9::IDirect3DDevice9>&& pDevice9,
+          DWORD CreationFlags9);
 
     ~D3D3Device();
 

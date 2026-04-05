@@ -29,9 +29,11 @@ namespace dxvk {
     throw DxvkError("DDrawPalette::QueryInterface: Unknown interface query");
   }
 
+  // Docs state: "Because the DirectDrawPalette object is initialized when
+  // it is created, this method always returns DDERR_ALREADYINITIALIZED."
   HRESULT STDMETHODCALLTYPE DDrawPalette::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable) {
-    Logger::debug("<<< DDrawPalette::Initialize: Proxy");
-    return m_proxy->Initialize(lpDD, dwFlags, lpDDColorTable);
+    Logger::debug(">>> DDrawPalette::Initialize");
+    return DDERR_ALREADYINITIALIZED;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawPalette::GetCaps(LPDWORD lpdwCaps) {

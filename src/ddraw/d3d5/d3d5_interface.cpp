@@ -18,10 +18,10 @@ namespace dxvk {
   uint32_t D3D5Interface::s_intfCount = 0;
 
   D3D5Interface::D3D5Interface(
-      DDrawCommonInterface* m_commonIntf,
-      D3DCommonInterface* commonD3DIntf,
-      Com<IDirect3D2>&& d3d5IntfProxy,
-      IUnknown* pParent)
+        DDrawCommonInterface* m_commonIntf,
+        D3DCommonInterface* commonD3DIntf,
+        Com<IDirect3D2>&& d3d5IntfProxy,
+        IUnknown* pParent)
     : DDrawWrappedObject<IUnknown, IDirect3D2, d3d9::IDirect3D9>(pParent, std::move(d3d5IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)))
     , m_commonIntf ( m_commonIntf )
     , m_commonD3DIntf ( commonD3DIntf ) {

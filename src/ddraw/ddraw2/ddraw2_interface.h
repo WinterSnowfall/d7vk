@@ -21,10 +21,10 @@ namespace dxvk {
 
   public:
     DDraw2Interface(
-      DDrawCommonInterface* commonIntf,
-      Com<IDirectDraw2>&& proxyIntf,
-      DDrawInterface* pParent,
-      bool needsInitialization);
+          DDrawCommonInterface* commonIntf,
+          Com<IDirectDraw2>&& proxyIntf,
+          DDrawInterface* pParent,
+          bool needsInitialization);
 
     ~DDraw2Interface();
 
@@ -85,10 +85,6 @@ namespace dxvk {
     uint32_t                   m_intfCount  = 0;
 
     Com<DDrawCommonInterface>  m_commonIntf;
-
-    // We can not increase the public ref count on the parent IDirectDraw
-    // interface, so keep a private COM reference to it instead
-    Com<DDrawInterface, false> m_parentIntf;
 
   };
 
