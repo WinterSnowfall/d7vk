@@ -5,8 +5,8 @@
 
 #include "ddraw_common_interface.h"
 
-#include "ddraw/ddraw_clipper.h"
-#include "ddraw/ddraw_palette.h"
+#include "ddraw_clipper.h"
+#include "ddraw_palette.h"
 
 namespace dxvk {
 
@@ -135,6 +135,14 @@ namespace dxvk {
       m_dirtyMipMaps = false;
     }
 
+    bool IsAttached() const {
+      return m_isAttached;
+    }
+
+    void SetIsAttached(bool isAttached) {
+      m_isAttached = isAttached;
+    }
+
     void SetClipper(DDrawClipper* clipper) {
       m_clipper = clipper;
     }
@@ -197,10 +205,6 @@ namespace dxvk {
 
     IUnknown* GetOrigin() const {
       return m_origin;
-    }
-
-    bool IsOrigin(IUnknown* origin) const {
-      return m_origin == origin;
     }
 
     bool IsComplex() const {
@@ -297,9 +301,36 @@ namespace dxvk {
       return m_isGuardableSurface;
     }
 
+    void ListSurfaceDetails() const {
+      const char* type = "generic surface";
+
+      if (IsFrontBuffer())                type = "front buffer";
+      else if (IsBackBuffer())            type = "back buffer";
+      else if (IsTextureMip())            type = "texture mipmap";
+      else if (IsTexture())               type = "texture";
+      else if (IsDepthStencil())          type = "depth stencil";
+      else if (IsOffScreenPlainSurface()) type = "offscreen plain surface";
+      else if (IsOverlay())               type = "overlay";
+      else if (Is3DSurface())             type = "render target";
+      else if (IsPrimarySurface())        type = "primary surface";
+      else if (IsNotKnown())              type = "unknown";
+
+      Logger::debug(str::format("   Type:        ", type));
+      Logger::debug(str::format("   Dimensions:  ", m_desc.dwWidth, "x", m_desc.dwHeight));
+      Logger::debug(str::format("   Format:      ", GetD3D9Format()));
+      Logger::debug(str::format("   IsComplex:   ", IsComplex() ? "yes" : "no"));
+      Logger::debug(str::format("   HasMipMaps:  ", m_desc.dwMipMapCount ? "yes" : "no"));
+      Logger::debug(str::format("   IsAttached:  ", IsAttached() ? "yes" : "no"));
+      if (IsFrontBuffer())
+        Logger::debug(str::format("   BackBuffers: ", m_desc.dwBackBufferCount));
+      if (HasColorKey())
+        Logger::debug(str::format("   ColorKey:    ", GetColorKey()->dwColorSpaceLowValue));
+    }
+
   private:
 
     bool                      m_dirtyMipMaps  = false;
+    bool                      m_isAttached    = false;
     bool                      m_isDesc2Set    = false;
     bool                      m_isDescSet     = false;
 

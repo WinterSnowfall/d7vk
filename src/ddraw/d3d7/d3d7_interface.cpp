@@ -13,10 +13,10 @@ namespace dxvk {
   uint32_t D3D7Interface::s_intfCount = 0;
 
   D3D7Interface::D3D7Interface(
-      DDrawCommonInterface* commonIntf,
-      D3DCommonInterface* commonD3DIntf,
-      Com<IDirect3D7>&& d3d7IntfProxy,
-      IUnknown* pParent)
+        DDrawCommonInterface* commonIntf,
+        D3DCommonInterface* commonD3DIntf,
+        Com<IDirect3D7>&& d3d7IntfProxy,
+        IUnknown* pParent)
     : DDrawWrappedObject<IUnknown, IDirect3D7, d3d9::IDirect3D9>(pParent, std::move(d3d7IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)))
     , m_commonIntf ( commonIntf )
     , m_commonD3DIntf ( commonD3DIntf ) {

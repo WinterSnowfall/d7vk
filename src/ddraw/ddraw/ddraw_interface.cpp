@@ -2,6 +2,9 @@
 
 #include "ddraw_surface.h"
 
+#include "../ddraw_clipper.h"
+#include "../ddraw_palette.h"
+
 #include "../ddraw7/ddraw7_interface.h"
 #include "../ddraw4/ddraw4_interface.h"
 #include "../ddraw2/ddraw2_interface.h"
@@ -15,9 +18,9 @@ namespace dxvk {
   uint32_t DDrawInterface::s_intfCount = 0;
 
   DDrawInterface::DDrawInterface(
-      DDrawCommonInterface* commonIntf,
-      Com<IDirectDraw>&& proxyIntf,
-      bool needsInitialization)
+        DDrawCommonInterface* commonIntf,
+        Com<IDirectDraw>&& proxyIntf,
+        bool needsInitialization)
     : DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
     , m_needsInitialization ( needsInitialization )
     , m_commonIntf ( commonIntf ) {
@@ -216,7 +219,7 @@ namespace dxvk {
   // The documentation states: "The IDirectDraw::Compact method is not currently implemented."
   HRESULT STDMETHODCALLTYPE DDrawInterface::Compact() {
     Logger::debug(">>> DDrawInterface::Compact");
-    return DD_OK;
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
@@ -465,9 +468,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawInterface::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes) {
     Logger::debug(">>> DDrawInterface::GetFourCCCodes");
 
-    // TODO: Check passed lpNumCodes size is larger than NumberOfFOURCCCodes
     if (likely(lpNumCodes != nullptr && lpCodes != nullptr)) {
-      for (uint8_t i = 0; i < ddrawCaps::NumberOfFOURCCCodes; i++) {
+      const uint32_t copyNumCodes = std::min<uint32_t>(ddrawCaps::NumberOfFOURCCCodes, *lpNumCodes);
+      for (uint32_t i = 0; i < copyNumCodes; i++) {
         lpCodes[i] = ddrawCaps::SupportedFourCCs[i];
       }
     }
@@ -480,7 +483,33 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::GetGDISurface(LPDIRECTDRAWSURFACE *lplpGDIDDSurface) {
     Logger::debug("<<< DDrawInterface::GetGDISurface: Proxy");
-    return m_proxy->GetGDISurface(lplpGDIDDSurface);
+
+    if(unlikely(lplpGDIDDSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpGDIDDSurface);
+
+    Com<IDirectDrawSurface> gdiSurface;
+    HRESULT hr = m_proxy->GetGDISurface(&gdiSurface);
+
+    if (unlikely(FAILED(hr))) {
+      Logger::debug("DDrawInterface::GetGDISurface: Failed to retrieve GDI surface");
+      return hr;
+    }
+
+    if (unlikely(m_commonIntf->IsWrappedSurface(gdiSurface.ptr()))) {
+      *lplpGDIDDSurface = gdiSurface.ref();
+    } else {
+      Logger::debug("DDrawInterface::GetGDISurface: Received a non-wrapped GDI surface");
+      try {
+        *lplpGDIDDSurface = ref(new DDrawSurface(nullptr, std::move(gdiSurface), this, nullptr, false));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::GetMonitorFrequency(LPDWORD lpdwFrequency) {
@@ -555,8 +584,30 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
-    Logger::debug("<<< DDrawInterface::WaitForVerticalBlank: Proxy");
-    return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("<<< DDrawInterface::WaitForVerticalBlank: Proxy");
+      m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+    }
+
+    Logger::debug(">>> DDrawInterface::WaitForVerticalBlank");
+
+    if (unlikely(dwFlags & DDWAITVB_BLOCKBEGINEVENT))
+      return DDERR_UNSUPPORTED;
+
+    // Switch to a default presentation interval when an application
+    // tries to wait for vertical blank, if we're not already doing so
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
+    if (unlikely(d3d9Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
+      Logger::info("DDrawInterface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
+
+      d3d9::D3DPRESENT_PARAMETERS resetParams = m_commonIntf->GetPresentParameters();
+      resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+      HRESULT hrReset = m_commonIntf->ResetD3D9Swapchain(&resetParams);
+      if (likely(SUCCEEDED(hrReset)))
+        m_commonIntf->SetWaitForVBlank(true);
+    }
+
+    return DD_OK;
   }
 
 }

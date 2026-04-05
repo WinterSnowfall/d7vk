@@ -20,10 +20,10 @@ namespace dxvk {
   public:
 
     DDraw3Surface(
-        DDrawCommonSurface* commonSurf,
-        Com<IDirectDrawSurface3>&& surfProxy,
-        DDrawSurface* pParent,
-        DDraw3Surface* pParentSurf);
+          DDrawCommonSurface* commonSurf,
+          Com<IDirectDrawSurface3>&& surfProxy,
+          DDrawSurface* pParent,
+          DDraw3Surface* pParentSurf);
 
     ~DDraw3Surface();
 

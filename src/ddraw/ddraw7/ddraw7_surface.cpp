@@ -1,6 +1,6 @@
 #include "ddraw7_surface.h"
 
-#include "../ddraw/ddraw_gamma.h"
+#include "../ddraw_gamma.h"
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw2/ddraw2_surface.h"
 #include "../ddraw2/ddraw3_surface.h"
@@ -33,8 +33,6 @@ namespace dxvk {
       throw DxvkError("DDraw7Surface: ERROR! Failed to retrieve the common interface!");
     }
 
-    m_commonIntf->AddWrappedSurface(this);
-
     if (m_commonSurf == nullptr)
       m_commonSurf = new DDrawCommonSurface(m_commonIntf);
 
@@ -51,8 +49,7 @@ namespace dxvk {
       }
     }
 
-    if (m_commonSurf->GetOrigin() == nullptr)
-      m_commonSurf->SetOrigin(this);
+    m_commonIntf->AddWrappedSurface(this);
 
     m_commonSurf->SetDD7Surface(this);
 
@@ -71,10 +68,19 @@ namespace dxvk {
 
     m_surfCount = ++s_surfCount;
 
-    ListSurfaceDetails();
+    Logger::debug(str::format("DDraw7Surface: Created a new surface nr. [[7-", m_surfCount, "]]:"));
+
+    if (m_commonSurf->GetOrigin() == nullptr) {
+      m_commonSurf->SetOrigin(this);
+      m_commonSurf->SetIsAttached(m_parentSurf != nullptr);
+      m_commonSurf->ListSurfaceDetails();
+    }
   }
 
   DDraw7Surface::~DDraw7Surface() {
+    if (m_commonSurf->GetOrigin() == this)
+      m_commonSurf->SetOrigin(nullptr);
+
     m_commonIntf->RemoveWrappedSurface(this);
 
     // Release all public references on all attached surfaces
@@ -235,9 +241,10 @@ namespace dxvk {
     return hr;
   }
 
+  // Docs: "The IDirectDrawSurface7::AddOverlayDirtyRect method is not currently implemented."
   HRESULT STDMETHODCALLTYPE DDraw7Surface::AddOverlayDirtyRect(LPRECT lpRect) {
-    Logger::debug("<<< DDraw7Surface::AddOverlayDirtyRect: Proxy");
-    return m_proxy->AddOverlayDirtyRect(lpRect);
+    Logger::debug(">>> DDraw7Surface::AddOverlayDirtyRect");
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
@@ -356,7 +363,7 @@ namespace dxvk {
     return hr;
   }
 
-  // The docs state: "The IDirectDrawSurface7::BltBatch method is not currently implemented."
+  // Docs: "The IDirectDrawSurface7::BltBatch method is not currently implemented."
   HRESULT STDMETHODCALLTYPE DDraw7Surface::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags) {
     Logger::debug(">>> DDraw7Surface::BltBatch");
     return DDERR_UNSUPPORTED;
@@ -697,9 +704,19 @@ namespace dxvk {
     return DD_OK;
   }
 
+  // Blitting can be done at any time and completes within its call frame
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetBltStatus(DWORD dwFlags) {
-    Logger::debug("<<< DDraw7Surface::GetBltStatus: Proxy");
-    return m_proxy->GetBltStatus(dwFlags);
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("<<< DDraw7Surface::GetBltStatus: Proxy");
+      m_proxy->GetBltStatus(dwFlags);
+    }
+
+    Logger::debug(">>> DDraw7Surface::GetBltStatus");
+
+    if (likely(dwFlags == DDGBS_CANBLT || dwFlags == DDGBS_ISBLTDONE))
+      return DD_OK;
+
+    return DDERR_INVALIDPARAMS;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetCaps(LPDDSCAPS2 lpDDSCaps) {
@@ -766,9 +783,19 @@ namespace dxvk {
     return m_proxy->GetDC(lphDC);
   }
 
+  // Flipping can be done at any time and completes within its call frame
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetFlipStatus(DWORD dwFlags) {
-    Logger::debug("<<< DDraw7Surface::GetFlipStatus: Proxy");
-    return m_proxy->GetFlipStatus(dwFlags);
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("<<< DDraw7Surface::GetFlipStatus: Proxy");
+      m_proxy->GetFlipStatus(dwFlags);
+    }
+
+    Logger::debug(">>> DDraw7Surface::GetFlipStatus");
+
+    if (likely(dwFlags == DDGFS_CANFLIP || dwFlags == DDGFS_ISFLIPDONE))
+      return DD_OK;
+
+    return DDERR_INVALIDPARAMS;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetOverlayPosition(LPLONG lplX, LPLONG lplY) {
@@ -1017,9 +1044,10 @@ namespace dxvk {
     return m_proxy->UpdateOverlay(lpSrcRect, ddraw7Surface->GetProxied(), lpDestRect, dwFlags, lpDDOverlayFx);
   }
 
+  // Docs: "The IDirectDrawSurface7::UpdateOverlayDisplay method is not currently implemented."
   HRESULT STDMETHODCALLTYPE DDraw7Surface::UpdateOverlayDisplay(DWORD dwFlags) {
-    Logger::debug("<<< DDraw7Surface::UpdateOverlayDisplay: Proxy");
-    return m_proxy->UpdateOverlayDisplay(dwFlags);
+    Logger::debug(">>> DDraw7Surface::UpdateOverlayDisplay");
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE7 lpDDSReference) {
@@ -1092,7 +1120,8 @@ namespace dxvk {
     return m_proxy->SetPrivateData(tag, pData, cbSize, dwFlags);
   }
 
-  // Silent Hunter II uses GetPrivateData and relies on some sort of ddraw validation...
+  // Silent Hunter II needs to get these from the proxy surface, as it
+  // sets them otherwise... it doesn't call SetPrivateData at all
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPrivateData(REFGUID tag, LPVOID pBuffer, LPDWORD pcbBufferSize) {
     Logger::debug("<<< DDraw7Surface::GetPrivateData: Proxy");
     return m_proxy->GetPrivateData(tag, pBuffer, pcbBufferSize);
@@ -1103,19 +1132,28 @@ namespace dxvk {
     return m_proxy->FreePrivateData(tag);
   }
 
+  // Docs: "The only defined uniqueness value is 0, indicating that the surface
+  // is likely to be changing beyond the control of DirectDraw."
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetUniquenessValue(LPDWORD pValue) {
-    Logger::debug("<<< DDraw7Surface::GetUniquenessValue: Proxy");
-    return m_proxy->GetUniquenessValue(pValue);
+    Logger::debug(">>> DDraw7Surface::GetUniquenessValue");
+
+    if (unlikely(pValue == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    *pValue = 0;
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::ChangeUniquenessValue() {
-    Logger::debug("<<< Called DDraw7Surface::ChangeUniquenessValue: Proxy");
-    return m_proxy->ChangeUniquenessValue();
+    Logger::debug(">>> DDraw7Surface::ChangeUniquenessValue");
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetPriority(DWORD prio) {
     Logger::debug(">>> DDraw7Surface::SetPriority");
 
+    RefreshD3D9Device();
     if (unlikely(!IsInitialized())) {
       Logger::debug("DDraw7Surface::SetPriority: Not yet initialized");
       return m_proxy->SetPriority(prio);
@@ -1136,6 +1174,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPriority(LPDWORD prio) {
     Logger::debug(">>> DDraw7Surface::GetPriority");
 
+    RefreshD3D9Device();
     if (unlikely(!IsInitialized())) {
       Logger::debug("DDraw7Surface::GetPriority: Not yet initialized");
       return m_proxy->GetPriority(prio);
@@ -1154,12 +1193,57 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetLOD(DWORD lod) {
     Logger::debug("<<< DDraw7Surface::SetLOD: Proxy");
-    return m_proxy->SetLOD(lod);
+
+    RefreshD3D9Device();
+    if (unlikely(!IsInitialized())) {
+      Logger::debug("DDraw7Surface::SetLOD: Not yet initialized");
+      return m_proxy->SetLOD(lod);
+    }
+
+    if (unlikely(!m_commonSurf->IsManaged()))
+      return DDERR_INVALIDOBJECT;
+
+    HRESULT hr = m_proxy->SetLOD(lod);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (m_texture9 != nullptr) {
+      m_texture9->SetLOD(lod);
+    } else if (m_cubeMap9 != nullptr) {
+      m_cubeMap9->SetLOD(lod);
+    } else {
+      Logger::warn("DDraw7Surface::SetLOD: Failed to set D3D9 LOD");
+      return DDERR_INVALIDOBJECT;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetLOD(LPDWORD lod) {
-    Logger::debug("<<< DDraw7Surface::GetLOD: Proxy");
-    return m_proxy->GetLOD(lod);
+    Logger::debug(">>> DDraw7Surface::GetLOD");
+
+    RefreshD3D9Device();
+    if (unlikely(!IsInitialized())) {
+      Logger::debug("DDraw7Surface::GetLOD: Not yet initialized");
+      return m_proxy->GetLOD(lod);
+    }
+
+    if (unlikely(lod == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(!m_commonSurf->IsManaged()))
+      return DDERR_INVALIDOBJECT;
+
+    if (likely(m_texture9 != nullptr)) {
+      *lod = m_texture9->GetLOD();
+    } else if (m_cubeMap9 != nullptr) {
+      *lod = m_cubeMap9->GetLOD();
+    } else {
+      Logger::warn("DDraw7Surface::GetLOD: Failed to get D3D9 LOD");
+      return DDERR_INVALIDOBJECT;
+    }
+
+    return DD_OK;
   }
 
   HRESULT DDraw7Surface::InitializeD3D9RenderTarget() {
@@ -1411,7 +1495,7 @@ namespace dxvk {
 
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Surface::InitializeD3D9: Failed to create cube map");
-        m_cubeMap = nullptr;
+        m_cubeMap9 = nullptr;
         return hr;
       }
 
@@ -1467,7 +1551,7 @@ namespace dxvk {
       }
 
       Logger::debug("DDraw7Surface::InitializeD3D9: Created cube map");
-      m_cubeMap = std::move(cubetex);
+      m_cubeMap9 = std::move(cubetex);
 
     // Textures
     } else if (m_commonSurf->IsTexture()) {
@@ -1621,32 +1705,32 @@ namespace dxvk {
       // so check them one by one, and upload as needed
       const uint16_t mipCount = m_commonSurf->GetMipCount();
       if (likely(m_cubeMapSurfaces[0] != nullptr)) {
-        BlitToD3D9CubeMap(m_cubeMap.ptr(), format, m_cubeMapSurfaces[0], mipCount);
+        BlitToD3D9CubeMap(m_cubeMap9.ptr(), format, m_cubeMapSurfaces[0], mipCount);
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Positive X face is null, skpping");
       }
       if (likely(m_cubeMapSurfaces[1] != nullptr)) {
-        BlitToD3D9CubeMap(m_cubeMap.ptr(), format, m_cubeMapSurfaces[1], mipCount);
+        BlitToD3D9CubeMap(m_cubeMap9.ptr(), format, m_cubeMapSurfaces[1], mipCount);
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Negative X face is null, skpping");
       }
       if (likely(m_cubeMapSurfaces[2] != nullptr)) {
-        BlitToD3D9CubeMap(m_cubeMap.ptr(), format, m_cubeMapSurfaces[2], mipCount);
+        BlitToD3D9CubeMap(m_cubeMap9.ptr(), format, m_cubeMapSurfaces[2], mipCount);
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Positive Y face is null, skpping");
       }
       if (likely(m_cubeMapSurfaces[3] != nullptr)) {
-        BlitToD3D9CubeMap(m_cubeMap.ptr(), format, m_cubeMapSurfaces[3], mipCount);
+        BlitToD3D9CubeMap(m_cubeMap9.ptr(), format, m_cubeMapSurfaces[3], mipCount);
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Negative Y face is null, skpping");
       }
       if (likely(m_cubeMapSurfaces[4] != nullptr)) {
-        BlitToD3D9CubeMap(m_cubeMap.ptr(), format, m_cubeMapSurfaces[4], mipCount);
+        BlitToD3D9CubeMap(m_cubeMap9.ptr(), format, m_cubeMapSurfaces[4], mipCount);
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Positive Z face is null, skpping");
       }
       if (likely(m_cubeMapSurfaces[5] != nullptr)) {
-        BlitToD3D9CubeMap(m_cubeMap.ptr(), format, m_cubeMapSurfaces[5], mipCount);
+        BlitToD3D9CubeMap(m_cubeMap9.ptr(), format, m_cubeMapSurfaces[5], mipCount);
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Negative Z face is null, skpping");
       }

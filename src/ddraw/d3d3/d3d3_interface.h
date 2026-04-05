@@ -20,10 +20,10 @@ namespace dxvk {
 
   public:
     D3D3Interface(
-        DDrawCommonInterface* commonIntf,
-        D3DCommonInterface* commonD3DIntf,
-        Com<IDirect3D>&& d3d3Intf,
-        IUnknown* pParent);
+          DDrawCommonInterface* commonIntf,
+          D3DCommonInterface* commonD3DIntf,
+          Com<IDirect3D>&& d3d3Intf,
+          IUnknown* pParent);
 
     ~D3D3Interface();
 

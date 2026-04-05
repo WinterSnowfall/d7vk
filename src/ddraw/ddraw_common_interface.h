@@ -217,10 +217,6 @@ namespace dxvk {
       return m_origin;
     }
 
-    bool IsOrigin(IUnknown* origin) const {
-      return m_origin == origin;
-    }
-
     void SetD3D7Device(D3D7Device* device7) {
       m_device7 = device7;
     }
