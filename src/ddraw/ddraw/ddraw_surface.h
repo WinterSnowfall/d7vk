@@ -171,6 +171,8 @@ namespace dxvk {
 
     inline HRESULT UploadSurfaceData();
 
+    inline HRESULT CreateDeviceInternal(REFIID riid, void** ppvObject);
+
     inline void RefreshD3D9Device() {
       d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
       if (unlikely(m_d3d9Device != d3d9Device)) {

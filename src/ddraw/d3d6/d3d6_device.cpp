@@ -153,11 +153,11 @@ namespace dxvk {
   // and not implemented in the IDirect3DDevice3 interface."
   HRESULT STDMETHODCALLTYPE D3D6Device::GetStats(D3DSTATS *stats) {
     Logger::debug(">>> D3D6Device::GetStats");
-    return E_NOTIMPL;
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::AddViewport(IDirect3DViewport3 *viewport) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::AddViewport");
 
@@ -175,7 +175,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DeleteViewport(IDirect3DViewport3 *viewport) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::DeleteViewport");
 
@@ -197,6 +197,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::NextViewport(IDirect3DViewport3 *lpDirect3DViewport, IDirect3DViewport3 **lplpAnotherViewport, DWORD flags) {
+    D3DDeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D6Device::NextViewport");
 
     if (unlikely(lplpAnotherViewport == nullptr))
@@ -321,7 +323,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::BeginScene() {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::BeginScene");
 
@@ -339,7 +341,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::EndScene() {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::EndScene");
 
@@ -384,7 +386,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::SetCurrentViewport(IDirect3DViewport3 *viewport) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::SetCurrentViewport");
 
@@ -414,7 +416,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetCurrentViewport(IDirect3DViewport3 **viewport) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::GetCurrentViewport");
 
@@ -432,7 +434,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::SetRenderTarget(IDirectDrawSurface4 *surface, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::SetRenderTarget");
 
@@ -521,7 +523,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetRenderTarget(IDirectDrawSurface4 **surface) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::GetRenderTarget");
 
@@ -534,6 +536,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::Begin(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, DWORD dwFlags) {
+    D3DDeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D6Device::Begin");
 
     // All FVF combinations are technically supported,
@@ -558,6 +562,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::Vertex(void *vertex) {
+    D3DDeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D6Device::Vertex");
 
     if (unlikely(vertex == nullptr))
@@ -583,6 +589,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::End(DWORD dwFlags) {
+    D3DDeviceLock lock = LockDevice();
+
     Logger::debug(">>> D3D6Device::End");
 
     HRESULT hr;
@@ -612,7 +620,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType, LPDWORD lpdwRenderState) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(str::format(">>> D3D6Device::GetRenderState: ", dwRenderStateType));
 
@@ -805,7 +813,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(str::format(">>> D3D6Device::SetRenderState: ", dwRenderStateType));
 
@@ -1155,7 +1163,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LPDWORD lpdwLightState) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::GetLightState");
 
@@ -1192,7 +1200,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DWORD dwLightState) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::SetLightState");
 
@@ -1270,7 +1278,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DrawPrimitive(D3DPRIMITIVETYPE primitive_type, DWORD vertex_type, void *vertices, DWORD vertex_count, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::DrawPrimitive");
 
@@ -1306,7 +1314,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE primitive_type, DWORD fvf, void *vertices, DWORD vertex_count, WORD *indices, DWORD index_count, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::DrawIndexedPrimitive");
 
@@ -1346,7 +1354,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::SetClipStatus(D3DCLIPSTATUS *clip_status) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::SetClipStatus");
 
@@ -1359,7 +1367,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetClipStatus(D3DCLIPSTATUS *clip_status) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::GetClipStatus");
 
@@ -1372,7 +1380,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DrawPrimitiveStrided(D3DPRIMITIVETYPE primitive_type, DWORD fvf, D3DDRAWPRIMITIVESTRIDEDDATA *strided_data, DWORD vertex_count, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::DrawPrimitiveStrided");
 
@@ -1411,7 +1419,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE primitive_type, DWORD fvf, D3DDRAWPRIMITIVESTRIDEDDATA *strided_data, DWORD vertex_count, WORD *indices, DWORD index_count, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::DrawIndexedPrimitiveStrided");
 
@@ -1454,7 +1462,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DrawPrimitiveVB(D3DPRIMITIVETYPE primitive_type, IDirect3DVertexBuffer *vb, DWORD start_vertex, DWORD vertex_count, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::DrawPrimitiveVB");
 
@@ -1497,7 +1505,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE primitive_type, IDirect3DVertexBuffer *vb, WORD *indices, DWORD index_count, DWORD flags) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::DrawIndexedPrimitiveVB");
 
@@ -1579,7 +1587,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetTexture(DWORD stage, IDirect3DTexture2 **texture) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::GetTexture");
 
@@ -1597,7 +1605,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::SetTexture(DWORD stage, IDirect3DTexture2 *texture) {
-    D3D6DeviceLock lock = LockDevice();
+    D3DDeviceLock lock = LockDevice();
 
     Logger::debug(">>> D3D6Device::SetTexture");
 

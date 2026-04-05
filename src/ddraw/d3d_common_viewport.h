@@ -2,7 +2,7 @@
 
 #include "ddraw_include.h"
 
-#include "d3d_common_light.h"
+#include "d3d_light.h"
 
 #include <vector>
 
