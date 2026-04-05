@@ -3,10 +3,10 @@
 #include "d3d6_device.h"
 #include "d3d6_buffer.h"
 #include "d3d6_material.h"
-#include "d3d6_multithread.h"
 #include "d3d6_viewport.h"
 
-#include "../d3d_common_light.h"
+#include "../d3d_light.h"
+#include "../d3d_multithread.h"
 
 #include "../ddraw4/ddraw4_interface.h"
 #include "../ddraw4/ddraw4_surface.h"
@@ -321,10 +321,10 @@ namespace dxvk {
 
     if (likely(!d3dOptions->forceSWVP)) {
       if (rclsid == IID_IDirect3DHALDevice) {
-        Logger::info("D3D6Interface::CreateDevice: Creating a IID_IDirect3DHALDevice device");
+        Logger::info("D3D6Interface::CreateDevice: Creating an IID_IDirect3DHALDevice device");
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
       } else if (rclsid == IID_IDirect3DRGBDevice) {
-        Logger::info("D3D6Interface::CreateDevice: Creating a IID_IDirect3DRGBDevice device");
+        Logger::info("D3D6Interface::CreateDevice: Creating an IID_IDirect3DRGBDevice device");
       } else if (rclsid == IID_IDirect3DMMXDevice) {
         Logger::warn("D3D6Interface::CreateDevice: Unsupported MMX device, falling back to RGB");
         rgbFallback = true;
@@ -408,6 +408,19 @@ namespace dxvk {
       Logger::info("D3D6Interface::CreateDevice: FSAA emulation is disabled");
     }
 
+    const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
+
+    if ((cooperativeLevel & DDSCL_MULTITHREADED) || d3dOptions->forceMultiThreaded) {
+      Logger::info("D3D6Interface::CreateDevice: Using thread safe runtime synchronization");
+      deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
+    }
+    // DDSCL_FPUPRESERVE does not exist prior to DDraw7,
+    // and DDSCL_FPUSETUP is NOT the default state
+    if (!(cooperativeLevel & DDSCL_FPUSETUP))
+      deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
+    if (cooperativeLevel & DDSCL_NOWINDOWCHANGES)
+      deviceCreationFlags9 |= D3DCREATE_NOWINDOWCHANGES;
+
     Logger::info(str::format("D3D6Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
 
     DWORD backBufferCount = 0;
@@ -426,7 +439,6 @@ namespace dxvk {
     // Consider the front buffer as well when reporting the overall count
     Logger::info(str::format("D3D6Interface::CreateDevice: Back buffer count: ", backBufferCount + 1));
 
-    const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
     // Always appears to be enabled when running in non-exclusive mode
     const bool vBlankStatus = m_commonIntf->GetWaitForVBlank();
 
@@ -445,15 +457,6 @@ namespace dxvk {
     params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // Needed for back buffer locks
     params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
-
-    if ((cooperativeLevel & DDSCL_MULTITHREADED) || d3dOptions->forceMultiThreaded)
-      deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
-    // DDSCL_FPUPRESERVE does not exist prior to DDraw7,
-    // and DDSCL_FPUSETUP is NOT the default state
-    if (!(cooperativeLevel & DDSCL_FPUSETUP))
-      deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
-    if (cooperativeLevel & DDSCL_NOWINDOWCHANGES)
-      deviceCreationFlags9 |= D3DCREATE_NOWINDOWCHANGES;
 
     Com<d3d9::IDirect3DDevice9> device9;
     hr = m_d3d9->CreateDevice(
@@ -558,7 +561,7 @@ namespace dxvk {
 
     D3D6Device* d3d6Device = m_commonIntf->GetD3D6Device();
     if (likely(d3d6Device != nullptr)) {
-      D3D6DeviceLock lock = d3d6Device->LockDevice();
+      D3DDeviceLock lock = d3d6Device->LockDevice();
 
       HRESULT hr9 = d3d6Device->GetD3D9()->EvictManagedResources();
       if (unlikely(FAILED(hr9))) {

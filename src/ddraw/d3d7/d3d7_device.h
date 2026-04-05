@@ -6,12 +6,12 @@
 #include "../ddraw_util.h"
 #include "../ddraw_caps.h"
 
+#include "../d3d_multithread.h"
 #include "../ddraw_common_interface.h"
 
 #include "../../d3d9/d3d9_bridge.h"
 
 #include "d3d7_interface.h"
-#include "d3d7_multithread.h"
 
 #include <array>
 #include <unordered_map>
@@ -139,7 +139,7 @@ namespace dxvk {
 
     HRESULT ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params);
 
-    D3D7DeviceLock LockDevice() {
+    D3DDeviceLock LockDevice() {
       return m_multithread.AcquireLock();
     }
 
@@ -195,7 +195,7 @@ namespace dxvk {
 
     Com<DxvkD3D8Bridge>         m_bridge;
 
-    D3D7Multithread             m_multithread;
+    D3DMultithread              m_multithread;
 
     d3d9::D3DPRESENT_PARAMETERS m_params9;
 
