@@ -58,9 +58,9 @@ namespace dxvk {
   public:
 
     D3D7StateBlock(
-            D3D7Device*                       pDevice,
-            D3D7StateBlockType                Type,
-            Com<d3d9::IDirect3DStateBlock9>&& pStateBlock);
+          D3D7Device*                       pDevice,
+          D3D7StateBlockType                Type,
+          Com<d3d9::IDirect3DStateBlock9>&& pStateBlock);
 
     D3D7StateBlock(D3D7Device* pDevice);
 

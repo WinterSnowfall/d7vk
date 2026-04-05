@@ -139,18 +139,6 @@ namespace dxvk {
       return m_device6 != nullptr || m_device5 != nullptr || m_device3 != nullptr;
     }
 
-    void SetOrigin(IUnknown* origin) {
-      m_origin = origin;
-    }
-
-    IUnknown* GetOrigin() const {
-      return m_origin;
-    }
-
-    bool IsOrigin(IUnknown* origin) const {
-      return m_origin == origin;
-    }
-
     D3DVECTOR* GetLegacyScale() {
       return &m_legacyScale;
     }
@@ -218,11 +206,10 @@ namespace dxvk {
     D3D5Viewport*       m_d3d5Viewport      = nullptr;
     D3D3Viewport*       m_d3d3Viewport      = nullptr;
 
+    // Track all devices this viewport is attached to
     D3D6Device*         m_device6           = nullptr;
     D3D5Device*         m_device5           = nullptr;
     D3D3Device*         m_device3           = nullptr;
-
-    IUnknown*           m_origin            = nullptr;
 
     std::vector<Com<D3DLight>> m_lights;
 
