@@ -2,9 +2,13 @@
 
 #include "ddraw_include.h"
 
-#include "d3d_common_interface.h"
+#include "d3d_common_light.h"
+
+#include <vector>
 
 namespace dxvk {
+
+  class D3DCommonInterface;
 
   class D3D6Viewport;
   class D3D5Viewport;
@@ -43,6 +47,10 @@ namespace dxvk {
 
     d3d9::D3DVIEWPORT9* GetD3D9Viewport() {
       return &m_viewport9;
+    }
+
+    std::vector<Com<D3DLight>>& GetLights() {
+      return m_lights;
     }
 
     void MarkViewportAsSet() {
@@ -215,6 +223,8 @@ namespace dxvk {
     D3D3Device*         m_device3           = nullptr;
 
     IUnknown*           m_origin            = nullptr;
+
+    std::vector<Com<D3DLight>> m_lights;
 
   };
 
