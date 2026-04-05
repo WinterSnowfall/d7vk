@@ -2,7 +2,7 @@
 
 #include "ddraw4_interface.h"
 
-#include "../ddraw/ddraw_gamma.h"
+#include "../ddraw_gamma.h"
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw2/ddraw2_surface.h"
 #include "../ddraw2/ddraw3_surface.h"
@@ -35,8 +35,6 @@ namespace dxvk {
       throw DxvkError("DDraw4Surface: ERROR! Failed to retrieve the common interface!");
     }
 
-    m_commonIntf->AddWrappedSurface(this);
-
     if (m_commonSurf == nullptr)
       m_commonSurf = new DDrawCommonSurface(m_commonIntf);
 
@@ -53,8 +51,7 @@ namespace dxvk {
       }
     }
 
-    if (m_commonSurf->GetOrigin() == nullptr)
-      m_commonSurf->SetOrigin(this);
+    m_commonIntf->AddWrappedSurface(this);
 
     m_commonSurf->SetDD4Surface(this);
 
@@ -70,10 +67,19 @@ namespace dxvk {
 
     m_surfCount = ++s_surfCount;
 
-    ListSurfaceDetails();
+    Logger::debug(str::format("DDraw4Surface: Created a new surface nr. [[4-", m_surfCount, "]]:"));
+
+    if (m_commonSurf->GetOrigin() == nullptr) {
+      m_commonSurf->SetOrigin(this);
+      m_commonSurf->SetIsAttached(m_parentSurf != nullptr);
+      m_commonSurf->ListSurfaceDetails();
+    }
   }
 
   DDraw4Surface::~DDraw4Surface() {
+    if (m_commonSurf->GetOrigin() == this)
+      m_commonSurf->SetOrigin(nullptr);
+
     m_commonIntf->RemoveWrappedSurface(this);
 
     // Release all public references on all attached surfaces
@@ -255,9 +261,10 @@ namespace dxvk {
     return hr;
   }
 
+  // Docs: "The IDirectDrawSurface4::AddOverlayDirtyRect method is not currently implemented."
   HRESULT STDMETHODCALLTYPE DDraw4Surface::AddOverlayDirtyRect(LPRECT lpRect) {
-    Logger::debug("<<< DDraw4Surface::AddOverlayDirtyRect: Proxy");
-    return m_proxy->AddOverlayDirtyRect(lpRect);
+    Logger::debug(">>> DDraw4Surface::AddOverlayDirtyRect");
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE4 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
@@ -376,7 +383,7 @@ namespace dxvk {
     return hr;
   }
 
-  // The docs state: "The IDirectDrawSurface4::BltBatch method is not currently implemented."
+  // Docs: "The IDirectDrawSurface4::BltBatch method is not currently implemented."
   HRESULT STDMETHODCALLTYPE DDraw4Surface::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags) {
     Logger::debug(">>> DDraw4Surface::BltBatch");
     return DDERR_UNSUPPORTED;
@@ -718,9 +725,19 @@ namespace dxvk {
     return DD_OK;
   }
 
+  // Blitting can be done at any time and completes within its call frame
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetBltStatus(DWORD dwFlags) {
-    Logger::debug("<<< DDraw4Surface::GetBltStatus: Proxy");
-    return m_proxy->GetBltStatus(dwFlags);
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("<<< DDraw4Surface::GetBltStatus: Proxy");
+      m_proxy->GetBltStatus(dwFlags);
+    }
+
+    Logger::debug(">>> DDraw4Surface::GetBltStatus");
+
+    if (likely(dwFlags == DDGBS_CANBLT || dwFlags == DDGBS_ISBLTDONE))
+      return DD_OK;
+
+    return DDERR_INVALIDPARAMS;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetCaps(LPDDSCAPS2 lpDDSCaps) {
@@ -787,9 +804,19 @@ namespace dxvk {
     return m_proxy->GetDC(lphDC);
   }
 
+  // Flipping can be done at any time and completes within its call frame
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetFlipStatus(DWORD dwFlags) {
-    Logger::debug("<<< DDraw4Surface::GetFlipStatus: Proxy");
-    return m_proxy->GetFlipStatus(dwFlags);
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("<<< DDraw4Surface::GetFlipStatus: Proxy");
+      m_proxy->GetFlipStatus(dwFlags);
+    }
+
+    Logger::debug(">>> DDraw4Surface::GetFlipStatus");
+
+    if (likely(dwFlags == DDGFS_CANFLIP || dwFlags == DDGFS_ISFLIPDONE))
+      return DD_OK;
+
+    return DDERR_INVALIDPARAMS;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetOverlayPosition(LPLONG lplX, LPLONG lplY) {
@@ -1038,9 +1065,10 @@ namespace dxvk {
     return m_proxy->UpdateOverlay(lpSrcRect, ddraw4Surface->GetProxied(), lpDestRect, dwFlags, lpDDOverlayFx);
   }
 
+  // Docs: "The IDirectDrawSurface4::UpdateOverlayDisplay method is not currently implemented."
   HRESULT STDMETHODCALLTYPE DDraw4Surface::UpdateOverlayDisplay(DWORD dwFlags) {
-    Logger::debug("<<< DDraw4Surface::UpdateOverlayDisplay: Proxy");
-    return m_proxy->UpdateOverlayDisplay(dwFlags);
+    Logger::debug(">>> DDraw4Surface::UpdateOverlayDisplay");
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE4 lpDDSReference) {
@@ -1128,14 +1156,22 @@ namespace dxvk {
     return m_proxy->FreePrivateData(tag);
   }
 
+  // Docs: "The only defined uniqueness value is 0, indicating that the surface
+  // is likely to be changing beyond the control of DirectDraw."
   HRESULT STDMETHODCALLTYPE DDraw4Surface::GetUniquenessValue(LPDWORD pValue) {
-    Logger::debug("<<< DDraw4Surface::GetUniquenessValue: Proxy");
-    return m_proxy->GetUniquenessValue(pValue);
+    Logger::debug(">>> DDraw4Surface::GetUniquenessValue");
+
+    if (unlikely(pValue == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    *pValue = 0;
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::ChangeUniquenessValue() {
-    Logger::debug("<<< Called DDraw4Surface::ChangeUniquenessValue: Proxy");
-    return m_proxy->ChangeUniquenessValue();
+    Logger::debug(">>> DDraw4Surface::ChangeUniquenessValue");
+    return DD_OK;
   }
 
   HRESULT DDraw4Surface::InitializeD3D9RenderTarget() {

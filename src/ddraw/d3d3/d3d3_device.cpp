@@ -15,13 +15,13 @@ namespace dxvk {
   uint32_t D3D3Device::s_deviceCount = 0;
 
   D3D3Device::D3D3Device(
-      Com<IDirect3DDevice>&& d3d3DeviceProxy,
-      DDrawSurface* pParent,
-      D3DDEVICEDESC3 Desc,
-      GUID deviceGUID,
-      d3d9::D3DPRESENT_PARAMETERS Params9,
-      Com<d3d9::IDirect3DDevice9>&& pDevice9,
-      DWORD CreationFlags9)
+        Com<IDirect3DDevice>&& d3d3DeviceProxy,
+        DDrawSurface* pParent,
+        D3DDEVICEDESC3 Desc,
+        GUID deviceGUID,
+        d3d9::D3DPRESENT_PARAMETERS Params9,
+        Com<d3d9::IDirect3DDevice9>&& pDevice9,
+        DWORD CreationFlags9)
     : DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9>(pParent, std::move(d3d3DeviceProxy), std::move(pDevice9))
     , m_commonIntf ( pParent->GetCommonInterface() )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )

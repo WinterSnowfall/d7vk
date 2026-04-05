@@ -11,9 +11,9 @@ namespace dxvk {
   uint32_t D3D5Material::s_materialCount = 0;
 
   D3D5Material::D3D5Material(
-      Com<IDirect3DMaterial2>&& proxyMaterial,
-      D3D5Interface* pParent,
-      D3DMATERIALHANDLE handle)
+        Com<IDirect3DMaterial2>&& proxyMaterial,
+        D3D5Interface* pParent,
+        D3DMATERIALHANDLE handle)
     : DDrawWrappedObject<D3D5Interface, IDirect3DMaterial2, IUnknown>(pParent, std::move(proxyMaterial), nullptr) {
     m_commonMaterial = new D3DCommonMaterial(handle);
 

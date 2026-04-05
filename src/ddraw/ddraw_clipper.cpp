@@ -1,7 +1,5 @@
 #include "ddraw_clipper.h"
 
-#include "ddraw_interface.h"
-
 namespace dxvk {
 
   DDrawClipper::DDrawClipper(

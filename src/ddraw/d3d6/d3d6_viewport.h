@@ -16,7 +16,10 @@ namespace dxvk {
 
   public:
 
-    D3D6Viewport(D3DCommonViewport* commonViewport, Com<IDirect3DViewport3>&& proxyViewport, D3D6Interface* pParent);
+    D3D6Viewport(
+          D3DCommonViewport* commonViewport,
+          Com<IDirect3DViewport3>&& proxyViewport,
+          D3D6Interface* pParent);
 
     ~D3D6Viewport();
 
