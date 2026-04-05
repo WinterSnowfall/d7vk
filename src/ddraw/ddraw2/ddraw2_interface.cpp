@@ -1,5 +1,8 @@
 #include "ddraw2_interface.h"
 
+#include "../ddraw_clipper.h"
+#include "../ddraw_palette.h"
+
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw/ddraw_interface.h"
 #include "../ddraw4/ddraw4_interface.h"
@@ -14,14 +17,13 @@ namespace dxvk {
   uint32_t DDraw2Interface::s_intfCount = 0;
 
   DDraw2Interface::DDraw2Interface(
-      DDrawCommonInterface* commonIntf,
-      Com<IDirectDraw2>&& proxyIntf,
-      DDrawInterface* pParent,
-      bool needsInitialization)
+        DDrawCommonInterface* commonIntf,
+        Com<IDirectDraw2>&& proxyIntf,
+        DDrawInterface* pParent,
+        bool needsInitialization)
     : DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown>(pParent, std::move(proxyIntf), nullptr)
     , m_needsInitialization ( needsInitialization )
-    , m_commonIntf ( commonIntf )
-    , m_parentIntf ( pParent ) {
+    , m_commonIntf ( commonIntf ) {
 
     if (m_commonIntf->GetOrigin() == nullptr)
       m_commonIntf->SetOrigin(this);
@@ -440,9 +442,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes) {
     Logger::debug(">>> DDraw2Interface::GetFourCCCodes");
 
-    // TODO: Check passed lpNumCodes size is larger than NumberOfFOURCCCodes
     if (likely(lpNumCodes != nullptr && lpCodes != nullptr)) {
-      for (uint8_t i = 0; i < ddrawCaps::NumberOfFOURCCCodes; i++) {
+      const uint32_t copyNumCodes = std::min<uint32_t>(ddrawCaps::NumberOfFOURCCCodes, *lpNumCodes);
+      for (uint32_t i = 0; i < copyNumCodes; i++) {
         lpCodes[i] = ddrawCaps::SupportedFourCCs[i];
       }
     }
@@ -455,7 +457,33 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetGDISurface(LPDIRECTDRAWSURFACE *lplpGDIDDSurface) {
     Logger::debug("<<< DDraw2Interface::GetGDISurface: Proxy");
-    return m_proxy->GetGDISurface(lplpGDIDDSurface);
+
+    if(unlikely(lplpGDIDDSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    InitReturnPtr(lplpGDIDDSurface);
+
+    Com<IDirectDrawSurface> gdiSurface;
+    HRESULT hr = m_proxy->GetGDISurface(&gdiSurface);
+
+    if (unlikely(FAILED(hr))) {
+      Logger::debug("DDraw2Interface::GetGDISurface: Failed to retrieve GDI surface");
+      return hr;
+    }
+
+    if (unlikely(m_commonIntf->IsWrappedSurface(gdiSurface.ptr()))) {
+      *lplpGDIDDSurface = gdiSurface.ref();
+    } else {
+      Logger::debug("DDraw2Interface::GetGDISurface: Received a non-wrapped GDI surface");
+      try {
+        *lplpGDIDDSurface = ref(new DDrawSurface(nullptr, std::move(gdiSurface), m_commonIntf->GetDDInterface(), nullptr, false));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetMonitorFrequency(LPDWORD lpdwFrequency) {
@@ -530,8 +558,30 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
-    Logger::debug("<<< DDraw2Interface::WaitForVerticalBlank: Proxy");
-    return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("<<< DDraw2Interface::WaitForVerticalBlank: Proxy");
+      m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+    }
+
+    Logger::debug(">>> DDraw2Interface::WaitForVerticalBlank");
+
+    if (unlikely(dwFlags & DDWAITVB_BLOCKBEGINEVENT))
+      return DDERR_UNSUPPORTED;
+
+    // Switch to a default presentation interval when an application
+    // tries to wait for vertical blank, if we're not already doing so
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
+    if (unlikely(d3d9Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
+      Logger::info("DDraw2Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
+
+      d3d9::D3DPRESENT_PARAMETERS resetParams = m_commonIntf->GetPresentParameters();
+      resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+      HRESULT hrReset = m_commonIntf->ResetD3D9Swapchain(&resetParams);
+      if (likely(SUCCEEDED(hrReset)))
+        m_commonIntf->SetWaitForVBlank(true);
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetAvailableVidMem(LPDDSCAPS lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree) {

@@ -2,6 +2,9 @@
 
 #include "ddraw7_surface.h"
 
+#include "../ddraw_clipper.h"
+#include "../ddraw_palette.h"
+
 #include "../ddraw/ddraw_interface.h"
 #include "../ddraw2/ddraw2_interface.h"
 #include "../ddraw4/ddraw4_interface.h"
@@ -14,9 +17,9 @@ namespace dxvk {
   uint32_t DDraw7Interface::s_intfCount = 0;
 
   DDraw7Interface::DDraw7Interface(
-      DDrawCommonInterface* commonIntf,
-      Com<IDirectDraw7>&& proxyIntf,
-      bool needsInitialization)
+        DDrawCommonInterface* commonIntf,
+        Com<IDirectDraw7>&& proxyIntf,
+        bool needsInitialization)
     : DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
     , m_needsInitialization ( needsInitialization )
     , m_commonIntf ( commonIntf ) {
@@ -440,9 +443,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes) {
     Logger::debug(">>> DDraw7Interface::GetFourCCCodes");
 
-    // TODO: Check passed lpNumCodes size is larger than NumberOfFOURCCCodes
     if (likely(lpNumCodes != nullptr && lpCodes != nullptr)) {
-      for (uint8_t i = 0; i < ddrawCaps::NumberOfFOURCCCodes; i++) {
+      const uint32_t copyNumCodes = std::min<uint32_t>(ddrawCaps::NumberOfFOURCCCodes, *lpNumCodes);
+      for (uint32_t i = 0; i < copyNumCodes; i++) {
         lpCodes[i] = ddrawCaps::SupportedFourCCs[i];
       }
     }
@@ -556,31 +559,30 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
-    Logger::debug("<<< DDraw7Interface::WaitForVerticalBlank: Proxy");
-
-    HRESULT hr = m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
-    if (unlikely(FAILED(hr)))
-      return hr;
-
-    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
-      // Switch to a default presentation interval when an application
-      // tries to wait for vertical blank, if we're not already doing so
-      d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
-      if (unlikely(d3d9Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
-        Logger::info("DDraw7Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
-
-        d3d9::D3DPRESENT_PARAMETERS resetParams = m_commonIntf->GetPresentParameters();
-        resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
-        HRESULT hrReset = m_commonIntf->ResetD3D9Swapchain(&resetParams);
-        if (unlikely(FAILED(hrReset))) {
-          Logger::warn("DDraw7Interface::WaitForVerticalBlank: Failed D3D9 swapchain reset");
-        } else {
-          m_commonIntf->SetWaitForVBlank(true);
-        }
-      }
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("<<< DDraw7Interface::WaitForVerticalBlank: Proxy");
+      m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
     }
 
-    return hr;
+    Logger::debug(">>> DDraw7Interface::WaitForVerticalBlank");
+
+    if (unlikely(dwFlags & DDWAITVB_BLOCKBEGINEVENT))
+      return DDERR_UNSUPPORTED;
+
+    // Switch to a default presentation interval when an application
+    // tries to wait for vertical blank, if we're not already doing so
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
+    if (unlikely(d3d9Device != nullptr && !m_commonIntf->GetWaitForVBlank())) {
+      Logger::info("DDraw7Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
+
+      d3d9::D3DPRESENT_PARAMETERS resetParams = m_commonIntf->GetPresentParameters();
+      resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+      HRESULT hrReset = m_commonIntf->ResetD3D9Swapchain(&resetParams);
+      if (likely(SUCCEEDED(hrReset)))
+        m_commonIntf->SetWaitForVBlank(true);
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetAvailableVidMem(LPDDSCAPS2 lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree) {
@@ -682,8 +684,20 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::TestCooperativeLevel() {
-    Logger::debug("<<< DDraw7Interface::TestCooperativeLevel: Proxy");
-    return m_proxy->TestCooperativeLevel();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
+
+    if (unlikely(d3d9Device == nullptr)) {
+      Logger::debug("<<< DDraw7Interface::TestCooperativeLevel: Proxy");
+      return m_proxy->TestCooperativeLevel();
+    }
+
+    Logger::debug(">>> DDraw7Interface::TestCooperativeLevel");
+
+    HRESULT hr = d3d9Device->TestCooperativeLevel();
+    if (unlikely(FAILED(hr)))
+      return DDERR_NOEXCLUSIVEMODE;
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetDeviceIdentifier(LPDDDEVICEIDENTIFIER2 pDDDI, DWORD dwFlags) {
@@ -731,13 +745,20 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::StartModeTest(LPSIZE pModes, DWORD dwNumModes, DWORD dwFlags) {
-    Logger::debug("<<< DDraw7Interface::StartModeTest: Proxy");
-    return m_proxy->StartModeTest(pModes, dwNumModes, dwFlags);
+    Logger::warn("!!! DDraw7Interface::StartModeTest: Stub");
+
+    if (unlikely(!dwNumModes))
+      return DD_OK;
+
+    if (unlikely(pModes == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::EvaluateMode(DWORD dwFlags, DWORD* pTimeout) {
-    Logger::debug("<<< DDraw7Interface::EvaluateMode: Proxy");
-    return m_proxy->EvaluateMode(dwFlags, pTimeout);
+    Logger::warn("!!! DDraw7Interface::EvaluateMode: Stub");
+    return DD_OK;
   }
 
 }

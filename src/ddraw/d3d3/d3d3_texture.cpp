@@ -8,7 +8,10 @@ namespace dxvk {
 
   uint32_t D3D3Texture::s_texCount = 0;
 
-  D3D3Texture::D3D3Texture(Com<IDirect3DTexture>&& proxyTexture, DDrawSurface* pParent, D3DTEXTUREHANDLE handle)
+  D3D3Texture::D3D3Texture(
+        Com<IDirect3DTexture>&& proxyTexture,
+        DDrawSurface* pParent,
+        D3DTEXTUREHANDLE handle)
     : DDrawWrappedObject<DDrawSurface, IDirect3DTexture, IUnknown>(pParent, std::move(proxyTexture), nullptr) {
     m_commonTex = new D3DCommonTexture(m_parent->GetCommonSurface(), handle);
 
