@@ -2,7 +2,8 @@
 
 #include "d3d7_device.h"
 #include "d3d7_buffer.h"
-#include "d3d7_multithread.h"
+
+#include "../d3d_multithread.h"
 
 #include "../ddraw7/ddraw7_interface.h"
 #include "../ddraw7/ddraw7_surface.h"
@@ -174,13 +175,13 @@ namespace dxvk {
 
     if (likely(!d3dOptions->forceSWVP)) {
       if (rclsid == IID_IDirect3DTnLHalDevice) {
-        Logger::info("D3D7Interface::CreateDevice: Creating a IID_IDirect3DTnLHalDevice device");
+        Logger::info("D3D7Interface::CreateDevice: Creating an IID_IDirect3DTnLHalDevice device");
         deviceCreationFlags9 = D3DCREATE_HARDWARE_VERTEXPROCESSING;
       } else if (rclsid == IID_IDirect3DHALDevice) {
-        Logger::info("D3D7Interface::CreateDevice: Creating a IID_IDirect3DHALDevice device");
+        Logger::info("D3D7Interface::CreateDevice: Creating an IID_IDirect3DHALDevice device");
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
       } else if (rclsid == IID_IDirect3DRGBDevice) {
-        Logger::info("D3D7Interface::CreateDevice: Creating a IID_IDirect3DRGBDevice device");
+        Logger::info("D3D7Interface::CreateDevice: Creating an IID_IDirect3DRGBDevice device");
       } else {
         Logger::warn("D3D7Interface::CreateDevice: Unsupported device type, falling back to RGB");
         Logger::warn(str::format(rclsid));
@@ -260,6 +261,20 @@ namespace dxvk {
       Logger::info("D3D7Interface::CreateDevice: FSAA emulation is disabled");
     }
 
+    const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
+
+    if ((cooperativeLevel & DDSCL_MULTITHREADED) || d3dOptions->forceMultiThreaded) {
+      Logger::info("D3D7Interface::CreateDevice: Using thread safe runtime synchronization");
+      deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
+    }
+    // DDSCL_FPUSETUP was used exclusively prior to DDraw7 and had the opposite effect
+    // to DDSCL_FPUPRESERVE. It is still present in DDraw7, now as the default state.
+    // Some D3D7 applications still specify it explicitly, so account for that regardless.
+    if (!(cooperativeLevel & DDSCL_FPUSETUP) && (cooperativeLevel & DDSCL_FPUPRESERVE))
+      deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
+    if (cooperativeLevel & DDSCL_NOWINDOWCHANGES)
+      deviceCreationFlags9 |= D3DCREATE_NOWINDOWCHANGES;
+
     Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
 
     DWORD backBufferCount = 0;
@@ -278,7 +293,6 @@ namespace dxvk {
     // Consider the front buffer as well when reporting the overall count
     Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer count: ", backBufferCount + 1));
 
-    const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
     // Always appears to be enabled when running in non-exclusive mode
     const bool vBlankStatus = m_commonIntf->GetWaitForVBlank();
 
@@ -297,16 +311,6 @@ namespace dxvk {
     params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // Needed for back buffer locks
     params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
-
-    if ((cooperativeLevel & DDSCL_MULTITHREADED) || d3dOptions->forceMultiThreaded)
-      deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
-    // DDSCL_FPUSETUP was used exclusively prior to DDraw7 and had the opposite effect
-    // to DDSCL_FPUPRESERVE. It is still present in DDraw7, now as the default state.
-    // Some D3D7 applications still specify it explicitly, so account for that regardless.
-    if (!(cooperativeLevel & DDSCL_FPUSETUP) && (cooperativeLevel & DDSCL_FPUPRESERVE))
-      deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
-    if (cooperativeLevel & DDSCL_NOWINDOWCHANGES)
-      deviceCreationFlags9 |= D3DCREATE_NOWINDOWCHANGES;
 
     Com<d3d9::IDirect3DDevice9> device9;
     hr = m_d3d9->CreateDevice(
@@ -409,7 +413,7 @@ namespace dxvk {
 
     D3D7Device* d3d7Device = m_commonIntf->GetD3D7Device();
     if (likely(d3d7Device != nullptr)) {
-      D3D7DeviceLock lock = d3d7Device->LockDevice();
+      D3DDeviceLock lock = d3d7Device->LockDevice();
 
       HRESULT hr9 = d3d7Device->GetD3D9()->EvictManagedResources();
       if (unlikely(FAILED(hr9))) {

@@ -2,7 +2,7 @@
 
 #include "d3d6_device.h"
 
-#include "../d3d_common_light.h"
+#include "../d3d_light.h"
 #include "../d3d_common_material.h"
 
 #include "../ddraw4/ddraw4_surface.h"
