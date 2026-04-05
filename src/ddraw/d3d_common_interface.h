@@ -78,8 +78,7 @@ namespace dxvk {
     D3D5Interface*    m_d3d5Intf       = nullptr;
     D3D3Interface*    m_d3d3Intf       = nullptr;
 
-    D3DMATERIALHANDLE m_materialHandle = 0;
-
+    std::atomic<D3DMATERIALHANDLE> m_materialHandle = 0;
     std::unordered_map<D3DMATERIALHANDLE, D3DCommonMaterial*> m_materials;
 
   };

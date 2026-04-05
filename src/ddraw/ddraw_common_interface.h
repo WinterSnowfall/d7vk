@@ -314,7 +314,7 @@ namespace dxvk {
     std::vector<IDirectDrawSurface2*> m_surfaces2;
     std::vector<IDirectDrawSurface*>  m_surfaces;
 
-    D3DTEXTUREHANDLE                  m_textureHandle = 0;
+    std::atomic<D3DTEXTUREHANDLE>     m_textureHandle = 0;
     std::unordered_map<D3DTEXTUREHANDLE, D3DCommonTexture*> m_textures;
 
   };
