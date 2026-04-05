@@ -568,8 +568,17 @@ namespace dxvk {
               continue;
 
             hr = m_d3d9->SetTransform(ConvertTransformState(s.dtstTransformStateType), &matrix);
-            if (unlikely(FAILED(hr)))
+            if (likely(SUCCEEDED(hr))) {
+              if (s.dtstTransformStateType == D3DTRANSFORMSTATE_WORLD) {
+                m_worldHandle = s.dwArg[0];
+              } else if (s.dtstTransformStateType == D3DTRANSFORMSTATE_VIEW) {
+                m_viewHandle = s.dwArg[0];
+              } else if (s.dtstTransformStateType == D3DTRANSFORMSTATE_PROJECTION) {
+                m_projectionHandle = s.dwArg[0];
+              }
+            } else {
               Logger::warn("D3D3Device::Execute: Failed to set D3D9 transform");
+            }
           }
 
           break;
@@ -659,6 +668,23 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
+    // Update D3D9 transforms if the updated matrix is in use
+    D3DTRANSFORMSTATETYPE transformType = D3DTRANSFORMSTATETYPE(0);
+
+    if (m_worldHandle == handle) {
+      transformType = D3DTRANSFORMSTATE_WORLD;
+    } else if (m_viewHandle == handle) {
+      transformType = D3DTRANSFORMSTATE_VIEW;
+    } else if (m_projectionHandle == handle) {
+      transformType = D3DTRANSFORMSTATE_PROJECTION;
+    }
+
+    if (transformType) {
+      HRESULT hr = m_d3d9->SetTransform(ConvertTransformState(transformType), matrix);
+      if (unlikely(FAILED(hr)))
+        Logger::warn("D3D3Device::SetMatrix: Failed to update D3D9 transform");
+    }
+
     return D3D_OK;
   }
 
@@ -690,6 +716,14 @@ namespace dxvk {
     } else {
       Logger::warn("D3D3Device::DeleteMatrix: Matrix not found");
       return DDERR_INVALIDPARAMS;
+    }
+
+    if (m_worldHandle == D3DMatHandle) {
+      m_worldHandle = 0;
+    } else if (m_viewHandle == D3DMatHandle) {
+      m_viewHandle = 0;
+    } else if (m_projectionHandle == D3DMatHandle) {
+      m_projectionHandle = 0;
     }
 
     return D3D_OK;
