@@ -2,7 +2,7 @@
 
 #include "../ddraw_util.h"
 
-#include "d3d7_multithread.h"
+#include "../d3d_multithread.h"
 
 #include "../ddraw7/ddraw7_interface.h"
 
@@ -141,7 +141,7 @@ namespace dxvk {
         return hrInit;
     }
 
-    D3D7DeviceLock lock = device->LockDevice();
+    D3DDeviceLock lock = device->LockDevice();
 
     HandlePreProcessVerticesFlags(dwVertexOp);
 
@@ -181,7 +181,7 @@ namespace dxvk {
         return hrInit;
     }
 
-    D3D7DeviceLock lock = device->LockDevice();
+    D3DDeviceLock lock = device->LockDevice();
 
     HandlePreProcessVerticesFlags(dwVertexOp);
 
