@@ -112,6 +112,14 @@ namespace dxvk {
              m_d3dOptions.backBufferGuard == D3DBackBufferGuard::Disabled ? false : m_hasDrawn;
     }
 
+    void MarkAsInitialized() {
+      m_isInitialized = true;
+    }
+
+    bool IsInitialized() const {
+      return m_isInitialized;
+    }
+
     void UpdateDrawTracking() {
       if (unlikely(!m_hasDrawn))
         m_hasDrawn = true;
@@ -268,6 +276,7 @@ namespace dxvk {
 
   private:
 
+    bool                              m_isInitialized      = false;
     // Track draw state on the common interface, since the back buffer
     // guard should protect against global blits, not device specific ones
     bool                              m_hasDrawn           = false;

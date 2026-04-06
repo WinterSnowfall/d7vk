@@ -22,8 +22,7 @@ namespace dxvk {
   public:
     DDrawInterface(
           DDrawCommonInterface* commonIntf,
-          Com<IDirectDraw>&& proxyIntf,
-          bool needsInitialization);
+          Com<IDirectDraw>&& proxyIntf);
 
     ~DDrawInterface();
 
@@ -74,9 +73,6 @@ namespace dxvk {
     }
 
   private:
-
-    bool                      m_needsInitialization = false;
-    bool                      m_isInitialized       = false;
 
     static uint32_t           s_intfCount;
     uint32_t                  m_intfCount  = 0;
