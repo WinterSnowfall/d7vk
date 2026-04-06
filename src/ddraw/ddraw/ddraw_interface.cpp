@@ -19,10 +19,8 @@ namespace dxvk {
 
   DDrawInterface::DDrawInterface(
         DDrawCommonInterface* commonIntf,
-        Com<IDirectDraw>&& proxyIntf,
-        bool needsInitialization)
+        Com<IDirectDraw>&& proxyIntf)
     : DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
-    , m_needsInitialization ( needsInitialization )
     , m_commonIntf ( commonIntf ) {
 
     if (m_commonIntf == nullptr) {
@@ -153,8 +151,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           this, m_needsInitialization));
+      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
 
       return S_OK;
     }
@@ -172,8 +169,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           this, m_needsInitialization));
+      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
 
       return S_OK;
     }
@@ -191,7 +187,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_needsInitialization));
+      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
 
       return S_OK;
     }
@@ -234,7 +230,7 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this, false));
+      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this));
     } else {
       Logger::warn("DDrawInterface::CreateClipper: Failed to create proxy clipper");
       return hr;
@@ -530,13 +526,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawInterface::Initialize(GUID* lpGUID) {
     Logger::debug(">>> DDrawInterface::Initialize");
 
-    // Needed for interfaces crated via GetProxiedDDrawModule()
-    if (unlikely(m_needsInitialization && !m_isInitialized)) {
-      m_isInitialized = true;
-      return DD_OK;
-    }
+    if (unlikely(m_commonIntf->IsInitialized()))
+      return DDERR_ALREADYINITIALIZED;
 
-    return DDERR_ALREADYINITIALIZED;
+    m_commonIntf->MarkAsInitialized();
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::RestoreDisplayMode() {
