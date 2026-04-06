@@ -386,6 +386,10 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
+    static constexpr DWORD Megabytes = 1024 * 1024;
+    static constexpr DWORD MaxMemory = ddrawCaps::MaxTextureMemory * Megabytes;
+    static constexpr DWORD ReservedMemory = ddrawCaps::ReservedTextureMemory * Megabytes;
+
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
     // Properly fill in the dwVidMemTotal / dwVidMemFree fields
     DWORD total9 = 0;
@@ -398,13 +402,16 @@ namespace dxvk {
       total9 = static_cast<DWORD>(m_commonIntf->GetTotalTextureMemory());
       free9  = static_cast<DWORD>(d3d9Device->GetAvailableTextureMem());
 
+      if (likely(total9 >= MaxMemory)) {
+        const DWORD delta = total9 - MaxMemory;
+        total9 = MaxMemory - ReservedMemory;
+        free9 = free9 > delta + ReservedMemory ? free9 - (delta + ReservedMemory) : 0;
+      }
+
       Logger::debug(str::format("DDrawInterface::GetCaps: Total: ", total9));
       Logger::debug(str::format("DDrawInterface::GetCaps: Free : ", free9));
     } else {
       Logger::debug("DDrawInterface::GetCaps: Getting memory stats from DDraw");
-
-      static constexpr DWORD Megabytes = 1024 * 1024;
-      static constexpr DWORD ReservedMemory = 8 * Megabytes;
 
       const DWORD total3 = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemTotal : 0;
       const DWORD free3  = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemFree  : 0;
@@ -412,14 +419,12 @@ namespace dxvk {
       Logger::debug(str::format("DDrawInterface::GetCaps: DDraw Total: ", total3));
       Logger::debug(str::format("DDrawInterface::GetCaps: DDraw Free : ", free3));
 
-      total9 = static_cast<DWORD>(d3dOptions->maxAvailableMemory) * Megabytes;
-
-      if (unlikely(total9 >= total3)) {
+      if (unlikely(total3 < MaxMemory)) {
         total9 = total3;
         free9 = free3;
       } else {
-        const DWORD delta = total3 - total9;
-        total9 -= ReservedMemory;
+        const DWORD delta = total3 - MaxMemory;
+        total9 = MaxMemory - ReservedMemory;
         free9 = free3 > delta + ReservedMemory ? free3 - (delta + ReservedMemory) : 0;
       }
 
