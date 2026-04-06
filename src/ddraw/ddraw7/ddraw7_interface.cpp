@@ -18,10 +18,8 @@ namespace dxvk {
 
   DDraw7Interface::DDraw7Interface(
         DDrawCommonInterface* commonIntf,
-        Com<IDirectDraw7>&& proxyIntf,
-        bool needsInitialization)
+        Com<IDirectDraw7>&& proxyIntf)
     : DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
-    , m_needsInitialization ( needsInitialization )
     , m_commonIntf ( commonIntf ) {
     // We need a temporary D3D9 interface at this point to retrieve the
     // adapter identifier, as well as (potentially) the options through a bridge
@@ -118,7 +116,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject), false));
+      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
 
       return S_OK;
     }
@@ -135,8 +133,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           m_commonIntf->GetDDInterface(), false));
+      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
 
       return S_OK;
     }
@@ -153,8 +150,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           m_commonIntf->GetDDInterface(), false));
+      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
 
       return S_OK;
     }
@@ -197,7 +193,7 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this, false));
+      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this));
     } else {
       Logger::warn("DDraw7Interface::CreateClipper: Failed to create proxy clipper");
       return hr;
@@ -505,13 +501,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::Initialize(GUID* lpGUID) {
     Logger::debug(">>> DDraw7Interface::Initialize");
 
-    // Needed for interfaces crated via GetProxiedDDrawModule()
-    if (unlikely(m_needsInitialization && !m_isInitialized)) {
-      m_isInitialized = true;
-      return DD_OK;
-    }
+    if (unlikely(m_commonIntf->IsInitialized()))
+      return DDERR_ALREADYINITIALIZED;
 
-    return DDERR_ALREADYINITIALIZED;
+    m_commonIntf->MarkAsInitialized();
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::RestoreDisplayMode() {
