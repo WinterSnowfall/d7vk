@@ -11,8 +11,7 @@ namespace dxvk {
 
     DDrawClipper(
           Com<IDirectDrawClipper>&& clipperProxy,
-          IUnknown* pParent,
-          bool needsInitialization);
+          IUnknown* pParent);
 
     ~DDrawClipper();
 
@@ -30,7 +29,6 @@ namespace dxvk {
 
   private:
 
-    bool m_needsInitialization = false;
     bool m_isInitialized       = false;
 
   };

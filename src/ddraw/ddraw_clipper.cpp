@@ -4,10 +4,8 @@ namespace dxvk {
 
   DDrawClipper::DDrawClipper(
         Com<IDirectDrawClipper>&& clipperProxy,
-        IUnknown* pParent,
-        bool needsInitialization)
-    : DDrawWrappedObject<IUnknown, IDirectDrawClipper, IUnknown>(pParent, std::move(clipperProxy), nullptr)
-    , m_needsInitialization ( needsInitialization ) {
+        IUnknown* pParent)
+    : DDrawWrappedObject<IUnknown, IDirectDrawClipper, IUnknown>(pParent, std::move(clipperProxy), nullptr) {
     Logger::debug("DDrawClipper: Created a new clipper");
   }
 
@@ -28,13 +26,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags) {
     Logger::debug(">>> DDrawClipper::Initialize");
 
-    // Needed for interfaces crated via GetProxiedDDrawModule()
-    if (unlikely(m_needsInitialization && !m_isInitialized)) {
-      m_isInitialized = true;
-      return DD_OK;
-    }
+    if (unlikely(m_isInitialized))
+      return DDERR_ALREADYINITIALIZED;
 
-    return DDERR_ALREADYINITIALIZED;
+    m_isInitialized = true;
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, LPDWORD lpdwSize) {
