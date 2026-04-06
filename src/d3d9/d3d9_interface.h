@@ -166,7 +166,6 @@ namespace dxvk {
       m_isD3D5Compatible = true;
       m_isD3D6Compatible = true;
       m_isD3D7Compatible = true;
-      // D3D8 specific limitations and quirks are also very much in effect
       m_isD3D8Compatible = true;
       RefreshAdapterFormatTables();
       Logger::info("The D3D9 interface is now operating in D3D3 compatibility mode.");
@@ -177,7 +176,6 @@ namespace dxvk {
       m_isD3D5Compatible = true;
       m_isD3D6Compatible = true;
       m_isD3D7Compatible = true;
-      // D3D8 specific limitations and quirks are also very much in effect
       m_isD3D8Compatible = true;
       RefreshAdapterFormatTables();
       Logger::info("The D3D9 interface is now operating in D3D5 compatibility mode.");
@@ -188,7 +186,6 @@ namespace dxvk {
       m_isD3D5Compatible = false;
       m_isD3D6Compatible = true;
       m_isD3D7Compatible = true;
-      // D3D8 specific limitations and quirks are also very much in effect
       m_isD3D8Compatible = true;
       RefreshAdapterFormatTables();
       Logger::info("The D3D9 interface is now operating in D3D6 compatibility mode.");
@@ -199,7 +196,6 @@ namespace dxvk {
       m_isD3D5Compatible = false;
       m_isD3D6Compatible = false;
       m_isD3D7Compatible = true;
-      // D3D8 specific limitations and quirks are also very much in effect
       m_isD3D8Compatible = true;
       RefreshAdapterFormatTables();
       Logger::info("The D3D9 interface is now operating in D3D7 compatibility mode.");
