@@ -389,6 +389,10 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
+    static constexpr DWORD Megabytes = 1024 * 1024;
+    static constexpr DWORD MaxMemory = ddrawCaps::MaxTextureMemory * Megabytes;
+    static constexpr DWORD ReservedMemory = ddrawCaps::ReservedTextureMemory * Megabytes;
+
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
     // Properly fill in the dwVidMemTotal / dwVidMemFree fields
     DWORD total9 = 0;
@@ -401,13 +405,16 @@ namespace dxvk {
       total9 = static_cast<DWORD>(m_commonIntf->GetTotalTextureMemory());
       free9  = static_cast<DWORD>(d3d9Device->GetAvailableTextureMem());
 
+      if (likely(total9 >= MaxMemory)) {
+        const DWORD delta = total9 - MaxMemory;
+        total9 = MaxMemory - ReservedMemory;
+        free9 = free9 > delta + ReservedMemory ? free9 - (delta + ReservedMemory) : 0;
+      }
+
       Logger::debug(str::format("DDraw4Interface::GetCaps: Total: ", total9));
       Logger::debug(str::format("DDraw4Interface::GetCaps: Free : ", free9));
     } else {
       Logger::debug("DDraw4Interface::GetCaps: Getting memory stats from DDraw");
-
-      static constexpr DWORD Megabytes = 1024 * 1024;
-      static constexpr DWORD ReservedMemory = 8 * Megabytes;
 
       const DWORD total6 = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemTotal : 0;
       const DWORD free6  = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemFree  : 0;
@@ -415,14 +422,12 @@ namespace dxvk {
       Logger::debug(str::format("DDraw4Interface::GetCaps: DDraw Total: ", total6));
       Logger::debug(str::format("DDraw4Interface::GetCaps: DDraw Free : ", free6));
 
-      total9 = static_cast<DWORD>(d3dOptions->maxAvailableMemory) * Megabytes;
-
-      if (unlikely(total9 >= total6)) {
+      if (unlikely(total6 < MaxMemory)) {
         total9 = total6;
         free9 = free6;
       } else {
-        const DWORD delta = total6 - total9;
-        total9 -= ReservedMemory;
+        const DWORD delta = total6 - MaxMemory;
+        total9 = MaxMemory - ReservedMemory;
         free9 = free6 > delta + ReservedMemory ? free6 - (delta + ReservedMemory) : 0;
       }
 
@@ -617,12 +622,22 @@ namespace dxvk {
     if (unlikely(lpdwTotal == nullptr && lpdwFree == nullptr))
       return DD_OK;
 
+    static constexpr DWORD Megabytes = 1024 * 1024;
+    static constexpr DWORD MaxMemory = ddrawCaps::MaxTextureMemory * Megabytes;
+    static constexpr DWORD ReservedMemory = ddrawCaps::ReservedTextureMemory * Megabytes;
+
     d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetD3D9Device();
     if (likely(d3d9Device != nullptr)) {
       Logger::debug("DDraw4Interface::GetAvailableVidMem: Getting memory stats from D3D9");
 
-      const DWORD total9 = static_cast<DWORD>(m_commonIntf->GetTotalTextureMemory());
-      const DWORD free9  = static_cast<DWORD>(d3d9Device->GetAvailableTextureMem());
+      DWORD total9 = static_cast<DWORD>(m_commonIntf->GetTotalTextureMemory());
+      DWORD free9  = static_cast<DWORD>(d3d9Device->GetAvailableTextureMem());
+
+      if (likely(total9 >= MaxMemory)) {
+        const DWORD delta = total9 - MaxMemory;
+        total9 = MaxMemory - ReservedMemory;
+        free9 = free9 > delta + ReservedMemory ? free9 - (delta + ReservedMemory) : 0;
+      }
 
       Logger::debug(str::format("DDraw4Interface::GetAvailableVidMem: Total: ", total9));
       Logger::debug(str::format("DDraw4Interface::GetAvailableVidMem: Free : ", free9));
@@ -634,9 +649,6 @@ namespace dxvk {
 
     } else {
       Logger::debug("DDraw4Interface::GetAvailableVidMem: Getting memory stats from DDraw");
-
-      static constexpr DWORD Megabytes = 1024 * 1024;
-      static constexpr DWORD ReservedMemory = 8 * Megabytes;
 
       DWORD total6 = 0;
       DWORD free6  = 0;
@@ -654,15 +666,15 @@ namespace dxvk {
       Logger::debug(str::format("DDraw4Interface::GetAvailableVidMem: DDraw Total: ", total6));
       Logger::debug(str::format("DDraw4Interface::GetAvailableVidMem: DDraw Free : ", free6));
 
-      DWORD total9 = static_cast<DWORD>(m_commonIntf->GetOptions()->maxAvailableMemory) * Megabytes;
+      DWORD total9 = 0;
       DWORD free9  = 0;
 
-      if (unlikely(total9 >= total6)) {
+      if (unlikely(total6 < MaxMemory)) {
         total9 = total6;
         free9 = free6;
       } else {
-        const DWORD delta = total6 - total9;
-        total9 -= ReservedMemory;
+        const DWORD delta = total6 - MaxMemory;
+        total9 = MaxMemory - ReservedMemory;
         free9 = free6 > delta + ReservedMemory ? free6 - (delta + ReservedMemory) : 0;
       }
 

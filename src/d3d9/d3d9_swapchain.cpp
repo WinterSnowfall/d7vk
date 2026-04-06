@@ -728,7 +728,7 @@ namespace dxvk {
                  && cp[i].b == identity;
     }
 
-    // TODO: Properly handle windowed mode in D3D7
+    // For D3D7 and earlier we always fake windowed mode because of DDraw interop
     if (!isIdentity && (!m_presentParams.Windowed || m_parent->IsD3D7Compatible()))
       m_blitter->setGammaRamp(NumControlPoints, cp.data());
     else
