@@ -568,7 +568,8 @@ namespace dxvk {
       * We have to check after ResetState clears the references held by SetTexture, etc.
       * This matches what Windows D3D9 does.
     */
-    if (unlikely(m_losableResourceCounter.load() != 0 && !IsExtended() && m_d3d9Options.countLosableResources)) {
+    if (unlikely(m_losableResourceCounter.load() != 0 && !IsExtended() &&
+                !m_isD3D7Compatible && m_d3d9Options.countLosableResources)) {
       Logger::warn(str::format("Device reset failed because device still has alive losable resources: Device not reset. Remaining resources: ", m_losableResourceCounter.load()));
       m_deviceLostState = D3D9DeviceLostState::NotReset;
       // D3D8 returns D3DERR_DEVICELOST here, whereas D3D9 returns D3DERR_INVALIDCALL.
@@ -4517,7 +4518,7 @@ namespace dxvk {
     desc.MultisampleQuality = MultisampleQuality;
     desc.IsBackBuffer       = FALSE;
     desc.IsAttachmentOnly   = TRUE;
-    desc.IsLockable         = !m_isD3D7Compatible ? IsLockableDepthStencilFormat(desc.Format) : true;
+    desc.IsLockable         = !m_isD3D7Compatible ? IsLockableDepthStencilFormat(desc.Format) : TRUE;
 
     HRESULT hr = D3D9CommonTexture::NormalizeTextureProperties(this, D3DRTYPE_SURFACE, &desc);
     if (FAILED(hr))
@@ -9207,7 +9208,7 @@ namespace dxvk {
       desc.MultisampleQuality = pPresentationParameters->MultiSampleQuality;
       desc.IsBackBuffer       = FALSE;
       desc.IsAttachmentOnly   = TRUE;
-      desc.IsLockable         = !m_isD3D7Compatible ? IsLockableDepthStencilFormat(desc.Format) : true;
+      desc.IsLockable         = !m_isD3D7Compatible ? IsLockableDepthStencilFormat(desc.Format) : TRUE;
 
       if (FAILED(D3D9CommonTexture::NormalizeTextureProperties(this, D3DRTYPE_SURFACE, &desc)))
         return D3DERR_NOTAVAILABLE;

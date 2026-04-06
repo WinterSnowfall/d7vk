@@ -44,12 +44,12 @@ namespace dxvk {
     this->maxFrameLatency               = config.getOption<int32_t>     ("d3d9.maxFrameLatency",               0);
     this->maxFrameRate                  = config.getOption<int32_t>     ("d3d9.maxFrameRate",                  0);
     this->presentInterval               = config.getOption<int32_t>     ("d3d9.presentInterval",               -1);
-    this->shaderModel                   = config.getOption<int32_t>     ("d3d9.shaderModel",                   0u);
+    this->shaderModel                   = config.getOption<int32_t>     ("d3d9.shaderModel",                   3u);
     this->dpiAware                      = config.getOption<bool>        ("d3d9.dpiAware",                      true);
     this->lenientClear                  = config.getOption<bool>        ("d3d9.lenientClear",                  false);
     this->deferSurfaceCreation          = config.getOption<bool>        ("d3d9.deferSurfaceCreation",          false);
     this->samplerAnisotropy             = config.getOption<int32_t>     ("d3d9.samplerAnisotropy",             -1);
-    this->maxAvailableMemory            = config.getOption<int32_t>     ("d3d9.maxAvailableMemory",            2048);
+    this->maxAvailableMemory            = config.getOption<int32_t>     ("d3d9.maxAvailableMemory",            4096);
     this->supportDFFormats              = config.getOption<bool>        ("d3d9.supportDFFormats",              true);
     this->supportX4R4G4B4               = config.getOption<bool>        ("d3d9.supportX4R4G4B4",               true);
     this->useD32forD24                  = config.getOption<bool>        ("d3d9.useD32forD24",                  false);
@@ -70,7 +70,7 @@ namespace dxvk {
     this->deviceLossOnFocusLoss         = config.getOption<bool>        ("d3d9.deviceLossOnFocusLoss",         false);
     this->samplerLodBias                = config.getOption<float>       ("d3d9.samplerLodBias",                0.0f);
     this->clampNegativeLodBias          = config.getOption<bool>        ("d3d9.clampNegativeLodBias",          false);
-    this->countLosableResources         = config.getOption<bool>        ("d3d9.countLosableResources",         false);
+    this->countLosableResources         = config.getOption<bool>        ("d3d9.countLosableResources",         true);
     this->reproducibleCommandStream     = config.getOption<bool>        ("d3d9.reproducibleCommandStream",     false);
     this->extraFrontbuffer              = config.getOption<bool>        ("d3d9.extraFrontbuffer",              false);
     this->ffUbershaderVS                = config.getOption<bool>        ("d3d9.ffUbershaderVS",                true);

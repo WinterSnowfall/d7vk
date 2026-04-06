@@ -9,6 +9,10 @@ namespace dxvk::ddrawCaps {
   static constexpr uint32_t TextureStageCount       = MaxSimultaneousTextures;
   static constexpr uint32_t MaxTextureBlendStages   = MaxSimultaneousTextures;
 
+  // Most early D3D applications can't handle more than a 2 GB address space
+  static constexpr uint32_t MaxTextureMemory        = 2048; // MB
+  static constexpr uint32_t ReservedTextureMemory   = 8; // MB
+
   static constexpr uint32_t MaxEnabledLights        = 8;
 
   static constexpr uint8_t  IndexBufferCount        = 7;

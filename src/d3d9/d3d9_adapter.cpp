@@ -884,11 +884,6 @@ namespace dxvk {
   }
 
 
-  bool D3D9Adapter::IsD3D7Compatible() const {
-    return m_parent->IsD3D7Compatible();
-  }
-
-
   HRESULT D3D9Adapter::CheckDeviceVkFormat(
           VkFormat        Format,
           DWORD           Usage,
