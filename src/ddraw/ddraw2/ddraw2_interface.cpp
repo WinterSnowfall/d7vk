@@ -18,11 +18,8 @@ namespace dxvk {
 
   DDraw2Interface::DDraw2Interface(
         DDrawCommonInterface* commonIntf,
-        Com<IDirectDraw2>&& proxyIntf,
-        DDrawInterface* pParent,
-        bool needsInitialization)
-    : DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown>(pParent, std::move(proxyIntf), nullptr)
-    , m_needsInitialization ( needsInitialization )
+        Com<IDirectDraw2>&& proxyIntf)
+    : DDrawWrappedObject<IUnknown, IDirectDraw2, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
     , m_commonIntf ( commonIntf ) {
 
     if (m_commonIntf->GetOrigin() == nullptr)
@@ -51,7 +48,7 @@ namespace dxvk {
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<DDrawInterface, IDirectDraw2, IUnknown>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<IUnknown, IDirectDraw2, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
     if (riid == __uuidof(IDirectDraw2))
@@ -92,7 +89,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_needsInitialization));
+      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
 
       return S_OK;
     }
@@ -110,8 +107,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           m_commonIntf->GetDDInterface(), m_needsInitialization));
+      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
 
       return S_OK;
     }
@@ -129,7 +125,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_needsInitialization));
+      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
 
       return S_OK;
     }
@@ -225,7 +221,7 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this, false));
+      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this));
     } else {
       Logger::warn("DDraw2Interface::CreateClipper: Failed to create proxy clipper");
       return hr;
@@ -504,13 +500,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw2Interface::Initialize(GUID* lpGUID) {
     Logger::debug(">>> DDraw2Interface::Initialize");
 
-    // Needed for interfaces crated via GetProxiedDDrawModule()
-    if (unlikely(m_needsInitialization && !m_isInitialized)) {
-      m_isInitialized = true;
-      return DD_OK;
-    }
+    if (unlikely(m_commonIntf->IsInitialized()))
+      return DDERR_ALREADYINITIALIZED;
 
-    return DDERR_ALREADYINITIALIZED;
+    m_commonIntf->MarkAsInitialized();
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::RestoreDisplayMode() {

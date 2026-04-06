@@ -12,20 +12,17 @@
 namespace dxvk {
 
   class D3D6Interface;
-  class DDrawInterface;
   class DDraw4Surface;
 
   /**
   * \brief DirectDraw4 interface implementation
   */
-  class DDraw4Interface final : public DDrawWrappedObject<DDrawInterface, IDirectDraw4, IUnknown> {
+  class DDraw4Interface final : public DDrawWrappedObject<IUnknown, IDirectDraw4, IUnknown> {
 
   public:
     DDraw4Interface(
           DDrawCommonInterface* commonIntf,
-          Com<IDirectDraw4>&& proxyIntf,
-          DDrawInterface* pParent,
-          bool needsInitialization);
+          Com<IDirectDraw4>&& proxyIntf);
 
     ~DDraw4Interface();
 
@@ -86,9 +83,6 @@ namespace dxvk {
     }
 
   private:
-
-    bool                      m_needsInitialization = false;
-    bool                      m_isInitialized       = false;
 
     static uint32_t           s_intfCount;
     uint32_t                  m_intfCount  = 0;

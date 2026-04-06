@@ -19,11 +19,8 @@ namespace dxvk {
 
   DDraw4Interface::DDraw4Interface(
         DDrawCommonInterface* commonIntf,
-        Com<IDirectDraw4>&& proxyIntf,
-        DDrawInterface* pParent,
-        bool needsInitialization)
-    : DDrawWrappedObject<DDrawInterface, IDirectDraw4, IUnknown>(pParent, std::move(proxyIntf), nullptr)
-    , m_needsInitialization ( needsInitialization )
+        Com<IDirectDraw4>&& proxyIntf)
+    : DDrawWrappedObject<IUnknown, IDirectDraw4, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
     , m_commonIntf ( commonIntf ) {
     // We need a temporary D3D9 interface at this point to retrieve the adapter identifier
     Com<d3d9::IDirect3D9> d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
@@ -62,7 +59,7 @@ namespace dxvk {
   }
 
   template<>
-  IUnknown* DDrawWrappedObject<DDrawInterface, IDirectDraw4, IUnknown>::GetInterface(REFIID riid) {
+  IUnknown* DDrawWrappedObject<IUnknown, IDirectDraw4, IUnknown>::GetInterface(REFIID riid) {
     if (riid == __uuidof(IUnknown))
       return this;
     if (riid == __uuidof(IDirectDraw4))
@@ -111,7 +108,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_needsInitialization));
+      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
 
       return S_OK;
     }
@@ -129,8 +126,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject),
-                                           m_commonIntf->GetDDInterface(), m_needsInitialization));
+      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
 
       return S_OK;
     }
@@ -148,7 +144,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject), m_needsInitialization));
+      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
 
       return S_OK;
     }
@@ -230,7 +226,7 @@ namespace dxvk {
     HRESULT hr = m_proxy->CreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
 
     if (likely(SUCCEEDED(hr))) {
-      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this, false));
+      *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), this));
     } else {
       Logger::warn("DDraw4Interface::CreateClipper: Failed to create proxy clipper");
       return hr;
@@ -536,13 +532,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw4Interface::Initialize(GUID* lpGUID) {
     Logger::debug(">>> DDraw4Interface::Initialize");
 
-    // Needed for interfaces crated via GetProxiedDDrawModule()
-    if (unlikely(m_needsInitialization && !m_isInitialized)) {
-      m_isInitialized = true;
-      return DD_OK;
-    }
+    if (unlikely(m_commonIntf->IsInitialized()))
+      return DDERR_ALREADYINITIALIZED;
 
-    return DDERR_ALREADYINITIALIZED;
+    m_commonIntf->MarkAsInitialized();
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::RestoreDisplayMode() {
