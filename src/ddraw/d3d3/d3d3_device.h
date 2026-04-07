@@ -107,7 +107,7 @@ namespace dxvk {
     }
 
     DDrawSurface* GetDepthStencil() const {
-      return m_ds;
+      return m_ds.ptr();
     }
 
     D3D3Viewport* GetCurrentViewportInternal() const {
@@ -186,7 +186,7 @@ namespace dxvk {
     GUID                           m_deviceGUID;
 
     Com<DDrawSurface>              m_rt;
-    DDrawSurface*                  m_ds = nullptr;
+    Com<DDrawSurface, false>       m_ds;
 
     Com<D3D3Viewport>              m_currentViewport;
     std::vector<Com<D3D3Viewport>> m_viewports;
