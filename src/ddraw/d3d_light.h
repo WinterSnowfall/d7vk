@@ -17,8 +17,6 @@ namespace dxvk {
 
     ~D3DLight();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
-
     HRESULT STDMETHODCALLTYPE Initialize(IDirect3D *d3d);
 
     HRESULT STDMETHODCALLTYPE SetLight(D3DLIGHT *data);

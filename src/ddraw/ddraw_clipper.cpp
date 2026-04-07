@@ -13,16 +13,6 @@ namespace dxvk {
     Logger::debug("DDrawClipper: A clipper bites the dust");
   }
 
-  template<>
-  IUnknown* DDrawWrappedObject<IUnknown, IDirectDrawClipper, IUnknown>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirectDrawClipper))
-      return this;
-
-    throw DxvkError("DDrawClipper::QueryInterface: Unknown interface query");
-  }
-
   HRESULT STDMETHODCALLTYPE DDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags) {
     Logger::debug(">>> DDrawClipper::Initialize");
 

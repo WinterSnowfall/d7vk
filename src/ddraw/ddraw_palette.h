@@ -5,6 +5,8 @@
 
 namespace dxvk {
 
+  class DDrawCommonSurface;
+
   class DDrawPalette final : public DDrawWrappedObject<IUnknown, IDirectDrawPalette, IUnknown> {
 
   public:
@@ -22,6 +24,17 @@ namespace dxvk {
     HRESULT STDMETHODCALLTYPE GetEntries(DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries);
 
     HRESULT STDMETHODCALLTYPE SetEntries(DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries);
+
+    void SetCommonSurface(DDrawCommonSurface* commonSurf) {
+      m_commonSurf = commonSurf;
+    }
+
+  private:
+
+    static uint32_t     s_paletteCount;
+    uint32_t            m_paletteCount = 0;
+
+    DDrawCommonSurface* m_commonSurf   = nullptr;
 
   };
 

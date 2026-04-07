@@ -56,11 +56,18 @@ namespace dxvk {
       return GetD3D9Nullable(self.ptr());
     }
 
-    // Implemented/specialized in all of the invididual wrapped
-    // object types, due to the need of hierarchical forwarding
-    virtual IUnknown* GetInterface(REFIID riid);
+    IUnknown* GetInterface(REFIID riid) {
+      if (riid == __uuidof(IUnknown))
+        return this;
+      if (riid == __uuidof(DDraw))
+        return this;
+
+      throw DxvkError("DDrawWrappedObject::QueryInterface: Unknown interface query");
+    }
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
+      Logger::debug(">>> DDrawWrappedObject::QueryInterface");
+
       if (unlikely(ppvObject == nullptr))
         return E_POINTER;
 
