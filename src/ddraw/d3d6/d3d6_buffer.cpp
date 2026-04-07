@@ -31,16 +31,6 @@ namespace dxvk {
     Logger::debug(str::format("D3D6VertexBuffer: Buffer nr. {{1-", m_buffCount, "}} bites the dust"));
   }
 
-  template<>
-  IUnknown* DDrawWrappedObject<D3D6Interface, IDirect3DVertexBuffer, d3d9::IDirect3DVertexBuffer9>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirect3DVertexBuffer))
-      return this;
-
-    throw DxvkError("D3D6VertexBuffer::QueryInterface: Unknown interface query");
-  }
-
   HRESULT STDMETHODCALLTYPE D3D6VertexBuffer::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC lpVBDesc) {
     Logger::debug(">>> D3D6VertexBuffer::GetVertexBufferDesc");
 
