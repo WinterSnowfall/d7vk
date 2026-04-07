@@ -67,7 +67,7 @@ namespace dxvk {
 
     m_surfCount = ++s_surfCount;
 
-    Logger::debug(str::format("DDraw4Surface: Created a new surface nr. [[4-", m_surfCount, "]]:"));
+    Logger::debug(str::format("DDraw4Surface: Created a new surface nr. [[4-", m_surfCount, "]]"));
 
     if (m_commonSurf->GetOrigin() == nullptr) {
       m_commonSurf->SetOrigin(this);
@@ -96,16 +96,6 @@ namespace dxvk {
     m_commonSurf->SetDD4Surface(nullptr);
 
     Logger::debug(str::format("DDraw4Surface: Surface nr. [[4-", m_surfCount, "]] bites the dust"));
-  }
-
-  template<>
-  IUnknown* DDrawWrappedObject<DDraw4Interface, IDirectDrawSurface4, d3d9::IDirect3DSurface9>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirectDrawSurface4))
-      return this;
-
-    throw DxvkError("DDraw4Surface::QueryInterface: Unknown interface query");
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::QueryInterface(REFIID riid, void** ppvObject) {

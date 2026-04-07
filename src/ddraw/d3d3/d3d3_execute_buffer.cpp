@@ -24,16 +24,6 @@ namespace dxvk {
     Logger::debug(str::format("D3D3ExecuteBuffer: Execute buffer nr. {{1-", m_buffCount, "}} bites the dust"));
   }
 
-  template<>
-  IUnknown* DDrawWrappedObject<D3D3Device, IDirect3DExecuteBuffer, IUnknown>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirect3DExecuteBuffer))
-      return this;
-
-    throw DxvkError("D3D3ExecuteBuffer::QueryInterface: Unknown interface query");
-  }
-
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpData) {
     Logger::debug(">>> D3D3ExecuteBuffer::GetExecuteData");
 

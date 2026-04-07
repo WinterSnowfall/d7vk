@@ -42,8 +42,6 @@ namespace dxvk {
 
     ~D3D6Device();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
-
     HRESULT STDMETHODCALLTYPE GetCaps(D3DDEVICEDESC *hal_desc, D3DDEVICEDESC *hel_desc);
 
     HRESULT STDMETHODCALLTYPE GetStats(D3DSTATS *stats);

@@ -32,16 +32,6 @@ namespace dxvk {
     return m_parent->Release();
   }
 
-  template<>
-  IUnknown* DDrawWrappedObject<DDraw4Surface, IDirect3DTexture2, IUnknown>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirect3DTexture2))
-      return this;
-
-    throw DxvkError("D3D6Texture::QueryInterface: Unknown interface query");
-  }
-
   HRESULT STDMETHODCALLTYPE D3D6Texture::QueryInterface(REFIID riid, void** ppvObject) {
     Logger::debug(">>> D3D6Texture::QueryInterface");
 
