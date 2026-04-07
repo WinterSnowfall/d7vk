@@ -293,6 +293,8 @@ namespace dxvk {
       try{
         // Surfaces created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
         Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied), this, nullptr, false);
+        if (unlikely(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
+          m_commonIntf->SetPrimarySurface(surface->GetCommonSurface());
         *lplpDDSurface = surface.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());
@@ -356,7 +358,7 @@ namespace dxvk {
       Com<IDirectDrawSurface> surface = surfaceIt->surface;
 
       Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), this, nullptr, false);
-      hr = lpEnumSurfacesCallback(ddrawSurface.ref(), &surfaceIt->surfaceDesc, lpContext);
+      hr = lpEnumSurfacesCallback(ddrawSurface.ref(), &surfaceIt->desc, lpContext);
 
       ++surfaceIt;
     }
@@ -560,6 +562,14 @@ namespace dxvk {
     HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP);
     if (unlikely(FAILED(hr)))
       return hr;
+
+    DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();
+
+    if (likely(ps != nullptr)) {
+      hr = ps->RefreshSurfaceDescripton();
+      if (unlikely(FAILED(hr)))
+        Logger::warn("DDrawInterface::SetDisplayMode: Failed to update primary surface desc");
+    }
 
     if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent &&
                 m_commonIntf->GetOptions()->backBufferResize)) {

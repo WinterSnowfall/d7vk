@@ -23,17 +23,17 @@ namespace dxvk {
 
   struct AttachedSurface {
     IDirectDrawSurface*  surface      = nullptr;
-    DDSURFACEDESC        surfaceDesc  = { };
+    DDSURFACEDESC        desc         = { };
   };
 
   struct AttachedSurface4 {
     IDirectDrawSurface4* surface4     = nullptr;
-    DDSURFACEDESC2       surface4Desc = { };
+    DDSURFACEDESC2       desc2        = { };
   };
 
   struct AttachedSurface7 {
     IDirectDrawSurface7* surface7     = nullptr;
-    DDSURFACEDESC2       surface7Desc = { };
+    DDSURFACEDESC2       desc2        = { };
   };
 
   inline bool IsCubeMapFace(DDSURFACEDESC2* desc) {

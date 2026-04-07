@@ -80,6 +80,12 @@ namespace dxvk {
     if (m_commonSurf->GetOrigin() == this)
       m_commonSurf->SetOrigin(nullptr);
 
+    // Clear the cached depth stencil on the parent if matched
+    if (unlikely(m_parentSurf != nullptr && m_commonSurf->IsDepthStencil()
+      && m_parentSurf->GetAttachedDepthStencil() == this)) {
+      m_parentSurf->ClearAttachedDepthStencil();
+    }
+
     m_commonIntf->RemoveWrappedSurface(this);
 
     // Release all public references on all attached surfaces
@@ -514,16 +520,16 @@ namespace dxvk {
       if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
         // Return the already attached depth surface if it exists
         if (unlikely(m_depthStencil != nullptr && surface4.ptr() == m_depthStencil->GetProxied())) {
-          hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->surface4Desc, lpContext);
+          hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->desc2, lpContext);
         } else {
           Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface4), m_commonIntf->GetDD4Interface(), this, false);
           m_attachedSurfaces.emplace(std::piecewise_construct,
                                     std::forward_as_tuple(ddraw4Surface->GetProxied()),
-                                    std::forward_as_tuple(ddraw4Surface.ptr()));
-          hr = lpEnumSurfacesCallback(ddraw4Surface.ref(), &surfaceIt->surface4Desc, lpContext);
+                                    std::forward_as_tuple(ddraw4Surface.ref()));
+          hr = lpEnumSurfacesCallback(ddraw4Surface.ref(), &surfaceIt->desc2, lpContext);
         }
       } else {
-        hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->surface4Desc, lpContext);
+        hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->desc2, lpContext);
       }
 
       ++surfaceIt;
@@ -700,7 +706,7 @@ namespace dxvk {
           Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface), m_commonIntf->GetDD4Interface(), this, false);
           m_attachedSurfaces.emplace(std::piecewise_construct,
                                       std::forward_as_tuple(ddraw4Surface->GetProxied()),
-                                      std::forward_as_tuple(ddraw4Surface.ptr()));
+                                      std::forward_as_tuple(ddraw4Surface.ref()));
           *lplpDDAttachedSurface = ddraw4Surface.ref();
         }
       } else {
@@ -982,16 +988,9 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    // Retrieve and cache the updated proxy surface desc
-    DDSURFACEDESC2 desc2;
-    desc2.dwSize = sizeof(DDSURFACEDESC2);
-    hr = m_proxy->GetSurfaceDesc(&desc2);
-
-    if (unlikely(FAILED(hr))) {
+    hr = m_commonSurf->RefreshSurfaceDescripton();
+    if (unlikely(FAILED(hr)))
       Logger::err("DDraw4Surface::SetColorKey: Failed to retrieve updated surface desc");
-    } else {
-      m_commonSurf->SetDesc2(desc2);
-    }
 
     return DD_OK;
   }
@@ -1109,15 +1108,9 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    // Update the new surface description
-    DDSURFACEDESC2 desc2;
-    desc2.dwSize = sizeof(DDSURFACEDESC2);
-    hr = m_proxy->GetSurfaceDesc(&desc2);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("DDraw4Surface::SetSurfaceDesc: Failed to get new surface desc");
-    } else {
-      m_commonSurf->SetDesc2(desc2);
-    }
+    hr = m_commonSurf->RefreshSurfaceDescripton();
+    if (unlikely(FAILED(hr)))
+      Logger::err("DDraw4Surface::SetSurfaceDesc: Failed to retrieve updated surface desc");
 
     // We may need to recreate the d3d9 object based on the new desc
     m_d3d9 = nullptr;
