@@ -75,16 +75,6 @@ namespace dxvk {
     }
   }
 
-  template<>
-  IUnknown* DDrawWrappedObject<IUnknown, IDirect3D2, d3d9::IDirect3D9>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirect3D2))
-      return this;
-
-    throw DxvkError("D3D5Interface::QueryInterface: Unknown interface query");
-  }
-
   HRESULT STDMETHODCALLTYPE D3D5Interface::QueryInterface(REFIID riid, void** ppvObject) {
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;

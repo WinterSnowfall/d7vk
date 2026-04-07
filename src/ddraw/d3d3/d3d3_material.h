@@ -20,8 +20,6 @@ namespace dxvk {
 
     ~D3D3Material();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
-
     HRESULT STDMETHODCALLTYPE Initialize(LPDIRECT3D lpDirect3D);
 
     HRESULT STDMETHODCALLTYPE SetMaterial(D3DMATERIAL *data);

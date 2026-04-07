@@ -15,16 +15,6 @@ namespace dxvk {
     Logger::debug("DDrawGammaControl: A gamma control interface bites the dust");
   }
 
-  template<>
-  IUnknown* DDrawWrappedObject<IUnknown, IDirectDrawGammaControl, IUnknown>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirectDrawGammaControl))
-      return this;
-
-    throw DxvkError("DDrawGammaControl::QueryInterface: Unknown interface query");
-  }
-
   HRESULT STDMETHODCALLTYPE DDrawGammaControl::QueryInterface(REFIID riid, void** ppvObject) {
     Logger::debug(">>> DDrawGammaControl::QueryInterface");
 

@@ -19,34 +19,6 @@ namespace dxvk {
     Logger::debug(str::format("D3DLight: Light nr. [[1-", m_lightCount, "]] bites the dust"));
   }
 
-  template<>
-  IUnknown* DDrawWrappedObject<IUnknown, IDirect3DLight, IUnknown>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirect3DLight))
-      return this;
-
-    throw DxvkError("D3DLight::QueryInterface: Unknown interface query");
-  }
-
-  HRESULT STDMETHODCALLTYPE D3DLight::QueryInterface(REFIID riid, void** ppvObject) {
-    Logger::debug(">>> D3DLight::QueryInterface");
-
-    if (unlikely(ppvObject == nullptr))
-      return E_POINTER;
-
-    InitReturnPtr(ppvObject);
-
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
-      return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
-    }
-  }
-
   // Docs state: "The method returns DDERR_ALREADYINITIALIZED because
   // the Direct3DLight object is initialized when it is created."
   HRESULT STDMETHODCALLTYPE D3DLight::Initialize(IDirect3D *d3d) {

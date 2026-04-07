@@ -85,32 +85,6 @@ namespace dxvk {
     Logger::debug(str::format("D3D6Device: Device nr. ((3-", m_deviceCount, ")) bites the dust"));
   }
 
-  template<>
-  IUnknown* DDrawWrappedObject<D3D6Interface, IDirect3DDevice3, d3d9::IDirect3DDevice9>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirect3DDevice3))
-      return this;
-
-    throw DxvkError("D3D6Device::QueryInterface: Unknown interface query");
-  }
-
-  HRESULT STDMETHODCALLTYPE D3D6Device::QueryInterface(REFIID riid, void** ppvObject) {
-    if (unlikely(ppvObject == nullptr))
-      return E_POINTER;
-
-    InitReturnPtr(ppvObject);
-
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
-      return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
-    }
-  }
-
   HRESULT STDMETHODCALLTYPE D3D6Device::GetCaps(D3DDEVICEDESC *hal_desc, D3DDEVICEDESC *hel_desc) {
     Logger::debug(">>> D3D6Device::GetCaps");
 
@@ -465,13 +439,11 @@ namespace dxvk {
         Logger::debug("D3D6Device::SetRenderTarget: Failed to set RT");
     }
 
-    // A render target surface needs to have the DDSCAPS_3DDEVICE cap
-    if (unlikely(!rt6->GetCommonSurface()->Is3DSurface())) {
-      Logger::err("D3D6Device::SetRenderTarget: Surface is missing DDSCAPS_3DDEVICE");
-      return DDERR_INVALIDCAPS;
-    }
+    HRESULT hr = rt6->GetCommonSurface()->ValidateRTUsage();
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    HRESULT hr = rt6->InitializeD3D9RenderTarget();
+    hr = rt6->InitializeD3D9RenderTarget();
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::SetRenderTarget: Failed to initialize D3D9 RT");
       return hr;
