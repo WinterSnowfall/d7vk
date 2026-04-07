@@ -73,16 +73,6 @@ namespace dxvk {
     Logger::debug(str::format("DDraw3Surface: Surface nr. [[3-", m_surfCount, "]] bites the dust"));
   }
 
-  template<>
-  IUnknown* DDrawWrappedObject<DDrawSurface, IDirectDrawSurface3, d3d9::IDirect3DSurface9>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirectDrawSurface3))
-      return this;
-
-    throw DxvkError("DDraw3Surface::QueryInterface: Unknown interface query");
-  }
-
   HRESULT STDMETHODCALLTYPE DDraw3Surface::QueryInterface(REFIID riid, void** ppvObject) {
     Logger::debug(">>> DDraw3Surface::QueryInterface");
 

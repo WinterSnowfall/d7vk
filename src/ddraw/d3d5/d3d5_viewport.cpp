@@ -47,16 +47,6 @@ namespace dxvk {
     Logger::debug(str::format("D3D5Viewport: Viewport nr. [[2-", m_viewportCount, "]] bites the dust"));
   }
 
-  template<>
-  IUnknown* DDrawWrappedObject<D3D5Interface, IDirect3DViewport2, IUnknown>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirect3DViewport2))
-      return this;
-
-    throw DxvkError("D3D5Viewport::QueryInterface: Unknown interface query");
-  }
-
   HRESULT STDMETHODCALLTYPE D3D5Viewport::QueryInterface(REFIID riid, void** ppvObject) {
     Logger::debug(">>> D3D5Viewport::QueryInterface");
 

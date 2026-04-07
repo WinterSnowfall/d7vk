@@ -1,6 +1,10 @@
 #include "ddraw_palette.h"
 
+#include "ddraw_common_surface.h"
+
 namespace dxvk {
+
+  uint32_t DDrawPalette::s_paletteCount = 0;
 
   DDrawPalette::DDrawPalette(
         Com<IDirectDrawPalette>&& paletteProxy,
@@ -9,24 +13,19 @@ namespace dxvk {
     if (m_parent != nullptr)
       m_parent->AddRef();
 
-    Logger::debug("DDrawPalette: Created a new palette");
+    m_paletteCount = ++s_paletteCount;
+
+    Logger::debug(str::format("DDrawPalette: Created a new palette nr. [[1-", m_paletteCount, "]]"));
   }
 
   DDrawPalette::~DDrawPalette() {
+    if (m_commonSurf != nullptr)
+      m_commonSurf->SetPalette(nullptr);
+
     if (m_parent != nullptr)
       m_parent->Release();
 
-    Logger::debug("DDrawPalette: A palette bites the dust");
-  }
-
-  template<>
-  IUnknown* DDrawWrappedObject<IUnknown, IDirectDrawPalette, IUnknown>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirectDrawPalette))
-      return this;
-
-    throw DxvkError("DDrawPalette::QueryInterface: Unknown interface query");
+    Logger::debug(str::format("DDrawPalette: Palette nr. [[1-", m_paletteCount, "]] bites the dust"));
   }
 
   // Docs state: "Because the DirectDrawPalette object is initialized when

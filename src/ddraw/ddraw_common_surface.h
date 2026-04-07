@@ -152,7 +152,13 @@ namespace dxvk {
     }
 
     void SetPalette(DDrawPalette* palette) {
+      if (palette == nullptr)
+        m_palette->SetCommonSurface(nullptr);
+
       m_palette = palette;
+
+      if (m_palette != nullptr)
+        m_palette->SetCommonSurface(this);
     }
 
     DDrawPalette* GetPalette() const {
@@ -276,6 +282,11 @@ namespace dxvk {
       return m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE;
     }
 
+    bool IsInSystemMemory() const {
+      return m_desc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY
+          || m_desc.ddsCaps.dwCaps  & DDSCAPS_SYSTEMMEMORY;
+    }
+
     bool HasColorKey() const {
       return (m_desc2.dwFlags & DDSD_CKSRCBLT ||
               m_desc.dwFlags  & DDSD_CKSRCBLT);
@@ -299,6 +310,28 @@ namespace dxvk {
 
     bool IsGuardableSurface() const {
       return m_isGuardableSurface;
+    }
+
+    HRESULT ValidateRTUsage() const {
+      // Render targets require the DDSCAPS_3DDEVICE flag
+      if (unlikely(!Is3DSurface())) {
+        Logger::err("DDrawCommonInterface::ValidateRTUsage: Missing DDSCAPS_3DDEVICE");
+        return DDERR_INVALIDCAPS;
+      }
+
+      // Depth stencil surfaces can't be set as render targets
+      if (unlikely(IsDepthStencil())) {
+        Logger::err("DDrawCommonInterface::ValidateRTUsage: Invalid DDSCAPS_ZBUFFER");
+        return DDERR_INVALIDCAPS;
+      }
+
+      // TODO: Render targets must not be created in system memory on HAL/HAL T&L devices
+      /*if (unlikely(IsInSystemMemory())) {
+        Logger::err("DDrawCommonInterface::ValidateRTUsage: Invalid DDSCAPS_SYSTEMMEMORY");
+        return D3DERR_SURFACENOTINVIDMEM;
+      }*/
+
+      return DD_OK;
     }
 
     void ListSurfaceDetails() const {

@@ -66,16 +66,6 @@ namespace dxvk {
     Logger::debug(str::format("DDraw7Interface: Interface nr. <<7-", m_intfCount, ">> bites the dust"));
   }
 
-  template<>
-  IUnknown* DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirectDraw7))
-      return this;
-
-    throw DxvkError("DDraw7Interface::QueryInterface: Unknown interface query");
-  }
-
   HRESULT STDMETHODCALLTYPE DDraw7Interface::QueryInterface(REFIID riid, void** ppvObject) {
     Logger::debug(">>> DDraw7Interface::QueryInterface");
 
@@ -503,6 +493,12 @@ namespace dxvk {
     return m_proxy->GetVerticalBlankStatus(lpbIsInVB);
   }
 
+  // Should technically always return DDERR_ALREADYINITIALIZED, unless the
+  // interface is created via IClassFactory, however Requiem: Avenging Angel
+  // expects it to work on a regular interface too, after initially creating
+  // and releasing an interface through IClassFactory (but never initializing it).
+  // On native DDraw the initial interface most likely gets reused. In practice,
+  // applications that don't use IClassFactory won't call this, so keep it simple.
   HRESULT STDMETHODCALLTYPE DDraw7Interface::Initialize(GUID* lpGUID) {
     Logger::debug(">>> DDraw7Interface::Initialize");
 

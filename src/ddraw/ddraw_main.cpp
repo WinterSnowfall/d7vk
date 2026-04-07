@@ -176,9 +176,8 @@ namespace dxvk {
     if (unlikely(pUnkOuter != nullptr))
       return CLASS_E_NOAGGREGATION;
 
-    GUID intfGUID = __uuidof(IDirectDraw);
     IDirectDraw* ppvObjectProxy = nullptr;
-    HRESULT hr = CreateDirectDraw(&intfGUID, &ppvObjectProxy, NULL);
+    HRESULT hr = CreateDirectDraw(NULL, &ppvObjectProxy, NULL);
     if (unlikely(FAILED(hr)))
       return hr;
 
@@ -203,6 +202,12 @@ namespace dxvk {
       Logger::debug(">>> ClassFactoryCreateDirectDraw: Returning IDirectDraw4");
       *ppvObject = directDraw4;
       ppvObjectProxy->Release();
+    // Apparently this also works, but I doubt is ever used in practice,
+    // since IDirectDraw7 can be requested directly in DllGetClassObject
+    } else if (riid == __uuidof(IDirectDraw7)) {
+      Logger::debug(">>> ClassFactoryCreateDirectDraw: Returning IDirectDraw7");
+      ppvObjectProxy->Release();
+      return CreateDirectDrawEx(NULL, ppvObject, riid, NULL);
     } else {
       Logger::warn(str::format(">>> ClassFactoryCreateDirectDraw: Unknown IID: ", riid));
       return CLASS_E_CLASSNOTAVAILABLE;
@@ -227,10 +232,8 @@ namespace dxvk {
       return CLASS_E_CLASSNOTAVAILABLE;
     }
 
-    GUID intfGUID = __uuidof(IDirectDraw7);
     Logger::debug(">>> ClassFactoryCreateDirectDrawEx: Returning IDirectDraw7");
-
-    return CreateDirectDrawEx(&intfGUID, ppvObject, __uuidof(IDirectDraw7), NULL);
+    return CreateDirectDrawEx(NULL, ppvObject, riid, NULL);
   }
 
   HRESULT ClassFactoryCreateDirectDrawClipper(IUnknown *pUnkOuter, REFIID riid, void **ppvObject) {
