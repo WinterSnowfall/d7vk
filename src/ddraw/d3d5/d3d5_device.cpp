@@ -78,16 +78,6 @@ namespace dxvk {
     Logger::debug(str::format("D3D5Device: Device nr. ((2-", m_deviceCount, ")) bites the dust"));
   }
 
-  template<>
-  IUnknown* DDrawWrappedObject<D3D5Interface, IDirect3DDevice2, d3d9::IDirect3DDevice9>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    if (riid == __uuidof(IDirect3DDevice2))
-      return this;
-
-    throw DxvkError("D3D5Device::QueryInterface: Unknown interface query");
-  }
-
   HRESULT STDMETHODCALLTYPE D3D5Device::QueryInterface(REFIID riid, void** ppvObject) {
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
@@ -491,13 +481,11 @@ namespace dxvk {
         Logger::debug("D3D5Device::SetRenderTarget: Failed to set RT");
     }
 
-    // A render target surface needs to have the DDSCAPS_3DDEVICE cap
-    if (unlikely(!rt5->GetCommonSurface()->Is3DSurface())) {
-      Logger::err("D3D5Device::SetRenderTarget: Surface is missing DDSCAPS_3DDEVICE");
-      return DDERR_INVALIDCAPS;
-    }
+    HRESULT hr = rt5->GetCommonSurface()->ValidateRTUsage();
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    HRESULT hr = rt5->InitializeD3D9RenderTarget();
+    hr = rt5->InitializeD3D9RenderTarget();
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D5Device::SetRenderTarget: Failed to initialize D3D9 RT");
       return hr;
