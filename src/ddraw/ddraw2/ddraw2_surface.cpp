@@ -24,10 +24,6 @@ namespace dxvk {
     : DDrawWrappedObject<DDrawSurface, IDirectDrawSurface2, d3d9::IDirect3DSurface9>(pParent, std::move(surfProxy), nullptr)
     , m_commonSurf ( commonSurf )
     , m_parentSurf ( pParentSurf ) {
-    // We need to keep the IDirectDrawSurface parent around, since we're entirely dependent on it
-    if (m_parent != nullptr)
-      m_originSurf = m_parent;
-
     if (m_parent != nullptr) {
       m_commonIntf = m_parent->GetCommonInterface();
     } else if (m_parentSurf != nullptr) {
@@ -54,6 +50,20 @@ namespace dxvk {
       }
     }
 
+    // We need to keep the IDirectDrawSurface parent around, since we're entirely dependent on it.
+    // If one doesn't exist (e.g. attached surfaces), then use QueryInterface and cache it.
+    if (m_parent == nullptr) {
+      Com<IDirectDrawSurface> originSurf;
+      HRESULT hr = m_proxy->QueryInterface(__uuidof(IDirectDrawSurface), reinterpret_cast<void**>(&originSurf));
+      if (unlikely(FAILED(hr)))
+        throw DxvkError("DDraw2Surface: ERROR! Failed to retrieve an IDirectDrawSurface interface!");
+
+      m_originSurf = new DDrawSurface(m_commonSurf.ptr(), std::move(originSurf), m_commonIntf->GetDDInterface(), nullptr, false);
+      m_parent = m_originSurf.ptr();
+    } else {
+      m_originSurf = m_parent;
+    }
+
     m_commonIntf->AddWrappedSurface(this);
 
     m_commonSurf->SetDD2Surface(this);
@@ -66,6 +76,12 @@ namespace dxvk {
   }
 
   DDraw2Surface::~DDraw2Surface() {
+    // Clear the cached depth stencil on the parent if matched
+    if (unlikely(m_parentSurf != nullptr && m_commonSurf->IsDepthStencil()
+      && m_parentSurf->GetAttachedDepthStencil() == this)) {
+      m_parentSurf->ClearAttachedDepthStencil();
+    }
+
     m_commonIntf->RemoveWrappedSurface(this);
 
     m_commonSurf->SetDD2Surface(nullptr);
@@ -82,11 +98,6 @@ namespace dxvk {
     InitReturnPtr(ppvObject);
 
     if (riid == __uuidof(IDirect3DTexture2)) {
-      if (unlikely(m_parent == nullptr)) {
-        Logger::warn("DDraw2Surface::QueryInterface: Query for IDirect3DTexture2");
-        return E_NOINTERFACE;
-      }
-
       Logger::debug("DDraw2Surface::QueryInterface: Query for IDirect3DTexture2");
 
       if (unlikely(m_parent->GetD3D5Texture() == nullptr)) {
@@ -107,11 +118,6 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DTexture))) {
-      if (unlikely(m_parent == nullptr)) {
-        Logger::warn("DDraw2Surface::QueryInterface: Query for IDirect3DTexture");
-        return E_NOINTERFACE;
-      }
-
       Logger::debug("DDraw2Surface::QueryInterface: Query for IDirect3DTexture");
 
       if (unlikely(m_parent->GetD3D3Texture() == nullptr)) {
@@ -237,7 +243,15 @@ namespace dxvk {
     if (unlikely(ddraw2Surface->GetCommonSurface()->IsBackBufferOrFlippable()))
       Logger::warn("DDraw2Surface::AddAttachedSurface: Trying to attach a flippable surface");
 
-    return m_proxy->AddAttachedSurface(ddraw2Surface->GetProxied());
+    HRESULT hr = m_proxy->AddAttachedSurface(ddraw2Surface->GetProxied());
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    ddraw2Surface->SetParentSurface(this);
+    if (likely(ddraw2Surface->GetCommonSurface()->IsDepthStencil()))
+      m_depthStencil = ddraw2Surface;
+
+    return hr;
   }
 
   // Docs: "This method is used for the software implementation.
@@ -254,8 +268,7 @@ namespace dxvk {
     if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
       DDraw2Surface* sourceSurface = static_cast<DDraw2Surface*>(lpDDSrcSurface);
       if (unlikely(sourceSurface->GetCommonSurface()->IsGuardableSurface())) {
-        if (m_parent != nullptr && (m_commonIntf->GetOptions()->backBufferWriteBack ||
-                                    m_commonIntf->GetOptions()->apitraceMode)) {
+        if (m_commonIntf->GetOptions()->backBufferWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw2Surface::Blt: Source surface is a swapchain surface");
 
           if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !sourceSurface->IsInitialized()))
@@ -270,8 +283,7 @@ namespace dxvk {
             Logger::warn("DDraw2Surface::Blt: Source surface is a swapchain surface");
         }
       } else if (unlikely(sourceSurface->GetCommonSurface()->IsDepthStencil())) {
-        if (m_parent != nullptr && (m_commonIntf->GetOptions()->depthWriteBack ||
-                                    m_commonIntf->GetOptions()->apitraceMode)) {
+        if (m_commonIntf->GetOptions()->depthWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw2Surface::Blt: Source surface is a depth stencil");
 
           if (likely(sourceSurface->IsInitialized()))
@@ -378,8 +390,7 @@ namespace dxvk {
     if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
       DDraw2Surface* sourceSurface = static_cast<DDraw2Surface*>(lpDDSrcSurface);
       if (unlikely(sourceSurface->GetCommonSurface()->IsGuardableSurface())) {
-        if (m_parent != nullptr && (m_commonIntf->GetOptions()->backBufferWriteBack ||
-                                    m_commonIntf->GetOptions()->apitraceMode)) {
+        if (m_commonIntf->GetOptions()->backBufferWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw2Surface::BltFast: Source surface is a swapchain surface");
 
           if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !sourceSurface->IsInitialized()))
@@ -394,8 +405,7 @@ namespace dxvk {
             Logger::warn("DDraw2Surface::BltFast: Source surface is a swapchain surface");
         }
       } else if (unlikely(sourceSurface->GetCommonSurface()->IsDepthStencil())) {
-        if (m_parent != nullptr && (m_commonIntf->GetOptions()->depthWriteBack ||
-                                    m_commonIntf->GetOptions()->apitraceMode)) {
+        if (m_commonIntf->GetOptions()->depthWriteBack || m_commonIntf->GetOptions()->apitraceMode) {
           Logger::debug("DDraw2Surface::BltFast: Source surface is a depth stencil");
 
           if (likely(sourceSurface->IsInitialized()))
@@ -458,18 +468,37 @@ namespace dxvk {
     Logger::debug("<<< DDraw2Surface::DeleteAttachedSurface: Proxy");
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
-      Logger::warn("DDraw2Surface::DeleteAttachedSurface: Received an unwrapped surface");
-      return DDERR_GENERIC;
+      if (unlikely(lpDDSAttachedSurface != nullptr)) {
+        Logger::warn("DDraw2Surface::DeleteAttachedSurface: Received an unwrapped surface");
+        return DDERR_GENERIC;
+      }
+
+      HRESULT hrProxy = m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
+
+      // If lpDDSAttachedSurface is NULL, then all surfaces are detached
+      if (lpDDSAttachedSurface == nullptr && likely(SUCCEEDED(hrProxy)))
+        m_depthStencil = nullptr;
+
+      return hrProxy;
     }
 
     DDraw2Surface* ddraw2Surface = static_cast<DDraw2Surface*>(lpDDSAttachedSurface);
 
-    return m_proxy->DeleteAttachedSurface(dwFlags, ddraw2Surface->GetProxied());
+    HRESULT hr = m_proxy->DeleteAttachedSurface(dwFlags, ddraw2Surface->GetProxied());
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    if (likely(m_depthStencil == ddraw2Surface)) {
+      ddraw2Surface->ClearParentSurface();
+      m_depthStencil = nullptr;
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback) {
-    Logger::warn("<<< DDraw2Surface::EnumAttachedSurfaces: Proxy");
-    return m_proxy->EnumAttachedSurfaces(lpContext, lpEnumSurfacesCallback);
+    Logger::warn(">>> DDraw2Surface::EnumAttachedSurfaces");
+    return m_parent->EnumAttachedSurfaces(lpContext, lpEnumSurfacesCallback);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::EnumOverlayZOrders(DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpfnCallback) {
@@ -554,7 +583,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Surface::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTDRAWSURFACE2 *lplpDDAttachedSurface) {
-    Logger::warn("<<< DDraw2Surface::GetAttachedSurface: Proxy");
+    Logger::debug("<<< DDraw2Surface::GetAttachedSurface: Proxy");
 
     if (unlikely(lpDDSCaps == nullptr || lplpDDAttachedSurface == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -589,10 +618,22 @@ namespace dxvk {
       return hr;
     }
 
-    Logger::debug("DDraw2Surface::GetAttachedSurface: Got a new unwrapped surface");
     try {
-      Com<DDraw2Surface> ddraw2Surface = new DDraw2Surface(nullptr, std::move(surface), nullptr, this);
-      *lplpDDAttachedSurface = ddraw2Surface.ref();
+      auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
+      if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
+        // Return the already attached depth surface if it exists
+        if (unlikely(m_depthStencil != nullptr && surface.ptr() == m_depthStencil->GetProxied())) {
+          *lplpDDAttachedSurface = m_depthStencil.ref();
+        } else {
+          Com<DDraw2Surface> ddraw2Surface = new DDraw2Surface(nullptr, std::move(surface), nullptr, this);
+          m_attachedSurfaces.emplace(std::piecewise_construct,
+                                     std::forward_as_tuple(ddraw2Surface->GetProxied()),
+                                     std::forward_as_tuple(ddraw2Surface.ref()));
+          *lplpDDAttachedSurface = ddraw2Surface.ref();
+        }
+      } else {
+        *lplpDDAttachedSurface = attachedSurfaceIter->second.ref();
+      }
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       *lplpDDAttachedSurface = nullptr;
@@ -664,8 +705,8 @@ namespace dxvk {
                                       m_commonSurf->IsGuardableSurface())) {
         Logger::debug(">>> DDraw2Surface::GetDC");
 
-        if (unlikely(!m_parent->IsInitialized())) {
-          HRESULT hrUpload = m_parent->InitializeOrUploadD3D9();
+        if (unlikely(!IsInitialized())) {
+          HRESULT hrUpload = InitializeOrUploadD3D9();
           if (unlikely(FAILED(hrUpload)))
             Logger::warn("DDraw2Surface::GetDC: Failed to initialize d3d9 surface");
         }
@@ -778,8 +819,8 @@ namespace dxvk {
                                       m_commonSurf->IsGuardableSurface())) {
         Logger::debug(">>> DDraw2Surface::ReleaseDC");
 
-        if (unlikely(!m_parent->IsInitialized())) {
-          HRESULT hrUpload = m_parent->InitializeOrUploadD3D9();
+        if (unlikely(!IsInitialized())) {
+          HRESULT hrUpload = InitializeOrUploadD3D9();
           if (unlikely(FAILED(hrUpload)))
             Logger::warn("DDraw2Surface::ReleaseDC: Failed to initialize d3d9 surface");
         }
@@ -803,7 +844,7 @@ namespace dxvk {
         // We should ideally upload the surface contents here at all times,
         // however some games are amazing, and do hundreds of locks on the same
         // surface per frame, so this would absolutely tank performance
-        HRESULT hrUpload = m_parent->InitializeOrUploadD3D9();
+        HRESULT hrUpload = InitializeOrUploadD3D9();
         if (unlikely(FAILED(hrUpload)))
           Logger::warn("DDraw2Surface::ReleaseDC: Failed upload to d3d9 surface");
       }
@@ -847,16 +888,9 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    // Retrieve and cache the updated proxy surface desc
-    DDSURFACEDESC desc;
-    desc.dwSize = sizeof(DDSURFACEDESC);
-    hr = m_proxy->GetSurfaceDesc(&desc);
-
-    if (unlikely(FAILED(hr))) {
+    hr = m_commonSurf->RefreshSurfaceDescripton();
+    if (unlikely(FAILED(hr)))
       Logger::err("DDraw2Surface::SetColorKey: Failed to retrieve updated surface desc");
-    } else {
-      m_commonSurf->SetDesc(desc);
-    }
 
     return DD_OK;
   }
