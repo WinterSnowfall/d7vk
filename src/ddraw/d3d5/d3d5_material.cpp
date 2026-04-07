@@ -28,36 +28,6 @@ namespace dxvk {
     Logger::debug(str::format("D3D5Material: Material nr. [[2-", m_materialCount, "]] bites the dust"));
   }
 
-  template<>
-  IUnknown* DDrawWrappedObject<D3D5Interface, IDirect3DMaterial2, IUnknown>::GetInterface(REFIID riid) {
-    if (riid == __uuidof(IUnknown))
-      return this;
-    // Materials are managed through handles, so nobody will query this,
-    // nor should we care in particular about older interfaces here
-    if (riid == __uuidof(IDirect3DMaterial2))
-      return this;
-
-    throw DxvkError("D3D5Material::QueryInterface: Unknown interface query");
-  }
-
-  HRESULT STDMETHODCALLTYPE D3D5Material::QueryInterface(REFIID riid, void** ppvObject) {
-    Logger::debug(">>> D3D5Material::QueryInterface");
-
-    if (unlikely(ppvObject == nullptr))
-      return E_POINTER;
-
-    InitReturnPtr(ppvObject);
-
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
-      return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
-    }
-  }
-
   HRESULT STDMETHODCALLTYPE D3D5Material::SetMaterial(D3DMATERIAL *data) {
     Logger::debug(">>> D3D5Material::SetMaterial");
 
