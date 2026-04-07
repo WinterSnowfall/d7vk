@@ -29,6 +29,8 @@ namespace dxvk {
       return S_OK;
     }
 
+    HRESULT RefreshSurfaceDescripton();
+
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf.ptr();
     }

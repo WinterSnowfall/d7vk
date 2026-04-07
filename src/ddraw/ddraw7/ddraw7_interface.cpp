@@ -258,6 +258,8 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       try{
         Com<DDraw7Surface> surface7 = new DDraw7Surface(nullptr, std::move(ddraw7SurfaceProxied), this, nullptr, true);
+        if (unlikely(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
+          m_commonIntf->SetPrimarySurface(surface7->GetCommonSurface());
         *lplpDDSurface = surface7.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());
@@ -324,7 +326,7 @@ namespace dxvk {
       Com<IDirectDrawSurface7> surface7 = surfaceIt->surface7;
 
       Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7), this, nullptr, false);
-      hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &surfaceIt->surface7Desc, lpContext);
+      hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &surfaceIt->desc2, lpContext);
 
       ++surfaceIt;
     }
@@ -535,6 +537,14 @@ namespace dxvk {
     HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
     if (unlikely(FAILED(hr)))
       return hr;
+
+    DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();
+
+    if (likely(ps != nullptr)) {
+      hr = ps->RefreshSurfaceDescripton();
+      if (unlikely(FAILED(hr)))
+        Logger::warn("DDraw7Interface::SetDisplayMode: Failed to update primary surface desc");
+    }
 
     if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent &&
                 m_commonIntf->GetOptions()->backBufferResize)) {

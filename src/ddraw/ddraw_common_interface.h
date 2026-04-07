@@ -10,6 +10,8 @@ namespace dxvk {
 
   class D3DCommonTexture;
 
+  class DDrawCommonSurface;
+
   class D3D3Interface;
 
   class DDraw7Interface;
@@ -155,6 +157,14 @@ namespace dxvk {
       return m_waitForVBlank;
     }
 
+    void SetPrimarySurface(DDrawCommonSurface* ps) {
+      m_ps = ps;
+    }
+
+    DDrawCommonSurface* GetPrimarySurface() {
+      return m_ps;
+    }
+
     void SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
       m_hWnd = hWnd;
       m_cooperativeLevel = dwFlags;
@@ -284,8 +294,8 @@ namespace dxvk {
 
     DWORD                             m_cooperativeLevel   = 0;
 
+    DDrawCommonSurface*               m_ps                 = nullptr;
     HWND                              m_hWnd               = nullptr;
-
     DDrawModeSize                     m_modeSize           = { };
 
     IUnknown*                         m_flipRTSurf         = nullptr;
