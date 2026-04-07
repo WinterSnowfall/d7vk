@@ -7,6 +7,8 @@
 
 #include "../ddraw/ddraw_surface.h"
 
+#include <unordered_map>
+
 namespace dxvk {
 
   class DDraw7Surface;
@@ -112,16 +114,43 @@ namespace dxvk {
       return m_d3d9Device;
     }
 
+    DDraw2Surface* GetAttachedDepthStencil() {
+      // Fast path, since in most cases we already store the required surface
+      if (likely(m_depthStencil.ptr() != nullptr))
+        return m_depthStencil.ptr();
+
+      DDSCAPS caps;
+      caps.dwCaps = DDSCAPS_ZBUFFER;
+      IDirectDrawSurface2* surface = nullptr;
+      HRESULT hr = GetAttachedSurface(&caps, &surface);
+      if (unlikely(FAILED(hr)))
+        return nullptr;
+
+      m_depthStencil = reinterpret_cast<DDraw2Surface*>(surface);
+
+      return m_depthStencil.ptr();
+    }
+
+    void ClearAttachedDepthStencil() {
+      m_depthStencil = nullptr;
+    }
+
+    void SetParentSurface(DDraw2Surface* surface) {
+      m_parentSurf = surface;
+      m_commonSurf->SetIsAttached(true);
+    }
+
+    void ClearParentSurface() {
+      m_parentSurf = nullptr;
+      m_commonSurf->SetIsAttached(false);
+    }
+
     HRESULT InitializeOrUploadD3D9() {
-      if (m_parent != nullptr)
-        return m_parent->InitializeOrUploadD3D9();
-      return D3D_OK;
+      return m_parent->InitializeOrUploadD3D9();
     }
 
     bool IsInitialized() {
-      if (m_parent != nullptr)
-        return m_parent->IsInitialized();
-      return false;
+      return m_parent->IsInitialized();
     }
 
   private:
@@ -151,6 +180,16 @@ namespace dxvk {
     DDraw2Surface*           m_parentSurf = nullptr;
 
     d3d9::IDirect3DDevice9*  m_d3d9Device = nullptr;
+
+    // Back buffers will have depth stencil surfaces as attachments (in practice
+    // I have never seen more than one depth stencil being attached at a time)
+    Com<DDraw2Surface>       m_depthStencil;
+
+    // These are attached surfaces, which are typically mips or other types of generated
+    // surfaces, which need to exist for the entire lifecycle of their parent surface.
+    // They are implemented with linked list, so for example only one mip level
+    // will be held in a parent texture, and the next mip level will be held in the previous mip.
+    std::unordered_map<IDirectDrawSurface2*, Com<DDraw2Surface, false>> m_attachedSurfaces;
 
   };
 
