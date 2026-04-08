@@ -111,6 +111,14 @@ namespace dxvk {
       return m_d3d3Viewport;
     }
 
+    void SetOrigin(IUnknown* origin) {
+      m_origin = origin;
+    }
+
+    IUnknown* GetOrigin() const {
+      return m_origin;
+    }
+
     void SetD3D6Device(D3D6Device* device6) {
       m_device6 = device6;
     }
@@ -205,6 +213,10 @@ namespace dxvk {
     D3D6Viewport*       m_d3d6Viewport      = nullptr;
     D3D5Viewport*       m_d3d5Viewport      = nullptr;
     D3D3Viewport*       m_d3d3Viewport      = nullptr;
+
+    // Track the origin viewport, as in the viewport
+    // that gets created through a CreateViewport call
+    IUnknown*           m_origin            = nullptr;
 
     // Track all devices this viewport is attached to
     D3D6Device*         m_device6           = nullptr;

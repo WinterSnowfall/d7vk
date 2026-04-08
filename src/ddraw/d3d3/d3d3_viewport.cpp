@@ -29,6 +29,9 @@ namespace dxvk {
 
     m_commonViewport->SetD3D3Viewport(this);
 
+    if (m_commonViewport->GetOrigin() == nullptr)
+      m_commonViewport->SetOrigin(this);
+
     m_viewportCount = ++s_viewportCount;
 
     Logger::debug(str::format("D3D3Viewport: Created a new viewport nr. [[1-", m_viewportCount, "]]"));
@@ -42,9 +45,32 @@ namespace dxvk {
       light->SetViewport3(nullptr);
     }
 
+    if (m_commonViewport->GetOrigin() == this)
+      m_commonViewport->SetOrigin(nullptr);
+
     m_commonViewport->SetD3D3Viewport(nullptr);
 
     Logger::debug(str::format("D3D3Viewport: Viewport nr. [[1-", m_viewportCount, "]] bites the dust"));
+  }
+
+  // Interlocked refcount with the origin Viewport
+  ULONG STDMETHODCALLTYPE D3D3Viewport::AddRef() {
+    IUnknown* origin = m_commonViewport->GetOrigin();
+    if (unlikely(origin != nullptr && origin != this)) {
+      return origin->AddRef();
+    } else {
+      return ComObjectClamp::AddRef();
+    }
+  }
+
+  // Interlocked refcount with the origin Viewport
+  ULONG STDMETHODCALLTYPE D3D3Viewport::Release() {
+    IUnknown* origin = m_commonViewport->GetOrigin();
+    if (unlikely(origin != nullptr && origin != this)) {
+      return origin->Release();
+    } else {
+      return ComObjectClamp::Release();
+    }
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Viewport::QueryInterface(REFIID riid, void** ppvObject) {
@@ -56,36 +82,36 @@ namespace dxvk {
     InitReturnPtr(ppvObject);
 
     if (unlikely(riid == __uuidof(IDirect3DViewport2))) {
-      if (m_commonViewport->GetD3D5Viewport() != nullptr) {
-        Logger::debug("D3D3Viewport::QueryInterface: Query for existing IDirect3DViewport2");
-        return m_commonViewport->GetD3D5Viewport()->QueryInterface(riid, ppvObject);
-      }
-
       Logger::debug("D3D3Viewport::QueryInterface: Query for IDirect3DViewport2");
 
-      Com<IDirect3DViewport2> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
+      if (unlikely(m_viewport5 == nullptr)) {
+        Com<IDirect3DViewport2> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
 
-      *ppvObject = ref(new D3D5Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr));
+        m_viewport5 = new D3D5Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr);
+      }
+
+      // On native this is the same object, so no need to ref
+      *ppvObject = m_viewport5.ptr();
 
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DViewport3))) {
-      if (m_commonViewport->GetD3D6Viewport() != nullptr) {
-        Logger::debug("D3D3Viewport::QueryInterface: Query for existing IDirect3DViewport3");
-        return m_commonViewport->GetD3D6Viewport()->QueryInterface(riid, ppvObject);
-      }
-
       Logger::debug("D3D3Viewport::QueryInterface: Query for IDirect3DViewport3");
 
-      Com<IDirect3DViewport3> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
+      if (unlikely(m_viewport6 == nullptr)) {
+        Com<IDirect3DViewport3> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
 
-      *ppvObject = ref(new D3D6Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr));
+        m_viewport6 = new D3D6Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr);
+      }
+
+      // On native this is the same object, so no need to ref
+      *ppvObject = m_viewport6.ptr();
 
       return S_OK;
     }
@@ -127,11 +153,13 @@ namespace dxvk {
     data->dvMinZ   = viewport9->MinZ;
     data->dvMaxZ   = viewport9->MaxZ;
 
-    data->dvMaxX   = 1.0f;
-    data->dvMaxY   = 1.0f;
     D3DVECTOR* legacyScale = m_commonViewport->GetLegacyScale();
     data->dvScaleX = legacyScale->x * (float)data->dwWidth / 2.0f;
     data->dvScaleY = legacyScale->y * (float)data->dwHeight / 2.0f;
+    D3DVECTOR* legacyClip = m_commonViewport->GetLegacyClip();
+    // Don't compact these because precission issues can affect the outcome
+    data->dvMaxX   = 2.0f / legacyScale->x * (1.0f + (legacyClip->x + 1.0f) / -2.0f); // dvClipX + dvClipWidth
+    data->dvMaxY   = 2.0f / legacyScale->y * (legacyClip->y - 1.0f) / -2.0f;          // dvClipY
 
     return D3D_OK;
   }

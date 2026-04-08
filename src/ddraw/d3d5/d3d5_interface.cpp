@@ -411,7 +411,7 @@ namespace dxvk {
         }
       } else {
         Logger::err("D3D5Interface::CreateDevice: Unwrapped surface passed as RT");
-        return DDERR_GENERIC;
+        return DDERR_UNSUPPORTED;
       }
     } else {
       rt = static_cast<DDrawSurface*>(lpDDS);

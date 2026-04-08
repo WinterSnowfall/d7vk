@@ -337,7 +337,7 @@ namespace dxvk {
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
       if (unlikely(lpDDSrcSurface != nullptr)) {
         Logger::warn("DDraw7Surface::Blt: Received an unwrapped source surface");
-        return DDERR_GENERIC;
+        return DDERR_UNSUPPORTED;
       }
       hr = m_proxy->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     } else {
@@ -424,7 +424,7 @@ namespace dxvk {
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
       if (unlikely(lpDDSrcSurface != nullptr)) {
         Logger::warn("DDraw7Surface::BltFast: Received an unwrapped source surface");
-        return DDERR_GENERIC;
+        return DDERR_UNSUPPORTED;
       }
       hr = m_proxy->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
     } else {
@@ -453,7 +453,7 @@ namespace dxvk {
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
       if (unlikely(lpDDSAttachedSurface != nullptr)) {
         Logger::warn("DDraw7Surface::DeleteAttachedSurface: Received an unwrapped surface");
-        return DDERR_GENERIC;
+        return DDERR_UNSUPPORTED;
       }
 
       HRESULT hrProxy = m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
@@ -577,7 +577,7 @@ namespace dxvk {
         if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
           if (unlikely(lpDDSurfaceTargetOverride != nullptr)) {
             Logger::warn("DDraw7Surface::Flip: Received an unwrapped surface");
-            return DDERR_GENERIC;
+            return DDERR_UNSUPPORTED;
           }
           if (likely(m_commonIntf->IsCurrentRenderTarget(this)))
             m_commonIntf->SetFlipRTSurfaceAndFlags(lpDDSurfaceTargetOverride, dwFlags);
@@ -1024,9 +1024,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFACE7 lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx) {
     Logger::debug("<<< DDraw7Surface::UpdateOverlay: Proxy");
 
+    if (unlikely(lpDDDestSurface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDDestSurface))) {
       Logger::warn("DDraw7Surface::UpdateOverlay: Received an unwrapped surface");
-      return DDERR_GENERIC;
+      return DDERR_UNSUPPORTED;
     }
 
     DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDDestSurface);
@@ -1044,7 +1047,7 @@ namespace dxvk {
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSReference))) {
       Logger::warn("DDraw7Surface::UpdateOverlayZOrder: Received an unwrapped surface");
-      return DDERR_GENERIC;
+      return DDERR_UNSUPPORTED;
     }
 
     DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSReference);
