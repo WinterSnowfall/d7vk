@@ -33,8 +33,7 @@ namespace dxvk {
 
     m_commonIntf->SetAdapterIdentifier(adapterIdentifier9);
 
-    if (m_commonIntf->GetOrigin() == nullptr)
-      m_commonIntf->SetOrigin(this);
+    // Note: IDirectDraw4 can never be the origin interface
 
     m_commonIntf->SetDD4Interface(this);
 
@@ -50,9 +49,6 @@ namespace dxvk {
   }
 
   DDraw4Interface::~DDraw4Interface() {
-    if (m_commonIntf->GetOrigin() == this)
-      m_commonIntf->SetOrigin(nullptr);
-
     m_commonIntf->SetDD4Interface(nullptr);
 
     Logger::debug(str::format("DDraw4Interface: Interface nr. <<4-", m_intfCount, ">> bites the dust"));

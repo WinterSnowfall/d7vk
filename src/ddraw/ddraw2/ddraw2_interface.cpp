@@ -4,7 +4,6 @@
 #include "../ddraw_palette.h"
 
 #include "../ddraw/ddraw_surface.h"
-#include "../ddraw/ddraw_interface.h"
 #include "../ddraw4/ddraw4_interface.h"
 #include "../ddraw7/ddraw7_interface.h"
 
@@ -21,9 +20,15 @@ namespace dxvk {
         Com<IDirectDraw2>&& proxyIntf)
     : DDrawWrappedObject<IUnknown, IDirectDraw2, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
     , m_commonIntf ( commonIntf ) {
+    // Hold a reference to the parent IDirectDraw object, since
+    // it is needed to be able to create surfaces from this interface
+    if (likely(commonIntf->GetDDInterface() != nullptr)) {
+      m_parentIntf = commonIntf->GetDDInterface();
+    } else {
+      throw DxvkError("DDraw2Interface: ERROR! Failed to retrieve IDirectDraw interface!");
+    }
 
-    if (m_commonIntf->GetOrigin() == nullptr)
-      m_commonIntf->SetOrigin(this);
+    // Note: IDirectDraw2 can never be the origin interface
 
     m_commonIntf->SetDD2Interface(this);
 
@@ -39,9 +44,6 @@ namespace dxvk {
   }
 
   DDraw2Interface::~DDraw2Interface() {
-    if (m_commonIntf->GetOrigin() == this)
-      m_commonIntf->SetOrigin(nullptr);
-
     m_commonIntf->SetDD2Interface(nullptr);
 
     Logger::debug(str::format("DDraw2Interface: Interface nr. <<2-", m_intfCount, ">> bites the dust"));
