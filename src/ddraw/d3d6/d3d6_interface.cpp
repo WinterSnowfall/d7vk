@@ -74,6 +74,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> D3D6Interface::QueryInterface");
+
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
@@ -466,7 +468,7 @@ namespace dxvk {
     D3DDEVICEDESC desc6 = GetD3D6Caps(rclsidOverride, d3dOptions);
 
     try{
-      Com<D3D6Device> device6 = new D3D6Device(std::move(d3d6DeviceProxy), this, desc6,
+      Com<D3D6Device> device6 = new D3D6Device(nullptr, std::move(d3d6DeviceProxy), this, desc6,
                                                rclsidOverride, params, std::move(device9),
                                                rt4.ptr(), deviceCreationFlags9);
 

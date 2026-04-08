@@ -76,6 +76,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Interface::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> D3D3Interface::QueryInterface");
+
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
