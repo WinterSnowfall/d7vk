@@ -23,9 +23,8 @@ namespace dxvk {
     : DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
     , m_commonIntf ( commonIntf ) {
 
-    if (m_commonIntf == nullptr) {
-      // We need a temporary D3D9 interface at this point to retrieve the options,
-      // even if we're only proxying and we don't yet have any child D3D interfaces
+    if (likely(m_commonIntf == nullptr)) {
+      // We need a temporary D3D9 interface to retrieve the options
       Com<d3d9::IDirect3D9> d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
       Com<IDxvkD3D8InterfaceBridge> d3d9Bridge;
 
