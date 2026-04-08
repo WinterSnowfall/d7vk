@@ -436,13 +436,15 @@ namespace dxvk {
 
     Logger::debug(">>> D3D5Device::GetCurrentViewport");
 
+    // This does indeed return D3DERR_NOCURRENTVIEWPORT...
     if (unlikely(viewport == nullptr))
       return D3DERR_NOCURRENTVIEWPORT;
 
-    InitReturnPtr(viewport);
-
+    // Current viewport is checked before initializing the return pointer
     if (unlikely(m_currentViewport == nullptr))
       return D3DERR_NOCURRENTVIEWPORT;
+
+    InitReturnPtr(viewport);
 
     *viewport = m_currentViewport.ref();
 
@@ -461,7 +463,7 @@ namespace dxvk {
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
       Logger::err("D3D5Device::SetRenderTarget: Received an unwrapped RT");
-      return DDERR_GENERIC;
+      return DDERR_UNSUPPORTED;
     }
 
     DDrawSurface* rt5 = static_cast<DDrawSurface*>(surface);
