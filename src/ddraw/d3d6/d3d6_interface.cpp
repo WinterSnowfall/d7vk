@@ -337,7 +337,7 @@ namespace dxvk {
     Com<DDraw4Surface> rt4;
     if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDS))) {
       Logger::err("D3D6Interface::CreateDevice: Unwrapped surface passed as RT");
-      return DDERR_GENERIC;
+      return DDERR_UNSUPPORTED;
     } else {
       rt4 = static_cast<DDraw4Surface*>(lpDDS);
     }

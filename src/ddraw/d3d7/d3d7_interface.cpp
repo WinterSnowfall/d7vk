@@ -190,7 +190,7 @@ namespace dxvk {
     Com<DDraw7Surface> rt7;
     if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
       Logger::err("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
-      return DDERR_GENERIC;
+      return DDERR_UNSUPPORTED;
     } else {
       rt7 = static_cast<DDraw7Surface*>(surface);
     }
