@@ -1,7 +1,13 @@
 #include "d3d6_device.h"
 
+#include "../d3d_common_device.h"
+#include "../ddraw_common_interface.h"
+
 #include "d3d6_buffer.h"
 #include "d3d6_texture.h"
+
+#include "../d3d5/d3d5_device.h"
+#include "../d3d3/d3d3_device.h"
 
 #include "../ddraw4/ddraw4_surface.h"
 
@@ -12,6 +18,7 @@ namespace dxvk {
   uint32_t D3D6Device::s_deviceCount = 0;
 
   D3D6Device::D3D6Device(
+        D3DCommonDevice* commonD3DDevice,
         Com<IDirect3DDevice3>&& d3d6DeviceProxy,
         D3D6Interface* pParent,
         D3DDEVICEDESC Desc,
@@ -21,12 +28,20 @@ namespace dxvk {
         DDraw4Surface* pSurface,
         DWORD CreationFlags9)
     : DDrawWrappedObject<D3D6Interface, IDirect3DDevice3, d3d9::IDirect3DDevice9>(pParent, std::move(d3d6DeviceProxy), std::move(pDevice9))
-    , m_commonIntf ( pParent->GetCommonInterface() )
+    , m_commonD3DDevice ( commonD3DDevice )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
     , m_desc ( Desc )
     , m_deviceGUID ( deviceGUID )
     , m_rt ( pSurface ) {
+    if (m_parent != nullptr) {
+      m_commonIntf = m_parent->GetCommonInterface();
+    } else if (m_commonD3DDevice != nullptr) {
+      m_commonIntf = m_commonD3DDevice->GetCommonInterface();
+    } else {
+      throw DxvkError("D3D6Device: ERROR! Failed to retrieve the common interface!");
+    }
+
     // Get the bridge interface to D3D9
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8Bridge), reinterpret_cast<void**>(&m_bridge))))) {
       throw DxvkError("D3D6Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
@@ -37,24 +52,32 @@ namespace dxvk {
       throw DxvkError("D3D6Device: ERROR! Failed to initialize D3D9 index buffers.");
     }
 
-    m_totalMemory = m_bridge->DetermineInitialTextureMemory();
+    if (likely(m_commonD3DDevice == nullptr)) {
+      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, CreationFlags9,
+                                              m_bridge->DetermineInitialTextureMemory());
 
-    m_textures.fill(nullptr);
+      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+      if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
+        Logger::warn("D3D6Device: Force enabling AA");
+        m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+      }
 
-    if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
-      Logger::warn("D3D6Device: Force enabling AA");
-      m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+      // The default value of D3DRENDERSTATE_TEXTUREMAPBLEND in D3D6 is D3DTBLEND_MODULATE
+      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
+      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
+      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
+      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
     }
 
-    // The default value of D3DRENDERSTATE_TEXTUREMAPBLEND in D3D6 is D3DTBLEND_MODULATE
-    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
-    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
-    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
-    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-    m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+    if (m_commonD3DDevice->GetOrigin() == nullptr)
+      m_commonD3DDevice->SetOrigin(this);
+
+    m_commonD3DDevice->SetD3D6Device(this);
+
+    m_textures.fill(nullptr);
 
     m_deviceCount = ++s_deviceCount;
 
@@ -78,11 +101,96 @@ namespace dxvk {
       viewport->GetCommonViewport()->SetD3D6Device(nullptr);
     }
 
+    if (m_commonD3DDevice->GetD3D6Device() == this)
+      m_commonD3DDevice->SetD3D6Device(nullptr);
+
+    if (m_commonD3DDevice->GetOrigin() == this)
+      m_commonD3DDevice->SetOrigin(nullptr);
+
     // Clear the common interface device pointer if it points to this device
     if (m_commonIntf->GetD3D6Device() == this)
       m_commonIntf->SetD3D6Device(nullptr);
 
     Logger::debug(str::format("D3D6Device: Device nr. ((3-", m_deviceCount, ")) bites the dust"));
+  }
+
+  // Interlocked refcount with the origin device
+  ULONG STDMETHODCALLTYPE D3D6Device::AddRef() {
+    IUnknown* origin = m_commonD3DDevice->GetOrigin();
+    if (unlikely(origin != nullptr && origin != this)) {
+      return origin->AddRef();
+    } else {
+      return ComObjectClamp::AddRef();
+    }
+  }
+
+  // Interlocked refcount with the origin device
+  ULONG STDMETHODCALLTYPE D3D6Device::Release() {
+    IUnknown* origin = m_commonD3DDevice->GetOrigin();
+    if (unlikely(origin != nullptr && origin != this)) {
+      return origin->Release();
+    } else {
+      return ComObjectClamp::Release();
+    }
+  }
+
+  HRESULT STDMETHODCALLTYPE D3D6Device::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> D3D6Device::QueryInterface");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    if (riid == __uuidof(IDirect3DDevice)) {
+      if (m_commonD3DDevice->GetD3D3Device() != nullptr) {
+        Logger::debug("D3D6Device::QueryInterface: Query for existing IDirect3DDevice");
+        return m_commonD3DDevice->GetD3D3Device()->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("D3D6Device::QueryInterface: Query for IDirect3DDevice");
+
+      Com<IDirect3DDevice> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+      // TODO: Make sure the RT has an existing DDrawSurface,
+      // and QueryInterface for one if that's not the case
+
+      // Reuse the existing D3D9 device in situations where games want
+      // to get access only to D3D3 execute buffers on a D3D6 device
+      Com<d3d9::IDirect3DDevice9> device9 = m_d3d9.ptr();
+      m_device3 = new D3D3Device(m_commonD3DDevice.ptr(), std::move(ppvProxyObject),
+                                 m_rt->GetCommonSurface()->GetDDSurface(), GetD3D3Caps(d3dOptions), m_deviceGUID,
+                                 m_params9, std::move(device9), m_commonD3DDevice->GetD3D9CreationFlags());
+
+      // On native this is the same object, so no need to ref
+      *ppvObject = m_device3.ptr();
+
+      return S_OK;
+    }
+    // Technically possible, shouldn't ever be needed or make sense
+    if (unlikely(riid == __uuidof(IDirect3DDevice2))) {
+      if (m_commonD3DDevice->GetD3D5Device() != nullptr) {
+        Logger::debug("D3D6Device::QueryInterface: Query for existing IDirect3DDevice2");
+        return m_commonD3DDevice->GetD3D5Device()->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::err("D3D6Device::QueryInterface: Query for IDirect3DDevice2");
+      return E_NOINTERFACE;
+    }
+
+    try {
+      *ppvObject = ref(this->GetInterface(riid));
+      return S_OK;
+    } catch (const DxvkError& e) {
+      Logger::warn(e.message());
+      Logger::warn(str::format(riid));
+      return E_NOINTERFACE;
+    }
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetCaps(D3DDEVICEDESC *hal_desc, D3DDEVICEDESC *hel_desc) {
