@@ -7,7 +7,6 @@
 #include "../ddraw_caps.h"
 
 #include "../d3d_multithread.h"
-#include "../ddraw_common_interface.h"
 
 #include "../../d3d9/d3d9_bridge.h"
 
@@ -19,10 +18,12 @@
 
 namespace dxvk {
 
+  class D3DCommonDevice;
   class DDrawCommonInterface;
   class DDraw4Surface;
   class DDraw4Interface;
   class D3D6Texture;
+  class D3D3Device;
 
   /**
   * \brief D3D6 device implementation
@@ -31,6 +32,7 @@ namespace dxvk {
 
   public:
     D3D6Device(
+          D3DCommonDevice* commonD3DDevice,
           Com<IDirect3DDevice3>&& d3d6DeviceProxy,
           D3D6Interface* pParent,
           D3DDEVICEDESC Desc,
@@ -41,6 +43,12 @@ namespace dxvk {
           DWORD CreationFlags9);
 
     ~D3D6Device();
+
+    ULONG STDMETHODCALLTYPE AddRef();
+
+    ULONG STDMETHODCALLTYPE Release();
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
     HRESULT STDMETHODCALLTYPE GetCaps(D3DDEVICEDESC *hal_desc, D3DDEVICEDESC *hel_desc);
 
@@ -124,16 +132,16 @@ namespace dxvk {
 
     HRESULT ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params);
 
+    D3DCommonDevice* GetCommonD3DDevice() {
+      return m_commonD3DDevice.ptr();
+    }
+
     D3DDeviceLock LockDevice() {
       return m_multithread.AcquireLock();
     }
 
     void EnableLegacyLights(bool isD3DLight2) {
       m_bridge->SetLegacyLightsState(true, isD3DLight2);
-    }
-
-    uint32_t GetTotalTextureMemory() const {
-      return m_totalMemory;
     }
 
     d3d9::D3DPRESENT_PARAMETERS GetPresentParameters() const {
@@ -231,13 +239,15 @@ namespace dxvk {
     static uint32_t                s_deviceCount;
     uint32_t                       m_deviceCount = 0;
 
-    uint32_t                       m_totalMemory = 0;
-
     DWORD                          m_lighting    = FALSE;
 
     DDrawCommonInterface*          m_commonIntf  = nullptr;
 
+    Com<D3DCommonDevice>           m_commonD3DDevice;
+
     Com<DxvkD3D8Bridge>            m_bridge;
+
+    Com<D3D3Device>                m_device3;
 
     D3DMultithread                 m_multithread;
 
