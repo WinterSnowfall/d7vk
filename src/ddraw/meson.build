@@ -17,6 +17,7 @@ ddraw_src = [
   'ddraw4/ddraw4_surface.cpp',
   'ddraw7/ddraw7_interface.cpp',
   'ddraw7/ddraw7_surface.cpp',
+  'd3d_common_device.cpp',
   'd3d_common_interface.cpp',
   'd3d_common_material.cpp',
   'd3d_common_texture.cpp',

@@ -5,7 +5,6 @@
 #include "../ddraw_options.h"
 
 #include "../d3d_multithread.h"
-#include "../ddraw_common_interface.h"
 
 #include "../../d3d9/d3d9_bridge.h"
 
@@ -17,6 +16,8 @@
 
 namespace dxvk {
 
+  class D3DCommonDevice;
+  class DDrawCommonInterface;
   class DDrawSurface;
 
   /**
@@ -26,6 +27,7 @@ namespace dxvk {
 
   public:
     D3D3Device(
+          D3DCommonDevice* commonD3DDevice,
           Com<IDirect3DDevice>&& d3d3DeviceProxy,
           DDrawSurface* pParent,
           D3DDEVICEDESC3 Desc,
@@ -35,6 +37,10 @@ namespace dxvk {
           DWORD CreationFlags9);
 
     ~D3D3Device();
+
+    ULONG STDMETHODCALLTYPE AddRef();
+
+    ULONG STDMETHODCALLTYPE Release();
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
@@ -78,16 +84,16 @@ namespace dxvk {
 
     void InitializeDS();
 
+    D3DCommonDevice* GetCommonD3DDevice() {
+      return m_commonD3DDevice.ptr();
+    }
+
     D3DDeviceLock LockDevice() {
       return m_multithread.AcquireLock();
     }
 
     void EnableLegacyLights(bool isD3DLight2) {
       m_bridge->SetLegacyLightsState(true, isD3DLight2);
-    }
-
-    uint32_t GetTotalTextureMemory() const {
-      return m_totalMemory;
     }
 
     D3DSTATS GetStatsInternal() const {
@@ -169,9 +175,9 @@ namespace dxvk {
     static uint32_t                s_deviceCount;
     uint32_t                       m_deviceCount = 0;
 
-    uint32_t                       m_totalMemory = 0;
-
     DDrawCommonInterface*          m_commonIntf  = nullptr;
+
+    Com<D3DCommonDevice>           m_commonD3DDevice;
 
     Com<DxvkD3D8Bridge>            m_bridge;
 

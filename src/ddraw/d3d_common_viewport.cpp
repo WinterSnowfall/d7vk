@@ -2,9 +2,9 @@
 
 #include "d3d_common_interface.h"
 
-#include "d3d3/d3d3_device.h"
-#include "d3d5/d3d5_device.h"
 #include "d3d6/d3d6_device.h"
+#include "d3d5/d3d5_device.h"
+#include "d3d3/d3d3_device.h"
 
 namespace dxvk {
 

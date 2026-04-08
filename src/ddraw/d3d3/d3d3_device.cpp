@@ -1,11 +1,14 @@
 #include "d3d3_device.h"
 
+#include "../d3d_common_device.h"
 #include "../d3d_common_texture.h"
+#include "../ddraw_common_interface.h"
 
 #include "d3d3_execute_buffer.h"
 
 #include "../ddraw/ddraw_surface.h"
 
+#include "../d3d6/d3d6_device.h"
 #include "../d3d5/d3d5_device.h"
 
 #include <algorithm>
@@ -15,6 +18,7 @@ namespace dxvk {
   uint32_t D3D3Device::s_deviceCount = 0;
 
   D3D3Device::D3D3Device(
+        D3DCommonDevice* commonD3DDevice,
         Com<IDirect3DDevice>&& d3d3DeviceProxy,
         DDrawSurface* pParent,
         D3DDEVICEDESC3 Desc,
@@ -23,35 +27,51 @@ namespace dxvk {
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DWORD CreationFlags9)
     : DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9>(pParent, std::move(d3d3DeviceProxy), std::move(pDevice9))
-    , m_commonIntf ( pParent->GetCommonInterface() )
+    , m_commonD3DDevice ( commonD3DDevice )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
     , m_desc ( Desc )
     , m_deviceGUID ( deviceGUID )
     , m_rt ( pParent ) {
+    if (m_parent != nullptr) {
+      m_commonIntf = m_parent->GetCommonInterface();
+    } else if (m_commonD3DDevice != nullptr) {
+      m_commonIntf = m_commonD3DDevice->GetCommonInterface();
+    } else {
+      throw DxvkError("D3D3Device: ERROR! Failed to retrieve the common interface!");
+    }
+
     // Get the bridge interface to D3D9
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8Bridge), reinterpret_cast<void**>(&m_bridge))))) {
       throw DxvkError("D3D3Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
-    m_totalMemory = m_bridge->DetermineInitialTextureMemory();
+    if (likely(m_commonD3DDevice == nullptr)) {
+      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, CreationFlags9,
+                                              m_bridge->DetermineInitialTextureMemory());
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
-    if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
-      Logger::warn("D3D3Device: Force enabling AA");
-      m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+      if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
+        Logger::warn("D3D3Device: Force enabling AA");
+        m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+      }
+
+      if (m_commonIntf->GetD3D5Device() == nullptr) {
+        // The default value of D3DRENDERSTATE_TEXTUREMAPBLEND in D3D3 is D3DTBLEND_MODULATE
+        m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
+        m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+        m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
+        m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
+        m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+        m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+      }
     }
 
-    if (m_commonIntf->GetD3D5Device() == nullptr) {
-      // The default value of D3DRENDERSTATE_TEXTUREMAPBLEND in D3D3 is D3DTBLEND_MODULATE
-      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
-      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
-      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
-      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
-    }
+    if (m_commonD3DDevice->GetOrigin() == nullptr)
+      m_commonD3DDevice->SetOrigin(this);
+
+    m_commonD3DDevice->SetD3D3Device(this);
 
     m_deviceCount = ++s_deviceCount;
 
@@ -64,6 +84,12 @@ namespace dxvk {
       viewport->GetCommonViewport()->SetD3D3Device(nullptr);
     }
 
+    if (m_commonD3DDevice->GetD3D3Device() == this)
+      m_commonD3DDevice->SetD3D3Device(nullptr);
+
+    if (m_commonD3DDevice->GetOrigin() == this)
+      m_commonD3DDevice->SetOrigin(nullptr);
+
     // Clear the common interface device pointer if it points to this device
     if (m_commonIntf->GetD3D3Device() == this)
       m_commonIntf->SetD3D3Device(nullptr);
@@ -71,21 +97,54 @@ namespace dxvk {
     Logger::debug(str::format("D3D3Device: Device nr. ((1-", m_deviceCount, ")) bites the dust"));
   }
 
+  // Interlocked refcount with the origin device
+  ULONG STDMETHODCALLTYPE D3D3Device::AddRef() {
+    IUnknown* origin = m_commonD3DDevice->GetOrigin();
+    if (unlikely(origin != nullptr && origin != this)) {
+      return origin->AddRef();
+    } else {
+      return ComObjectClamp::AddRef();
+    }
+  }
+
+  // Interlocked refcount with the origin device
+  ULONG STDMETHODCALLTYPE D3D3Device::Release() {
+    IUnknown* origin = m_commonD3DDevice->GetOrigin();
+    if (unlikely(origin != nullptr && origin != this)) {
+      return origin->Release();
+    } else {
+      return ComObjectClamp::Release();
+    }
+  }
+
   HRESULT STDMETHODCALLTYPE D3D3Device::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> D3D3Device::QueryInterface");
+
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
     InitReturnPtr(ppvObject);
 
     if (unlikely(riid == __uuidof(IDirect3DDevice2))) {
-      if (likely(m_commonIntf->GetD3D5Device() != nullptr)) {
+      if (likely(m_commonD3DDevice->GetD3D5Device() != nullptr)) {
         Logger::debug("D3D3Device::QueryInterface: Query for existing IDirect3DDevice2");
-        return m_commonIntf->GetD3D5Device()->QueryInterface(riid, ppvObject);
+        return m_commonD3DDevice->GetD3D5Device()->QueryInterface(riid, ppvObject);
       }
 
       // A D3D3 device shouldn't be able to create a D3D5 device
       // if it doesn't previously exist as a parent/origin device
-      Logger::warn("D3D3Device::QueryInterface: Query for IDirect3DDevice2");
+      Logger::debug("D3D3Device::QueryInterface: Query for IDirect3DDevice2");
+      return E_NOINTERFACE;
+    }
+    if (unlikely(riid == __uuidof(IDirect3DDevice3))) {
+      if (likely(m_commonD3DDevice->GetD3D6Device() != nullptr)) {
+        Logger::debug("D3D3Device::QueryInterface: Query for existing IDirect3DDevice3");
+        return m_commonD3DDevice->GetD3D6Device()->QueryInterface(riid, ppvObject);
+      }
+
+      // A D3D3 device shouldn't be able to create a D3D6 device
+      // if it doesn't previously exist as a parent/origin device
+      Logger::debug("D3D3Device::QueryInterface: Query for IDirect3DDevice3");
       return E_NOINTERFACE;
     }
 

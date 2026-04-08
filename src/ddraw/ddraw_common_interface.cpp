@@ -1,15 +1,16 @@
 #include "ddraw_common_interface.h"
 
+#include "d3d_common_device.h"
 #include "d3d_common_texture.h"
 
 #include "ddraw/ddraw_surface.h"
 #include "ddraw4/ddraw4_surface.h"
 #include "ddraw7/ddraw7_surface.h"
 
-#include "d3d3/d3d3_device.h"
-#include "d3d5/d3d5_device.h"
-#include "d3d6/d3d6_device.h"
 #include "d3d7/d3d7_device.h"
+#include "d3d6/d3d6_device.h"
+#include "d3d5/d3d5_device.h"
+#include "d3d3/d3d3_device.h"
 
 #include <algorithm>
 
@@ -203,13 +204,13 @@ namespace dxvk {
 
   uint32_t DDrawCommonInterface::GetTotalTextureMemory() {
     if (m_device7 != nullptr) {
-      return m_device7->GetTotalTextureMemory();
+      return m_device7->GetCommonD3DDevice()->GetTotalTextureMemory();
     } else if (m_device6 != nullptr) {
-      return m_device6->GetTotalTextureMemory();
+      return m_device6->GetCommonD3DDevice()->GetTotalTextureMemory();
     } else if (m_device5 != nullptr) {
-      return m_device5->GetTotalTextureMemory();
+      return m_device5->GetCommonD3DDevice()->GetTotalTextureMemory();
     } else if (m_device3 != nullptr) {
-      return m_device3->GetTotalTextureMemory();
+      return m_device3->GetCommonD3DDevice()->GetTotalTextureMemory();
     }
 
     return 0;
