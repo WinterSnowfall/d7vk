@@ -295,7 +295,7 @@ namespace dxvk {
     } else {
       if (unlikely(lpDDSurface != nullptr)) {
         Logger::warn("DDraw7Interface::DuplicateSurface: Received an unwrapped source surface");
-        return DDERR_GENERIC;
+        return DDERR_UNSUPPORTED;
       }
       return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
     }
@@ -309,24 +309,26 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSD, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback) {
-    Logger::debug(">>> DDraw7Interface::EnumSurfaces: Proxy");
+    Logger::debug("<<< DDraw7Interface::EnumSurfaces: Proxy");
 
     if (unlikely(lpEnumSurfacesCallback == nullptr))
       return DDERR_INVALIDPARAMS;
 
     std::vector<AttachedSurface7> attachedSurfaces;
     // Enumerate all surfaces from the underlying DDraw implementation
-    m_proxy->EnumSurfaces(dwFlags, lpDDSD, reinterpret_cast<void*>(&attachedSurfaces), EnumAttachedSurfaces7Callback);
+    HRESULT hr = m_proxy->EnumSurfaces(dwFlags, lpDDSD, reinterpret_cast<void*>(&attachedSurfaces), EnumAttachedSurfaces7Callback);
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    HRESULT hr = DDENUMRET_OK;
+    HRESULT hrCB = DDENUMRET_OK;
 
     // Wrap surfaces as needed and perform the actual callback the application is requesting
     auto surfaceIt = attachedSurfaces.begin();
-    while (surfaceIt != attachedSurfaces.end() && hr == DDENUMRET_OK) {
+    while (surfaceIt != attachedSurfaces.end() && hrCB == DDENUMRET_OK) {
       Com<IDirectDrawSurface7> surface7 = surfaceIt->surface7;
 
       Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7), this, nullptr, false);
-      hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &surfaceIt->desc2, lpContext);
+      hrCB = lpEnumSurfacesCallback(ddraw7Surface.ref(), &surfaceIt->desc2, lpContext);
 
       ++surfaceIt;
     }
@@ -335,10 +337,21 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::FlipToGDISurface() {
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("<<< DDraw7Interface::FlipToGDISurface: Proxy");
+      return m_proxy->FlipToGDISurface();
+    }
+
     Logger::debug("*** DDraw7Interface::FlipToGDISurface: Ignoring");
 
-    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent))
-      return m_proxy->FlipToGDISurface();
+    DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();
+
+    // A primary surface must exist for a GDI flip to be possible
+    if (unlikely(ps == nullptr))
+      return DDERR_NOTFOUND;
+
+    if (unlikely(!ps->IsFlippable()))
+      return DDERR_NOTFLIPPABLE;
 
     return DD_OK;
   }

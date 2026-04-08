@@ -11,6 +11,9 @@ namespace dxvk {
 
   class D3DLight;
 
+  class D3D6Viewport;
+  class D3D5Viewport;
+
   class D3D3Viewport final : public DDrawWrappedObject<D3D3Interface, IDirect3DViewport, IUnknown> {
 
   public:
@@ -21,6 +24,10 @@ namespace dxvk {
           D3D3Interface* pParent);
 
     ~D3D3Viewport();
+
+    ULONG STDMETHODCALLTYPE AddRef();
+
+    ULONG STDMETHODCALLTYPE Release();
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
@@ -66,6 +73,9 @@ namespace dxvk {
     uint32_t               m_viewportCount = 0;
 
     Com<D3DCommonViewport> m_commonViewport;
+
+    Com<D3D6Viewport>      m_viewport6;
+    Com<D3D5Viewport>      m_viewport5;
 
   };
 

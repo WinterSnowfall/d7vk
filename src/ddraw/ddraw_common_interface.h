@@ -307,12 +307,6 @@ namespace dxvk {
 
     D3D3Interface*                    m_d3d3Intf           = nullptr;
 
-    // Track all possible last used D3D devices
-    D3D7Device*                       m_device7            = nullptr;
-    D3D6Device*                       m_device6            = nullptr;
-    D3D5Device*                       m_device5            = nullptr;
-    D3D3Device*                       m_device3            = nullptr;
-
     // Track all possible instance versions of the same object
     DDraw7Interface*                  m_intf7              = nullptr;
     DDraw4Interface*                  m_intf4              = nullptr;
@@ -322,6 +316,12 @@ namespace dxvk {
     // Track the origin surface, as in the DDraw surface
     // that gets created through a DirectDrawCreate(Ex) call
     IUnknown*                         m_origin             = nullptr;
+
+    // Track all possible last used D3D devices
+    D3D7Device*                       m_device7            = nullptr;
+    D3D6Device*                       m_device6            = nullptr;
+    D3D5Device*                       m_device5            = nullptr;
+    D3D3Device*                       m_device3            = nullptr;
 
     std::vector<IDirectDrawSurface7*> m_surfaces7;
     std::vector<IDirectDrawSurface4*> m_surfaces4;
