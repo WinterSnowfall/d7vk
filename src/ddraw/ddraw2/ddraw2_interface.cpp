@@ -322,7 +322,7 @@ namespace dxvk {
     } else {
       if (unlikely(lpDDSurface != nullptr)) {
         Logger::warn("DDraw2Interface::DuplicateSurface: Received an unwrapped source surface");
-        return DDERR_GENERIC;
+        return DDERR_UNSUPPORTED;
       }
       return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
     }
@@ -336,12 +336,32 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSD, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback) {
-    Logger::warn("<<< DDraw2Interface::EnumSurfaces: Proxy");
-    return m_proxy->EnumSurfaces(dwFlags, lpDDSD, lpContext, lpEnumSurfacesCallback);
+    if (unlikely(m_commonIntf->GetDDInterface() == nullptr)) {
+      Logger::warn("!!! DDraw2Interface::EnumSurfaces: Stub");
+      return DDERR_UNSUPPORTED;
+    }
+
+    Logger::warn(">>> DDraw2Interface::EnumSurfaces");
+    return m_commonIntf->GetDDInterface()->EnumSurfaces(dwFlags, lpDDSD, lpContext, lpEnumSurfacesCallback);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::FlipToGDISurface() {
+    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+      Logger::debug("<<< DDraw2Interface::FlipToGDISurface: Proxy");
+      return m_proxy->FlipToGDISurface();
+    }
+
     Logger::debug("*** DDraw2Interface::FlipToGDISurface: Ignoring");
+
+    DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();
+
+    // A primary surface must exist for a GDI flip to be possible
+    if (unlikely(ps == nullptr))
+      return DDERR_NOTFOUND;
+
+    if (unlikely(!ps->IsFlippable()))
+      return DDERR_NOTFLIPPABLE;
+
     return DD_OK;
   }
 
