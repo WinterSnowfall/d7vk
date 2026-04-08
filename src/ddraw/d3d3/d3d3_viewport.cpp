@@ -53,7 +53,7 @@ namespace dxvk {
     Logger::debug(str::format("D3D3Viewport: Viewport nr. [[1-", m_viewportCount, "]] bites the dust"));
   }
 
-  // Interlocked refcount with the origin Viewport
+  // Interlocked refcount with the origin viewport
   ULONG STDMETHODCALLTYPE D3D3Viewport::AddRef() {
     IUnknown* origin = m_commonViewport->GetOrigin();
     if (unlikely(origin != nullptr && origin != this)) {
@@ -63,7 +63,7 @@ namespace dxvk {
     }
   }
 
-  // Interlocked refcount with the origin Viewport
+  // Interlocked refcount with the origin viewport
   ULONG STDMETHODCALLTYPE D3D3Viewport::Release() {
     IUnknown* origin = m_commonViewport->GetOrigin();
     if (unlikely(origin != nullptr && origin != this)) {
@@ -82,16 +82,19 @@ namespace dxvk {
     InitReturnPtr(ppvObject);
 
     if (unlikely(riid == __uuidof(IDirect3DViewport2))) {
+      if (m_commonViewport->GetD3D5Viewport() != nullptr) {
+        Logger::debug("D3D3Viewport::QueryInterface: Query for existing IDirect3DViewport2");
+        return m_commonViewport->GetD3D5Viewport()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("D3D3Viewport::QueryInterface: Query for IDirect3DViewport2");
 
-      if (unlikely(m_viewport5 == nullptr)) {
-        Com<IDirect3DViewport2> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      Com<IDirect3DViewport2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-        m_viewport5 = new D3D5Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr);
-      }
+      m_viewport5 = new D3D5Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr);
 
       // On native this is the same object, so no need to ref
       *ppvObject = m_viewport5.ptr();
@@ -99,16 +102,19 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DViewport3))) {
+      if (m_commonViewport->GetD3D6Viewport() != nullptr) {
+        Logger::debug("D3D3Viewport::QueryInterface: Query for existing IDirect3DViewport3");
+        return m_commonViewport->GetD3D6Viewport()->QueryInterface(riid, ppvObject);
+      }
+
       Logger::debug("D3D3Viewport::QueryInterface: Query for IDirect3DViewport3");
 
-      if (unlikely(m_viewport6 == nullptr)) {
-        Com<IDirect3DViewport3> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      Com<IDirect3DViewport3> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
 
-        m_viewport6 = new D3D6Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr);
-      }
+      m_viewport6 = new D3D6Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr);
 
       // On native this is the same object, so no need to ref
       *ppvObject = m_viewport6.ptr();

@@ -76,6 +76,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Interface::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> D3D5Interface::QueryInterface");
+
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
@@ -538,7 +540,7 @@ namespace dxvk {
     D3DDEVICEDESC2 desc5 = GetD3D5Caps(rclsidOverride, d3dOptions);
 
     try{
-      Com<D3D5Device> device5 = new D3D5Device(std::move(d3d5DeviceProxy), this, desc5,
+      Com<D3D5Device> device5 = new D3D5Device(nullptr, std::move(d3d5DeviceProxy), this, desc5,
                                                rclsidOverride, params, std::move(device9),
                                                rt.ptr(), deviceCreationFlags9);
 

@@ -1,5 +1,8 @@
 #include "d3d7_device.h"
 
+#include "../d3d_common_device.h"
+#include "../ddraw_common_interface.h"
+
 #include "d3d7_buffer.h"
 #include "d3d7_state_block.h"
 
@@ -10,6 +13,7 @@ namespace dxvk {
   uint32_t D3D7Device::s_deviceCount = 0;
 
   D3D7Device::D3D7Device(
+        D3DCommonDevice* commonD3DDevice,
         Com<IDirect3DDevice7>&& d3d7DeviceProxy,
         D3D7Interface* pParent,
         D3DDEVICEDESC7 Desc,
@@ -18,11 +22,19 @@ namespace dxvk {
         DDraw7Surface* pSurface,
         DWORD CreationFlags9)
     : DDrawWrappedObject<D3D7Interface, IDirect3DDevice7, d3d9::IDirect3DDevice9>(pParent, std::move(d3d7DeviceProxy), std::move(pDevice9))
-    , m_commonIntf ( pParent->GetCommonInterface() )
+    , m_commonD3DDevice ( commonD3DDevice )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_params9 ( Params9 )
     , m_desc ( Desc )
     , m_rt ( pSurface ) {
+    if (m_parent != nullptr) {
+      m_commonIntf = m_parent->GetCommonInterface();
+    } else if (m_commonD3DDevice != nullptr) {
+      m_commonIntf = m_commonD3DDevice->GetCommonInterface();
+    } else {
+      throw DxvkError("D3D7Device: ERROR! Failed to retrieve the common interface!");
+    }
+
     // Get the bridge interface to D3D9
     if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8Bridge), reinterpret_cast<void**>(&m_bridge))))) {
       throw DxvkError("D3D7Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
@@ -33,16 +45,19 @@ namespace dxvk {
       throw DxvkError("D3D7Device: ERROR! Failed to initialize D3D9 index buffers.");
     }
 
-    m_totalMemory = m_bridge->DetermineInitialTextureMemory();
+    if (likely(m_commonD3DDevice == nullptr)) {
+      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, CreationFlags9,
+                                              m_bridge->DetermineInitialTextureMemory());
+
+      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+      if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
+        Logger::warn("D3D7Device: Force enabling AA");
+        m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+      }
+    }
 
     m_textures.fill(nullptr);
-
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
-
-    if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
-      Logger::warn("D3D7Device: Force enabling AA");
-      m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-    }
 
     m_deviceCount = ++s_deviceCount;
 

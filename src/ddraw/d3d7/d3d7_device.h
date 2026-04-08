@@ -7,7 +7,6 @@
 #include "../ddraw_caps.h"
 
 #include "../d3d_multithread.h"
-#include "../ddraw_common_interface.h"
 
 #include "../../d3d9/d3d9_bridge.h"
 
@@ -18,6 +17,7 @@
 
 namespace dxvk {
 
+  class D3DCommonDevice;
   class DDrawCommonInterface;
   class DDraw7Surface;
   class D3D7StateBlock;
@@ -31,6 +31,7 @@ namespace dxvk {
 
   public:
     D3D7Device(
+          D3DCommonDevice* commonD3DDevice,
           Com<IDirect3DDevice7>&& d3d7DeviceProxy,
           D3D7Interface* pParent,
           D3DDEVICEDESC7 Desc,
@@ -137,12 +138,12 @@ namespace dxvk {
 
     HRESULT ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params);
 
-    D3DDeviceLock LockDevice() {
-      return m_multithread.AcquireLock();
+    D3DCommonDevice* GetCommonD3DDevice() {
+      return m_commonD3DDevice.ptr();
     }
 
-    uint32_t GetTotalTextureMemory() const {
-      return m_totalMemory;
+    D3DDeviceLock LockDevice() {
+      return m_multithread.AcquireLock();
     }
 
     d3d9::D3DPRESENT_PARAMETERS GetPresentParameters() const {
@@ -187,9 +188,9 @@ namespace dxvk {
     static uint32_t             s_deviceCount;
     uint32_t                    m_deviceCount = 0;
 
-    uint32_t                    m_totalMemory = 0;
-
     DDrawCommonInterface*       m_commonIntf  = nullptr;
+
+    Com<D3DCommonDevice>        m_commonD3DDevice;
 
     Com<DxvkD3D8Bridge>         m_bridge;
 
