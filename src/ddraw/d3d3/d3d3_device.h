@@ -143,15 +143,15 @@ namespace dxvk {
 
     inline HRESULT STDMETHODCALLTYPE SetLightStateInternal(D3DLIGHTSTATETYPE dwLightStateType, DWORD dwLightState);
 
-    inline void DrawTriangleInternal(D3DTRIANGLE* triangle, DWORD count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer);
+    inline void DrawTriangleInternal(D3DTRIANGLE* triangle, uint16_t count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer);
 
-    inline void DrawLineInternal(D3DLINE* line, DWORD count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer);
+    inline void DrawLineInternal(D3DLINE* line, uint16_t count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer);
 
-    inline void DrawPointInternal(D3DPOINT* point, DWORD count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer);
+    inline void DrawPointInternal(D3DPOINT* point, uint16_t count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer);
 
-    inline void DrawSpanInternal(D3DSPAN* span, DWORD count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer);
+    inline void DrawSpanInternal(D3DSPAN* span, uint16_t count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer);
 
-    inline void TextureLoadInternal(D3DTEXTURELOAD* textureLoad, DWORD count);
+    inline void TextureLoadInternal(D3DTEXTURELOAD* textureLoad, uint16_t count);
 
     inline void HandlePreDrawLegacyProjection() {
       if (likely(m_currentViewport != nullptr)) {

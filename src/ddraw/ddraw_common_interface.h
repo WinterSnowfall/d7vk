@@ -133,6 +133,14 @@ namespace dxvk {
       return m_ps;
     }
 
+    void SetRenderTarget(DDrawCommonSurface* rt) {
+      m_rt = rt;
+    }
+
+    DDrawCommonSurface* GetRenderTarget() {
+      return m_rt;
+    }
+
     void SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
       m_hWnd = hWnd;
       m_cooperativeLevel = dwFlags;
@@ -239,6 +247,7 @@ namespace dxvk {
     DWORD                             m_cooperativeLevel   = 0;
 
     DDrawCommonSurface*               m_ps                 = nullptr;
+    DDrawCommonSurface*               m_rt                 = nullptr;
     HWND                              m_hWnd               = nullptr;
     DDrawModeSize                     m_modeSize           = { };
 
