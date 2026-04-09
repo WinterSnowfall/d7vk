@@ -1,5 +1,7 @@
 #include "ddraw_surface.h"
 
+#include "../d3d_common_device.h"
+
 #include "../ddraw_gamma.h"
 
 #include "../d3d3/d3d3_device.h"
@@ -339,7 +341,7 @@ namespace dxvk {
       if (unlikely(lpDDSrcSurface == nullptr &&
                   (dwFlags & DDBLT_DEPTHFILL) &&
                   lpDDBltFx != nullptr &&
-                  m_commonIntf->IsCurrentD3D9DepthStencil(m_d3d9.ptr()))) {
+                  m_commonIntf->GetCommonD3DDevice()->IsCurrentD3D9DepthStencil(m_d3d9.ptr()))) {
         Logger::debug("DDrawSurface::Blt: Clearing d3d9 depth stencil");
 
         HRESULT hrClear;
@@ -357,7 +359,7 @@ namespace dxvk {
       if (unlikely(lpDDSrcSurface == nullptr &&
                   (dwFlags & DDBLT_COLORFILL) &&
                   lpDDBltFx != nullptr &&
-                  m_commonIntf->IsCurrentD3D9RenderTarget(m_d3d9.ptr()))) {
+                  m_commonIntf->GetCommonD3DDevice()->IsCurrentD3D9RenderTarget(m_d3d9.ptr()))) {
         Logger::debug("DDrawSurface::Blt: Clearing d3d9 render target");
 
         HRESULT hrClear;
@@ -620,8 +622,10 @@ namespace dxvk {
       m_commonIntf->ResetDrawTracking();
 
       if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+        D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+
         if (unlikely(!IsInitialized()))
-          InitializeD3D9(m_commonIntf->IsCurrentRenderTarget(this));
+          InitializeD3D9(commonDevice->IsCurrentRenderTarget(this));
 
         BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_proxy.ptr(), m_d3d9.ptr());
 
@@ -630,11 +634,11 @@ namespace dxvk {
             Logger::warn("DDrawSurface::Flip: Received an unwrapped surface");
             return DDERR_UNSUPPORTED;
           }
-          if (likely(m_commonIntf->IsCurrentRenderTarget(this)))
+          if (likely(commonDevice->IsCurrentRenderTarget(this)))
             m_commonIntf->SetFlipRTSurfaceAndFlags(lpDDSurfaceTargetOverride, dwFlags);
           return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
         } else {
-          if (likely(m_commonIntf->IsCurrentRenderTarget(this)))
+          if (likely(commonDevice->IsCurrentRenderTarget(this)))
             m_commonIntf->SetFlipRTSurfaceAndFlags(lpDDSurfaceTargetOverride, dwFlags);
           return m_proxy->Flip(surf->GetProxied(), dwFlags);
         }
@@ -1245,7 +1249,7 @@ namespace dxvk {
     Logger::debug(str::format("DDrawSurface::InitializeD3D9: Placing in: ", poolPlacement));
 
     // Use the MSAA type that was determined to be supported during device creation
-    const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = m_commonIntf->GetMultiSampleType();
+    const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = m_commonIntf->GetCommonD3DDevice()->GetMultiSampleType();
     const uint32_t index = m_commonSurf->GetBackBufferIndex();
 
     Com<d3d9::IDirect3DSurface9> surf;
@@ -1330,7 +1334,7 @@ namespace dxvk {
 
       // Sometimes we get passed offscreen plain surfaces which should be tied to the back buffer,
       // either as existing RTs or during SetRenderTarget() calls, which are tracked with initRT
-      if (unlikely(m_commonIntf->IsCurrentRenderTarget(this) || initRT)) {
+      if (unlikely(m_commonIntf->GetCommonD3DDevice()->IsCurrentRenderTarget(this) || initRT)) {
         Logger::debug("DDrawSurface::InitializeD3D9: Offscreen plain surface is the RT");
 
         m_d3d9Device->GetBackBuffer(0, index, d3d9::D3DBACKBUFFER_TYPE_MONO, &surf);
@@ -1599,14 +1603,29 @@ namespace dxvk {
                                              GetD3D3Caps(d3dOptions), rclsidOverride, params,
                                              std::move(device9), deviceCreationFlags9);
 
-    // Set the newly created D3D3 device on the common interface
-    m_commonIntf->SetD3D3Device(device3.ptr());
+    // Set the common device on the common interface
+    m_commonIntf->SetCommonD3DDevice(device3->GetCommonD3DDevice());
     // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
     device3->InitializeDS();
 
     *ppvObject = device3.ref();
 
     return DD_OK;
+  }
+
+  inline void DDrawSurface::RefreshD3D9Device() {
+    D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+
+    d3d9::IDirect3DDevice9* d3d9Device = commonDevice != nullptr ? commonDevice->GetD3D9Device() : nullptr;
+    if (unlikely(m_d3d9Device != d3d9Device)) {
+      // Check if the device has been recreated and reset all D3D9 resources
+      if (m_d3d9Device != nullptr) {
+        Logger::debug("DDrawSurface: Device context has changed, clearing all D3D9 resources");
+        m_d3d9 = nullptr;
+      }
+
+      m_d3d9Device = d3d9Device;
+    }
   }
 
 }

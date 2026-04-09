@@ -1,6 +1,5 @@
 #include "d3d7_device.h"
 
-#include "../d3d_common_device.h"
 #include "../ddraw_common_interface.h"
 
 #include "d3d7_buffer.h"
@@ -57,6 +56,11 @@ namespace dxvk {
       }
     }
 
+    if (m_commonD3DDevice->GetOrigin() == nullptr)
+      m_commonD3DDevice->SetOrigin(this);
+
+    m_commonD3DDevice->SetD3D7Device(this);
+
     m_textures.fill(nullptr);
 
     m_deviceCount = ++s_deviceCount;
@@ -76,9 +80,11 @@ namespace dxvk {
       Logger::info(str::format("   XXL: ", m_ib9_uploads[6]));
     }
 
-    // Clear the common interface device pointer if it points to this device
-    if (m_commonIntf->GetD3D7Device() == this)
-      m_commonIntf->SetD3D7Device(nullptr);
+    if (m_commonD3DDevice->GetD3D7Device() == this)
+      m_commonD3DDevice->SetD3D7Device(nullptr);
+
+    if (m_commonD3DDevice->GetOrigin() == this)
+      m_commonD3DDevice->SetOrigin(nullptr);
 
     Logger::debug(str::format("D3D7Device: Device nr. ((7-", m_deviceCount, ")) bites the dust"));
   }

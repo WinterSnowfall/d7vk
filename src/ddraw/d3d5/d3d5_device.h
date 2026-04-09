@@ -5,6 +5,8 @@
 #include "../ddraw_options.h"
 #include "../ddraw_caps.h"
 
+#include "../d3d_common_device.h"
+
 #include "../d3d_multithread.h"
 
 #include "../../d3d9/d3d9_bridge.h"
@@ -158,8 +160,8 @@ namespace dxvk {
     inline HRESULT SetTextureInternal(DDrawSurface* surface, DWORD textureHandle);
 
     inline void RefreshLastUsedDevice() {
-      if (unlikely(m_commonIntf->GetD3D5Device() != this))
-        m_commonIntf->SetD3D5Device(this);
+      if (unlikely(m_commonIntf->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
+        m_commonIntf->SetCommonD3DDevice(m_commonD3DDevice.ptr());
     }
 
     inline void HandlePreDrawFlags(DWORD drawFlags, DWORD vertexTypeDesc) {

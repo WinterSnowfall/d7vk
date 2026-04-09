@@ -59,7 +59,7 @@ namespace dxvk {
     Logger::debug(str::format("   Power:    ", material9->Power));
 
     // Update the D3D9 material directly if it's actively being used
-    D3D3Device* device3 = m_parent->GetCommonInterface()->GetD3D3Device();
+    D3D3Device* device3 = m_parent->GetCommonInterface()->GetCommonD3DDevice()->GetD3D3Device();
     if (likely(device3 != nullptr)) {
       D3DMATERIALHANDLE currentHandle = device3->GetCurrentMaterialHandle();
       if (currentHandle == handle) {

@@ -1,6 +1,5 @@
 #include "d3d6_device.h"
 
-#include "../d3d_common_device.h"
 #include "../ddraw_common_interface.h"
 
 #include "d3d6_buffer.h"
@@ -106,10 +105,6 @@ namespace dxvk {
 
     if (m_commonD3DDevice->GetOrigin() == this)
       m_commonD3DDevice->SetOrigin(nullptr);
-
-    // Clear the common interface device pointer if it points to this device
-    if (m_commonIntf->GetD3D6Device() == this)
-      m_commonIntf->SetD3D6Device(nullptr);
 
     Logger::debug(str::format("D3D6Device: Device nr. ((3-", m_deviceCount, ")) bites the dust"));
   }
