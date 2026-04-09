@@ -245,6 +245,16 @@ namespace dxvk {
     if (unlikely(commonMaterial == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    // We still need to proxy this call to DDraw for
+    // proxied clear colors to be accurate
+    D3D3Device* device3 = m_commonViewport->GetD3D3Device();
+    if (likely(device3 != nullptr)) {
+      D3DMATERIALHANDLE proxyHandle = commonMaterial->GetProxiedMaterialHandle(device3->GetProxied());
+      HRESULT hr = m_proxy->SetBackground(proxyHandle);
+      if (unlikely(FAILED(hr)))
+        Logger::warn("D3D3Viewport::SetBackground: Failed to set the proxied viewport background");
+    }
+
     m_commonViewport->MarkMaterialAsSet();
 
     // Cache only the set material handle, as its color can
@@ -260,8 +270,7 @@ namespace dxvk {
     if (unlikely(material == nullptr || valid == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (likely(m_commonViewport->IsMaterialSet()))
-      *material = m_commonViewport->GetMaterialHandle();
+    *material = m_commonViewport->GetMaterialHandle();
     *valid = m_commonViewport->IsMaterialSet();
 
     return D3D_OK;
