@@ -2,7 +2,6 @@
 
 #include "../ddraw_util.h"
 
-#include "../d3d_common_device.h"
 #include "../d3d_common_texture.h"
 #include "../ddraw_common_interface.h"
 
@@ -95,10 +94,6 @@ namespace dxvk {
 
     if (m_commonD3DDevice->GetOrigin() == this)
       m_commonD3DDevice->SetOrigin(nullptr);
-
-    // Clear the common interface device pointer if it points to this device
-    if (m_commonIntf->GetD3D5Device() == this)
-      m_commonIntf->SetD3D5Device(nullptr);
 
     Logger::debug(str::format("D3D5Device: Device nr. ((2-", m_deviceCount, ")) bites the dust"));
   }
@@ -256,8 +251,8 @@ namespace dxvk {
 
     D3DSTATS newStats = { };
 
-    if (likely(m_commonIntf->GetD3D3Device() != nullptr))
-      newStats = m_commonIntf->GetD3D3Device()->GetStatsInternal();
+    if (likely(m_commonD3DDevice->GetD3D3Device() != nullptr))
+      newStats = m_commonD3DDevice->GetD3D3Device()->GetStatsInternal();
 
     const DWORD dwSize = stats->dwSize;
 
