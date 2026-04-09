@@ -155,19 +155,7 @@ namespace dxvk {
 
   private:
 
-    inline void RefreshD3D9Device() {
-      if (likely(m_parent != nullptr)) {
-        d3d9::IDirect3DDevice9* d3d9Device = m_parent->GetCommonInterface()->GetD3D9Device();
-        if (unlikely(m_d3d9Device != d3d9Device)) {
-          // Check if the device has been recreated and reset all D3D9 resources
-          if (m_d3d9Device != nullptr) {
-            Logger::debug("DDrawSurface: Device context has changed, clearing all D3D9 resources");
-            m_d3d9 = nullptr;
-          }
-          m_d3d9Device = d3d9Device;
-        }
-      }
-    }
+    inline void RefreshD3D9Device();
 
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;

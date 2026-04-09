@@ -8,6 +8,7 @@
 
 namespace dxvk {
 
+  class D3DCommonDevice;
   class D3DCommonTexture;
 
   class DDrawCommonSurface;
@@ -20,13 +21,6 @@ namespace dxvk {
   class DDrawInterface;
 
   class DDrawSurface;
-  class DDraw4Surface;
-  class DDraw7Surface;
-
-  class D3D7Device;
-  class D3D6Device;
-  class D3D5Device;
-  class D3D3Device;
 
   class DDrawCommonInterface : public ComObjectClamp<IUnknown> {
 
@@ -65,32 +59,6 @@ namespace dxvk {
     void AddWrappedSurface(IDirectDrawSurface7* surface);
 
     void RemoveWrappedSurface(IDirectDrawSurface7* surface);
-
-    d3d9::IDirect3DDevice9* GetD3D9Device();
-
-    uint32_t GetTotalTextureMemory();
-
-    d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType();
-
-    d3d9::D3DPRESENT_PARAMETERS GetPresentParameters();
-
-    HRESULT ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params);
-
-    bool IsCurrentRenderTarget(DDrawSurface* surface) const;
-
-    bool IsCurrentRenderTarget(DDraw4Surface* surface) const;
-
-    bool IsCurrentRenderTarget(DDraw7Surface* surface) const;
-
-    bool IsCurrentD3D9RenderTarget(d3d9::IDirect3DSurface9* surface) const;
-
-    bool IsCurrentDepthStencil(DDrawSurface* surface) const;
-
-    bool IsCurrentDepthStencil(DDraw4Surface* surface) const;
-
-    bool IsCurrentDepthStencil(DDraw7Surface* surface) const;
-
-    bool IsCurrentD3D9DepthStencil(d3d9::IDirect3DSurface9* surface) const;
 
     DDrawSurface* GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle) const;
 
@@ -235,36 +203,12 @@ namespace dxvk {
       return m_origin;
     }
 
-    void SetD3D7Device(D3D7Device* device7) {
-      m_device7 = device7;
+    void SetCommonD3DDevice(D3DCommonDevice* commonD3DDevice) {
+      m_commonD3DDevice = commonD3DDevice;
     }
 
-    D3D7Device* GetD3D7Device() const {
-      return m_device7;
-    }
-
-    void SetD3D6Device(D3D6Device* device6) {
-      m_device6 = device6;
-    }
-
-    D3D6Device* GetD3D6Device() const {
-      return m_device6;
-    }
-
-    void SetD3D5Device(D3D5Device* device5) {
-      m_device5 = device5;
-    }
-
-    D3D5Device* GetD3D5Device() const {
-      return m_device5;
-    }
-
-    void SetD3D3Device(D3D3Device* device3) {
-      m_device3 = device3;
-    }
-
-    D3D3Device* GetD3D3Device() const {
-      return m_device3;
+    D3DCommonDevice* GetCommonD3DDevice() const {
+      return m_commonD3DDevice;
     }
 
     D3DTEXTUREHANDLE GetNextTextureHandle() {
@@ -317,11 +261,7 @@ namespace dxvk {
     // that gets created through a DirectDrawCreate(Ex) call
     IUnknown*                         m_origin             = nullptr;
 
-    // Track all possible last used D3D devices
-    D3D7Device*                       m_device7            = nullptr;
-    D3D6Device*                       m_device6            = nullptr;
-    D3D5Device*                       m_device5            = nullptr;
-    D3D3Device*                       m_device3            = nullptr;
+    D3DCommonDevice*                  m_commonD3DDevice    = nullptr;
 
     std::vector<IDirectDrawSurface7*> m_surfaces7;
     std::vector<IDirectDrawSurface4*> m_surfaces4;
