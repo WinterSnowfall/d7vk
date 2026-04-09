@@ -33,6 +33,10 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE Optimize(LPDIRECT3DDEVICE3 lpD3DDevice, DWORD dwFlags);
 
+    HRESULT InitializeD3D9();
+
+    void RefreshD3D6Device();
+
     DWORD GetFVF() const {
       return m_desc.dwFVF;
     }
@@ -52,20 +56,6 @@ namespace dxvk {
     D3D6Device* GetDevice() const {
       return m_d3d6Device;
     }
-
-    void RefreshD3D6Device() {
-      D3D6Device* d3d6Device = m_commonIntf->GetD3D6Device();
-      if (unlikely(m_d3d6Device != d3d6Device)) {
-        // Check if the device has been recreated and reset all D3D9 resources
-        if (unlikely(m_d3d6Device != nullptr)) {
-          Logger::debug("D3D6VertexBuffer::RefreshD3D6Device: Device context has changed, clearing D3D9 buffers");
-          m_d3d9 = nullptr;
-        }
-        m_d3d6Device = d3d6Device;
-      }
-    }
-
-    HRESULT InitializeD3D9();
 
   private:
 

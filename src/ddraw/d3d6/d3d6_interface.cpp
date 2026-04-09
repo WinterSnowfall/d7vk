@@ -472,8 +472,8 @@ namespace dxvk {
                                                rclsidOverride, params, std::move(device9),
                                                rt4.ptr(), deviceCreationFlags9);
 
-      // Set the newly created D3D6 device on the common interface
-      m_commonIntf->SetD3D6Device(device6.ptr());
+      // Set the common device on the common interface
+      m_commonIntf->SetCommonD3DDevice(device6->GetCommonD3DDevice());
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       device6->InitializeDS();
 
@@ -551,11 +551,12 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    D3D6Device* d3d6Device = m_commonIntf->GetD3D6Device();
-    if (likely(d3d6Device != nullptr)) {
-      D3DDeviceLock lock = d3d6Device->LockDevice();
+    D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+    if (likely(commonDevice != nullptr)) {
+      d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
 
-      HRESULT hr9 = d3d6Device->GetD3D9()->EvictManagedResources();
+      // Note: This doesn't do anything in the D3D9 backend at the moment
+      HRESULT hr9 = d3d9Device->EvictManagedResources();
       if (unlikely(FAILED(hr9))) {
         Logger::err("D3D6Interface::EvictManagedTextures: Failed D3D9 managed resource eviction");
         return hr9;

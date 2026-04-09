@@ -544,8 +544,8 @@ namespace dxvk {
                                                rclsidOverride, params, std::move(device9),
                                                rt.ptr(), deviceCreationFlags9);
 
-      // Set the newly created D3D5 device on the common interface
-      m_commonIntf->SetD3D5Device(device5.ptr());
+      // Set the common device on the common interface
+      m_commonIntf->SetCommonD3DDevice(device5->GetCommonD3DDevice());
       // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
       device5->InitializeDS();
 
