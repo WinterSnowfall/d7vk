@@ -218,8 +218,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Viewport::TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen) {
-    Logger::warn("<<< D3D3Viewport::TransformVertices: Proxy");
-    return m_proxy->TransformVertices(vertex_count, data, flags, offscreen);
+    Logger::debug(">>> D3D3Viewport::TransformVertices");
+    return m_commonViewport->TransformVertices(vertex_count, data, flags, offscreen);
   }
 
   // Docs state: "The IDirect3DViewport::LightElements method is not currently implemented."
