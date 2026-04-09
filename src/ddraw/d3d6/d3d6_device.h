@@ -6,6 +6,8 @@
 #include "../ddraw_util.h"
 #include "../ddraw_caps.h"
 
+#include "../d3d_common_device.h"
+
 #include "../d3d_multithread.h"
 
 #include "../../d3d9/d3d9_bridge.h"
@@ -168,6 +170,10 @@ namespace dxvk {
       return m_materialHandle;
     }
 
+    void SetCurrentMaterialHandle(D3DMATERIALHANDLE handle) {
+      m_materialHandle = handle;
+    }
+
   private:
 
     inline HRESULT InitializeIndexBuffers();
@@ -187,8 +193,8 @@ namespace dxvk {
     }
 
     inline void RefreshLastUsedDevice() {
-      if (unlikely(m_commonIntf->GetD3D6Device() != this))
-        m_commonIntf->SetD3D6Device(this);
+      if (unlikely(m_commonIntf->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
+        m_commonIntf->SetCommonD3DDevice(m_commonD3DDevice.ptr());
     }
 
     inline void HandlePreDrawFlags(DWORD drawFlags, DWORD vertexTypeDesc) {
