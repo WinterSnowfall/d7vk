@@ -4,6 +4,8 @@ A Vulkan-based translation layer for Direct3D 7, 6, 5 and 3 which allows running
 
 Note that D3D retained-mode applications are not supported, since the project only aims to implement immediate-mode.
 
+_These features are also available in [DXVK-Sarek](https://github.com/pythonlover02/DXVK-Sarek), in case you are using older graphics hardware._
+
 ## FAQ
 
 ### Will D7VK work with every game out there?
@@ -24,11 +26,15 @@ All APIs prior to D3D8 fall under the cursed umbrella of DDraw, so it makes abso
 
 ### What happened to D3D1, D3D2 and D3D4?
 
-D3D1 never existed, because the first release of DirectX didn't include a 3D component. Direct3D was added in DirectX 2 and was left mostly unchanged in DirectX 3, so D3D3 and D3D2 are interchangable terms, with a mostly historical distinction. [DirectX 4 was never released](https://devblogs.microsoft.com/oldnewthing/20040122-00/?p=40963), and the prototyped D3D4 implementation was restructured into what ultimately became D3D5.
+D3D1 never existed, because the first release of DirectX didn't include a 3D component. Direct3D was added in DirectX 2 and was left mostly unchanged in DirectX 3, so D3D3 and D3D2 are interchangeable terms, with a mostly historical distinction. [DirectX 4 was never released](https://devblogs.microsoft.com/oldnewthing/20040122-00/?p=40963), and the prototyped D3D4 implementation was restructured into what ultimately became D3D5.
+
+### I don't have a Vulkan 1.3/1.4 capable GPU, so I can't use D7VK!
+
+Then this is your lucky day, because through the efforts of [pythonlover02](https://github.com/pythonlover02), D7VK, or rather D3D7/6/5/3 support was ported back to [DXVK-Sarek](https://github.com/pythonlover02/DXVK-Sarek). Apart from a few missing features, due to lack of support in the old 1.10.x backend, you're getting everything that D7VK has to offer, and you can now run it even on a Vulkan 1.1 capable GPU.
 
 ### What should I do if a game doesn't work (properly) with D7VK?
 
-I'll try to get as much game coverage as possible in D7VK, of course, but if something just doesn't work, simply use WineD3D - it's awesome and has the benefit of implementing *everything* there ever is to worry about in DDraw and GDI, so it's far, far less prone to cursed interop madness. Reports of issues and bugs are very welcome, as they ensure proper tracking and awareness, so please do report any problems you encounter if you have the time.
+I'll try to get as much game coverage as possible in D7VK, of course, but if something just doesn't work, simply use WineD3D - it's awesome and has the benefit of implementing _everything_ there ever is to worry about in DDraw and GDI, so it's far, far less prone to cursed interop madness. Reports of issues and bugs are very welcome, as they ensure proper tracking and awareness, so please do report any problems you encounter if you have the time.
 
 ### Will DXVK's D3D9 config options work with D7VK?
 
@@ -36,7 +42,7 @@ Yes, because D7VK relies on DXVK's D3D9 backend, so everything ends up there any
 
 ### VSync isn't turning off/on although the application lets me control it. What gives?
 
-VSync is universally enabled by default with older D3D, and thus also in D7VK. In fact, older D3D devices have to explicitly expose support for being able to *turn off* VSync, since not all of them were capable of doing it back in the day. Due to problematic implementations, given limited hardware support at the time, changing the default behavior may simply not work reliably, even if an option is provided.
+VSync is universally enabled by default with older D3D, and thus also in D7VK. In fact, older D3D devices have to explicitly expose support for being able to _turn off_ VSync, since not all of them were capable of doing it back in the day. Due to problematic implementations, given limited hardware support at the time, changing the default behavior may simply not work reliably, even if an option is provided.
 
 Note that D7VK properly supports disabling VSync if applications consistently perform flips using the DDFLIP_NOVSYNC flag, e.g. Unreal Tournament with the OldUnreal patch applied, Re-Volt, 3DMark 2000 and others.
 
@@ -49,6 +55,8 @@ You can, however, use the traditional DXVK config options for controlling either
 Yes, use `ddraw.emulateFSAA = Forced`. Note that FSAA emulation is supported by D7VK, and some applications will outright provide you with the means to enable or disable it. Only use the above config option if you want to force enable AA, regardless of application support. Please also keep in mind that force enabling AA may not work well in all cases, and screen edge artifacting and/or GUI element corruption are possible consequences.
 
 Should you encounter any situation in which AA support is listed as unavailable / greyed out by an application (without it being forced, as per the above), please raise an issue on our tracker.
+
+**Note**: _In DXVK-Sarek you'll only be able to (optionally) force enable FSAA emulation, as the functionality required to let games control the AA state is missing._
 
 ### Is D7VK really needed?
 
@@ -92,6 +100,8 @@ Listed below are the DLL requirements for using DXVK with any single API.
 - d3d6: `ddraw.dll`
 - d3d5: `ddraw.dll`
 - d3d3: `ddraw.dll`
+
+**Note**: _DXVK-Sarek will also require the d3d9.dll file for each of the above listed APIs, in addition to ddraw.dll._
 
 ### HUD
 The `DXVK_HUD` environment variable controls a HUD which can display the framerate and some stat counters. It accepts a comma-separated list of the following options:
