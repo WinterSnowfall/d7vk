@@ -1,5 +1,7 @@
 #include "ddraw2_surface.h"
 
+#include "../d3d_common_device.h"
+
 #include "../ddraw_gamma.h"
 
 #include "../ddraw/ddraw_interface.h"
@@ -303,7 +305,7 @@ namespace dxvk {
       if (unlikely(lpDDSrcSurface == nullptr &&
                   (dwFlags & DDBLT_DEPTHFILL) &&
                   lpDDBltFx != nullptr &&
-                  m_commonIntf->IsCurrentD3D9DepthStencil(m_d3d9.ptr()))) {
+                  m_commonIntf->GetCommonD3DDevice()->IsCurrentD3D9DepthStencil(m_d3d9.ptr()))) {
         Logger::debug("DDraw2Surface::Blt: Clearing d3d9 depth stencil");
 
         HRESULT hrClear;
@@ -321,7 +323,7 @@ namespace dxvk {
       if (unlikely(lpDDSrcSurface == nullptr &&
                   (dwFlags & DDBLT_COLORFILL) &&
                   lpDDBltFx != nullptr &&
-                  m_commonIntf->IsCurrentD3D9RenderTarget(m_d3d9.ptr()))) {
+                  m_commonIntf->GetCommonD3DDevice()->IsCurrentD3D9RenderTarget(m_d3d9.ptr()))) {
         Logger::debug("DDraw2Surface::Blt: Clearing d3d9 render target");
 
         HRESULT hrClear;
@@ -548,12 +550,14 @@ namespace dxvk {
       m_commonIntf->ResetDrawTracking();
 
       if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
+        D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+
         if (unlikely(!IsInitialized()))
-          m_parent->InitializeD3D9(m_commonIntf->IsCurrentRenderTarget(m_parent));
+          m_parent->InitializeD3D9(commonDevice->IsCurrentRenderTarget(m_parent));
 
         BlitToDDrawSurface<IDirectDrawSurface2, DDSURFACEDESC>(m_proxy.ptr(), m_parent->GetD3D9());
 
-        if (likely(m_commonIntf->IsCurrentRenderTarget(m_parent))) {
+        if (likely(commonDevice->IsCurrentRenderTarget(m_parent))) {
           if (lpDDSurfaceTargetOverride != nullptr) {
             m_commonIntf->SetFlipRTSurfaceAndFlags(surf2->GetParent()->GetProxied(), dwFlags);
           } else {
@@ -1000,6 +1004,21 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw2Surface::PageUnlock(DWORD dwFlags) {
     Logger::debug("<<< DDraw2Surface::PageUnlock: Proxy");
     return m_proxy->PageUnlock(dwFlags);
+  }
+
+  inline void DDraw2Surface::RefreshD3D9Device() {
+    D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+
+    d3d9::IDirect3DDevice9* d3d9Device = commonDevice != nullptr ? commonDevice->GetD3D9Device() : nullptr;
+    if (unlikely(m_d3d9Device != d3d9Device)) {
+      // Check if the device has been recreated and reset all D3D9 resources
+      if (m_d3d9Device != nullptr) {
+        Logger::debug("DDraw2Surface: Device context has changed, clearing all D3D9 resources");
+        m_d3d9 = nullptr;
+      }
+
+      m_d3d9Device = d3d9Device;
+    }
   }
 
 }
