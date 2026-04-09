@@ -4,6 +4,8 @@
 #include "ddraw_options.h"
 #include "ddraw_caps.h"
 
+#include "../util/util_matrix.h"
+
 #include <vector>
 
 namespace dxvk {
@@ -1634,6 +1636,30 @@ namespace dxvk {
         || rs == D3DRENDERSTATE_EMISSIVEMATERIALSOURCE
         || rs == D3DRENDERSTATE_VERTEXBLEND
         || rs == D3DRENDERSTATE_CLIPPLANEENABLE;
+  }
+
+  inline Matrix4 MatrixD3DTo4(const D3DMATRIX *m) {
+    if (m == nullptr)
+      return nullptr;
+
+    Matrix4 r;
+    r.data[0] = Vector4(m->_11, m->_12, m->_13, m->_14);
+    r.data[1] = Vector4(m->_21, m->_22, m->_23, m->_24);
+    r.data[2] = Vector4(m->_31, m->_32, m->_33, m->_34);
+    r.data[3] = Vector4(m->_41, m->_42, m->_43, m->_44);
+
+    return r;
+  }
+
+  inline D3DMATRIX Matrix4ToD3D(const Matrix4 *m) {
+    D3DMATRIX r;
+
+    r._11 = m->data[0][0]; r._12 = m->data[0][1]; r._13 = m->data[0][2]; r._14 = m->data[0][3];
+    r._21 = m->data[1][0]; r._22 = m->data[1][1]; r._23 = m->data[1][2]; r._24 = m->data[1][3];
+    r._31 = m->data[2][0]; r._32 = m->data[2][1]; r._33 = m->data[2][2]; r._34 = m->data[2][3];
+    r._41 = m->data[3][0]; r._42 = m->data[3][1]; r._43 = m->data[3][2]; r._44 = m->data[3][3];
+
+    return r;
   }
 
 }

@@ -251,8 +251,14 @@ namespace dxvk {
 
     DDraw3Surface* ddraw3Surface = static_cast<DDraw3Surface*>(lpDDSAttachedSurface);
 
-    if (unlikely(ddraw3Surface->GetCommonSurface()->IsBackBufferOrFlippable()))
-      Logger::warn("DDraw3Surface::AddAttachedSurface: Trying to attach a flippable surface");
+    if (unlikely(ddraw3Surface->GetCommonSurface()->IsBackBufferOrFlippable())) {
+      if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip)) {
+        Logger::debug("DDraw3Surface::AddAttachedSurface: Caching surface as RT");
+        m_commonIntf->SetRenderTarget(ddraw3Surface->GetCommonSurface());
+      } else {
+        Logger::warn("DDraw3Surface::AddAttachedSurface: Trying to attach a flippable surface");
+      }
+    }
 
     HRESULT hr = m_proxy->AddAttachedSurface(ddraw3Surface->GetProxied());
     if (unlikely(FAILED(hr)))
@@ -594,7 +600,15 @@ namespace dxvk {
     } else {
       Logger::debug("<<< DDraw3Surface::Flip: Proxy");
       if (lpDDSurfaceTargetOverride == nullptr) {
-        m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+        if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip)) {
+          DDraw3Surface* rt = m_commonIntf->GetRenderTarget()->GetDD3Surface();
+          if (rt != nullptr && m_commonSurf->IsPrimarySurface()) {
+            Logger::debug("DDraw3Surface::Flip: Blitting instead of flipping");
+            m_proxy->Blt(nullptr, rt->GetProxied(), nullptr, DDBLT_WAIT, nullptr);
+          } else {
+            m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+          }
+        }
       } else {
         m_proxy->Flip(surf3->GetProxied(), dwFlags);
       }
