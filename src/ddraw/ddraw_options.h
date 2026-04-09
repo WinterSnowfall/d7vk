@@ -65,6 +65,9 @@ namespace dxvk {
     /// Blits back to the proxied flippable surface and presents with DDraw
     bool forceProxiedPresent;
 
+    /// Workaround that uses blits instead of flips for presentation
+    bool forceBlitOnFlip;
+
     /// Ignore any application set gamma ramp
     bool ignoreGammaRamp;
 
@@ -105,6 +108,7 @@ namespace dxvk {
       this->depthWriteBack        = config.getOption<bool>   ("ddraw.depthWriteBack",        false);
       this->uploadDepthStencils   = config.getOption<bool>   ("ddraw.uploadDepthStencils",    true);
       this->forceProxiedPresent   = config.getOption<bool>   ("ddraw.forceProxiedPresent",   false);
+      this->forceBlitOnFlip       = config.getOption<bool>   ("ddraw.forceBlitOnFlip",       false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("ddraw.ignoreGammaRamp",       false);
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
       this->autoGenMipMaps        = config.getOption<bool>   ("ddraw.autoGenMipMaps",        false);

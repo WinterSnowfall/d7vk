@@ -1338,12 +1338,6 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
     Logger::debug(">>> D3D5Device::SetTransform");
-
-    // Need to also proxy for viewport TransformVertices calls to work
-    HRESULT hr = m_proxy->SetTransform(state, matrix);
-    if (unlikely(FAILED(hr)))
-      return hr;
-
     return m_d3d9->SetTransform(ConvertTransformState(state), matrix);
   }
 
@@ -1354,12 +1348,6 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D5Device::MultiplyTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
     Logger::debug(">>> D3D5Device::MultiplyTransform");
-
-    // Need to also proxy for viewport TransformVertices calls to work
-    HRESULT hr = m_proxy->MultiplyTransform(state, matrix);
-    if (unlikely(FAILED(hr)))
-      return hr;
-
     return m_d3d9->MultiplyTransform(ConvertTransformState(state), matrix);
   }
 
