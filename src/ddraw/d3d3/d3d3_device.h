@@ -4,6 +4,8 @@
 #include "../ddraw_wrapped_object.h"
 #include "../ddraw_options.h"
 
+#include "../d3d_common_device.h"
+
 #include "../d3d_multithread.h"
 
 #include "../../d3d9/d3d9_bridge.h"
@@ -127,8 +129,8 @@ namespace dxvk {
   private:
 
     inline void RefreshLastUsedDevice() {
-      if (unlikely(m_commonIntf->GetD3D3Device() != this))
-        m_commonIntf->SetD3D3Device(this);
+      if (unlikely(m_commonIntf->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
+        m_commonIntf->SetCommonD3DDevice(m_commonD3DDevice.ptr());
     }
 
     inline void AddViewportInternal(IDirect3DViewport* viewport);

@@ -1,6 +1,5 @@
 #include "d3d3_device.h"
 
-#include "../d3d_common_device.h"
 #include "../d3d_common_texture.h"
 #include "../ddraw_common_interface.h"
 
@@ -57,15 +56,13 @@ namespace dxvk {
         m_d3d9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
       }
 
-      if (m_commonIntf->GetD3D5Device() == nullptr) {
-        // The default value of D3DRENDERSTATE_TEXTUREMAPBLEND in D3D3 is D3DTBLEND_MODULATE
-        m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
-        m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-        m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
-        m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
-        m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-        m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
-      }
+      // The default value of D3DRENDERSTATE_TEXTUREMAPBLEND in D3D3 is D3DTBLEND_MODULATE
+      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
+      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
+      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
+      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+      m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
     }
 
     if (m_commonD3DDevice->GetOrigin() == nullptr)
@@ -89,10 +86,6 @@ namespace dxvk {
 
     if (m_commonD3DDevice->GetOrigin() == this)
       m_commonD3DDevice->SetOrigin(nullptr);
-
-    // Clear the common interface device pointer if it points to this device
-    if (m_commonIntf->GetD3D3Device() == this)
-      m_commonIntf->SetD3D3Device(nullptr);
 
     Logger::debug(str::format("D3D3Device: Device nr. ((1-", m_deviceCount, ")) bites the dust"));
   }
@@ -808,7 +801,8 @@ namespace dxvk {
       HRESULT hrDS = m_ds->InitializeD3D9DepthStencil();
       if (unlikely(FAILED(hrDS))) {
         Logger::err("D3D3Device::InitializeDS: Failed to initialize D3D9 DS");
-      } else if (m_commonIntf->GetD3D5Device() == nullptr) {
+      } else if (m_commonD3DDevice->GetD3D5Device() == nullptr &&
+                 m_commonD3DDevice->GetD3D6Device() == nullptr) {
         Logger::info("D3D3Device::InitializeDS: Got depth stencil from RT");
 
         DDSURFACEDESC descDS;
@@ -824,7 +818,8 @@ namespace dxvk {
           m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_TRUE);
         }
       }
-    } else if (m_commonIntf->GetD3D5Device() == nullptr) {
+    } else if (m_commonD3DDevice->GetD3D5Device() == nullptr &&
+               m_commonD3DDevice->GetD3D6Device() == nullptr) {
       Logger::info("D3D3Device::InitializeDS: RT has no depth stencil attached");
       m_d3d9->SetDepthStencilSurface(nullptr);
       // Should be superfluous, but play it safe
@@ -861,13 +856,16 @@ namespace dxvk {
 
     switch (dwLightStateType) {
       case D3DLIGHTSTATE_MATERIAL: {
-        D3D5Device* device5 = m_commonIntf->GetD3D5Device();
+        D3D5Device* device5 = m_commonD3DDevice->GetD3D5Device();
+        D3D6Device* device6 = m_commonD3DDevice->GetD3D6Device();
 
         if (unlikely(!dwLightState)) {
           m_materialHandle = dwLightState;
 
           if (device5 != nullptr)
             device5->SetCurrentMaterialHandle(dwLightState);
+          else if (device6 != nullptr)
+            device6->SetCurrentMaterialHandle(dwLightState);
 
           return D3D_OK;
         }
@@ -884,11 +882,16 @@ namespace dxvk {
           m_materialHandle = dwLightState;
           m_d3d9->SetMaterial(material9);
         // fall back to using a D3D5 device otherwise
-        } else if (likely(device5 != nullptr)) {
+        } else if (device5 != nullptr) {
           d3d9::D3DMATERIAL9* material9 = device5->GetParent()->GetCommonD3DInterface()->GetD3D9MaterialFromHandle(dwLightState);
 
           device5->SetCurrentMaterialHandle(dwLightState);
           device5->GetD3D9()->SetMaterial(material9);
+        }  else if (device6 != nullptr) {
+          d3d9::D3DMATERIAL9* material9 = device6->GetParent()->GetCommonD3DInterface()->GetD3D9MaterialFromHandle(dwLightState);
+
+          device6->SetCurrentMaterialHandle(dwLightState);
+          device6->GetD3D9()->SetMaterial(material9);
         } else {
           Logger::warn("D3D3Device::SetLightStateInternal: Unable to set D3D9 material");
         }

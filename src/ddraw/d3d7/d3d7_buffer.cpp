@@ -1,5 +1,7 @@
 #include "d3d7_buffer.h"
 
+#include "../d3d_common_device.h"
+
 #include "../ddraw_util.h"
 
 #include "../d3d_multithread.h"
@@ -228,6 +230,20 @@ namespace dxvk {
     Logger::debug("D3D7VertexBuffer::InitializeD3D9: Created D3D9 vertex buffer");
 
     return DD_OK;
+  }
+
+  void D3D7VertexBuffer::RefreshD3D7Device() {
+    D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+    
+    D3D7Device* d3d7Device = commonDevice != nullptr ? commonDevice->GetD3D7Device() : nullptr;
+    if (unlikely(m_d3d7Device != d3d7Device)) {
+      // Check if the device has been recreated and reset all D3D9 resources
+      if (unlikely(m_d3d7Device != nullptr)) {
+        Logger::debug("D3D7VertexBuffer::RefreshD3D7Device: Device context has changed, clearing D3D9 buffers");
+        m_d3d9 = nullptr;
+      }
+      m_d3d7Device = d3d7Device;
+    }
   }
 
 }
