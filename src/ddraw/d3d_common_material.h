@@ -4,6 +4,10 @@
 
 namespace dxvk {
 
+  class D3D6Material;
+  class D3D5Material;
+  class D3D3Material;
+
   class D3DCommonMaterial : public ComObjectClamp<IUnknown> {
 
   public:
@@ -16,6 +20,8 @@ namespace dxvk {
       *ppvObject = this;
       return S_OK;
     }
+
+    D3DMATERIALHANDLE GetProxiedMaterialHandle(IUnknown* d3dDevice) const;
 
     d3d9::D3DMATERIAL9* GetD3D9Material() {
       return &m_material9;
@@ -30,11 +36,40 @@ namespace dxvk {
                                  m_material9.Diffuse.b, m_material9.Diffuse.a);
     }
 
+    void SetD3D6Material(D3D6Material* material6) {
+      m_material6 = material6;
+    }
+
+    D3D6Material* GetD3D6Material() const {
+      return m_material6;
+    }
+
+    void SetD3D5Material(D3D5Material* material5) {
+      m_material5 = material5;
+    }
+
+    D3D5Material* GetD3D5Material() const {
+      return m_material5;
+    }
+
+    void SetD3D3Material(D3D3Material* material3) {
+      m_material3 = material3;
+    }
+
+    D3D3Material* GetD3D3Material() const {
+      return m_material3;
+    }
+
   private:
 
     D3DMATERIALHANDLE  m_materialHandle = 0;
 
     d3d9::D3DMATERIAL9 m_material9 = { };
+
+    // Track all possible material versions of the same object
+    D3D6Material*      m_material6 = nullptr;
+    D3D5Material*      m_material5 = nullptr;
+    D3D3Material*      m_material3 = nullptr;
 
   };
 

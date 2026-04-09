@@ -238,8 +238,15 @@ namespace dxvk {
 
     InitReturnPtr(lplpDirect3DMaterial);
 
+    Com<IDirect3DMaterial2> ddrawMaterial2Proxied;
+    HRESULT hr = m_proxy->CreateMaterial(&ddrawMaterial2Proxied, pUnkOuter);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D5Interface::CreateMaterial: Failed to create proxied material");
+      return hr;
+    }
+
     D3DMATERIALHANDLE handle = m_commonD3DIntf->GetNextMaterialHandle();
-    Com<D3D5Material> d3d5Material = new D3D5Material(nullptr, this, handle);
+    Com<D3D5Material> d3d5Material = new D3D5Material(std::move(ddrawMaterial2Proxied), this, handle);
     m_commonD3DIntf->EmplaceMaterial(d3d5Material->GetCommonMaterial(), handle);
 
     *lplpDirect3DMaterial = d3d5Material.ref();
