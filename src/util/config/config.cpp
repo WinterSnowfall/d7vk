@@ -1949,6 +1949,14 @@ namespace dxvk {
     { R"(\\rr_dx5\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Warhammer: Dark Omen                       *
+     * Works around the game trying to attach     *
+     * a back buffer to the primary surface       */
+    { R"(\\DarkOmen\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+      { "ddraw.emulateFSAA",                "True" },
+      { "ddraw.forceBlitOnFlip",            "True" },
+    }} },
 
     /**********************************************/
     /* D3D3 GAMES                                 */
