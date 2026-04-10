@@ -7,6 +7,7 @@
 #include "../util/util_matrix.h"
 
 #include <vector>
+#include <utility>
 
 namespace dxvk {
 
