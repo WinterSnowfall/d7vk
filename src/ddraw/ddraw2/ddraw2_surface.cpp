@@ -245,7 +245,7 @@ namespace dxvk {
     if (unlikely(ddraw2Surface->GetCommonSurface()->IsBackBufferOrFlippable())) {
       if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip)) {
         Logger::debug("DDraw2Surface::AddAttachedSurface: Caching surface as RT");
-        m_commonIntf->SetRenderTarget(ddraw2Surface->GetCommonSurface());
+        m_commonIntf->SetDDrawRenderTarget(ddraw2Surface->GetCommonSurface());
       } else {
         Logger::warn("DDraw2Surface::AddAttachedSurface: Trying to attach a flippable surface");
       }
@@ -549,6 +549,9 @@ namespace dxvk {
       }
     }
 
+    DDraw2Surface* rt = m_commonIntf->GetDDrawRenderTarget() != nullptr ?
+                        m_commonIntf->GetDDrawRenderTarget()->GetDD2Surface() : nullptr;
+
     RefreshD3D9Device();
     if (likely(m_d3d9Device != nullptr)) {
       Logger::debug("*** DDraw2Surface::Flip: Presenting");
@@ -571,9 +574,21 @@ namespace dxvk {
           }
         }
         if (lpDDSurfaceTargetOverride != nullptr) {
-          return m_proxy->Flip(surf2->GetProxied(), dwFlags);
+          if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip &&
+                       rt != nullptr && m_commonSurf->IsPrimarySurface())) {
+            Logger::debug("DDraw2Surface::Flip: Skipping flip");
+            return DD_OK;
+          } else {
+            return m_proxy->Flip(surf2->GetProxied(), dwFlags);
+          }
         } else {
-          return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+          if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip &&
+                       rt != nullptr && m_commonSurf->IsPrimarySurface())) {
+            Logger::debug("DDraw2Surface::Flip: Skipping flip");
+            return DD_OK;
+          } else {
+            return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+          }
         }
       }
 
@@ -583,17 +598,15 @@ namespace dxvk {
     } else {
       Logger::debug("<<< DDraw2Surface::Flip: Proxy");
       if (lpDDSurfaceTargetOverride == nullptr) {
-        if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip)) {
-          DDraw2Surface* rt = m_commonIntf->GetRenderTarget()->GetDD2Surface();
-          if (rt != nullptr && m_commonSurf->IsPrimarySurface()) {
-            Logger::debug("DDraw2Surface::Flip: Blitting instead of flipping");
-            m_proxy->Blt(nullptr, rt->GetProxied(), nullptr, DDBLT_WAIT, nullptr);
-          } else {
-            m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
-          }
+        if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip &&
+                     rt != nullptr && m_commonSurf->IsPrimarySurface())) {
+          Logger::debug("DDraw2Surface::Flip: Blitting instead of flipping");
+          return m_proxy->Blt(nullptr, rt->GetProxied(), nullptr, DDBLT_WAIT, nullptr);
+        } else {
+          return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
         }
       } else {
-        m_proxy->Flip(surf2->GetProxied(), dwFlags);
+        return m_proxy->Flip(surf2->GetProxied(), dwFlags);
       }
     }
 

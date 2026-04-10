@@ -6,6 +6,7 @@
 
 namespace dxvk {
 
+  class D3DCommonInterface;
   class DDrawCommonInterface;
 
   class DDraw7Surface;
@@ -34,6 +35,8 @@ namespace dxvk {
     }
 
     d3d9::IDirect3DDevice9* GetD3D9Device();
+
+    D3DCommonInterface* GetCommonD3DInterface() const;
 
     d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType();
 

@@ -279,6 +279,9 @@ namespace dxvk {
     if (unlikely(lpD3DFDS->dwSize != sizeof(D3DFINDDEVICESEARCH)))
       return DDERR_INVALIDPARAMS;
 
+    if (unlikely(!IsValidFindDeviceResultSize(lpD3DFDR->dwSize)))
+      return DDERR_INVALIDPARAMS;
+
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     // Software emulation, this is expected to be exposed
@@ -345,6 +348,24 @@ namespace dxvk {
         lpD3DFRD2.ddHwDesc = descRGB_HAL;
         lpD3DFRD2.ddSwDesc = descRGB_HEL;
       }
+
+      memcpy(lpD3DFDR, &lpD3DFRD2, sizeof(D3DFINDDEVICERESULT2));
+    } else if (lpD3DFDS->dwFlags & D3DFDS_COLORMODEL) {
+      Logger::debug("D3D5Interface::FindDevice: Matching by color model");
+
+      Logger::debug("D3D5Interface::FindDevice: Matched IID_IDirect3DHALDevice");
+      lpD3DFRD2.guid = IID_IDirect3DHALDevice;
+      lpD3DFRD2.ddHwDesc = descHAL_HAL;
+      lpD3DFRD2.ddSwDesc = descHAL_HEL;
+
+      memcpy(lpD3DFDR, &lpD3DFRD2, sizeof(D3DFINDDEVICERESULT2));
+    } else if (lpD3DFDS->dwFlags == 0) {
+      Logger::debug("D3D5Interface::FindDevice: No matching criteria specified");
+
+      Logger::debug("D3D5Interface::FindDevice: Matched IID_IDirect3DHALDevice");
+      lpD3DFRD2.guid = IID_IDirect3DHALDevice;
+      lpD3DFRD2.ddHwDesc = descHAL_HAL;
+      lpD3DFRD2.ddSwDesc = descHAL_HEL;
 
       memcpy(lpD3DFDR, &lpD3DFRD2, sizeof(D3DFINDDEVICERESULT2));
     } else {

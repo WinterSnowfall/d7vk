@@ -248,7 +248,7 @@ namespace dxvk {
     if (unlikely(ddraw4Surface->GetCommonSurface()->IsBackBufferOrFlippable())) {
       if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip)) {
         Logger::debug("DDraw4Surface::AddAttachedSurface: Caching surface as RT");
-        m_commonIntf->SetRenderTarget(ddraw4Surface->GetCommonSurface());
+        m_commonIntf->SetDDrawRenderTarget(ddraw4Surface->GetCommonSurface());
       } else {
         Logger::warn("DDraw4Surface::AddAttachedSurface: Trying to attach a flippable surface");
       }
@@ -595,6 +595,9 @@ namespace dxvk {
       }
     }
 
+    DDraw4Surface* rt = m_commonIntf->GetDDrawRenderTarget() != nullptr ?
+                        m_commonIntf->GetDDrawRenderTarget()->GetDD4Surface() : nullptr;
+
     RefreshD3D9Device();
     if (likely(m_d3d9Device != nullptr)) {
       m_commonIntf->ResetDrawTracking();
@@ -612,13 +615,28 @@ namespace dxvk {
             Logger::warn("DDraw4Surface::Flip: Received an unwrapped surface");
             return DDERR_UNSUPPORTED;
           }
+
           if (likely(commonDevice->IsCurrentRenderTarget(this)))
             m_commonIntf->SetFlipRTSurfaceAndFlags(lpDDSurfaceTargetOverride, dwFlags);
-          return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+
+          if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip &&
+                       rt != nullptr && m_commonSurf->IsPrimarySurface())) {
+            Logger::debug("DDraw4Surface::Flip: Skipping flip");
+            return DD_OK;
+          } else {
+            return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+          }
         } else {
           if (likely(commonDevice->IsCurrentRenderTarget(this)))
             m_commonIntf->SetFlipRTSurfaceAndFlags(lpDDSurfaceTargetOverride, dwFlags);
-          return m_proxy->Flip(surf4->GetProxied(), dwFlags);
+
+          if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip &&
+                       rt != nullptr && m_commonSurf->IsPrimarySurface())) {
+            Logger::debug("DDraw4Surface::Flip: Skipping flip");
+            return DD_OK;
+          } else {
+            return m_proxy->Flip(surf4->GetProxied(), dwFlags);
+          }
         }
       }
 
@@ -663,18 +681,16 @@ namespace dxvk {
       // Update the VBlank wait status based on the flip flags
       m_commonIntf->SetWaitForVBlank(IsVSyncFlipFlag(dwFlags));
 
-      if (lpDDSurfaceTargetOverride == nullptr) {
-        if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip)) {
-          DDraw4Surface* rt = m_commonIntf->GetRenderTarget()->GetDD4Surface();
-          if (rt != nullptr && m_commonSurf->IsPrimarySurface()) {
-            Logger::debug("DDraw4Surface::Flip: Blitting instead of flipping");
-            m_proxy->Blt(nullptr, rt->GetProxied(), nullptr, DDBLT_WAIT, nullptr);
-          } else {
-            m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
-          }
+      if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
+        if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip &&
+                     rt != nullptr && m_commonSurf->IsPrimarySurface())) {
+          Logger::debug("DDrawSurface::Flip: Blitting instead of flipping");
+          return m_proxy->Blt(nullptr, rt->GetProxied(), nullptr, DDBLT_WAIT, nullptr);
+        } else {
+          return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
         }
       } else {
-        m_proxy->Flip(surf4->GetProxied(), dwFlags);
+        return m_proxy->Flip(surf4->GetProxied(), dwFlags);
       }
     }
 
