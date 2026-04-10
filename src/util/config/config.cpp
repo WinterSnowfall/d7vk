@@ -1981,6 +1981,10 @@ namespace dxvk {
     { R"(\\MONSTER\.EXE$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Forsaken                                   */
+    { R"(\\ForsakenHW\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
   };
 
