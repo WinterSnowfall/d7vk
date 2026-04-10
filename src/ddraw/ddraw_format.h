@@ -3,6 +3,8 @@
 #include "ddraw_include.h"
 
 #include <vector>
+#include <cmath>
+#include <utility>
 #include <type_traits>
 
 namespace dxvk {

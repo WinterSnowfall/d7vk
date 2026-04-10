@@ -154,13 +154,15 @@ namespace dxvk {
     }
 
     void SetPalette(DDrawPalette* palette) {
-      if (palette == nullptr)
-        m_palette->SetCommonSurface(nullptr);
+      if (likely(m_palette != palette)) {
+        if (palette == nullptr)
+          m_palette->SetCommonSurface(nullptr);
 
-      m_palette = palette;
+        m_palette = palette;
 
-      if (m_palette != nullptr)
-        m_palette->SetCommonSurface(this);
+        if (m_palette != nullptr)
+          m_palette->SetCommonSurface(this);
+      }
     }
 
     DDrawPalette* GetPalette() const {
