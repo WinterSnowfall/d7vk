@@ -8270,6 +8270,9 @@ namespace dxvk {
 
     key.Data.Contents.SpecularEnabled  = m_state.renderStates[D3DRS_SPECULARENABLE];
 
+    key.Data.Contents.UseLegacyLights  = m_useLegacyLights;
+    key.Data.Contents.IsD3DLight2      = m_isD3DLight2;
+
     uint32_t lightCount = 0;
 
     if (key.Data.Contents.UseLighting) {
