@@ -635,9 +635,9 @@ namespace dxvk {
       m_commonIntf->SetWaitForVBlank(IsVSyncFlipFlag(dwFlags));
 
       if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
-        m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+        return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
       } else {
-        m_proxy->Flip(surf7->GetProxied(), dwFlags);
+        return m_proxy->Flip(surf7->GetProxied(), dwFlags);
       }
     }
 

@@ -281,7 +281,7 @@ namespace dxvk {
     if (unlikely(ddrawSurface->GetCommonSurface()->IsBackBufferOrFlippable())) {
       if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip)) {
         Logger::debug("DDrawSurface::AddAttachedSurface: Caching surface as RT");
-        m_commonIntf->SetRenderTarget(ddrawSurface->GetCommonSurface());
+        m_commonIntf->SetDDrawRenderTarget(ddrawSurface->GetCommonSurface());
       } else {
         Logger::warn("DDrawSurface::AddAttachedSurface: Trying to attach a flippable surface");
       }
@@ -621,6 +621,9 @@ namespace dxvk {
       }
     }
 
+    DDrawSurface* rt = m_commonIntf->GetDDrawRenderTarget() != nullptr ?
+                       m_commonIntf->GetDDrawRenderTarget()->GetDDSurface() : nullptr;
+
     RefreshD3D9Device();
     if (likely(m_d3d9Device != nullptr)) {
       Logger::debug("*** DDrawSurface::Flip: Presenting");
@@ -640,13 +643,28 @@ namespace dxvk {
             Logger::warn("DDrawSurface::Flip: Received an unwrapped surface");
             return DDERR_UNSUPPORTED;
           }
+
           if (likely(commonDevice->IsCurrentRenderTarget(this)))
             m_commonIntf->SetFlipRTSurfaceAndFlags(lpDDSurfaceTargetOverride, dwFlags);
-          return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+
+          if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip &&
+                       rt != nullptr && m_commonSurf->IsPrimarySurface())) {
+            Logger::debug("DDrawSurface::Flip: Skipping flip");
+            return DD_OK;
+          } else {
+            return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
+          }
         } else {
           if (likely(commonDevice->IsCurrentRenderTarget(this)))
             m_commonIntf->SetFlipRTSurfaceAndFlags(lpDDSurfaceTargetOverride, dwFlags);
-          return m_proxy->Flip(surf->GetProxied(), dwFlags);
+
+          if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip &&
+                       rt != nullptr && m_commonSurf->IsPrimarySurface())) {
+            Logger::debug("DDrawSurface::Flip: Skipping flip");
+            return DD_OK;
+          } else {
+            return m_proxy->Flip(surf->GetProxied(), dwFlags);
+          }
         }
       }
 
@@ -656,17 +674,15 @@ namespace dxvk {
     } else {
       Logger::debug("<<< DDrawSurface::Flip: Proxy");
       if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
-        if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip)) {
-          DDrawSurface* rt = m_commonIntf->GetRenderTarget()->GetDDSurface();
-          if (rt != nullptr && m_commonSurf->IsPrimarySurface()) {
-            Logger::debug("DDrawSurface::Flip: Blitting instead of flipping");
-            m_proxy->Blt(nullptr, rt->GetProxied(), nullptr, DDBLT_WAIT, nullptr);
-          } else {
-            m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
-          }
+        if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip &&
+                     rt != nullptr && m_commonSurf->IsPrimarySurface())) {
+          Logger::debug("DDrawSurface::Flip: Blitting instead of flipping");
+          return m_proxy->Blt(nullptr, rt->GetProxied(), nullptr, DDBLT_WAIT, nullptr);
+        } else {
+          return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
         }
       } else {
-        m_proxy->Flip(surf->GetProxied(), dwFlags);
+        return m_proxy->Flip(surf->GetProxied(), dwFlags);
       }
     }
 
@@ -1523,20 +1539,34 @@ namespace dxvk {
       }
     }
 
+    Com<d3d9::IDirect3D9> d3d9Intf;
+    // D3D3 is "special", so we might not have a valid D3D3 interface to work with
+    // at this point. Create a temporary D3D9 interface should that ever happen.
     D3D3Interface* d3d3Intf = m_commonIntf->GetD3D3Interface();
     if (unlikely(d3d3Intf == nullptr)) {
-      Logger::err("DDrawSurface::CreateDeviceInternal: Device creation failed due to null D3D3 interface");
-      return DDERR_GENERIC;
+      Logger::debug("DDrawSurface::CreateDeviceInternal: Creating a temporary D3D9 interface");
+      d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
+
+      Com<IDxvkD3D8InterfaceBridge> d3d9Bridge;
+
+      if (unlikely(FAILED(d3d9Intf->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&d3d9Bridge))))) {
+        Logger::err("DDrawSurface::CreateDeviceInternal: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+        return DDERR_GENERIC;
+      }
+
+      d3d9Bridge->EnableD3D3CompatibilityMode();
+    } else {
+      d3d9Intf = d3d3Intf->GetD3D9();
     }
 
     // Determine the supported AA sample count by querying the D3D9 interface
     d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
     if (likely(d3dOptions->emulateFSAA != FSAAEmulation::Disabled)) {
-      HRESULT hr4S = d3d3Intf->GetD3D9()->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, m_commonSurf->GetD3D9Format(),
-                                                                      TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
+      HRESULT hr4S = d3d9Intf->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, m_commonSurf->GetD3D9Format(),
+                                                          TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
       if (unlikely(FAILED(hr4S))) {
-        HRESULT hr2S = d3d3Intf->GetD3D9()->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, m_commonSurf->GetD3D9Format(),
-                                                                        TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
+        HRESULT hr2S = d3d9Intf->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, m_commonSurf->GetD3D9Format(),
+                                                            TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
         if (unlikely(FAILED(hr2S))) {
           Logger::warn("DDrawSurface::CreateDeviceInternal: No MSAA support has been detected");
         } else {
@@ -1599,7 +1629,7 @@ namespace dxvk {
     params.PresentationInterval       = D3DPRESENT_INTERVAL_DEFAULT; // A D3D3 device always uses VSync
 
     Com<d3d9::IDirect3DDevice9> device9;
-    hr = d3d3Intf->GetD3D9()->CreateDevice(
+    hr = d3d9Intf->CreateDevice(
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
       hWnd,

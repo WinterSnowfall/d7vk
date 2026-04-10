@@ -133,11 +133,11 @@ namespace dxvk {
       return m_ps;
     }
 
-    void SetRenderTarget(DDrawCommonSurface* rt) {
+    void SetDDrawRenderTarget(DDrawCommonSurface* rt) {
       m_rt = rt;
     }
 
-    DDrawCommonSurface* GetRenderTarget() {
+    DDrawCommonSurface* GetDDrawRenderTarget() {
       return m_rt;
     }
 

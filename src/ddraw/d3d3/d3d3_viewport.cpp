@@ -219,7 +219,34 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D3Viewport::TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen) {
     Logger::debug(">>> D3D3Viewport::TransformVertices");
-    return m_commonViewport->TransformVertices(vertex_count, data, flags, offscreen);
+
+    if (unlikely(!m_commonViewport->HasDevice())) {
+      Logger::warn("D3D3Viewport::TransformVertices: Viewport isn't attached to a device");
+      return D3DERR_VIEWPORTHASNODEVICE;
+    }
+
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetD3D9Device();
+
+    // Temporarily activate this viewport, if not already active
+    d3d9::D3DVIEWPORT9 currentViewport9;
+    if (!m_commonViewport->IsCurrentViewport()) {
+      D3D3Viewport* currentViewport = m_commonViewport->GetCurrentD3D3Viewport();
+      if (currentViewport != nullptr) {
+        currentViewport9 = *currentViewport->GetCommonViewport()->GetD3D9Viewport();
+      } else {
+        d3d9Device->GetViewport(&currentViewport9);
+      }
+      d3d9Device->SetViewport(m_commonViewport->GetD3D9Viewport());
+    }
+
+    HRESULT hr = m_commonViewport->TransformVertices(vertex_count, data, flags, offscreen);
+
+    // Restore the previously active viewport
+    if (!m_commonViewport->IsCurrentViewport()) {
+      d3d9Device->SetViewport(&currentViewport9);
+    }
+
+    return hr;
   }
 
   // Docs state: "The IDirect3DViewport::LightElements method is not currently implemented."
