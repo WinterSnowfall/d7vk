@@ -1380,6 +1380,7 @@ namespace dxvk {
     /* Arx Fatalis                                */
     { R"(\\arx\.exe$)", {{
       { "ddraw.emulateFSAA",                "True" },
+      { "ddraw.colorKeyCompatibility",      "True" },
     }} },
     /* Sacrifice - Prevents hitching on asset     *
      * loading and fixes broken AI above 60 FPS.  *

@@ -234,7 +234,7 @@ namespace dxvk {
 
   void D3D7VertexBuffer::RefreshD3D7Device() {
     D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
-    
+
     D3D7Device* d3d7Device = commonDevice != nullptr ? commonDevice->GetD3D7Device() : nullptr;
     if (unlikely(m_d3d7Device != d3d7Device)) {
       // Check if the device has been recreated and reset all D3D9 resources

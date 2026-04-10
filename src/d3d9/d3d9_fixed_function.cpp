@@ -1385,16 +1385,24 @@ namespace dxvk {
 
         uint32_t delta  = m_module.opFSub(m_vec3Type, position, vtx3);
         uint32_t d      = m_module.opLength(m_floatType, delta);
+                 if (m_vsKey.Data.Contents.UseLegacyLights && m_vsKey.Data.Contents.IsD3DLight2) {
+                   d    = m_module.opFSub(m_floatType, range, d);
+                   d    = m_module.opFDiv(m_floatType, d, range);
+                 }
         uint32_t hitDir = m_module.opFNegate(m_vec3Type, direction);
                  hitDir = m_module.opSelect(m_vec3Type, isDirectional3, hitDir, delta);
                  hitDir = m_module.opNormalize(m_vec3Type, hitDir);
 
         uint32_t atten  = m_module.opFFma  (m_floatType, d, atten2, atten1);
                  atten  = m_module.opFFma  (m_floatType, d, atten,  atten0);
-                 atten  = m_module.opFDiv  (m_floatType, m_module.constf32(1.0f), atten);
+                 if (m_vsKey.Data.Contents.UseLegacyLights)
+                   atten  = m_module.opFDiv  (m_floatType, m_module.constf32(1.0f), atten);
                  atten  = m_module.opNMin  (m_floatType, atten, m_module.constf32(std::numeric_limits<float>::max()));
 
-                 atten  = m_module.opSelect(m_floatType, m_module.opFOrdGreaterThan(m_boolType, d, range), m_module.constf32(0.0f), atten);
+                 if (m_vsKey.Data.Contents.UseLegacyLights && m_vsKey.Data.Contents.IsD3DLight2)
+                   atten  = m_module.opSelect(m_floatType, m_module.opFOrdLessThan(m_boolType, d, m_module.constf32(0.0f)), m_module.constf32(0.0f), atten);
+                 else
+                   atten  = m_module.opSelect(m_floatType, m_module.opFOrdGreaterThan(m_boolType, d, range), m_module.constf32(0.0f), atten);
                  atten  = m_module.opSelect(m_floatType, isDirectional, m_module.constf32(1.0f), atten);
 
         // Spot Lighting
@@ -1434,6 +1442,8 @@ namespace dxvk {
                  midDot = m_module.opFClamp(m_floatType, midDot, m_module.constf32(0.0f), m_module.constf32(1.0f));
         uint32_t doSpec = m_module.opFOrdGreaterThan(m_boolType, midDot, m_module.constf32(0.0f));
                  doSpec = m_module.opLogicalAnd(m_boolType, doSpec, m_module.opFOrdGreaterThan(m_boolType, hitDot, m_module.constf32(0.0f)));
+                 if (m_vsKey.Data.Contents.UseLegacyLights)
+                   doSpec = m_module.opLogicalAnd(m_boolType, doSpec, m_module.opFOrdGreaterThan(m_boolType, m_vs.constants.materialPower, m_module.constf32(0.0)));
 
         uint32_t specularness = m_module.opPow(m_floatType, midDot, m_vs.constants.materialPower);
                  specularness = m_module.opFMul(m_floatType, specularness, atten);
