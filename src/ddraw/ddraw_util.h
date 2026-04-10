@@ -32,6 +32,14 @@ namespace dxvk {
         || size == sizeof(D3DDEVICEDESC3);
   }
 
+  // The structures used in FindDevice calls are also affected because
+  // of the above D3DDEVICEDESC jank, which is just lovely...
+  inline bool IsValidFindDeviceResultSize(DWORD size) {
+    return size == sizeof(D3DFINDDEVICERESULT)
+        || size == sizeof(D3DFINDDEVICERESULT2)
+        || size == sizeof(D3DFINDDEVICERESULT3);
+  }
+
   inline bool IsVSyncFlipFlag(DWORD flag) {
     return !(flag & DDFLIP_NOVSYNC)   ||
             (flag & DDFLIP_INTERVAL2) ||

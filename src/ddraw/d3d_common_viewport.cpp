@@ -59,20 +59,27 @@ namespace dxvk {
   }
 
   HRESULT D3DCommonViewport::TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen) {
-    if (data == nullptr || data->dwSize != sizeof(D3DTRANSFORMDATA))
-      return DDERR_INVALIDPARAMS;
-
-    if (data->lpIn == nullptr || data->lpOut == nullptr || data->dwInSize == 0|| data->dwOutSize == 0)
+    if (data == nullptr || data->dwSize != sizeof(D3DTRANSFORMDATA) || offscreen == nullptr)
       return DDERR_INVALIDPARAMS;
 
     if ((flags & (D3DTRANSFORM_CLIPPED | D3DTRANSFORM_UNCLIPPED)) == 0)
       return DDERR_INVALIDPARAMS;
 
-    d3d9::IDirect3DDevice9 *m_device9 = GetD3D9Device();
-    if (m_device9 == nullptr) {
-      Logger::warn("D3DCommonViewport::TransformVertices: No D3D9 device available!");
-      return DDERR_GENERIC;
-    }
+    bool clipped = (flags & D3DTRANSFORM_CLIPPED) && !(flags & D3DTRANSFORM_UNCLIPPED);
+    if (clipped)
+      *offscreen = UINT_MAX;
+    else
+      *offscreen = 0;
+
+    // When vertex_count = 0 native apparently returns success even when data->lpIn/data->lpOut are null, otherwise crash
+    if (vertex_count == 0)
+      return D3D_OK;
+
+    if (data->dwInSize < sizeof(D3DLVERTEX) || data->dwOutSize < sizeof(D3DTLVERTEX))
+      return DDERR_INVALIDPARAMS;
+
+    if (data->lpIn == nullptr || data->lpOut == nullptr)
+      return DDERR_INVALIDPARAMS;
 
     // Ensure transform states aren't modified in flight
     if (m_device6 != nullptr)
@@ -82,7 +89,7 @@ namespace dxvk {
     if (m_device3 != nullptr)
       D3DDeviceLock lock3 = m_device3->LockDevice();
 
-    bool clipped = (flags & D3DTRANSFORM_CLIPPED) && !(flags & D3DTRANSFORM_UNCLIPPED);
+    d3d9::IDirect3DDevice9* m_device9 = GetD3D9Device();
 
     D3DMATRIX world{}, view{}, projection{};
     HRESULT hr;
@@ -104,19 +111,15 @@ namespace dxvk {
 
     Matrix4 wv = MatrixD3DTo4(&view) * MatrixD3DTo4(&world);
     Matrix4 wvp = MatrixD3DTo4(&projection) * wv;
-
-    if (clipped)
-      *offscreen = UINT_MAX;
-    else
-      *offscreen = 0;
+    const D3DMATRIX* correction = GetLegacyProjectionMatrix(0);
+    if (correction != nullptr)
+      wvp = MatrixD3DTo4(correction) * wvp;
 
     for (DWORD t = 0; t < vertex_count; t++) {
       // Docs says input is always D3DLVERTEX and output D3DTLVERTEX.
       // But they can have arbitrary stride set by application and defined via dwInSize/dwOutSize.
       D3DLVERTEX& in = *(reinterpret_cast<D3DLVERTEX*>(reinterpret_cast<uint8_t*>(data->lpIn) + data->dwInSize * t));
-      D3DTLVERTEX& out = *(reinterpret_cast<D3DTLVERTEX*>(reinterpret_cast<uint8_t*>(data->lpIn) + data->dwOutSize * t));
-
-      // Logger::debug(str::format("D3DCommonViewport::TransformVertices: INPUT: ", t, " in: ", in.x, ", ", in.y, ", ", in.z));
+      D3DTLVERTEX& out = *(reinterpret_cast<D3DTLVERTEX*>(reinterpret_cast<uint8_t*>(data->lpOut) + data->dwOutSize * t));
 
       Vector4 h = wvp * Vector4({in.x, in.y, in.z, 1.0f});
 
@@ -152,11 +155,14 @@ namespace dxvk {
       }
 
       out.rhw = (h.w != 0.0f) ? (1.0f / h.w) : 0.0f;
-      out.sx = (m_viewport9.X + static_cast<float>(m_viewport9.Width) * 0.5) + (h.x * out.rhw);
-      out.sy = (m_viewport9.Y + static_cast<float>(m_viewport9.Height) * 0.5) - (h.y * out.rhw);
-      out.sz = m_viewport9.MinZ + (h.z * out.rhw) * (m_viewport9.MaxZ - m_viewport9.MinZ);
+      out.sx = m_viewport9.X + static_cast<float>(m_viewport9.Width) * 0.5 * (h.x * out.rhw + 1.0f);
+      out.sy = m_viewport9.Y + static_cast<float>(m_viewport9.Height) * 0.5 * (1.0f - h.y * out.rhw);
+      out.sz = m_viewport9.MinZ + h.z * out.rhw * (m_viewport9.MaxZ - m_viewport9.MinZ);
 
-      // Logger::debug(str::format("D3DCommonViewport::TransformVertices: OUTPUT: out: ", out.sx, ", ", out.sy, ", ", out.sz, ", rhw: ", out.rhw));
+      out.color = in.color;
+      out.specular = in.specular;
+      out.tu = in.tu;
+      out.tv = in.tv;
     }
 
     return D3D_OK;
