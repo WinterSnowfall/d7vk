@@ -420,7 +420,13 @@ namespace dxvk {
     if (unlikely(d3d == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *d3d = ref(m_commonIntf->GetD3D3Interface());
+    // D3D3 is "special", and we might not have a D3D interface
+    // to return on the device, as one can potentially not be created
+    D3D3Interface* d3d3Intf = m_commonIntf->GetD3D3Interface();
+    if (unlikely(d3d3Intf == nullptr))
+      return DDERR_NOTFOUND;
+
+    *d3d = ref(d3d3Intf);
 
     return D3D_OK;
   }
@@ -959,7 +965,7 @@ namespace dxvk {
 
           if (device5 != nullptr)
             device5->SetCurrentMaterialHandle(dwLightState);
-          else if (device6 != nullptr)
+          else if (unlikely(device6 != nullptr))
             device6->SetCurrentMaterialHandle(dwLightState);
 
           return D3D_OK;
@@ -967,26 +973,20 @@ namespace dxvk {
 
         Logger::debug(str::format("D3D3Device::SetLightStateInternal: Applying material nr. ", dwLightState, " to D3D9"));
 
-        D3D3Interface* d3d3Intf = m_commonIntf->GetD3D3Interface();
-        // consider pure D3D3 device use by default
-        if (likely(d3d3Intf != nullptr)) {
-          d3d9::D3DMATERIAL9* material9 = d3d3Intf->GetCommonD3DInterface()->GetD3D9MaterialFromHandle(dwLightState);
+        D3DCommonInterface* commonD3DIntf = m_commonD3DDevice->GetCommonD3DInterface();
+        if (likely(commonD3DIntf != nullptr)) {
+          d3d9::D3DMATERIAL9* material9 = commonD3DIntf->GetD3D9MaterialFromHandle(dwLightState);
           if (unlikely(material9 == nullptr))
             return DDERR_INVALIDPARAMS;
 
-          m_materialHandle = dwLightState;
           m_d3d9->SetMaterial(material9);
-        // fall back to using a D3D5 device otherwise
-        } else if (device5 != nullptr) {
-          d3d9::D3DMATERIAL9* material9 = device5->GetParent()->GetCommonD3DInterface()->GetD3D9MaterialFromHandle(dwLightState);
 
-          device5->SetCurrentMaterialHandle(dwLightState);
-          device5->GetD3D9()->SetMaterial(material9);
-        }  else if (device6 != nullptr) {
-          d3d9::D3DMATERIAL9* material9 = device6->GetParent()->GetCommonD3DInterface()->GetD3D9MaterialFromHandle(dwLightState);
-
-          device6->SetCurrentMaterialHandle(dwLightState);
-          device6->GetD3D9()->SetMaterial(material9);
+          m_materialHandle = dwLightState;
+          if (device5 != nullptr) {
+            device5->SetCurrentMaterialHandle(dwLightState);
+          } else if (unlikely(device6 != nullptr)) {
+            device6->SetCurrentMaterialHandle(dwLightState);
+          }
         } else {
           Logger::warn("D3D3Device::SetLightStateInternal: Unable to set D3D9 material");
         }
@@ -1350,16 +1350,12 @@ namespace dxvk {
     }
 
     if (!vertices.empty() && m_d3d9 != nullptr) {
-      HandlePreDrawLegacyProjection();
-
       m_d3d9->SetFVF(D3DFVF_TLVERTEX);
       HRESULT hr = m_d3d9->DrawPrimitiveUP(
            d3d9::D3DPT_TRIANGLELIST,
            GetPrimitiveCount(D3DPT_TRIANGLELIST, vertices.size()),
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
-
-      HandlePostDrawLegacyProjection();
 
       if (SUCCEEDED(hr)) {
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_TRIANGLE drawn vertices: ", vertices.size()));
@@ -1386,16 +1382,12 @@ namespace dxvk {
     }
 
     if (!vertices.empty() && m_d3d9 != nullptr) {
-      HandlePreDrawLegacyProjection();
-
       m_d3d9->SetFVF(D3DFVF_TLVERTEX);
       HRESULT hr = m_d3d9->DrawPrimitiveUP(
            d3d9::D3DPT_LINELIST,
            GetPrimitiveCount(D3DPT_LINELIST, vertices.size()),
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
-
-      HandlePostDrawLegacyProjection();
 
       if (SUCCEEDED(hr)) {
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_LINE drawn vertices: ", vertices.size()));
@@ -1423,16 +1415,12 @@ namespace dxvk {
     }
 
     if (!vertices.empty() && m_d3d9 != nullptr) {
-      HandlePreDrawLegacyProjection();
-
       m_d3d9->SetFVF(D3DFVF_TLVERTEX);
       HRESULT hr = m_d3d9->DrawPrimitiveUP(
            d3d9::D3DPT_POINTLIST,
            GetPrimitiveCount(D3DPT_POINTLIST, vertices.size()),
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
-
-      HandlePostDrawLegacyProjection();
 
       if (SUCCEEDED(hr)) {
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_POINT drawn vertices: ", vertices.size()));
@@ -1459,16 +1447,12 @@ namespace dxvk {
     }
 
     if (!vertices.empty() && m_d3d9 != nullptr) {
-      HandlePreDrawLegacyProjection();
-
       m_d3d9->SetFVF(D3DFVF_TLVERTEX);
       HRESULT hr = m_d3d9->DrawPrimitiveUP(
            d3d9::D3DPT_LINESTRIP,
            GetPrimitiveCount(D3DPT_LINESTRIP, vertices.size()),
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
-
-      HandlePostDrawLegacyProjection();
 
       if (SUCCEEDED(hr)) {
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_SPAN drawn vertices: ", vertices.size()));

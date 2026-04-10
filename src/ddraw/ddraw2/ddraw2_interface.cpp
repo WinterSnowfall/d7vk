@@ -27,7 +27,7 @@ namespace dxvk {
     if (likely(commonIntf->GetDDInterface() != nullptr)) {
       m_parentIntf = commonIntf->GetDDInterface();
     } else {
-      throw DxvkError("DDraw2Interface: ERROR! Failed to retrieve IDirectDraw interface!");
+      Logger::warn("DDraw2Interface: Missing an IDirectDraw parent");
     }
 
     // Note: IDirectDraw2 can never be the origin interface
