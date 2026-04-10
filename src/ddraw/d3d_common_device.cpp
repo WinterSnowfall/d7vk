@@ -41,6 +41,21 @@ namespace dxvk {
     return nullptr;
   }
 
+  D3DCommonInterface* D3DCommonDevice::GetCommonD3DInterface() const {
+    if (m_device7 != nullptr) {
+      return m_device7->GetParent() != nullptr ? m_device7->GetParent()->GetCommonD3DInterface() : nullptr;
+    } else if (m_device6 != nullptr) {
+      return m_device6->GetParent() != nullptr ? m_device6->GetParent()->GetCommonD3DInterface() : nullptr;
+    } else if (m_device5 != nullptr) {
+      return m_device5->GetParent() != nullptr ? m_device5->GetParent()->GetCommonD3DInterface() : nullptr;
+    } else if (m_device3 != nullptr) {
+      D3D3Interface* d3d3Intf = m_device3->GetParent()->GetCommonInterface()->GetD3D3Interface();
+      return d3d3Intf != nullptr ? d3d3Intf->GetCommonD3DInterface() : nullptr;
+    }
+
+    return nullptr;
+  }
+
   d3d9::D3DMULTISAMPLE_TYPE D3DCommonDevice::GetMultiSampleType() {
     if (m_device7 != nullptr) {
       return m_device7->GetMultiSampleType();
