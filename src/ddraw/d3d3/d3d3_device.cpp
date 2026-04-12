@@ -118,6 +118,24 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
+    // Apparently all of these should return a reference to the parent surface
+    if (riid == IID_IDirect3DHALDevice  || riid == IID_IDirect3DRGBDevice  ||
+        riid == IID_IDirect3DMMXDevice  || riid == IID_IDirect3DRampDevice ||
+        riid == IID_WineD3DDevice) {
+      Logger::warn("D3D3Device::QueryInterface: Query with an IDirect3DDevice IID");
+
+      if (likely(m_parent != nullptr)) {
+        *ppvObject = ref(m_parent);
+        return S_OK;
+      } else {
+        return E_NOINTERFACE;
+      }
+    }
+    // Yes, this is indeed expected behavior...
+    if (unlikely(riid == __uuidof(IDirect3DDevice))) {
+      Logger::debug("D3D3Device::QueryInterface: Query for IDirect3DDevice");
+      return E_NOINTERFACE;
+    }
     if (unlikely(riid == __uuidof(IDirect3DDevice2))) {
       if (likely(m_commonD3DDevice->GetD3D5Device() != nullptr)) {
         Logger::debug("D3D3Device::QueryInterface: Query for existing IDirect3DDevice2");
@@ -139,6 +157,14 @@ namespace dxvk {
       // if it doesn't previously exist as a parent/origin device
       Logger::debug("D3D3Device::QueryInterface: Query for IDirect3DDevice3");
       return E_NOINTERFACE;
+    }
+
+    // IDirect3DDevice is quite different than any of the later device interfaces,
+    // because it will also expose what is available on its parent surface. An easy
+    // way to handle it, since the surface is its parent, is to forward the calls.
+    if (likely(m_parent != nullptr)) {
+      Logger::debug("D3D3Device::QueryInterface: Forwarding to parent surface");
+      return m_parent->QueryInterface(riid, ppvObject);
     }
 
     try {
@@ -200,8 +226,8 @@ namespace dxvk {
     const D3DTEXTUREHANDLE handle1 = commonTex1->GetTextureHandle();
     const D3DTEXTUREHANDLE handle2 = commonTex2->GetTextureHandle();
 
-    m_parent->GetCommonInterface()->ReleaseTextureHandle(handle1);
-    m_parent->GetCommonInterface()->ReleaseTextureHandle(handle2);
+    m_commonIntf->ReleaseTextureHandle(handle1);
+    m_commonIntf->ReleaseTextureHandle(handle2);
 
     commonTex1->SetTextureHandle(handle2);
     commonTex2->SetTextureHandle(handle1);

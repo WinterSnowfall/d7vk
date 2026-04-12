@@ -1986,6 +1986,10 @@ namespace dxvk {
     { R"(\\ForsakenHW\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* MDK                                        */
+    { R"(\\MDKD3D\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
   };
 

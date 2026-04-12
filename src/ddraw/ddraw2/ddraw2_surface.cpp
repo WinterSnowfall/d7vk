@@ -246,6 +246,7 @@ namespace dxvk {
       if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip)) {
         Logger::debug("DDraw2Surface::AddAttachedSurface: Caching surface as RT");
         m_commonIntf->SetDDrawRenderTarget(ddraw2Surface->GetCommonSurface());
+        return DD_OK;
       } else {
         Logger::warn("DDraw2Surface::AddAttachedSurface: Trying to attach a flippable surface");
       }
@@ -491,6 +492,16 @@ namespace dxvk {
     }
 
     DDraw2Surface* ddraw2Surface = static_cast<DDraw2Surface*>(lpDDSAttachedSurface);
+
+    if (unlikely(ddraw2Surface->GetCommonSurface()->IsBackBufferOrFlippable())) {
+      if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip)) {
+        Logger::debug("DDraw2Surface::DeleteAttachedSurface: Removing cached RT surface");
+        m_commonIntf->SetDDrawRenderTarget(nullptr);
+        return DD_OK;
+      } else {
+        Logger::warn("DDraw2Surface::DeleteAttachedSurface: Trying to detach a flippable surface");
+      }
+    }
 
     HRESULT hr = m_proxy->DeleteAttachedSurface(dwFlags, ddraw2Surface->GetProxied());
     if (unlikely(FAILED(hr)))
