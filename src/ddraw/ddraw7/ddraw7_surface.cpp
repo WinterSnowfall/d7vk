@@ -120,6 +120,11 @@ namespace dxvk {
       Logger::debug("DDraw7Surface::QueryInterface: Query for IDirect3DTexture2");
       return E_NOINTERFACE;
     }
+    // Shouldn't ever be called in practice
+    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
+      Logger::debug("DDraw7Surface::QueryInterface: Query for IDirect3DTexture");
+      return E_NOINTERFACE;
+    }
     // Wrap IDirectDrawGammaControl, to potentially ignore application set gamma ramps
     if (riid == __uuidof(IDirectDrawGammaControl)) {
       Logger::debug("DDraw7Surface::QueryInterface: Query for IDirectDrawGammaControl");

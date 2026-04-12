@@ -226,8 +226,8 @@ namespace dxvk {
     const D3DTEXTUREHANDLE handle1 = commonTex1->GetTextureHandle();
     const D3DTEXTUREHANDLE handle2 = commonTex2->GetTextureHandle();
 
-    m_parent->GetCommonInterface()->ReleaseTextureHandle(handle1);
-    m_parent->GetCommonInterface()->ReleaseTextureHandle(handle2);
+    m_commonIntf->ReleaseTextureHandle(handle1);
+    m_commonIntf->ReleaseTextureHandle(handle2);
 
     commonTex1->SetTextureHandle(handle2);
     commonTex2->SetTextureHandle(handle1);
