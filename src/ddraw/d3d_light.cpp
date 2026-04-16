@@ -8,8 +8,7 @@ namespace dxvk {
 
   uint32_t D3DLight::s_lightCount = 0;
 
-  D3DLight::D3DLight(Com<IDirect3DLight>&& proxyLight, IUnknown* pParent)
-    : DDrawWrappedObject<IUnknown, IDirect3DLight, IUnknown>(pParent, std::move(proxyLight), nullptr) {
+  D3DLight::D3DLight() {
     m_lightCount = ++s_lightCount;
 
     Logger::debug(str::format("D3DLight: Created a new light nr. [[1-", m_lightCount, "]]"));
@@ -17,6 +16,25 @@ namespace dxvk {
 
   D3DLight::~D3DLight() {
     Logger::debug(str::format("D3DLight: Light nr. [[1-", m_lightCount, "]] bites the dust"));
+  }
+
+  HRESULT STDMETHODCALLTYPE D3DLight::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">> D3DLight::QueryInterface");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirect3DLight))) {
+      *ppvObject = ref(this);
+      return S_OK;
+    }
+
+    Logger::warn("D3DLight::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   // Docs state: "The method returns DDERR_ALREADYINITIALIZED because

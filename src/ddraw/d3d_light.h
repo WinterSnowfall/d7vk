@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ddraw_include.h"
-#include "ddraw_wrapped_object.h"
 
 namespace dxvk {
 
@@ -9,13 +8,15 @@ namespace dxvk {
   class D3D5Viewport;
   class D3D6Viewport;
 
-  class D3DLight final : public DDrawWrappedObject<IUnknown, IDirect3DLight, IUnknown> {
+  class D3DLight final : public ComObjectClamp<IDirect3DLight> {
 
   public:
 
-    D3DLight(Com<IDirect3DLight>&& proxyLight, IUnknown* pParent);
+    D3DLight();
 
     ~D3DLight();
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
     HRESULT STDMETHODCALLTYPE Initialize(IDirect3D *d3d);
 

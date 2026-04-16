@@ -95,9 +95,11 @@ namespace dxvk {
     return D3D_OK;
   }
 
+  // Docs state: "This method only affects the legacy ramp device.
+  // For all other devices, this method takes no action and returns D3D_OK."
   HRESULT STDMETHODCALLTYPE D3D6Texture::PaletteChanged(DWORD dwStart, DWORD dwCount) {
-    Logger::warn("<<< D3D6Texture::PaletteChanged: Proxy");
-    return m_proxy->PaletteChanged(dwStart, dwCount);
+    Logger::warn("!!! D3D6Texture::PaletteChanged: Stub");
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Texture::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2) {
