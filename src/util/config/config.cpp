@@ -1997,6 +1997,11 @@ namespace dxvk {
     { R"(\\MDKD3D\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* POD                                        *
+     * Fixes missing HUD elements                 */
+    { R"(\\(w)?podd3d(x|5x)?\.exe$)", {{
+      { "ddraw.backBufferGuard",        "Disabled" },
+    }} },
 
   };
 
