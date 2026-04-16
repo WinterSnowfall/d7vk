@@ -13,12 +13,10 @@ namespace dxvk {
   uint32_t D3D6VertexBuffer::s_buffCount = 0;
 
   D3D6VertexBuffer::D3D6VertexBuffer(
-        Com<IDirect3DVertexBuffer>&& buffProxy,
-        Com<d3d9::IDirect3DVertexBuffer9>&& pBuffer9,
         D3D6Interface* pParent,
         DWORD creationFlags,
         D3DVERTEXBUFFERDESC desc)
-    : DDrawWrappedObject<D3D6Interface, IDirect3DVertexBuffer, d3d9::IDirect3DVertexBuffer9>(pParent, std::move(buffProxy), std::move(pBuffer9))
+    : DDrawWrappedObject<D3D6Interface, IDirect3DVertexBuffer, d3d9::IDirect3DVertexBuffer9>(pParent, nullptr, nullptr)
     , m_commonIntf ( pParent->GetCommonInterface() )
     , m_creationFlags ( creationFlags )
     , m_desc ( desc )

@@ -4,12 +4,8 @@ namespace dxvk {
 
   uint32_t D3D3ExecuteBuffer::s_buffCount = 0;
 
-  D3D3ExecuteBuffer::D3D3ExecuteBuffer(
-        Com<IDirect3DExecuteBuffer>&& buffProxy,
-        D3DEXECUTEBUFFERDESC desc,
-        D3D3Device* pParent)
-    : DDrawWrappedObject<D3D3Device, IDirect3DExecuteBuffer, IUnknown>(pParent, std::move(buffProxy), nullptr)
-    , m_desc (desc) {
+  D3D3ExecuteBuffer::D3D3ExecuteBuffer(D3DEXECUTEBUFFERDESC desc)
+    : m_desc (desc) {
     if (likely(m_buffer.size() == 0 && (m_desc.dwFlags & D3DDEB_BUFSIZE))) {
       m_buffer.resize(m_desc.dwBufferSize);
       Logger::debug(str::format("D3D3ExecuteBuffer: Buffer is initialized with size ", m_desc.dwBufferSize));
@@ -22,6 +18,25 @@ namespace dxvk {
 
   D3D3ExecuteBuffer::~D3D3ExecuteBuffer() {
     Logger::debug(str::format("D3D3ExecuteBuffer: Execute buffer nr. {{1-", m_buffCount, "}} bites the dust"));
+  }
+
+  HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">> D3D3ExecuteBuffer::QueryInterface");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirect3DExecuteBuffer))) {
+      *ppvObject = ref(this);
+      return S_OK;
+    }
+
+    Logger::warn("D3D3ExecuteBuffer::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpData) {

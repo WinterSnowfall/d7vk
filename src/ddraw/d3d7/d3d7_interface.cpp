@@ -346,17 +346,7 @@ namespace dxvk {
 
     InitReturnPtr(ppVertexBuffer);
 
-    Com<IDirect3DVertexBuffer7> vertexBuffer7;
-    // We don't really need a proxy buffer any longer
-    /*HRESULT hr = m_proxy->CreateVertexBuffer(desc, &vertexBuffer7, usage);
-    if (unlikely(FAILED(hr))) {
-      Logger::warn("D3D7Interface::CreateVertexBuffer: Failed to create proxy vertex buffer");
-      return hr;
-    }*/
-
-    // We need to delay the D3D9 vertex buffer creation as long as possible, to ensure
-    // that (ideally) we actually have a valid D3D7 device in place when that happens
-    *ppVertexBuffer = ref(new D3D7VertexBuffer(std::move(vertexBuffer7), nullptr, this, *desc));
+    *ppVertexBuffer = ref(new D3D7VertexBuffer(this, *desc));
 
     return D3D_OK;
   }

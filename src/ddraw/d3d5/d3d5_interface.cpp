@@ -225,7 +225,7 @@ namespace dxvk {
 
     InitReturnPtr(lplpDirect3DLight);
 
-    *lplpDirect3DLight = ref(new D3DLight(nullptr, this));
+    *lplpDirect3DLight = ref(new D3DLight());
 
     return D3D_OK;
   }
