@@ -372,6 +372,10 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::Clear");
 
+    // Fast skip
+    if (unlikely(!count && rects))
+      return D3D_OK;
+
     // We are now allowing proxy back buffer blits in certain cases, so
     // we must also ensure the back buffer clear calls are proxied
     HRESULT hr = m_proxy->Clear(count, rects, flags, color, z, stencil);
@@ -845,8 +849,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::PreLoad(IDirectDrawSurface7 *surface) {
-    D3DDeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D7Device::PreLoad");
 
     if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
@@ -856,15 +858,11 @@ namespace dxvk {
 
     DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
 
-    HRESULT hr = m_proxy->PreLoad(surface7->GetProxied());
-    if (unlikely(FAILED(hr))) {
-      Logger::warn("D3D7Device::PreLoad: Failed to preload proxied surface");
-      return hr;
-    }
+    if (unlikely(!surface7->GetCommonSurface()->IsManaged()))
+      return DDERR_INVALIDPARAMS;
 
     // Make sure the texture or surface is initialized and updated
-    hr = surface7->InitializeOrUploadD3D9();
-
+    HRESULT hr = surface7->InitializeOrUploadD3D9();
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::PreLoad: Failed to initialize/upload D3D9 surface");
       return hr;
@@ -1338,8 +1336,6 @@ namespace dxvk {
 
   // This is a precursor of our ol' D3D8 pal CopyRects
   HRESULT STDMETHODCALLTYPE D3D7Device::Load(IDirectDrawSurface7 *dst_surface, POINT *dst_point, IDirectDrawSurface7 *src_surface, RECT *src_rect, DWORD flags) {
-    D3DDeviceLock lock = LockDevice();
-
     Logger::debug("<<< D3D7Device::Load: Proxy");
 
     if (dst_surface == nullptr || src_surface == nullptr) {
