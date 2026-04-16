@@ -15,8 +15,6 @@ namespace dxvk {
   public:
 
     D3D7VertexBuffer(
-          Com<IDirect3DVertexBuffer7>&& buffProxy,
-          Com<d3d9::IDirect3DVertexBuffer9>&& pBuffer9,
           D3D7Interface* pParent,
           D3DVERTEXBUFFERDESC desc);
 

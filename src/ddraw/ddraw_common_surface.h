@@ -283,7 +283,8 @@ namespace dxvk {
     }
 
     bool IsManaged() const {
-      return m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE;
+      return m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE
+          || m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_D3DTEXTUREMANAGE;
     }
 
     bool IsInSystemMemory() const {
@@ -292,8 +293,8 @@ namespace dxvk {
     }
 
     bool HasColorKey() const {
-      return (m_desc2.dwFlags & DDSD_CKSRCBLT ||
-              m_desc.dwFlags  & DDSD_CKSRCBLT);
+      return m_desc2.dwFlags & DDSD_CKSRCBLT
+          || m_desc.dwFlags  & DDSD_CKSRCBLT;
     }
 
     bool IsTextureOrCubeMap() const {
