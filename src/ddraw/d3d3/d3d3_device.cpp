@@ -475,8 +475,7 @@ namespace dxvk {
 
     InitReturnPtr(buffer);
 
-    Com<IDirect3DExecuteBuffer> bufferProxy;
-    *buffer = ref(new D3D3ExecuteBuffer(std::move(bufferProxy), *desc, this));
+    *buffer = ref(new D3D3ExecuteBuffer(*desc));
 
     return D3D_OK;
   }

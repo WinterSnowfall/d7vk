@@ -1,24 +1,20 @@
 #pragma once
 
 #include "../ddraw_include.h"
-#include "../ddraw_wrapped_object.h"
-
-#include "d3d3_device.h"
 
 #include <vector>
 
 namespace dxvk {
 
-  class D3D3ExecuteBuffer final : public DDrawWrappedObject<D3D3Device, IDirect3DExecuteBuffer, IUnknown> {
+  class D3D3ExecuteBuffer final : public ComObjectClamp<IDirect3DExecuteBuffer> {
 
   public:
 
-    D3D3ExecuteBuffer(
-          Com<IDirect3DExecuteBuffer>&& buffProxy,
-          D3DEXECUTEBUFFERDESC desc,
-          D3D3Device* pParent);
+    D3D3ExecuteBuffer(D3DEXECUTEBUFFERDESC desc);
 
     ~D3D3ExecuteBuffer();
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
     HRESULT STDMETHODCALLTYPE GetExecuteData(LPD3DEXECUTEDATA lpData);
 
@@ -51,9 +47,9 @@ namespace dxvk {
 
     D3DEXECUTEBUFFERDESC  m_desc;
     D3DEXECUTEDATA        m_data;
-    D3D3Device*           m_D3D3Device = nullptr;
 
     std::vector<uint8_t>  m_buffer;
+
   };
 
 }
