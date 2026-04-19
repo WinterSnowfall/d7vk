@@ -1206,9 +1206,9 @@ namespace dxvk {
       return DDERR_UNSUPPORTED;
     }
 
-    Logger::debug("D3D7Device::SetTexture: Binding D3D9 texture");
-
     DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
+
+    Logger::debug("D3D7Device::SetTexture: Binding D3D9 texture");
 
     // Only upload textures if any sort of blit/lock operation
     // has been performed on them since the last SetTexture call,

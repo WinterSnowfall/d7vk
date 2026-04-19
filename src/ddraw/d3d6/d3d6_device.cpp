@@ -1702,10 +1702,10 @@ namespace dxvk {
       return hr;
     }
 
-    Logger::debug("D3D6Device::SetTexture: Binding D3D9 texture");
-
     D3D6Texture* texture6 = static_cast<D3D6Texture*>(texture);
     DDraw4Surface* surface6 = texture6->GetParent();
+
+    Logger::debug("D3D6Device::SetTexture: Binding D3D9 texture");
 
     // Only upload textures if any sort of blit/lock operation
     // has been performed on them since the last SetTexture call,
