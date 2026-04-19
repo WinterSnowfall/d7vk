@@ -1872,6 +1872,18 @@ namespace dxvk {
     { R"(\\PCTomb5\.exe$)", {{
       { "ddraw.backBufferWriteBack",        "True" },
     }} },
+    /* Prince of Persia 3D                        *
+     * Increases performance and addresses        *
+     * missing background element visibility      */
+    { R"(\\POP3D(Demo)?\.exe$)", {{
+      { "d3d9.cachedWriteOnlyBuffers",      "True" },
+      { "ddraw.colorKeyCompatibility",      "True" },
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
+    /* Jurassic Park: Trespasser                  */
+    { R"(\\trespass\.exe$)", {{
+      { "ddraw.forceProxiedPresent",        "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */
