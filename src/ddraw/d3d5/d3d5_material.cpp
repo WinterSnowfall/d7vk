@@ -38,6 +38,9 @@ namespace dxvk {
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    if (unlikely(!data->dwSize))
+      return DDERR_INVALIDPARAMS;
+
     // This call needs to be forwarded to the proxied material
     // too, in order to have a proper color used during proxied clears
     HRESULT hr = m_proxy->SetMaterial(data);
