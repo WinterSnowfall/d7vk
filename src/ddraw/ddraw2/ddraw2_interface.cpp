@@ -289,8 +289,38 @@ namespace dxvk {
         // Surfaces created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
         Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied),
                                                      m_commonIntf->GetDDInterface(), nullptr, false);
-        if (unlikely(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
+
+        if (unlikely(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)) {
           m_commonIntf->SetPrimarySurface(surface->GetCommonSurface());
+
+          // Shadow surface creation for the primary surface
+          // (it needs to be based on the same incoming desc)
+          if (unlikely(!surface->GetCommonSurface()->Is8BitFormat() &&
+                        m_commonIntf->GetOptions()->forceLegacyPresent)) {
+            DDSURFACEDESC shadowDesc = *lpDDSurfaceDesc;
+            const DDSURFACEDESC* primaryDesc = surface->GetCommonSurface()->GetDesc();
+
+            shadowDesc.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE & ~DDSCAPS_COMPLEX & ~DDSCAPS_FLIP;
+            shadowDesc.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
+            shadowDesc.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
+            // Dimensions aren't specified in the incoming desc,
+            // but are explicitly needed for non-primary surfaces
+            shadowDesc.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
+            shadowDesc.dwWidth  = primaryDesc->dwWidth;
+            shadowDesc.dwHeight = primaryDesc->dwHeight;
+
+            Com<IDirectDrawSurface> ddrawSurfaceShadow;
+            hr = m_proxy->CreateSurface(&shadowDesc, &ddrawSurfaceShadow, pUnkOuter);
+            if (unlikely(FAILED(hr))) {
+              Logger::warn("DDraw2Interface::CreateSurface: Failed to create shadow surface");
+            } else {
+              Com<DDrawSurface> shadowSurf = new DDrawSurface(nullptr, std::move(ddrawSurfaceShadow),
+                                                              m_commonIntf->GetDDInterface(), nullptr, false);
+              surface->SetShadowSurface(shadowSurf.ptr());
+            }
+          }
+        }
+
         *lplpDDSurface = surface.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());
@@ -350,11 +380,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::FlipToGDISurface() {
-    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
-      Logger::debug("<<< DDraw2Interface::FlipToGDISurface: Proxy");
-      return m_proxy->FlipToGDISurface();
-    }
-
     Logger::debug("*** DDraw2Interface::FlipToGDISurface: Ignoring");
 
     DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();
@@ -571,8 +596,7 @@ namespace dxvk {
         Logger::warn("DDraw2Interface::SetDisplayMode: Failed to update primary surface desc");
     }
 
-    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent &&
-                m_commonIntf->GetOptions()->backBufferResize)) {
+    if (likely(m_commonIntf->GetOptions()->backBufferResize)) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
@@ -590,11 +614,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
-    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
-      Logger::debug("<<< DDraw2Interface::WaitForVerticalBlank: Proxy");
-      m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
-    }
-
     Logger::debug(">>> DDraw2Interface::WaitForVerticalBlank");
 
     if (unlikely(dwFlags & DDWAITVB_BLOCKBEGINEVENT))
