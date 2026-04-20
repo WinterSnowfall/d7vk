@@ -351,10 +351,10 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D7Interface::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK cb, LPVOID ctx) {
+  HRESULT STDMETHODCALLTYPE D3D7Interface::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext) {
     Logger::debug(">>> D3D7Interface::EnumZBufferFormats");
 
-    if (unlikely(cb == nullptr))
+    if (unlikely(lpEnumCallback == nullptr))
       return DDERR_INVALIDPARAMS;
 
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
@@ -366,18 +366,27 @@ namespace dxvk {
 
     if (likely(d3dOptions->supportD16)) {
       depthFormat = GetZBufferFormat(d3d9::D3DFMT_D16);
-      hr = cb(&depthFormat, ctx);
+      hr = lpEnumCallback(&depthFormat, lpContext);
       if (unlikely(hr != D3DENUMRET_OK))
         return D3D_OK;
     }
 
+    // Apparently some games expect D3DFMT_D24X8 to have a 24-bit
+    // dwZBufferBitDepth, so we have to enumerate both variants.
+    // According to Wine tests, Windows Vista and newer also enumerate both.
     depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
-    hr = cb(&depthFormat, ctx);
+    depthFormat.dwZBufferBitDepth = 24;
+    hr = lpEnumCallback(&depthFormat, lpContext);
+    if (unlikely(hr != D3DENUMRET_OK))
+      return D3D_OK;
+
+    depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
+    hr = lpEnumCallback(&depthFormat, lpContext);
     if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
     depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24S8);
-    hr = cb(&depthFormat, ctx);
+    hr = lpEnumCallback(&depthFormat, lpContext);
     if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
