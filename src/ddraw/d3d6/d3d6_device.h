@@ -25,6 +25,7 @@ namespace dxvk {
   class DDraw4Surface;
   class DDraw4Interface;
   class D3D6Texture;
+  class D3D5Device;
   class D3D3Device;
 
   /**
@@ -253,6 +254,7 @@ namespace dxvk {
 
     Com<DxvkD3D8Bridge>            m_bridge;
 
+    Com<D3D5Device>                m_device5;
     Com<D3D3Device>                m_device3;
 
     D3DMultithread                 m_multithread;
