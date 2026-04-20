@@ -147,19 +147,21 @@ namespace dxvk {
       m_device3 = new D3D3Device(m_commonD3DDevice.ptr(), std::move(ppvProxyObject),
                                  m_rt.ptr(), GetD3D3Caps(d3dOptions), m_deviceGUID,
                                  m_params9, std::move(device9), m_commonD3DDevice->GetD3D9CreationFlags());
+      m_commonD3DDevice->SetD3D3Device(m_device3.ptr());
 
       // On native this is the same object, so no need to ref
       *ppvObject = m_device3.ptr();
 
       return S_OK;
     }
-    // Technically possible, shouldn't ever be needed or make sense
     if (unlikely(riid == __uuidof(IDirect3DDevice3))) {
       if (m_commonD3DDevice->GetD3D6Device() != nullptr) {
         Logger::debug("D3D5Device::QueryInterface: Query for existing IDirect3DDevice3");
         return m_commonD3DDevice->GetD3D6Device()->QueryInterface(riid, ppvObject);
       }
 
+      // A D3D5 device shouldn't be able to create a D3D6 device
+      // if it doesn't previously exist as a parent/origin device
       Logger::err("D3D5Device::QueryInterface: Query for IDirect3DDevice3");
       return E_NOINTERFACE;
     }

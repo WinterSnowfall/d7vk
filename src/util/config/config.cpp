@@ -1891,6 +1891,12 @@ namespace dxvk {
     { R"(\\trespass\.exe$)", {{
       { "ddraw.forceProxiedPresent",        "True" },
     }} },
+    /* Star Wars: Episode I - The Phantom Menace  */
+    { R"(\\WMAIN\.EXE$)", {{
+      { "ddraw.forceSingleBackBuffer",      "True" },
+      { "ddraw.backBufferWriteBack",        "True" },
+      { "ddraw.backBufferGuard",        "Disabled" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */

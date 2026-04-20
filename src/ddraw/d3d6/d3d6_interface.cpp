@@ -8,6 +8,8 @@
 #include "../d3d_light.h"
 #include "../d3d_multithread.h"
 
+#include "../d3d3/d3d3_interface.h"
+
 #include "../ddraw4/ddraw4_interface.h"
 #include "../ddraw4/ddraw4_surface.h"
 
@@ -90,6 +92,26 @@ namespace dxvk {
               || riid == __uuidof(IDirectDraw2))) {
       Logger::debug("D3D6Interface::QueryInterface: Query for legacy IDirectDraw");
       return m_parent->QueryInterface(riid, ppvObject);
+    }
+    // Some games query for legacy d3d interfaces
+    if (unlikely(riid == __uuidof(IDirect3D))) {
+      if (m_commonD3DIntf->GetD3D3Interface() != nullptr) {
+        Logger::debug("D3D6Interface::QueryInterface: Query for existing IDirect3D");
+        return m_commonD3DIntf->GetD3D3Interface()->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("D3D6Interface::QueryInterface: Query for IDirect3D");
+
+      Com<IDirect3D> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      Com<D3D3Interface> d3d3Intf = new D3D3Interface(m_commonIntf, m_commonD3DIntf.ptr(), std::move(ppvProxyObject), m_parent);
+      m_commonIntf->SetD3D3Interface(d3d3Intf.ptr());
+      *ppvObject = d3d3Intf.ref();
+
+      return S_OK;
     }
 
     try {
@@ -543,6 +565,15 @@ namespace dxvk {
       if (unlikely(hr != D3DENUMRET_OK))
         return D3D_OK;
     }
+
+    // Apparently some games expect D3DFMT_D24X8 to have a 24-bit
+    // dwZBufferBitDepth, so we have to enumerate both variants.
+    // According to Wine tests, Windows Vista and newer also enumerate both.
+    depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
+    depthFormat.dwZBufferBitDepth = 24;
+    hr = lpEnumCallback(&depthFormat, lpContext);
+    if (unlikely(hr != D3DENUMRET_OK))
+      return D3D_OK;
 
     depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
     hr = lpEnumCallback(&depthFormat, lpContext);
