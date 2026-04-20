@@ -448,7 +448,7 @@ namespace dxvk {
     }
 
     Com<IDirect3DDevice2> d3d5DeviceProxy;
-    HRESULT hr = m_proxy->CreateDevice(rclsidOverride, rt->GetProxied(), &d3d5DeviceProxy);
+    HRESULT hr = m_proxy->CreateDevice(rclsidOverride, rt->GetShadowOrProxied(), &d3d5DeviceProxy);
     if (unlikely(FAILED(hr))) {
       Logger::warn("D3D5Interface::CreateDevice: Failed to create the proxy device");
       return hr;
@@ -461,8 +461,7 @@ namespace dxvk {
     DWORD backBufferWidth  = desc.dwWidth;
     DWORD BackBufferHeight = desc.dwHeight;
 
-    if (likely(!d3dOptions->forceProxiedPresent &&
-                d3dOptions->backBufferResize)) {
+    if (likely(d3dOptions->backBufferResize)) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
@@ -519,7 +518,7 @@ namespace dxvk {
     Logger::info(str::format("D3D5Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
 
     DWORD backBufferCount = 0;
-    if (likely(!d3dOptions->forceSingleBackBuffer)) {
+    if (likely(!d3dOptions->forceSingleBackBuffer && !d3dOptions->forceLegacyPresent)) {
       IDirectDrawSurface* backBuffer = rt->GetProxied();
       while (backBuffer != nullptr) {
         IDirectDrawSurface* parentSurface = backBuffer;

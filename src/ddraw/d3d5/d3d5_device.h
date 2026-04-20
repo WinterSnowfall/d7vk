@@ -206,8 +206,6 @@ namespace dxvk {
       }
     }
 
-    bool                           m_inScene     = false;
-
     static uint32_t                s_deviceCount;
     uint32_t                       m_deviceCount = 0;
 

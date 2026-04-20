@@ -429,13 +429,13 @@ namespace dxvk {
 
     RefreshLastUsedDevice();
 
-    if (unlikely(m_inScene))
+    if (unlikely(m_commonD3DDevice->IsInScene()))
       return D3DERR_SCENE_IN_SCENE;
 
     HRESULT hr = m_d3d9->BeginScene();
 
     if (likely(SUCCEEDED(hr)))
-      m_inScene = true;
+      m_commonD3DDevice->SetInScene(true);
 
     return hr;
   }
@@ -447,28 +447,28 @@ namespace dxvk {
 
     RefreshLastUsedDevice();
 
-    if (unlikely(!m_inScene))
+    if (unlikely(!m_commonD3DDevice->IsInScene()))
       return D3DERR_SCENE_NOT_IN_SCENE;
 
     HRESULT hr = m_d3d9->EndScene();
 
     if (likely(SUCCEEDED(hr))) {
-      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+      if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
+        DDraw4Surface* shadowSurf = m_rt->GetShadowSurface();
 
-      if (d3dOptions->forceProxiedPresent) {
-        // If we have drawn anything, we need to make sure we blit back
-        // the results onto the D3D6 render target before we flip it
-        if (m_commonIntf->HasDrawn())
-          BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(m_rt->GetProxied(), m_rt->GetD3D9());
+        // Some games need an explicit blit back to work properly
+        if (m_rt->IsInitialized() && m_commonIntf->HasDrawn()) {
+          IDirectDrawSurface4* targetSurf = shadowSurf == nullptr ? m_rt->GetProxied() : shadowSurf->GetProxied();
+          BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(targetSurf, m_rt->GetD3D9());
+        }
 
-        m_rt->GetProxied()->Flip(static_cast<IDirectDrawSurface4*>(m_commonIntf->GetFlipRTSurface()),
-                                 m_commonIntf->GetFlipRTFlags());
-
-        if (likely(d3dOptions->backBufferGuard != D3DBackBufferGuard::Strict))
+        // Allow uploads to the D3D9 back buffer once a scene completes,
+        // in order to reflect any post-rendering blits an application does
+        if (likely(m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
           m_commonIntf->ResetDrawTracking();
       }
 
-      m_inScene = false;
+      m_commonD3DDevice->SetInScene(false);
     }
 
     return hr;
@@ -552,20 +552,10 @@ namespace dxvk {
 
     DDraw4Surface* rt6 = static_cast<DDraw4Surface*>(surface);
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
-
-    if (unlikely(d3dOptions->forceProxiedPresent)) {
-      HRESULT hrRT = m_proxy->SetRenderTarget(rt6->GetProxied(), flags);
-      if (unlikely(FAILED(hrRT))) {
-        Logger::warn("D3D6Device::SetRenderTarget: Failed to set RT");
-        return hrRT;
-      }
-    } else {
-      // Needed to ensure proxied Z/Stencil viewport clears will work
-      HRESULT hrRT = m_proxy->SetRenderTarget(rt6->GetProxied(), flags);
-      if (unlikely(FAILED(hrRT)))
-        Logger::debug("D3D6Device::SetRenderTarget: Failed to set RT");
-    }
+    // Needed to ensure proxied Z/Stencil viewport clears will work
+    HRESULT hrRT = m_proxy->SetRenderTarget(rt6->GetShadowOrProxied(), flags);
+    if (unlikely(FAILED(hrRT)))
+      Logger::debug("D3D6Device::SetRenderTarget: Failed to set RT");
 
     HRESULT hr = rt6->GetCommonSurface()->ValidateRTUsage();
     if (unlikely(FAILED(hr)))
@@ -1858,8 +1848,7 @@ namespace dxvk {
   }
 
   void D3D6Device::InitializeDS() {
-    if (!m_rt->IsInitialized())
-      m_rt->InitializeD3D9RenderTarget();
+    m_rt->InitializeD3D9RenderTarget();
 
     m_ds = m_rt->GetAttachedDepthStencil();
 

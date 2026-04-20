@@ -237,9 +237,7 @@ namespace dxvk {
     // D3D9, so always strip the DDSCAPS_WRITEONLY flag on creation
     lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_WRITEONLY;
     // Similarly strip the DDSCAPS2_OPAQUE flag on texture creation
-    if (lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_TEXTURE) {
-      lpDDSurfaceDesc->ddsCaps.dwCaps2 &= ~DDSCAPS2_OPAQUE;
-    }
+    lpDDSurfaceDesc->ddsCaps.dwCaps2 &= ~DDSCAPS2_OPAQUE;
 
     if (unlikely((lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)
               && (lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF))) {
@@ -260,8 +258,37 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       try{
         Com<DDraw7Surface> surface7 = new DDraw7Surface(nullptr, std::move(ddraw7SurfaceProxied), this, nullptr, true);
-        if (unlikely(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
+
+        if (unlikely(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)) {
           m_commonIntf->SetPrimarySurface(surface7->GetCommonSurface());
+
+          // Shadow surface creation for the primary surface
+          // (it needs to be based on the same incoming desc)
+          if (unlikely(!surface7->GetCommonSurface()->Is8BitFormat() &&
+                        m_commonIntf->GetOptions()->forceLegacyPresent)) {
+            DDSURFACEDESC2 shadowDesc = *lpDDSurfaceDesc;
+            const DDSURFACEDESC2* primaryDesc = surface7->GetCommonSurface()->GetDesc2();
+
+            shadowDesc.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE & ~DDSCAPS_COMPLEX & ~DDSCAPS_FLIP;
+            shadowDesc.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
+            shadowDesc.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
+            // Dimensions aren't specified in the incoming desc,
+            // but are explicitly needed for non-primary surfaces
+            shadowDesc.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
+            shadowDesc.dwWidth  = primaryDesc->dwWidth;
+            shadowDesc.dwHeight = primaryDesc->dwHeight;
+
+            Com<IDirectDrawSurface7> ddraw7SurfaceShadow;
+            hr = m_proxy->CreateSurface(&shadowDesc, &ddraw7SurfaceShadow, pUnkOuter);
+            if (unlikely(FAILED(hr))) {
+              Logger::warn("DDraw7Interface::CreateSurface: Failed to create shadow surface");
+            } else {
+              Com<DDraw7Surface> shadowSurf = new DDraw7Surface(nullptr, std::move(ddraw7SurfaceShadow), this, nullptr, false);
+              surface7->SetShadowSurface(shadowSurf.ptr());
+            }
+          }
+        }
+
         *lplpDDSurface = surface7.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());
@@ -339,11 +366,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::FlipToGDISurface() {
-    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
-      Logger::debug("<<< DDraw7Interface::FlipToGDISurface: Proxy");
-      return m_proxy->FlipToGDISurface();
-    }
-
     Logger::debug("*** DDraw7Interface::FlipToGDISurface: Ignoring");
 
     DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();
@@ -563,8 +585,7 @@ namespace dxvk {
         Logger::warn("DDraw7Interface::SetDisplayMode: Failed to update primary surface desc");
     }
 
-    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent &&
-                m_commonIntf->GetOptions()->backBufferResize)) {
+    if (likely(m_commonIntf->GetOptions()->backBufferResize)) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
@@ -582,11 +603,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
-    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
-      Logger::debug("<<< DDraw7Interface::WaitForVerticalBlank: Proxy");
-      m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
-    }
-
     Logger::debug(">>> DDraw7Interface::WaitForVerticalBlank");
 
     if (unlikely(dwFlags & DDWAITVB_BLOCKBEGINEVENT))
