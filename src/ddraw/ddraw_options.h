@@ -13,8 +13,14 @@ namespace dxvk {
   };
 
   enum class D3DBackBufferGuard {
-    Disabled,
     Enabled,
+    Disabled,
+    Strict
+  };
+
+  enum class D3DLegacyPresentGuard {
+    Auto,
+    Disabled,
     Strict
   };
 
@@ -62,11 +68,14 @@ namespace dxvk {
     /// Upload or skip upload of depth stencils
     bool uploadDepthStencils;
 
-    /// Blits back to the proxied flippable surface and presents with DDraw
-    bool forceProxiedPresent;
+    /// Blits back to the proxied flippable surface and back again for presentation
+    bool forceLegacyPresent;
 
     /// Workaround that uses blits instead of flips for presentation
     bool forceBlitOnFlip;
+
+    /// By default guards against legacy presents while inside of a scene
+    D3DLegacyPresentGuard legacyPresentGuard;
 
     /// Ignore any application set gamma ramp
     bool ignoreGammaRamp;
@@ -107,12 +116,21 @@ namespace dxvk {
       this->backBufferWriteBack   = config.getOption<bool>   ("ddraw.backBufferWriteBack",   false);
       this->depthWriteBack        = config.getOption<bool>   ("ddraw.depthWriteBack",        false);
       this->uploadDepthStencils   = config.getOption<bool>   ("ddraw.uploadDepthStencils",    true);
-      this->forceProxiedPresent   = config.getOption<bool>   ("ddraw.forceProxiedPresent",   false);
+      this->forceLegacyPresent    = config.getOption<bool>   ("ddraw.forceLegacyPresent",    false);
       this->forceBlitOnFlip       = config.getOption<bool>   ("ddraw.forceBlitOnFlip",       false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("ddraw.ignoreGammaRamp",       false);
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
       this->autoGenMipMaps        = config.getOption<bool>   ("ddraw.autoGenMipMaps",        false);
       this->apitraceMode          = config.getOption<bool>   ("ddraw.apitraceMode",          false);
+
+      std::string legacyPresentGuardStr = Config::toLower(config.getOption<std::string>("ddraw.legacyPresentGuard", "auto"));
+      if (legacyPresentGuardStr == "strict") {
+        this->legacyPresentGuard = D3DLegacyPresentGuard::Strict;
+      } else if (legacyPresentGuardStr == "disabled") {
+        this->legacyPresentGuard = D3DLegacyPresentGuard::Disabled;
+      } else {
+        this->legacyPresentGuard = D3DLegacyPresentGuard::Auto;
+      }
 
       std::string emulateFSAAStr = Config::toLower(config.getOption<std::string>("ddraw.emulateFSAA", "auto"));
       if (emulateFSAAStr == "true") {
