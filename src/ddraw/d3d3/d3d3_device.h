@@ -153,8 +153,6 @@ namespace dxvk {
 
     inline void TextureLoadInternal(D3DTEXTURELOAD* textureLoad, uint16_t count);
 
-    bool                           m_inScene     = false;
-
     static uint32_t                s_deviceCount;
     uint32_t                       m_deviceCount = 0;
 

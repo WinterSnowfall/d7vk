@@ -75,7 +75,7 @@ namespace dxvk {
 
     D3DCommonDevice* commonDevice = commonIntf->GetCommonD3DDevice();
     // For proxied pesentation we need to rely on ddraw to handle gamma
-    if (likely(commonDevice != nullptr && !commonIntf->GetOptions()->forceProxiedPresent)) {
+    if (likely(commonDevice != nullptr)) {
       Logger::debug("DDrawGammaControl::GetGammaRamp: Getting gamma ramp via D3D9");
 
       d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
@@ -104,7 +104,7 @@ namespace dxvk {
     if (likely(!commonIntf->GetOptions()->ignoreGammaRamp)) {
       D3DCommonDevice* commonDevice = commonIntf->GetCommonD3DDevice();
       // For proxied pesentation we need to rely on ddraw to handle gamma
-      if (likely(commonDevice != nullptr && !commonIntf->GetOptions()->forceProxiedPresent)) {
+      if (likely(commonDevice != nullptr)) {
         Logger::debug("DDrawGammaControl::SetGammaRamp: Setting gamma ramp via D3D9");
 
         d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
