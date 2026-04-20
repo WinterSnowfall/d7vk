@@ -818,7 +818,7 @@ namespace dxvk {
     }
   }
 
-  // reverse blitter, used in the forceProxiedPresent logic
+  // reverse blitter, used in the forceLegacyPresent logic
   template <typename SurfaceType, typename DescType>
   inline void BlitToDDrawSurface(
       SurfaceType* surface,

@@ -119,6 +119,16 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE ChangeUniquenessValue();
 
+    IDirectDrawSurface4* GetShadowOrProxied();
+
+    void SetShadowSurface(DDraw4Surface* shadowSurf) {
+      m_shadowSurf = shadowSurf;
+    }
+
+    DDraw4Surface* GetShadowSurface() const {
+      return m_shadowSurf.ptr();
+    }
+
     DDrawCommonSurface* GetCommonSurface() const {
       return m_commonSurf.ptr();
     }
@@ -185,20 +195,24 @@ namespace dxvk {
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
 
-    Com<DDrawCommonSurface>             m_commonSurf;
-    DDrawCommonInterface*               m_commonIntf = nullptr;
+    Com<DDrawCommonSurface>      m_commonSurf;
+    DDrawCommonInterface*        m_commonIntf = nullptr;
 
-    DDraw4Surface*                      m_parentSurf = nullptr;
+    DDraw4Surface*               m_parentSurf = nullptr;
 
-    d3d9::IDirect3DDevice9*             m_d3d9Device = nullptr;
+    d3d9::IDirect3DDevice9*      m_d3d9Device = nullptr;
 
-    Com<D3D6Texture, false>             m_texture6;
+    Com<D3D6Texture, false>      m_texture6;
 
-    Com<d3d9::IDirect3DTexture9>        m_texture9;
+    Com<d3d9::IDirect3DTexture9> m_texture9;
+
+    // Offscreen plain surface we use to mask unwanted DDraw interactions, such
+    // as forced swapchain presents caused by blits/locks on primary surfaces
+    Com<DDraw4Surface>           m_shadowSurf;
 
     // Back buffers will have depth stencil surfaces as attachments (in practice
     // I have never seen more than one depth stencil being attached at a time)
-    Com<DDraw4Surface>                  m_depthStencil;
+    Com<DDraw4Surface>           m_depthStencil;
 
     // These are attached surfaces, which are typically mips or other types of generated
     // surfaces, which need to exist for the entire lifecycle of their parent surface.
