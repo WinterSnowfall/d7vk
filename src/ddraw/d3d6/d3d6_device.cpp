@@ -161,21 +161,44 @@ namespace dxvk {
       m_device3 = new D3D3Device(m_commonD3DDevice.ptr(), std::move(ppvProxyObject),
                                  m_rt->GetCommonSurface()->GetDDSurface(), GetD3D3Caps(d3dOptions), m_deviceGUID,
                                  m_params9, std::move(device9), m_commonD3DDevice->GetD3D9CreationFlags());
+      m_commonD3DDevice->SetD3D3Device(m_device3.ptr());
 
       // On native this is the same object, so no need to ref
       *ppvObject = m_device3.ptr();
 
       return S_OK;
     }
-    // Technically possible, shouldn't ever be needed or make sense
+    // Some games, such as Hype: The Time Quest, apparently query this
+    // as well, albeit without actually using the returned object...
     if (unlikely(riid == __uuidof(IDirect3DDevice2))) {
       if (m_commonD3DDevice->GetD3D5Device() != nullptr) {
         Logger::debug("D3D6Device::QueryInterface: Query for existing IDirect3DDevice2");
         return m_commonD3DDevice->GetD3D5Device()->QueryInterface(riid, ppvObject);
       }
 
-      Logger::err("D3D6Device::QueryInterface: Query for IDirect3DDevice2");
-      return E_NOINTERFACE;
+      Logger::debug("D3D6Device::QueryInterface: Query for IDirect3DDevice2");
+
+      Com<IDirect3DDevice2> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+      // TODO: Make sure the RT has an existing DDrawSurface,
+      // and QueryInterface for one if that's not the case
+
+      Com<d3d9::IDirect3DDevice9> device9 = m_d3d9.ptr();
+      m_device5 = new D3D5Device(m_commonD3DDevice.ptr(), std::move(ppvProxyObject),
+                                 m_commonD3DDevice->GetCommonD3DInterface()->GetD3D5Interface(),
+                                 GetD3D5Caps(m_deviceGUID, d3dOptions), m_deviceGUID, m_params9, std::move(device9),
+                                 m_rt->GetCommonSurface()->GetDDSurface(), m_commonD3DDevice->GetD3D9CreationFlags());
+      m_commonD3DDevice->SetD3D5Device(m_device5.ptr());
+
+      // On native this is the same object, so no need to ref
+      *ppvObject = m_device5.ptr();
+
+      return S_OK;
     }
 
     try {

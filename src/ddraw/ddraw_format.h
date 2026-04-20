@@ -413,20 +413,22 @@ namespace dxvk {
         zformat.dwStencilBitMask = 0x0000;
         break;
 
-      case d3d9::D3DFMT_D24X4S4:
-        zformat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
-        zformat.dwZBufferBitDepth = 32;
-        zformat.dwZBitMask = 0x00ffffff;
-        zformat.dwStencilBitDepth = 4;
-        zformat.dwStencilBitMask = 0xf0000000;
-        break;
-
+      // Historically has had dwZBufferBitDepth = 24 too in some cases,
+      // however we fix that up during format enumeration. Use 32 here.
       case d3d9::D3DFMT_D24X8:
         zformat.dwFlags = DDPF_ZBUFFER;
         zformat.dwZBufferBitDepth = 32;
         zformat.dwZBitMask = 0x00ffffff;
         zformat.dwStencilBitDepth = 0;
         zformat.dwStencilBitMask = 0x00000000;
+        break;
+
+      case d3d9::D3DFMT_D24X4S4:
+        zformat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
+        zformat.dwZBufferBitDepth = 32;
+        zformat.dwZBitMask = 0x00ffffff;
+        zformat.dwStencilBitDepth = 4;
+        zformat.dwStencilBitMask = 0xf0000000;
         break;
 
       case d3d9::D3DFMT_D24S8:
