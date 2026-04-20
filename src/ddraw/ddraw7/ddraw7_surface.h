@@ -123,6 +123,16 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetLOD(LPDWORD lod);
 
+    IDirectDrawSurface7* GetShadowOrProxied();
+
+    void SetShadowSurface(DDraw7Surface* shadowSurf) {
+      m_shadowSurf = shadowSurf;
+    }
+
+    DDraw7Surface* GetShadowSurface() const {
+      return m_shadowSurf.ptr();
+    }
+
     DDrawCommonSurface* GetCommonSurface() const {
       return m_commonSurf.ptr();
     }
@@ -209,6 +219,10 @@ namespace dxvk {
     std::array<IDirectDrawSurface7*, 6> m_cubeMapSurfaces;
 
     Com<d3d9::IDirect3DTexture9>        m_texture9;
+
+    // Offscreen plain surface we use to mask unwanted DDraw interactions, such
+    // as forced swapchain presents caused by blits/locks on primary surfaces
+    Com<DDraw7Surface>                  m_shadowSurf;
 
     // Back buffers will have depth stencil surfaces as attachments (in practice
     // I have never seen more than one depth stencil being attached at a time)

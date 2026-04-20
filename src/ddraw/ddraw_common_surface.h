@@ -317,6 +317,11 @@ namespace dxvk {
       return m_isGuardableSurface;
     }
 
+    bool Is8BitFormat() const {
+      return m_format9 == d3d9::D3DFMT_R3G3B2
+          || m_format9 == d3d9::D3DFMT_P8;
+    }
+
     HRESULT ValidateRTUsage() const {
       // Render targets require the DDSCAPS_3DDEVICE flag
       if (unlikely(!Is3DSurface())) {
@@ -367,10 +372,10 @@ namespace dxvk {
 
   private:
 
-    bool                      m_dirtyMipMaps  = false;
-    bool                      m_isAttached    = false;
-    bool                      m_isDesc2Set    = false;
-    bool                      m_isDescSet     = false;
+    bool                      m_dirtyMipMaps = false;
+    bool                      m_isAttached   = false;
+    bool                      m_isDesc2Set   = false;
+    bool                      m_isDescSet    = false;
 
     bool                      m_isTextureOrCubeMap      = false;
     bool                      m_isBackBufferOrFlippable = false;

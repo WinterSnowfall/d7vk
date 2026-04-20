@@ -60,6 +60,14 @@ namespace dxvk {
 
     bool IsCurrentD3D9DepthStencil(d3d9::IDirect3DSurface9* surface) const;
 
+    void SetInScene(bool inScene) {
+      m_inScene = inScene;
+    }
+
+    bool IsInScene() const {
+      return m_inScene;
+    }
+
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf;
     }
@@ -113,6 +121,8 @@ namespace dxvk {
     }
 
   private:
+
+    bool                  m_inScene        = false;
 
     DDrawCommonInterface* m_commonIntf     = nullptr;
 

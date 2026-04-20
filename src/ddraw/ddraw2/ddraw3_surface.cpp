@@ -586,40 +586,6 @@ namespace dxvk {
 
       m_commonIntf->ResetDrawTracking();
 
-      if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
-        D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
-
-        if (unlikely(!IsInitialized()))
-          m_parent->InitializeD3D9(commonDevice->IsCurrentRenderTarget(m_parent));
-
-        BlitToDDrawSurface<IDirectDrawSurface3, DDSURFACEDESC>(m_proxy.ptr(), m_parent->GetD3D9());
-
-        if (likely(commonDevice->IsCurrentRenderTarget(m_parent))) {
-          if (lpDDSurfaceTargetOverride != nullptr) {
-            m_commonIntf->SetFlipRTSurfaceAndFlags(surf3->GetParent()->GetProxied(), dwFlags);
-          } else {
-            m_commonIntf->SetFlipRTSurfaceAndFlags(nullptr, dwFlags);
-          }
-        }
-        if (lpDDSurfaceTargetOverride != nullptr) {
-          if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip &&
-                       rt != nullptr && m_commonSurf->IsPrimarySurface())) {
-            Logger::debug("DDraw3Surface::Flip: Skipping flip");
-            return DD_OK;
-          } else {
-            return m_proxy->Flip(surf3->GetProxied(), dwFlags);
-          }
-        } else {
-          if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip &&
-                       rt != nullptr && m_commonSurf->IsPrimarySurface())) {
-            Logger::debug("DDraw3Surface::Flip: Skipping flip");
-            return DD_OK;
-          } else {
-            return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
-          }
-        }
-      }
-
       m_d3d9Device->Present(NULL, NULL, NULL, NULL);
     // If we don't have a valid D3D5 device, this means a D3D3 application
     // is trying to flip the surface. Allow that for compatibility reasons.
@@ -704,11 +670,6 @@ namespace dxvk {
 
   // Blitting can be done at any time and completes within its call frame
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetBltStatus(DWORD dwFlags) {
-    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
-      Logger::debug("<<< DDraw3Surface::GetBltStatus: Proxy");
-      m_proxy->GetBltStatus(dwFlags);
-    }
-
     Logger::debug(">>> DDraw3Surface::GetBltStatus");
 
     if (likely(dwFlags == DDGBS_CANBLT || dwFlags == DDGBS_ISBLTDONE))
@@ -752,29 +713,27 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetDC(HDC *lphDC) {
-    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
-      if (unlikely(lphDC == nullptr))
-        return DDERR_INVALIDPARAMS;
+    if (unlikely(lphDC == nullptr))
+      return DDERR_INVALIDPARAMS;
 
-      InitReturnPtr(lphDC);
+    InitReturnPtr(lphDC);
 
-      // Foward GetDC calls if we have drawn and the surface is flippable
-      RefreshD3D9Device();
-      if (m_d3d9Device != nullptr && (m_commonIntf->HasDrawn() &&
-                                      m_commonSurf->IsGuardableSurface())) {
-        Logger::debug(">>> DDraw3Surface::GetDC");
+    // Foward GetDC calls if we have drawn and the surface is flippable
+    RefreshD3D9Device();
+    if (m_d3d9Device != nullptr && (m_commonIntf->HasDrawn() &&
+                                    m_commonSurf->IsGuardableSurface())) {
+      Logger::debug(">>> DDraw3Surface::GetDC");
 
-        if (unlikely(!IsInitialized())) {
-          HRESULT hrUpload = InitializeOrUploadD3D9();
-          if (unlikely(FAILED(hrUpload)))
-            Logger::warn("DDraw3Surface::GetDC: Failed to initialize d3d9 surface");
-        }
-
-        HRESULT hr9 = m_parent->GetD3D9()->GetDC(lphDC);
-        if (unlikely(FAILED(hr9)))
-          Logger::warn("DDraw3Surface::GetDC: Failed D3D9 call");
-        return hr9;
+      if (unlikely(!IsInitialized())) {
+        HRESULT hrUpload = InitializeOrUploadD3D9();
+        if (unlikely(FAILED(hrUpload)))
+          Logger::warn("DDraw3Surface::GetDC: Failed to initialize d3d9 surface");
       }
+
+      HRESULT hr9 = m_parent->GetD3D9()->GetDC(lphDC);
+      if (unlikely(FAILED(hr9)))
+        Logger::warn("DDraw3Surface::GetDC: Failed D3D9 call");
+      return hr9;
     }
 
     Logger::debug("<<< DDraw3Surface::GetDC: Proxy");
@@ -783,11 +742,6 @@ namespace dxvk {
 
   // Flipping can be done at any time and completes within its call frame
   HRESULT STDMETHODCALLTYPE DDraw3Surface::GetFlipStatus(DWORD dwFlags) {
-    if (unlikely(m_commonIntf->GetOptions()->forceProxiedPresent)) {
-      Logger::debug("<<< DDraw3Surface::GetFlipStatus: Proxy");
-      m_proxy->GetFlipStatus(dwFlags);
-    }
-
     Logger::debug(">>> DDraw3Surface::GetFlipStatus");
 
     if (likely(dwFlags == DDGFS_CANFLIP || dwFlags == DDGFS_ISFLIPDONE))
@@ -871,24 +825,22 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::ReleaseDC(HDC hDC) {
-    if (likely(!m_commonIntf->GetOptions()->forceProxiedPresent)) {
-      // Foward ReleaseDC calls if we have drawn and the surface is flippable
-      RefreshD3D9Device();
-      if (m_d3d9Device != nullptr && (m_commonIntf->HasDrawn() &&
-                                      m_commonSurf->IsGuardableSurface())) {
-        Logger::debug(">>> DDraw3Surface::ReleaseDC");
+    // Foward ReleaseDC calls if we have drawn and the surface is flippable
+    RefreshD3D9Device();
+    if (m_d3d9Device != nullptr && (m_commonIntf->HasDrawn() &&
+                                    m_commonSurf->IsGuardableSurface())) {
+      Logger::debug(">>> DDraw3Surface::ReleaseDC");
 
-        if (unlikely(!IsInitialized())) {
-          HRESULT hrUpload = InitializeOrUploadD3D9();
-          if (unlikely(FAILED(hrUpload)))
-            Logger::warn("DDraw3Surface::ReleaseDC: Failed to initialize d3d9 surface");
-        }
-
-        HRESULT hr9 = m_parent->GetD3D9()->ReleaseDC(hDC);
-        if (unlikely(FAILED(hr9)))
-          Logger::warn("DDraw3Surface::ReleaseDC: Failed D3D9 call");
-        return hr9;
+      if (unlikely(!IsInitialized())) {
+        HRESULT hrUpload = InitializeOrUploadD3D9();
+        if (unlikely(FAILED(hrUpload)))
+          Logger::warn("DDraw3Surface::ReleaseDC: Failed to initialize d3d9 surface");
       }
+
+      HRESULT hr9 = m_parent->GetD3D9()->ReleaseDC(hDC);
+      if (unlikely(FAILED(hr9)))
+        Logger::warn("DDraw3Surface::ReleaseDC: Failed D3D9 call");
+      return hr9;
     }
 
     Logger::debug("<<< DDraw3Surface::ReleaseDC: Proxy");
@@ -1084,6 +1036,15 @@ namespace dxvk {
     }
 
     return hr;
+  }
+
+  IDirectDrawSurface3* DDraw3Surface::GetShadowOrProxied() {
+    RefreshD3D9Device();
+
+    if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr))
+      return m_shadowSurf->GetProxied();
+
+    return m_proxy.ptr();
   }
 
   inline void DDraw3Surface::RefreshD3D9Device() {
