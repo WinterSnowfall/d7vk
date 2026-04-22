@@ -588,12 +588,11 @@ void main() {
 
             vec3 vtx3 = vtx.xyz;
 
-            const bool useLegacyLights   = specBool(SpecFFUseLegacyLights);
-            const bool isLegacyD3DLight2 = specBool(SpecFFIsLegacyD3DLight2);
+            const bool useLegacyLights = specBool(SpecFFUseLegacyLights);
 
             vec3 delta = position - vtx3;
             float d = length(delta);
-                  if (useLegacyLights && isLegacyD3DLight2) {
+                  if (useLegacyLights) {
                     d = (range - d) / range;
                   }
             vec3 hitDir = -direction;
@@ -607,7 +606,7 @@ void main() {
                   }
                   atten = spvNMin(atten, FloatMaxValue);
 
-                  if (useLegacyLights && isLegacyD3DLight2) {
+                  if (useLegacyLights) {
                     atten = d < 0.0 ? 0.0 : atten; // d > range
                   } else {
                     atten = d > range ? 0.0 : atten;
