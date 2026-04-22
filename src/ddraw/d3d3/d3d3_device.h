@@ -94,10 +94,6 @@ namespace dxvk {
       return m_multithread.AcquireLock();
     }
 
-    void EnableLegacyLights(bool isD3DLight2) {
-      m_bridge->SetLegacyLightsState(true, isD3DLight2);
-    }
-
     D3DSTATS GetStatsInternal() const {
       return m_stats;
     }

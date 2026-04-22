@@ -1497,11 +1497,10 @@ namespace dxvk {
       return D3D_OK;
     }
 
-    HRESULT SetLegacyLightsState(bool legacyLightState, bool isD3DLight2) {
+    HRESULT SetLegacyLightsState(bool legacyLightState) {
       if (likely(m_useLegacyLights != legacyLightState)) {
         m_dirty.set(D3D9DeviceDirtyFlag::FFLegacyLightsState);
         m_useLegacyLights = legacyLightState;
-        m_isD3DLight2     = isD3DLight2;
       }
 
       return D3D_OK;
@@ -1722,7 +1721,6 @@ namespace dxvk {
     bool                            m_colorKeyEnabled  = false;
     // D3D6 and earlier legacy light model state
     bool                            m_useLegacyLights  = false;
-    bool                            m_isD3DLight2      = false;
 
     // the enablement of below features is tracked independently
     // of render states both due to complexity and to avoid

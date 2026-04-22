@@ -36,16 +36,6 @@ namespace dxvk {
     return nullptr;
   }
 
-  void D3DCommonViewport::EnableLegacyLights(bool isD3DLight2) {
-    if (m_device6 != nullptr) {
-      return m_device6->EnableLegacyLights(isD3DLight2);
-    } else if (m_device5 != nullptr) {
-      return m_device5->EnableLegacyLights(isD3DLight2);
-    } else if (m_device3 != nullptr) {
-      return m_device3->EnableLegacyLights(isD3DLight2);
-    }
-  }
-
   d3d9::IDirect3DDevice9* D3DCommonViewport::GetD3D9Device() {
     if (m_device6 != nullptr) {
       return m_device6->GetD3D9();

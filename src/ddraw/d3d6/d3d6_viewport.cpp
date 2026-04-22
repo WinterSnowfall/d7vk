@@ -374,11 +374,6 @@ namespace dxvk {
     if (unlikely(d3dLight->HasViewport()))
       return D3DERR_LIGHTHASVIEWPORT;
 
-    if (m_commonViewport->HasDevice()) {
-      Logger::debug("D3D6Viewport::AddLight: Enabling device legacy light model");
-      m_commonViewport->EnableLegacyLights(d3dLight->IsD3DLight2());
-    }
-
     std::vector<Com<D3DLight>>& lights = m_commonViewport->GetLights();
     // No need to check if the light is already attached, since
     // if that's the case it will have a set viewport above

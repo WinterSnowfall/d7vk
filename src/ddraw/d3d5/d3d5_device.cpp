@@ -57,6 +57,9 @@ namespace dxvk {
       m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, CreationFlags9,
                                               m_bridge->DetermineInitialTextureMemory());
 
+      // Update D3D9 legacy light state
+      m_bridge->SetLegacyLightsState(true);
+
       const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
       if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
