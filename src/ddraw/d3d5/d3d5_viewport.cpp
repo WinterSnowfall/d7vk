@@ -552,6 +552,25 @@ namespace dxvk {
     return D3D_OK;
   }
 
+  HRESULT D3D5Viewport::DeactivateLights() {
+    std::vector<Com<D3DLight>>& lights = m_commonViewport->GetLights();
+
+    if (!lights.size())
+      return D3D_OK;
+
+    Logger::debug("D3D5Viewport: Deactivating D3D9 lights");
+
+    for (auto light: lights) {
+      const DWORD lightIndex = light->GetIndex();
+      if (m_commonViewport->HasDevice() && m_commonViewport->IsCurrentViewport() && light->IsActive()) {
+        Logger::debug(str::format("D3D5Viewport: Disabling light nr. ", lightIndex));
+        m_commonViewport->GetD3D9Device()->LightEnable(lightIndex, FALSE);
+      }
+    }
+
+    return D3D_OK;
+  }
+
   HRESULT D3D5Viewport::ApplyAndActivateLight(DWORD index, D3DLight* light) {
     d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetD3D9Device();
 
