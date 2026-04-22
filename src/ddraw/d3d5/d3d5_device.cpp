@@ -477,8 +477,10 @@ namespace dxvk {
     if (unlikely(m_currentViewport == d3d5Viewport))
       return D3D_OK;
 
-    if (likely(m_currentViewport != nullptr))
+    if (likely(m_currentViewport != nullptr)) {
+      m_currentViewport->DeactivateLights();
       m_currentViewport->GetCommonViewport()->SetIsCurrentViewport(false);
+    }
 
     m_currentViewport = d3d5Viewport.ptr();
 
