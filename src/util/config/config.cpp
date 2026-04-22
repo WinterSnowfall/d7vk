@@ -1848,6 +1848,7 @@ namespace dxvk {
     }} },
     /* Nocturne                                   */
     { R"(\\nocturne\.exe$)", {{
+      { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.depthWriteBack",             "True" },
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
@@ -1986,6 +1987,7 @@ namespace dxvk {
     { R"(\\VF2\.exe$)", {{
       { "ddraw.backBufferWriteBack",        "True" },
       { "ddraw.backBufferGuard",        "Disabled" },
+      { "ddraw.emulateFSAA",                "True" },
     }} },
     /* Return to Krondor                          */
     { R"(\\RtK\.exe$)", {{

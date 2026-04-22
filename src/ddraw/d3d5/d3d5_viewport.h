@@ -66,6 +66,8 @@ namespace dxvk {
 
     HRESULT ApplyAndActivateLights();
 
+    HRESULT DeactivateLights();
+
     HRESULT ApplyAndActivateLight(DWORD index, D3DLight* light);
 
     D3DCommonViewport* GetCommonViewport() const {
