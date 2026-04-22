@@ -95,9 +95,6 @@ namespace dxvk {
     /// Determines how uploads for back buffer blits are handled
     D3DBackBufferGuard backBufferGuard;
 
-    /// Max available memory override, shared with the D3D9 backend
-    uint32_t maxAvailableMemory;
-
     D3DOptions() {}
 
     D3DOptions(const Config& config) {

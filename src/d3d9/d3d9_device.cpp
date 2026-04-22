@@ -6773,9 +6773,6 @@ namespace dxvk {
 
     if (m_specInfo.set<SpecFFUseLegacyLights>(m_useLegacyLights))
       m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
-
-    if (m_specInfo.set<SpecFFIsLegacyD3DLight2>(m_isD3DLight2))
-      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
   }
 
 
@@ -8714,7 +8711,7 @@ namespace dxvk {
     rs[D3DRS_COLORVERTEX]            = TRUE;
     rs[D3DRS_LOCALVIEWER]            = TRUE;
     rs[D3DRS_RANGEFOGENABLE]         = FALSE;
-    rs[D3DRS_NORMALIZENORMALS]       = FALSE;
+    rs[D3DRS_NORMALIZENORMALS]       = m_isD3D6Compatible ? TRUE : FALSE;
     m_dirty.set(D3D9DeviceDirtyFlag::FFVertexShader);
 
     // PS

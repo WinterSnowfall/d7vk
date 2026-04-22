@@ -38,8 +38,6 @@ namespace dxvk {
 
     D3D3Viewport* GetCurrentD3D3Viewport();
 
-    void EnableLegacyLights(bool isD3DLight2);
-
     d3d9::IDirect3DDevice9* GetD3D9Device();
 
     HRESULT TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen);
