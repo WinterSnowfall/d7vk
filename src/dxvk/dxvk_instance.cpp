@@ -242,7 +242,7 @@ namespace dxvk {
       VkApplicationInfo appInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
       appInfo.pApplicationName      = appName.c_str();
       appInfo.applicationVersion    = flags.raw();
-      appInfo.pEngineName           = "DXVK";
+      appInfo.pEngineName           = "D7VK";
       appInfo.engineVersion         = VK_MAKE_API_VERSION(0, 3, 0, 0);
       appInfo.apiVersion            = DxvkVulkanApiVersion;
 
