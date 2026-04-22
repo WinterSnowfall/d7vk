@@ -491,8 +491,14 @@ namespace dxvk {
     D3D3ExecuteBuffer* d3d3ExecuteBuffer = static_cast<D3D3ExecuteBuffer*>(buffer);
     D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
 
-    if (m_currentViewport != d3d3Viewport)
+    if (m_currentViewport != d3d3Viewport) {
+      if (likely(m_currentViewport != nullptr)) {
+        m_currentViewport->DeactivateLights();
+        m_currentViewport->GetCommonViewport()->SetIsCurrentViewport(false);
+      }
+
       m_currentViewport = d3d3Viewport;
+    }
 
     m_currentViewport->GetCommonViewport()->SetIsCurrentViewport(true);
     m_currentViewport->ApplyViewport();
