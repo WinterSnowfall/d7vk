@@ -52,10 +52,6 @@ namespace dxvk {
       return m_isActive;
     }
 
-    bool IsD3DLight2() const {
-      return m_isD3DLight2;
-    }
-
   private:
 
     bool             m_isActive    = false;
