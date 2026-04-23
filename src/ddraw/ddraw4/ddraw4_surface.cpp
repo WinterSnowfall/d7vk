@@ -1541,6 +1541,9 @@ namespace dxvk {
       Logger::warn("DDraw4Surface::InitializeD3D9: Skipping initialization of unknown surface");
     }
 
+    if (m_shadowSurf != nullptr)
+      m_shadowSurf->SetD3D9(m_d3d9.ptr());
+
     // Depth stencils will not need uploads post initialization
     if (likely(!m_commonSurf->IsDepthStencil()))
       UploadSurfaceData();

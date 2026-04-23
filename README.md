@@ -76,10 +76,6 @@ No.
 
 Because DXVK's development team have made it clear they are not interested in merging and/or maintaining anything prior to D3D8. Also, considering this project takes a minimal approach in its DDraw implementation, it operates on a different principle compared to mainline DXVK, which is why it's best kept as a separate project altogether. I understand the desire to forge the One Ring, ehm... have things unified, but in this case it simply isn't meant to be.
 
-## Acknowledgments
-
-None of this would have ever been possible without DXVK and Wine, so remember to show your love to the awesome people involved in those projects. A special thanks goes out to [AlpyneDreams](https://github.com/AlpyneDreams) (of D8VK fame), both for D8VK and also for providing a good reference experimental branch, without which I would not have even considered diving head first into spinning off D7VK.
-
 ## How to use
 Grab the latest release or compile the project manually if you want to be "on the bleeding edge".
 
@@ -141,4 +137,10 @@ Note: D7VK v1.2 and earlier versions use the `DXVK_LOG_LEVEL` and `DXVK_LOG_PATH
 Please refer to the upstream DXVK wiki and documentation, available [here](https://github.com/doitsujin/dxvk).
 
 Feel free to report any issues you encounter, should they not already be present on the issue tracker.
+
+## Acknowledgments
+
+None of this would have ever been possible without DXVK and Wine, so remember to show your love to the awesome people involved in those projects. A special thanks goes out to [AlpyneDreams](https://github.com/AlpyneDreams) (of D8VK fame), both for D8VK and also for providing a good reference experimental branch, without which I would not have even considered diving head first into spinning off D7VK.
+
+An equally special thanks goes out to [CkNoSFeRaTU](https://github.com/CkNoSFeRaTU), who has helped the project with numerous contributions, such as color key transparency support, implementing D3D3 execute buffers, implementing legacy viewport transformations etc., and has done a metric ton of investigative work, which in turn led to countless bug fixes and many more games being supported by D7VK.
 

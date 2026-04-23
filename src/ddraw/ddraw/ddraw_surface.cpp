@@ -1446,6 +1446,9 @@ namespace dxvk {
       Logger::warn("DDrawSurface::InitializeD3D9: Skipping initialization of unknown surface");
     }
 
+    if (m_shadowSurf != nullptr)
+      m_shadowSurf->SetD3D9(m_d3d9.ptr());
+
     // Depth stencils will not need uploads post initialization
     if (likely(!m_commonSurf->IsDepthStencil()))
       UploadSurfaceData();
@@ -1599,7 +1602,7 @@ namespace dxvk {
     Logger::info(str::format("DDrawSurface::CreateDeviceInternal: Back buffer size: ", backBufferWidth, "x", BackBufferHeight));
 
     DWORD backBufferCount = 0;
-    if (likely(!d3dOptions->forceSingleBackBuffer)) {
+    if (likely(!d3dOptions->forceSingleBackBuffer && !d3dOptions->forceLegacyPresent)) {
       IDirectDrawSurface* backBuffer = m_proxy.ptr();
       while (backBuffer != nullptr) {
         IDirectDrawSurface* parentSurface = backBuffer;

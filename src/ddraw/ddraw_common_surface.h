@@ -29,6 +29,10 @@ namespace dxvk {
       return S_OK;
     }
 
+    IUnknown* GetShadowSurfaceProxied();
+
+    DDrawCommonSurface* GetShadowCommonSurface();
+
     HRESULT RefreshSurfaceDescripton();
 
     DDrawCommonInterface* GetCommonInterface() const {
