@@ -1437,11 +1437,10 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
-    /* Blade of Darkness - broken physics, main   *
-     * menu transitions, animations and GUI       */
+    /* Blade of Darkness - broken physics         */
     { R"(\\Blade\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.forceSingleBackBuffer",      "True" },
+      { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Hogs of War - Fixes animation speed        */
     { R"(\\warhogs_\.exe$)", {{
@@ -1615,12 +1614,10 @@ namespace dxvk {
       { "ddraw.backBufferWriteBack",        "True" },
       { "ddraw.backBufferGuard",        "Disabled" },
     }} },
-    /* Soulbringer - Uses legacy ddraw interfaces *
-     * and has broken rendering with direct       *
+    /* Soulbringer - Broken rendering with direct *
      * buffer mapping on T&L devices              */
     { R"(\\SoulbringeVC(noeax)?\.exe$)", {{
       { "d3d9.allowDirectBufferMapping",   "False" },
-      { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Star Trek: Deep Space Nine - The Fallen    *
      * Fixes missing mip map uploads              */
@@ -1629,8 +1626,8 @@ namespace dxvk {
     }} },
     /* Sacred - Fixes transition artifacting      */
     { R"(\\Sacred\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.emulateFSAA",                "True" },
-      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* StarLancer                                 */
     { R"(\\Lancer\.exe$)", {{
@@ -1654,8 +1651,8 @@ namespace dxvk {
     }} },
     /* Hard Truck 2: King of the Road             */
     { R"(\\king\.exe$)", {{
-      { "ddraw.colorKeyCompatibility",      "True" },
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.colorKeyCompatibility",      "True" },
     }} },
     /* Anno 1503                                  */
     { R"(\\1503Startup\.exe$)", {{
@@ -1765,8 +1762,8 @@ namespace dxvk {
     }} },
     /* Redline - Fixes missing weapon mip maps    */
     { R"(\\Redline\.exe$)", {{
-      { "ddraw.autoGenMipMaps",             "True" },
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* 3DMark 99 (Max) - Enables VSync by default *
      * (probably due to hardware and/or driver    *
@@ -1776,10 +1773,9 @@ namespace dxvk {
       { "d3d9.presentInterval",                "0" },
       { "d3d9.allowDirectBufferMapping",   "False" },
     }} },
-    /* Hidden & Dangerous (: Action Pack)         *
-     * Prevents crashing on startup               */
+    /* Hidden & Dangerous (: Action Pack)         */
     { R"(\\h&d\.exe$)", {{
-      { "d3d9.allowDirectBufferMapping",   "False" },
+      { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Dungeon Keeper 2                           */
     { R"(\\DKII(-DX)?\.exe$)", {{
@@ -1855,8 +1851,8 @@ namespace dxvk {
     /* Nocturne                                   */
     { R"(\\nocturne\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.depthWriteBack",             "True" },
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.depthWriteBack",             "True" },
     }} },
     /* Arabian Nights                             *
      * Fixes flickering during level load         */
@@ -1894,8 +1890,8 @@ namespace dxvk {
      * missing background element visibility      */
     { R"(\\POP3D(Demo)?\.exe$)", {{
       { "d3d9.cachedWriteOnlyBuffers",      "True" },
-      { "ddraw.colorKeyCompatibility",      "True" },
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.colorKeyCompatibility",      "True" },
     }} },
     /* Jurassic Park: Trespasser                  */
     { R"(\\trespass\.exe$)", {{
@@ -1903,6 +1899,7 @@ namespace dxvk {
     }} },
     /* Wizards & Warriors                         */
     { R"(\\deep6\.exe$)", {{
+      { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Divine Divinity                            *
@@ -2020,6 +2017,11 @@ namespace dxvk {
     { R"(\\Darkstone\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
+    /* Tomb Raider III: Adventures of Lara Croft *
+     * Fixes missing pause screen background     */
+    { R"(\\tomb3\.exe$)", {{
+      { "ddraw.backBufferWriteBack",        "True" },
+    }} },
 
     /**********************************************/
     /* D3D3 GAMES                                 */
@@ -2057,6 +2059,10 @@ namespace dxvk {
      * Fixes missing HUD elements                 */
     { R"(\\(w)?podd3d(x|5x)?\.exe$)", {{
       { "ddraw.backBufferGuard",        "Disabled" },
+    }} },
+    /* (Venom.) Codename: Outbreak                */
+    { R"(\\OutBreak\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
     }} },
 
   };
