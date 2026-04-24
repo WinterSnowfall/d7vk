@@ -1881,6 +1881,10 @@ namespace dxvk {
       { "ddraw.mask8BitModes",              "True" },
       { "ddraw.colorKeyCompatibility",      "True" },
     }} },
+    /* Tomb Raider: The Last Revelation           */
+    { R"(\\tomb4\.exe$)", {{
+      { "ddraw.backBufferWriteBack",        "True" },
+    }} },
     /* Tomb Raider Chronicles                     */
     { R"(\\PCTomb5\.exe$)", {{
       { "ddraw.backBufferWriteBack",        "True" },

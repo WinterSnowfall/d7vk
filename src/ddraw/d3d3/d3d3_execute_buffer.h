@@ -38,6 +38,10 @@ namespace dxvk {
       return m_data;
     }
 
+    void SetExecuteData(D3DEXECUTEDATA data) {
+      m_data = data;
+    }
+
   private:
 
     bool                  m_locked = false;

@@ -147,6 +147,10 @@ namespace dxvk {
       m_materialHandle = handle;
     }
 
+    D3DCLIPSTATUS* GetClipStatusInternal() {
+      return &m_clipStatus;
+    }
+
   private:
 
     inline void AddViewportInternal(IDirect3DViewport2* viewport);
