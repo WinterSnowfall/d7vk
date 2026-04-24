@@ -50,6 +50,9 @@ namespace dxvk {
     /// Respect DISCARD only on DYNAMIC + WRITEONLY buffers
     bool forceLegacyDiscard;
 
+    /// Process vertices on the CPU, instead of relaying to D3D9
+    bool cpuProcessVertices;
+
     /// Circumvents the texelFetch color key shader path
     bool colorKeyCompatibility;
 
@@ -107,6 +110,7 @@ namespace dxvk {
       this->mask8BitModes         = config.getOption<bool>   ("ddraw.mask8BitModes",         false);
       this->forcePOW2Textures     = config.getOption<bool>   ("ddraw.forcePOW2Textures",     false);
       this->forceLegacyDiscard    = config.getOption<bool>   ("ddraw.forceLegacyDiscard",    false);
+      this->cpuProcessVertices    = config.getOption<bool>   ("ddraw.cpuProcessVertices",     true);
       this->colorKeyCompatibility = config.getOption<bool>   ("ddraw.colorKeyCompatibility", false);
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);

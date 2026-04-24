@@ -4,6 +4,7 @@
 
 #include "../ddraw_util.h"
 
+#include "../d3d_process_vertices.h"
 #include "../d3d_multithread.h"
 
 #include "../ddraw4/ddraw4_interface.h"
@@ -131,16 +132,69 @@ namespace dxvk {
 
     D3DDeviceLock lock = device->LockDevice();
 
-    HandlePreProcessVerticesFlags(dwVertexOp);
+    HRESULT hr = D3D_OK;
 
-    device->GetD3D9()->SetFVF(vb->GetFVF());
-    device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
-    HRESULT hr = device->GetD3D9()->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_d3d9.ptr(), nullptr, dwFlags);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6VertexBuffer::ProcessVertices: Failed call to D3D9 ProcessVertices");
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+    if (likely(d3dOptions->cpuProcessVertices)) {
+      uint8_t *bufIn = nullptr;
+      uint8_t *bufOut = nullptr;
+
+      HRESULT hr = vb->GetD3D9()->Lock(dwSrcIndex * vb->GetStride(), dwCount * vb->GetStride(), reinterpret_cast<void**>(&bufIn), D3DLOCK_READONLY|D3DLOCK_NOSYSLOCK);
+      if (FAILED(hr)) {
+        Logger::err("D3D6VertexBuffer::ProcessVertices: Failed to lock source buffer");
+        return D3DERR_VERTEXBUFFERLOCKED;
+      }
+
+      hr = m_d3d9->Lock(dwDestIndex * m_stride, dwCount * m_stride, reinterpret_cast<void**>(&bufOut), D3DLOCK_NOSYSLOCK);
+      if (FAILED(hr)) {
+        Logger::err("D3D6VertexBuffer::ProcessVertices: Failed to lock destination buffer");
+        vb->Unlock();
+        return D3DERR_VERTEXBUFFERLOCKED;
+      }
+
+      bool doLighting = dwVertexOp & D3DVOP_LIGHT;
+      bool doClipping = dwVertexOp & D3DVOP_CLIP;
+      bool doNotCopyData = dwFlags & D3DPV_DONOTCOPYDATA;
+      bool doExtents = true;
+
+      D3DCommonInterface* commonD3DIntf = m_commonIntf->GetCommonD3DDevice()->GetCommonD3DInterface();
+      d3d9::IDirect3DDevice9* d3d9Device = device->GetD3D9();
+      D3DCommonViewport* m_commonViewport = device->GetCurrentViewportInternal()->GetCommonViewport();
+      const D3DMATRIX* correction = m_commonViewport->GetLegacyProjectionMatrix(0);
+      D3DCLIPSTATUS* clipStatus = device->GetClipStatusInternal();
+      std::vector<Com<D3DLight>> lights = m_commonViewport->GetLights();
+      std::vector<d3d9::D3DLIGHT9> lights9;
+
+      for (auto light: lights) {
+        if (!light->IsActive())
+          continue;
+
+        const d3d9::D3DLIGHT9* light9 = light->GetD3D9Light();
+        if (light9 != nullptr)
+          lights9.push_back(*light9);
+      }
+
+      ProcessVerticesSW(d3d9Device, commonD3DIntf, correction, &lights9,
+          vb->GetFVF(), m_desc.dwFVF, vb->GetStride(), m_stride,
+          bufIn, bufOut, dwCount, nullptr, clipStatus, doLighting,
+          doClipping, doExtents, doNotCopyData);
+
+      m_d3d9->Unlock();
+      vb->Unlock();
+
+    } else {
+      HandlePreProcessVerticesFlags(dwVertexOp);
+
+      device->GetD3D9()->SetFVF(vb->GetFVF());
+      device->GetD3D9()->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
+      hr = device->GetD3D9()->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_d3d9.ptr(), nullptr, dwFlags);
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D6VertexBuffer::ProcessVertices: Failed call to D3D9 ProcessVertices");
+      }
+
+      HandlePostProcessVerticesFlags(dwVertexOp);
     }
-
-    HandlePostProcessVerticesFlags(dwVertexOp);
 
     return hr;
   }

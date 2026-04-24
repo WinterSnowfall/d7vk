@@ -7,6 +7,7 @@
 #include "../ddraw_caps.h"
 
 #include "../d3d_common_device.h"
+#include "../d3d_light.h"
 
 #include "../d3d_multithread.h"
 
@@ -164,6 +165,21 @@ namespace dxvk {
       return m_ds.ptr();
     }
 
+    D3DCLIPSTATUS* GetClipStatusInternal() {
+      return &m_clipStatus;
+    }
+
+    std::vector<d3d9::D3DLIGHT9> GetLights() {
+      std::vector<d3d9::D3DLIGHT9> lights;
+
+      for (const auto &[idx, light9] : m_lights) {
+        if (m_lightsStates[idx])
+          lights.push_back(light9);
+      }
+
+      return lights;
+    }
+
   private:
 
     inline HRESULT InitializeIndexBuffers();
@@ -203,6 +219,9 @@ namespace dxvk {
     Com<DDraw7Surface, false>   m_ds;
 
     std::array<Com<DDraw7Surface, false>, ddrawCaps::TextureStageCount> m_textures;
+
+    std::unordered_map<DWORD, d3d9::D3DLIGHT9> m_lights;
+    std::unordered_map<DWORD, BOOL>            m_lightsStates;
 
     D3D7StateBlock* m_recorder       = nullptr;
     DWORD           m_recorderHandle = 0;
