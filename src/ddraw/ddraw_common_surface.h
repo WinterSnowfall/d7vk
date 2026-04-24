@@ -48,13 +48,9 @@ namespace dxvk {
       m_isDesc2Set = true;
       m_format9 = ConvertFormat(m_desc2.ddpfPixelFormat);
       // determine and cache various frequently used flag combinations
-      m_isTextureOrCubeMap      = IsTexture() || IsCubeMap();
-      m_isBackBufferOrFlippable = !IsFrontBuffer() && (IsBackBuffer() || IsFlippable());
+      m_isBackBufferOrFlippable = !IsPrimarySurface() && !IsFrontBuffer() && (IsBackBuffer() || IsFlippable());
       m_isRenderTarget          = IsFrontBuffer() || IsBackBuffer() || IsFlippable() || Is3DSurface();
-      m_isForwardableSurface    = IsFrontBuffer()  || IsBackBuffer() || IsFlippable()
-                               || IsDepthStencil() || IsOffScreenPlainSurface();
-      m_isGuardableSurface      = IsPrimarySurface() || IsFrontBuffer()
-                               || IsBackBuffer() || IsFlippable();
+      m_isGuardableSurface      = IsPrimarySurface() || IsFrontBuffer() || IsBackBuffer() || IsFlippable();
     }
 
     const DDSURFACEDESC2* GetDesc2() const {
@@ -70,12 +66,9 @@ namespace dxvk {
       m_isDescSet = true;
       m_format9 = ConvertFormat(m_desc.ddpfPixelFormat);
       // determine and cache various frequently used flag combinations
-      m_isBackBufferOrFlippable = !IsFrontBuffer() && (IsBackBuffer() || IsFlippable());
+      m_isBackBufferOrFlippable = !IsPrimarySurface() && !IsFrontBuffer() && (IsBackBuffer() || IsFlippable());
       m_isRenderTarget          = IsFrontBuffer() || IsBackBuffer() || IsFlippable() || Is3DSurface();
-      m_isForwardableSurface    = IsFrontBuffer()  || IsBackBuffer() || IsFlippable()
-                               || IsDepthStencil() || IsOffScreenPlainSurface();
-      m_isGuardableSurface      = IsPrimarySurface() || IsFrontBuffer()
-                               || IsBackBuffer() || IsFlippable();
+      m_isGuardableSurface      = IsPrimarySurface() || IsFrontBuffer() || IsBackBuffer() || IsFlippable();
     }
 
     const DDSURFACEDESC* GetDesc() const {
@@ -302,7 +295,8 @@ namespace dxvk {
     }
 
     bool IsTextureOrCubeMap() const {
-      return m_isTextureOrCubeMap;
+      return m_desc2.ddsCaps.dwCaps  & DDSCAPS_TEXTURE
+          || m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP;
     }
 
     bool IsBackBufferOrFlippable() const {
@@ -311,10 +305,6 @@ namespace dxvk {
 
     bool IsRenderTarget() const {
       return m_isRenderTarget;
-    }
-
-    bool IsForwardableSurface() const {
-      return m_isForwardableSurface;
     }
 
     bool IsGuardableSurface() const {
@@ -381,10 +371,8 @@ namespace dxvk {
     bool                      m_isDesc2Set   = false;
     bool                      m_isDescSet    = false;
 
-    bool                      m_isTextureOrCubeMap      = false;
     bool                      m_isBackBufferOrFlippable = false;
     bool                      m_isRenderTarget          = false;
-    bool                      m_isForwardableSurface    = false;
     bool                      m_isGuardableSurface      = false;
 
     uint16_t                  m_mipCount = 1;

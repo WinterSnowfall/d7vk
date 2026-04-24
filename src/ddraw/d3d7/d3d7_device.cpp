@@ -237,9 +237,8 @@ namespace dxvk {
       if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
         DDraw7Surface* shadowSurf = m_rt->GetShadowSurface();
 
-        // Some games need an explicit blit back to work properly
-        if (m_rt->IsInitialized() && m_commonIntf->HasDrawn()) {
-          IDirectDrawSurface7* targetSurf = shadowSurf == nullptr ? m_rt->GetProxied() : shadowSurf->GetProxied();
+        if (likely(m_rt->IsInitialized() && m_commonIntf->HasDrawn())) {
+          IDirectDrawSurface7* targetSurf = shadowSurf != nullptr ? shadowSurf->GetProxied() : m_rt->GetProxied();
           BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(targetSurf, m_rt->GetD3D9());
         }
 

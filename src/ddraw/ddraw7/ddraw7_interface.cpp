@@ -266,6 +266,8 @@ namespace dxvk {
           // (it needs to be based on the same incoming desc)
           if (unlikely(!surface7->GetCommonSurface()->Is8BitFormat() &&
                         m_commonIntf->GetOptions()->forceLegacyPresent)) {
+            Logger::debug("DDraw7Interface::CreateSurface: Creating shadow surface");
+
             DDSURFACEDESC2 shadowDesc = *lpDDSurfaceDesc;
             const DDSURFACEDESC2* primaryDesc = surface7->GetCommonSurface()->GetDesc2();
 

@@ -159,11 +159,10 @@ namespace dxvk {
     }
 
     HRESULT InitializeOrUploadD3D9() {
-      return m_parent->InitializeOrUploadD3D9();
-    }
-
-    bool IsInitialized() {
-      return m_parent->IsInitialized();
+      HRESULT hr = m_parent->InitializeOrUploadD3D9();
+      if (unlikely(m_d3d9 == nullptr && SUCCEEDED(hr)))
+        m_d3d9 = m_parent->GetD3D9();
+      return hr;
     }
 
   private:
