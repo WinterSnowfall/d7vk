@@ -171,6 +171,29 @@ namespace dxvk {
       m_materialHandle = handle;
     }
 
+    D3DCLIPSTATUS* GetClipStatusInternal() {
+      return &m_clipStatus;
+    }
+
+    void HandlePreDrawLegacyProjection(DWORD drawFlags) {
+      if (likely(m_currentViewport != nullptr)) {
+        m_legacyProjection = m_currentViewport->GetCommonViewport()->GetLegacyProjectionMatrix(drawFlags);
+
+        if (m_legacyProjection != nullptr) {
+          //Logger::debug("D3D6Device: Applying legacy projection");
+          m_d3d9->GetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
+          m_d3d9->MultiplyTransform(d3d9::D3DTS_PROJECTION, m_legacyProjection);
+        }
+      }
+    }
+
+    void HandlePostDrawLegacyProjection() {
+      if (m_legacyProjection != nullptr) {
+        //Logger::debug("D3D6Device: Reverting legacy projection");
+        m_d3d9->SetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
+      }
+    }
+
   private:
 
     inline HRESULT InitializeIndexBuffers();
@@ -214,25 +237,6 @@ namespace dxvk {
          !(vertexTypeDesc & D3DFVF_NORMAL)) && m_lighting) {
         //Logger::debug("D3D6Device: Enabling lighting");
         m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
-      }
-    }
-
-    inline void HandlePreDrawLegacyProjection(DWORD drawFlags) {
-      if (likely(m_currentViewport != nullptr)) {
-        m_legacyProjection = m_currentViewport->GetCommonViewport()->GetLegacyProjectionMatrix(drawFlags);
-
-        if (m_legacyProjection != nullptr) {
-          //Logger::debug("D3D6Device: Applying legacy projection");
-          m_d3d9->GetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
-          m_d3d9->MultiplyTransform(d3d9::D3DTS_PROJECTION, m_legacyProjection);
-        }
-      }
-    }
-
-    inline void HandlePostDrawLegacyProjection() {
-      if (m_legacyProjection != nullptr) {
-        //Logger::debug("D3D6Device: Reverting legacy projection");
-        m_d3d9->SetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
       }
     }
 

@@ -70,6 +70,7 @@ namespace dxvk {
           m_d3d6Device->GetD3D9()->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
         }
       }
+      m_d3d6Device->HandlePreDrawLegacyProjection(0);
     }
 
     inline void HandlePostProcessVerticesFlags(DWORD pvFlags) {
@@ -77,6 +78,7 @@ namespace dxvk {
         //Logger::debug("D3D6VertexBuffer: Enabling lighting");
         m_d3d6Device->GetD3D9()->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
       }
+      m_d3d6Device->HandlePostDrawLegacyProjection();
     }
 
     inline void ListBufferDetails() const {
