@@ -650,27 +650,31 @@ namespace dxvk {
               }
               case D3DPROCESSVERTICES_TRANSFORM:
               case D3DPROCESSVERTICES_TRANSFORMLIGHT: {
-                bool doLighting = op == D3DPROCESSVERTICES_TRANSFORMLIGHT;
-                bool doClipping = (flags & D3DEXECUTE_CLIPPED) && !(flags & D3DEXECUTE_UNCLIPPED);
-                bool doExtents = pv.dwFlags & D3DPROCESSVERTICES_UPDATEEXTENTS;
-                bool doNotCopyData = pv.dwFlags & D3DPROCESSVERTICES_NOCOLOR;
+                const bool doLighting = op == D3DPROCESSVERTICES_TRANSFORMLIGHT;
 
                 Logger::debug(str::format("D3D3Device::Execute: D3DOP_PROCESSVERTICES ", doLighting ? "TRANSFORMLIGHT" : "TRANSFORM"));
 
-                uint8_t *in = buf + data.dwVertexOffset + pv.wStart * sizeof(D3DVERTEX);
-                uint8_t *out = buf + data.dwHVertexOffset + pv.wDest * sizeof(D3DTLVERTEX);
+                D3DCommonViewport* commonViewport = m_currentViewport->GetCommonViewport();
 
-                D3DCommonInterface* commonD3DIntf = m_commonD3DDevice->GetCommonD3DInterface();
-                D3DCommonViewport* m_commonViewport = m_currentViewport->GetCommonViewport();
-                const D3DMATRIX* correction = m_commonViewport->GetLegacyProjectionMatrix(0);
-                D3DCLIPSTATUS* clipStatus = nullptr;
-
+                ProcessVerticesData pvData;
+                pvData.inData = buf + data.dwVertexOffset + pv.wStart * sizeof(D3DVERTEX);
+                pvData.inFVF = doLighting ? D3DFVF_VERTEX : D3DFVF_LVERTEX;
+                pvData.inStride = sizeof(D3DVERTEX);
+                pvData.outData = buf + data.dwHVertexOffset + pv.wDest * sizeof(D3DTLVERTEX);
+                pvData.outFVF = D3DFVF_TLVERTEX;
+                pvData.outStride = sizeof(D3DTLVERTEX);
+                pvData.vertexCount = pv.dwCount;
+                pvData.correction = commonViewport->GetLegacyProjectionMatrix(0);
+                pvData.dsStatus = &data.dsStatus;
+                pvData.doLighting = doLighting;
+                pvData.doClipping = (flags & D3DEXECUTE_CLIPPED) && !(flags & D3DEXECUTE_UNCLIPPED);
+                pvData.doNotCopyData = pv.dwFlags & D3DPROCESSVERTICES_NOCOLOR;
+                pvData.doExtents = pv.dwFlags & D3DPROCESSVERTICES_UPDATEEXTENTS;
+                pvData.isLegacy = true;
                 D3D5Device* device5 = m_commonD3DDevice->GetD3D5Device();
-                if (device5 != nullptr) {
-                  clipStatus = device5->GetClipStatusInternal();
-                }
+                pvData.clipStatus = device5 != nullptr ? device5->GetClipStatusInternal() : nullptr;
 
-                std::vector<Com<D3DLight>> lights = m_commonViewport->GetLights();
+                std::vector<Com<D3DLight>> lights = commonViewport->GetLights();
                 std::vector<d3d9::D3DLIGHT9> lights9;
 
                 for (auto light: lights) {
@@ -682,10 +686,9 @@ namespace dxvk {
                     lights9.push_back(*light9);
                 }
 
-                ProcessVerticesSW(m_d3d9.ptr(), commonD3DIntf, correction, &lights9,
-                    doLighting ? D3DFVF_VERTEX : D3DFVF_LVERTEX, D3DFVF_TLVERTEX,
-                    sizeof(D3DVERTEX), sizeof(D3DTLVERTEX), in, out, pv.dwCount, &data.dsStatus,
-                    clipStatus, doLighting, doClipping, doExtents, doNotCopyData);
+                pvData.lights = &lights9;
+
+                ProcessVerticesSW(m_d3d9.ptr(), m_commonIntf->GetOptions(), &pvData);
 
                 break;
               }

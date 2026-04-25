@@ -144,7 +144,9 @@ namespace dxvk {
         }
       }
 
-      out.rhw = (h.w != 0.0f) ? (1.0f / h.w) : 0.0f;
+      // Hidden & Dangerous (D3D6) relies on NAN/INF output
+      // in ProcessVertices, so do the same here just in case
+      out.rhw = 1.0f / h.w;
       out.sx = m_viewport9.X + static_cast<float>(m_viewport9.Width) * 0.5 * (h.x * out.rhw + 1.0f);
       out.sy = m_viewport9.Y + static_cast<float>(m_viewport9.Height) * 0.5 * (1.0f - h.y * out.rhw);
       out.sz = m_viewport9.MinZ + h.z * out.rhw * (m_viewport9.MaxZ - m_viewport9.MinZ);

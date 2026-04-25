@@ -137,33 +137,42 @@ namespace dxvk {
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     if (likely(d3dOptions->cpuProcessVertices)) {
-      uint8_t *bufIn = nullptr;
-      uint8_t *bufOut = nullptr;
+      uint8_t *inData = nullptr;
+      uint8_t *outData = nullptr;
 
-      HRESULT hr = vb->GetD3D9()->Lock(dwSrcIndex * vb->GetStride(), dwCount * vb->GetStride(), reinterpret_cast<void**>(&bufIn), D3DLOCK_READONLY|D3DLOCK_NOSYSLOCK);
-      if (FAILED(hr)) {
+      HRESULT hr = vb->GetD3D9()->Lock(dwSrcIndex * vb->GetStride(), dwCount * vb->GetStride(), reinterpret_cast<void**>(&inData), D3DLOCK_READONLY|D3DLOCK_NOSYSLOCK);
+      if (unlikely(FAILED(hr))) {
         Logger::err("D3D6VertexBuffer::ProcessVertices: Failed to lock source buffer");
         return D3DERR_VERTEXBUFFERLOCKED;
       }
 
-      hr = m_d3d9->Lock(dwDestIndex * m_stride, dwCount * m_stride, reinterpret_cast<void**>(&bufOut), D3DLOCK_NOSYSLOCK);
-      if (FAILED(hr)) {
+      hr = m_d3d9->Lock(dwDestIndex * m_stride, dwCount * m_stride, reinterpret_cast<void**>(&outData), D3DLOCK_NOSYSLOCK);
+      if (unlikely(FAILED(hr))) {
         Logger::err("D3D6VertexBuffer::ProcessVertices: Failed to lock destination buffer");
         vb->Unlock();
         return D3DERR_VERTEXBUFFERLOCKED;
       }
 
-      bool doLighting = dwVertexOp & D3DVOP_LIGHT;
-      bool doClipping = dwVertexOp & D3DVOP_CLIP;
-      bool doNotCopyData = dwFlags & D3DPV_DONOTCOPYDATA;
-      bool doExtents = true;
+      D3DCommonViewport* commonViewport = device->GetCurrentViewportInternal()->GetCommonViewport();
 
-      D3DCommonInterface* commonD3DIntf = m_commonIntf->GetCommonD3DDevice()->GetCommonD3DInterface();
-      d3d9::IDirect3DDevice9* d3d9Device = device->GetD3D9();
-      D3DCommonViewport* m_commonViewport = device->GetCurrentViewportInternal()->GetCommonViewport();
-      const D3DMATRIX* correction = m_commonViewport->GetLegacyProjectionMatrix(0);
-      D3DCLIPSTATUS* clipStatus = device->GetClipStatusInternal();
-      std::vector<Com<D3DLight>> lights = m_commonViewport->GetLights();
+      ProcessVerticesData pvData;
+      pvData.inData = inData;
+      pvData.inFVF = vb->GetFVF();
+      pvData.inStride = vb->GetStride();
+      pvData.outData = outData;
+      pvData.outFVF = m_desc.dwFVF;
+      pvData.outStride = m_stride;
+      pvData.vertexCount = dwCount;
+      pvData.correction = commonViewport->GetLegacyProjectionMatrix(0);
+      pvData.dsStatus = nullptr;
+      pvData.clipStatus = device->GetClipStatusInternal();
+      pvData.doLighting = dwVertexOp & D3DVOP_LIGHT;
+      pvData.doClipping = dwVertexOp & D3DVOP_CLIP;
+      pvData.doNotCopyData = dwFlags & D3DPV_DONOTCOPYDATA;
+      pvData.doExtents = true;
+      pvData.isLegacy = true;
+
+      std::vector<Com<D3DLight>> lights = commonViewport->GetLights();
       std::vector<d3d9::D3DLIGHT9> lights9;
 
       for (auto light: lights) {
@@ -175,10 +184,9 @@ namespace dxvk {
           lights9.push_back(*light9);
       }
 
-      ProcessVerticesSW(d3d9Device, commonD3DIntf, correction, &lights9,
-          vb->GetFVF(), m_desc.dwFVF, vb->GetStride(), m_stride,
-          bufIn, bufOut, dwCount, nullptr, clipStatus, doLighting,
-          doClipping, doExtents, doNotCopyData);
+      pvData.lights = &lights9;
+
+      ProcessVerticesSW(device->GetD3D9(), m_commonIntf->GetOptions(), &pvData);
 
       m_d3d9->Unlock();
       vb->Unlock();
