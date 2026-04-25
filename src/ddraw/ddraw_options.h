@@ -53,6 +53,9 @@ namespace dxvk {
     /// Process vertices on the CPU, instead of relaying to D3D9
     bool cpuProcessVertices;
 
+    /// Correction offset for X/Y vertex position
+    float vertexOffset;
+
     /// Circumvents the texelFetch color key shader path
     bool colorKeyCompatibility;
 
@@ -111,6 +114,7 @@ namespace dxvk {
       this->forcePOW2Textures     = config.getOption<bool>   ("ddraw.forcePOW2Textures",     false);
       this->forceLegacyDiscard    = config.getOption<bool>   ("ddraw.forceLegacyDiscard",    false);
       this->cpuProcessVertices    = config.getOption<bool>   ("ddraw.cpuProcessVertices",     true);
+      this->vertexOffset          = config.getOption<float>  ("ddraw.vertexOffset",           0.0f);
       this->colorKeyCompatibility = config.getOption<bool>   ("ddraw.colorKeyCompatibility", false);
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);
@@ -123,6 +127,9 @@ namespace dxvk {
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
       this->autoGenMipMaps        = config.getOption<bool>   ("ddraw.autoGenMipMaps",        false);
       this->apitraceMode          = config.getOption<bool>   ("ddraw.apitraceMode",          false);
+
+      // Clamp the vertex offset in the (sensible) -1.0f/1.0f range
+      this->vertexOffset = dxvk::fclamp(this->vertexOffset, -1.0f, 1.0f);
 
       std::string legacyPresentGuardStr = Config::toLower(config.getOption<std::string>("ddraw.legacyPresentGuard", "auto"));
       if (legacyPresentGuardStr == "strict") {
