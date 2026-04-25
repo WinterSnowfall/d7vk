@@ -576,6 +576,19 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       Logger::debug("D3D6Device::SetRenderTarget: Set a new D3D9 RT");
 
+      // Some games, like Age of Wonders II/Shadow Magic, use off-screen surfaces
+      // as temporary RTs to draw onto (e.g. for terrain rendering), so we need to make
+      // sure we blit their content back to the DDraw surface if the RT is changed inside
+      // of a scene, otherwise the D3D9 surface content will never be visible to DDraw.
+      if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
+        DDraw4Surface* shadowSurf = m_rt->GetShadowSurface();
+
+        if (m_rt->IsInitialized() && m_commonIntf->HasDrawn()) {
+          IDirectDrawSurface4* targetSurf = shadowSurf != nullptr ? shadowSurf->GetProxied() : m_rt->GetProxied();
+          BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(targetSurf, m_rt->GetD3D9());
+        }
+      }
+
       m_rt = rt6;
       m_ds = m_rt->GetAttachedDepthStencil();
 
