@@ -191,6 +191,8 @@ namespace dxvk {
 
     inline void RefreshD3D9Device();
 
+    inline DWORD DetermineBackBufferCount(IDirectDrawSurface* renderTarget);
+
     bool             m_isChildObject   = true;
 
     static uint32_t  s_surfCount;

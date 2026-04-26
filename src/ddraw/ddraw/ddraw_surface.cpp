@@ -322,8 +322,10 @@ namespace dxvk {
           if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !sourceSurface->IsInitialized()))
             sourceSurface->InitializeOrUploadD3D9();
 
-          if (likely(sourceSurface->IsInitialized()))
+          if (sourceSurface->IsInitialized() && sourceSurface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
             BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(sourceSurface->GetShadowOrProxied(), sourceSurface->GetD3D9());
+            sourceSurface->GetCommonSurface()->UnDirtyD3D9Surface();
+          }
         } else {
           static bool s_swapchainWarningShown;
 
@@ -334,8 +336,10 @@ namespace dxvk {
         if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
           Logger::debug("DDrawSurface::Blt: Source surface is a depth stencil");
 
-          if (likely(sourceSurface->IsInitialized()))
+          if (sourceSurface->IsInitialized() && sourceSurface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
             BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(sourceSurface->GetProxied(), sourceSurface->GetD3D9());
+            sourceSurface->GetCommonSurface()->UnDirtyD3D9Surface();
+          }
         } else {
           static bool s_depthStencilWarningShown;
 
@@ -455,8 +459,10 @@ namespace dxvk {
           if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !sourceSurface->IsInitialized()))
             sourceSurface->InitializeOrUploadD3D9();
 
-          if (likely(sourceSurface->IsInitialized()))
+          if (sourceSurface->IsInitialized() && sourceSurface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
             BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(sourceSurface->GetShadowOrProxied(), sourceSurface->GetD3D9());
+            sourceSurface->GetCommonSurface()->UnDirtyD3D9Surface();
+          }
         } else {
           static bool s_swapchainWarningShown;
 
@@ -467,8 +473,10 @@ namespace dxvk {
         if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
           Logger::debug("DDrawSurface::BltFast: Source surface is a depth stencil");
 
-          if (likely(sourceSurface->IsInitialized()))
+          if (sourceSurface->IsInitialized() && sourceSurface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
             BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(sourceSurface->GetProxied(), sourceSurface->GetD3D9());
+            sourceSurface->GetCommonSurface()->UnDirtyD3D9Surface();
+          }
         } else {
           static bool s_depthStencilWarningShown;
 
@@ -828,8 +836,10 @@ namespace dxvk {
         if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !IsInitialized()))
           InitializeOrUploadD3D9();
 
-        if (likely(IsInitialized()))
+        if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
           BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(GetShadowOrProxied(), m_d3d9.ptr());
+          m_commonSurf->UnDirtyD3D9Surface();
+        }
       } else {
         static bool s_swapchainWarningShown;
 
@@ -840,8 +850,10 @@ namespace dxvk {
       if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
         Logger::debug("DDrawSurface::GetDC: Surface is a depth stencil");
 
-        if (likely(IsInitialized()))
+        if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
           BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_proxy.ptr(), m_d3d9.ptr());
+          m_commonSurf->UnDirtyD3D9Surface();
+        }
       } else {
         static bool s_depthStencilWarningShown;
 
@@ -936,8 +948,10 @@ namespace dxvk {
         if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !IsInitialized()))
           InitializeOrUploadD3D9();
 
-        if (likely(IsInitialized()))
+        if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
           BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(GetShadowOrProxied(), m_d3d9.ptr());
+          m_commonSurf->UnDirtyD3D9Surface();
+        }
       } else {
         static bool s_swapchainWarningShown;
 
@@ -948,8 +962,10 @@ namespace dxvk {
       if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
         Logger::debug("DDrawSurface::Lock: Surface is a depth stencil");
 
-        if (likely(IsInitialized()))
+        if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
           BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_proxy.ptr(), m_d3d9.ptr());
+          m_commonSurf->UnDirtyD3D9Surface();
+        }
       } else {
         static bool s_depthStencilWarningShown;
 
@@ -1649,19 +1665,7 @@ namespace dxvk {
 
     Logger::info(str::format("DDrawSurface::CreateDeviceInternal: Back buffer size: ", backBufferWidth, "x", BackBufferHeight));
 
-    DWORD backBufferCount = 0;
-    if (likely(!d3dOptions->forceSingleBackBuffer && !d3dOptions->forceLegacyPresent)) {
-      IDirectDrawSurface* backBuffer = m_proxy.ptr();
-      while (backBuffer != nullptr) {
-        IDirectDrawSurface* parentSurface = backBuffer;
-        backBuffer = nullptr;
-        parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfacesCallback);
-        backBufferCount++;
-        // the swapchain will eventually return to its origin
-        if (backBuffer == m_proxy.ptr())
-          break;
-      }
-    }
+    const DWORD backBufferCount = DetermineBackBufferCount(m_proxy.ptr());
     // Consider the front buffer as well when reporting the overall count
     Logger::info(str::format("DDrawSurface::CreateDeviceInternal: Back buffer count: ", backBufferCount + 1));
 
@@ -1723,6 +1727,36 @@ namespace dxvk {
 
       m_d3d9Device = d3d9Device;
     }
+  }
+
+  inline DWORD DDrawSurface::DetermineBackBufferCount(IDirectDrawSurface* renderTarget) {
+    DWORD backBufferCount = 0;
+
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+    if (likely(!d3dOptions->forceSingleBackBuffer && !d3dOptions->forceLegacyPresent)) {
+      IDirectDrawSurface* backBuffer = renderTarget;
+      HRESULT hr;
+
+      while (backBuffer != nullptr) {
+        IDirectDrawSurface* parentSurface = backBuffer;
+        backBuffer = nullptr;
+
+        hr = parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfacesCallback);
+        if (unlikely(FAILED(hr))) {
+          Logger::warn("DDrawSurface::DetermineBackBufferCount: Unable to enumerate attached surfaces");
+          break;
+        }
+
+        backBufferCount++;
+
+        // the swapchain will eventually return to its origin
+        if (backBuffer == renderTarget)
+          break;
+      }
+    }
+
+    return backBufferCount;
   }
 
 }

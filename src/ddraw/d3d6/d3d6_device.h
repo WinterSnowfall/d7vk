@@ -133,6 +133,8 @@ namespace dxvk {
 
     void InitializeDS();
 
+    void UpdateSurfaceDirtyTracking();
+
     HRESULT ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params);
 
     D3DCommonDevice* GetCommonD3DDevice() {

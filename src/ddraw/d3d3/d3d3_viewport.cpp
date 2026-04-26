@@ -358,12 +358,16 @@ namespace dxvk {
     D3DCOLOR clearColor = commonMaterial != nullptr ? commonMaterial->GetMaterialColor() : defaultColor;
 
     HRESULT hr9 = d3d9Device->Clear(count, rects, flags, clearColor, 1.0f, 0u);
-    if (unlikely(FAILED(hr9)))
-      Logger::err("D3D3Viewport::Clear: Failed D3D9 Clear call");
 
     // Restore the previously active viewport
     if (!m_commonViewport->IsCurrentViewport()) {
       d3d9Device->SetViewport(&currentViewport9);
+    }
+
+    if (unlikely(FAILED(hr9))) {
+      Logger::warn("D3D3Viewport::Clear: Failed D3D9 Clear call");
+    } else {
+      m_commonViewport->UpdateSurfaceDirtyTracking();
     }
 
     return D3D_OK;

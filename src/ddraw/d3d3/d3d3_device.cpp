@@ -426,9 +426,10 @@ namespace dxvk {
       if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
         DDrawSurface* shadowSurf = m_rt->GetShadowSurface();
 
-        if (likely(m_rt->IsInitialized() && m_commonIntf->HasDrawn())) {
+        if (likely(m_rt->IsInitialized() && m_rt->GetCommonSurface()->IsD3D9SurfaceDirty())) {
           IDirectDrawSurface* targetSurf = shadowSurf != nullptr ? shadowSurf->GetProxied() : m_rt->GetProxied();
           BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(targetSurf, m_rt->GetD3D9());
+          m_rt->GetCommonSurface()->UnDirtyD3D9Surface();
         }
 
         // Allow uploads to the D3D9 back buffer once a scene completes,
@@ -795,8 +796,6 @@ namespace dxvk {
 
     d3d3ExecuteBuffer->SetExecuteData(data);
 
-    m_commonIntf->UpdateDrawTracking();
-
     return D3D_OK;
   }
 
@@ -962,6 +961,19 @@ namespace dxvk {
       // Should be superfluous, but play it safe
       m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_FALSE);
     }
+  }
+
+  void D3D3Device::UpdateSurfaceDirtyTracking() {
+    m_rt->GetCommonSurface()->DirtyD3D9Surface();
+
+    DDrawCommonSurface* primarySurface = m_commonIntf->GetPrimarySurface();
+    // The primary surface can be bound as RT, in which case it will
+    // get dirtied twice, but we have no guarantees that will happen
+    if (likely(primarySurface != nullptr))
+      primarySurface->DirtyD3D9Surface();
+
+    if (likely(m_ds != nullptr))
+      m_ds->GetCommonSurface()->DirtyD3D9Surface();
   }
 
   inline void D3D3Device::AddViewportInternal(IDirect3DViewport* viewport) {
@@ -1394,6 +1406,9 @@ namespace dxvk {
            GetFVFSize(D3DFVF_TLVERTEX));
 
       if (SUCCEEDED(hr)) {
+        UpdateSurfaceDirtyTracking();
+        m_commonIntf->UpdateDrawTracking();
+
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_TRIANGLE drawn vertices: ", vertices.size()));
         m_stats.dwTrianglesDrawn += std::max<DWORD>(vertices.size() / 3, 0u);
       } else {
@@ -1426,6 +1441,9 @@ namespace dxvk {
            GetFVFSize(D3DFVF_TLVERTEX));
 
       if (SUCCEEDED(hr)) {
+        UpdateSurfaceDirtyTracking();
+        m_commonIntf->UpdateDrawTracking();
+
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_LINE drawn vertices: ", vertices.size()));
         m_stats.dwLinesDrawn += std::max<DWORD>(vertices.size() / 2, 0u);
       } else {
@@ -1459,6 +1477,9 @@ namespace dxvk {
            GetFVFSize(D3DFVF_TLVERTEX));
 
       if (SUCCEEDED(hr)) {
+        UpdateSurfaceDirtyTracking();
+        m_commonIntf->UpdateDrawTracking();
+
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_POINT drawn vertices: ", vertices.size()));
         m_stats.dwPointsDrawn += static_cast<DWORD>(vertices.size());
       } else {
@@ -1491,6 +1512,9 @@ namespace dxvk {
            GetFVFSize(D3DFVF_TLVERTEX));
 
       if (SUCCEEDED(hr)) {
+        UpdateSurfaceDirtyTracking();
+        m_commonIntf->UpdateDrawTracking();
+
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_SPAN drawn vertices: ", vertices.size()));
         m_stats.dwSpansDrawn += std::max<DWORD>(vertices.size() - 1, 0u);
       } else {

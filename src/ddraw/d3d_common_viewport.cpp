@@ -48,6 +48,16 @@ namespace dxvk {
     return nullptr;
   }
 
+  void D3DCommonViewport::UpdateSurfaceDirtyTracking() {
+    if (m_device6 != nullptr) {
+      m_device6->UpdateSurfaceDirtyTracking();
+    } else if (m_device5 != nullptr) {
+      m_device5->UpdateSurfaceDirtyTracking();
+    } else if (m_device3 != nullptr) {
+      m_device3->UpdateSurfaceDirtyTracking();
+    }
+  }
+
   HRESULT D3DCommonViewport::TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen) {
     if (data == nullptr || data->dwSize != sizeof(D3DTRANSFORMDATA) || offscreen == nullptr)
       return DDERR_INVALIDPARAMS;

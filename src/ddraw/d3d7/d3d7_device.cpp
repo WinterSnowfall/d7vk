@@ -237,9 +237,10 @@ namespace dxvk {
       if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
         DDraw7Surface* shadowSurf = m_rt->GetShadowSurface();
 
-        if (likely(m_rt->IsInitialized() && m_commonIntf->HasDrawn())) {
+        if (likely(m_rt->IsInitialized() && m_rt->GetCommonSurface()->IsD3D9SurfaceDirty())) {
           IDirectDrawSurface7* targetSurf = shadowSurf != nullptr ? shadowSurf->GetProxied() : m_rt->GetProxied();
           BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(targetSurf, m_rt->GetD3D9());
+          m_rt->GetCommonSurface()->UnDirtyD3D9Surface();
         }
 
         // Allow uploads to the D3D9 back buffer once a scene completes,
@@ -313,9 +314,10 @@ namespace dxvk {
       if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
         DDraw7Surface* shadowSurf = m_rt->GetShadowSurface();
 
-        if (m_rt->IsInitialized() && m_commonIntf->HasDrawn()) {
+        if (m_rt->IsInitialized() && m_rt->GetCommonSurface()->IsD3D9SurfaceDirty()) {
           IDirectDrawSurface7* targetSurf = shadowSurf != nullptr ? shadowSurf->GetProxied() : m_rt->GetProxied();
           BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(targetSurf, m_rt->GetD3D9());
+          m_rt->GetCommonSurface()->UnDirtyD3D9Surface();
         }
       }
 
@@ -387,7 +389,13 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       Logger::debug("D3D7Device::Clear: Failed proxied call");
 
-    return m_d3d9->Clear(count, rects, flags, color, static_cast<float>(z), stencil);
+    hr = m_d3d9->Clear(count, rects, flags, color, static_cast<float>(z), stencil);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    UpdateSurfaceDirtyTracking();
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetTransform(D3DTRANSFORMSTATETYPE state, D3DMATRIX *matrix) {
@@ -907,6 +915,7 @@ namespace dxvk {
       return hr;
     }
 
+    UpdateSurfaceDirtyTracking();
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -941,6 +950,7 @@ namespace dxvk {
       return hr;
     }
 
+    UpdateSurfaceDirtyTracking();
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -1000,6 +1010,7 @@ namespace dxvk {
       return hr;
     }
 
+    UpdateSurfaceDirtyTracking();
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -1037,6 +1048,7 @@ namespace dxvk {
       return hr;
     }
 
+    UpdateSurfaceDirtyTracking();
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -1074,6 +1086,7 @@ namespace dxvk {
       return hr;
     }
 
+    UpdateSurfaceDirtyTracking();
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -1129,6 +1142,7 @@ namespace dxvk {
       return hr;
     }
 
+    UpdateSurfaceDirtyTracking();
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -1470,6 +1484,19 @@ namespace dxvk {
       // Should be superfluous, but play it safe
       m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_FALSE);
     }
+  }
+
+  void D3D7Device::UpdateSurfaceDirtyTracking() {
+    m_rt->GetCommonSurface()->DirtyD3D9Surface();
+
+    DDrawCommonSurface* primarySurface = m_commonIntf->GetPrimarySurface();
+    // The primary surface can be bound as RT, in which case it will
+    // get dirtied twice, but we have no guarantees that will happen
+    if (likely(primarySurface != nullptr))
+      primarySurface->DirtyD3D9Surface();
+
+    if (likely(m_ds != nullptr))
+      m_ds->GetCommonSurface()->DirtyD3D9Surface();
   }
 
   HRESULT D3D7Device::ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params) {

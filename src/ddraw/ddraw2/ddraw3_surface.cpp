@@ -315,8 +315,10 @@ namespace dxvk {
           if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !sourceSurface->IsInitialized()))
             sourceSurface->InitializeOrUploadD3D9();
 
-          if (likely(sourceSurface->IsInitialized()))
+          if (sourceSurface->IsInitialized() && sourceSurface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
             BlitToDDrawSurface<IDirectDrawSurface3, DDSURFACEDESC>(sourceSurface->GetShadowOrProxied(), sourceSurface->GetD3D9());
+            sourceSurface->GetCommonSurface()->UnDirtyD3D9Surface();
+          }
         } else {
           static bool s_swapchainWarningShown;
 
@@ -327,8 +329,10 @@ namespace dxvk {
         if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
           Logger::debug("DDraw3Surface::Blt: Source surface is a depth stencil");
 
-          if (likely(sourceSurface->IsInitialized()))
+          if (sourceSurface->IsInitialized() && sourceSurface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
             BlitToDDrawSurface<IDirectDrawSurface3, DDSURFACEDESC>(sourceSurface->GetProxied(), sourceSurface->GetD3D9());
+            sourceSurface->GetCommonSurface()->UnDirtyD3D9Surface();
+          }
         } else {
           static bool s_depthStencilWarningShown;
 
@@ -455,8 +459,10 @@ namespace dxvk {
           if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !sourceSurface->IsInitialized()))
             sourceSurface->InitializeOrUploadD3D9();
 
-          if (likely(sourceSurface->IsInitialized()))
+          if (sourceSurface->IsInitialized() && sourceSurface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
             BlitToDDrawSurface<IDirectDrawSurface3, DDSURFACEDESC>(sourceSurface->GetShadowOrProxied(), sourceSurface->GetD3D9());
+            sourceSurface->GetCommonSurface()->UnDirtyD3D9Surface();
+          }
         } else {
           static bool s_swapchainWarningShown;
 
@@ -467,8 +473,10 @@ namespace dxvk {
         if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
           Logger::debug("DDraw3Surface::BltFast: Source surface is a depth stencil");
 
-          if (likely(sourceSurface->IsInitialized()))
+          if (sourceSurface->IsInitialized() && sourceSurface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
             BlitToDDrawSurface<IDirectDrawSurface3, DDSURFACEDESC>(sourceSurface->GetProxied(), sourceSurface->GetD3D9());
+            sourceSurface->GetCommonSurface()->UnDirtyD3D9Surface();
+          }
         } else {
           static bool s_depthStencilWarningShown;
 
@@ -792,8 +800,10 @@ namespace dxvk {
         if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !IsInitialized()))
           InitializeOrUploadD3D9();
 
-        if (likely(IsInitialized()))
+        if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
           BlitToDDrawSurface<IDirectDrawSurface3, DDSURFACEDESC>(GetShadowOrProxied(), m_d3d9.ptr());
+          m_commonSurf->UnDirtyD3D9Surface();
+        }
       } else {
         static bool s_swapchainWarningShown;
 
@@ -804,8 +814,10 @@ namespace dxvk {
       if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
         Logger::debug("DDraw3Surface::GetDC: Surface is a depth stencil");
 
-        if (likely(IsInitialized()))
+        if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
           BlitToDDrawSurface<IDirectDrawSurface3, DDSURFACEDESC>(m_proxy.ptr(), m_d3d9.ptr());
+          m_commonSurf->UnDirtyD3D9Surface();
+        }
       } else {
         static bool s_depthStencilWarningShown;
 
@@ -900,8 +912,10 @@ namespace dxvk {
         if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !IsInitialized()))
           InitializeOrUploadD3D9();
 
-        if (likely(IsInitialized()))
-            BlitToDDrawSurface<IDirectDrawSurface3, DDSURFACEDESC>(GetShadowOrProxied(), m_d3d9.ptr());
+        if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
+          BlitToDDrawSurface<IDirectDrawSurface3, DDSURFACEDESC>(GetShadowOrProxied(), m_d3d9.ptr());
+          m_commonSurf->UnDirtyD3D9Surface();
+        }
       } else {
         static bool s_swapchainWarningShown;
 
@@ -912,8 +926,10 @@ namespace dxvk {
       if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
         Logger::debug("DDraw3Surface::Lock: Surface is a depth stencil");
 
-        if (likely(IsInitialized()))
-          BlitToDDrawSurface<IDirectDrawSurface3, DDSURFACEDESC>(GetShadowOrProxied(), m_d3d9.ptr());
+        if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
+          BlitToDDrawSurface<IDirectDrawSurface3, DDSURFACEDESC>(m_proxy.ptr(), m_d3d9.ptr());
+          m_commonSurf->UnDirtyD3D9Surface();
+        }
       } else {
         static bool s_depthStencilWarningShown;
 

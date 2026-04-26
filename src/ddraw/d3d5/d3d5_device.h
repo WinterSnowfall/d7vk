@@ -111,6 +111,8 @@ namespace dxvk {
 
     void InitializeDS();
 
+    void UpdateSurfaceDirtyTracking();
+
     D3DCommonDevice* GetCommonD3DDevice() {
       return m_commonD3DDevice.ptr();
     }

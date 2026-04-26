@@ -134,6 +134,30 @@ namespace dxvk {
       m_dirtyMipMaps = false;
     }
 
+    bool IsDDrawSurfaceDirty() const {
+      return m_dirtyDDraw;
+    }
+
+    void DirtyDDrawSurface() {
+      m_dirtyDDraw = true;
+    }
+
+    void UnDirtyDDrawSurface() {
+      m_dirtyDDraw = false;
+    }
+
+    bool IsD3D9SurfaceDirty() const {
+      return m_dirtyD3D9;
+    }
+
+    void DirtyD3D9Surface() {
+      m_dirtyD3D9 = true;
+    }
+
+    void UnDirtyD3D9Surface() {
+      m_dirtyD3D9 = false;
+    }
+
     bool IsAttached() const {
       return m_isAttached;
     }
@@ -352,14 +376,19 @@ namespace dxvk {
       else if (IsPrimarySurface())        type = "primary surface";
       else if (IsNotKnown())              type = "unknown";
 
+      const DWORD width           = IsDesc2Set() ? m_desc2.dwWidth  : m_desc.dwWidth;
+      const DWORD height          = IsDesc2Set() ? m_desc2.dwHeight : m_desc.dwHeight;
+      const DWORD mipMapCount     = IsDesc2Set() ? m_desc2.dwMipMapCount : m_desc.dwMipMapCount;
+      const DWORD backBuferCount  = IsDesc2Set() ? m_desc2.dwBackBufferCount : m_desc.dwBackBufferCount;
+
       Logger::debug(str::format("   Type:        ", type));
-      Logger::debug(str::format("   Dimensions:  ", m_desc.dwWidth, "x", m_desc.dwHeight));
+      Logger::debug(str::format("   Dimensions:  ", width, "x", height));
       Logger::debug(str::format("   Format:      ", GetD3D9Format()));
       Logger::debug(str::format("   IsComplex:   ", IsComplex() ? "yes" : "no"));
-      Logger::debug(str::format("   HasMipMaps:  ", m_desc.dwMipMapCount ? "yes" : "no"));
+      Logger::debug(str::format("   HasMipMaps:  ", mipMapCount ? "yes" : "no"));
       Logger::debug(str::format("   IsAttached:  ", IsAttached() ? "yes" : "no"));
       if (IsFrontBuffer())
-        Logger::debug(str::format("   BackBuffers: ", m_desc.dwBackBufferCount));
+        Logger::debug(str::format("   BackBuffers: ", backBuferCount));
       if (HasColorKey())
         Logger::debug(str::format("   ColorKey:    ", GetColorKey()->dwColorSpaceLowValue));
     }
@@ -367,6 +396,9 @@ namespace dxvk {
   private:
 
     bool                      m_dirtyMipMaps = false;
+    bool                      m_dirtyDDraw   = false;
+    bool                      m_dirtyD3D9    = false;
+
     bool                      m_isAttached   = false;
     bool                      m_isDesc2Set   = false;
     bool                      m_isDescSet    = false;

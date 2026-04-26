@@ -433,9 +433,10 @@ namespace dxvk {
       if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
         DDrawSurface* shadowSurf = m_rt->GetShadowSurface();
 
-        if (likely(m_rt->IsInitialized() && m_commonIntf->HasDrawn())) {
+        if (likely(m_rt->IsInitialized() && m_rt->GetCommonSurface()->IsD3D9SurfaceDirty())) {
           IDirectDrawSurface* targetSurf = shadowSurf != nullptr ? shadowSurf->GetProxied() : m_rt->GetProxied();
           BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(targetSurf, m_rt->GetD3D9());
+          m_rt->GetCommonSurface()->UnDirtyD3D9Surface();
         }
 
         // Allow uploads to the D3D9 back buffer once a scene completes,
@@ -557,9 +558,10 @@ namespace dxvk {
       if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
         DDrawSurface* shadowSurf = m_rt->GetShadowSurface();
 
-        if (m_rt->IsInitialized() && m_commonIntf->HasDrawn()) {
+        if (m_rt->IsInitialized() && m_rt->GetCommonSurface()->IsD3D9SurfaceDirty()) {
           IDirectDrawSurface* targetSurf = shadowSurf != nullptr ? shadowSurf->GetProxied() : m_rt->GetProxied();
           BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(targetSurf, m_rt->GetD3D9());
+          m_rt->GetCommonSurface()->UnDirtyD3D9Surface();
         }
       }
 
@@ -1393,6 +1395,7 @@ namespace dxvk {
       return hr;
     }
 
+    UpdateSurfaceDirtyTracking();
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -1435,6 +1438,7 @@ namespace dxvk {
       return hr;
     }
 
+    UpdateSurfaceDirtyTracking();
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -1499,6 +1503,19 @@ namespace dxvk {
       // Should be superfluous, but play it safe
       m_d3d9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_FALSE);
     }
+  }
+
+  void D3D5Device::UpdateSurfaceDirtyTracking() {
+    m_rt->GetCommonSurface()->DirtyD3D9Surface();
+
+    DDrawCommonSurface* primarySurface = m_commonIntf->GetPrimarySurface();
+    // The primary surface can be bound as RT, in which case it will
+    // get dirtied twice, but we have no guarantees that will happen
+    if (likely(primarySurface != nullptr))
+      primarySurface->DirtyD3D9Surface();
+
+    if (likely(m_ds != nullptr))
+      m_ds->GetCommonSurface()->DirtyD3D9Surface();
   }
 
   inline void D3D5Device::AddViewportInternal(IDirect3DViewport2* viewport) {

@@ -55,6 +55,8 @@ namespace dxvk {
 
   private:
 
+    inline DWORD DetermineBackBufferCount(IDirectDrawSurface* renderTarget);
+
     static uint32_t               s_intfCount;
     uint32_t                      m_intfCount  = 0;
 

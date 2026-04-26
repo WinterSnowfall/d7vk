@@ -40,6 +40,8 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* GetD3D9Device();
 
+    void UpdateSurfaceDirtyTracking();
+
     HRESULT TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen);
 
     D3DCommonInterface* GetCommonD3DInterface() const {
