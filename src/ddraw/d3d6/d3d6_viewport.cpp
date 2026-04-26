@@ -361,7 +361,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr9))) {
       Logger::warn("D3D6Viewport::Clear: Failed D3D9 Clear call");
     } else {
-      m_commonViewport->UpdateSurfaceDirtyTracking();
+      m_commonViewport->UpdateSurfaceDirtyTracking(true, false, false);
     }
 
     return D3D_OK;
@@ -586,7 +586,10 @@ namespace dxvk {
       return hr;
     }
 
-    m_commonViewport->UpdateSurfaceDirtyTracking();
+    const bool clearRenderTarget = flags & D3DCLEAR_TARGET;
+    const bool clearDepthStencil = (flags & D3DCLEAR_ZBUFFER) || (flags & D3DCLEAR_STENCIL);
+
+    m_commonViewport->UpdateSurfaceDirtyTracking(clearRenderTarget, clearDepthStencil, false);
 
     return D3D_OK;
   }

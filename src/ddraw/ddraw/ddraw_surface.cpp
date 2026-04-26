@@ -310,44 +310,13 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawSurface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
     Logger::debug("<<< DDrawSurface::Blt: Proxy");
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
-
-    // Write back any flippable surfaces or depth stencils from D3D9
+    // Write back any dirty surface data from bound D3D9 back buffers or
+    // depth stencils, for both the source surface and the current surface
     if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
-      DDrawSurface* sourceSurface = static_cast<DDrawSurface*>(lpDDSrcSurface);
-      if (unlikely(sourceSurface->GetCommonSurface()->IsGuardableSurface())) {
-        if (d3dOptions->backBufferWriteBack || d3dOptions->forceLegacyPresent || d3dOptions->apitraceMode) {
-          Logger::debug("DDrawSurface::Blt: Source surface is a swapchain surface");
-
-          if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !sourceSurface->IsInitialized()))
-            sourceSurface->InitializeOrUploadD3D9();
-
-          if (sourceSurface->IsInitialized() && sourceSurface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
-            BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(sourceSurface->GetShadowOrProxied(), sourceSurface->GetD3D9());
-            sourceSurface->GetCommonSurface()->UnDirtyD3D9Surface();
-          }
-        } else {
-          static bool s_swapchainWarningShown;
-
-          if (!std::exchange(s_swapchainWarningShown, true))
-            Logger::warn("DDrawSurface::Blt: Source surface is a swapchain surface");
-        }
-      } else if (unlikely(sourceSurface->GetCommonSurface()->IsDepthStencil())) {
-        if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
-          Logger::debug("DDrawSurface::Blt: Source surface is a depth stencil");
-
-          if (sourceSurface->IsInitialized() && sourceSurface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
-            BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(sourceSurface->GetProxied(), sourceSurface->GetD3D9());
-            sourceSurface->GetCommonSurface()->UnDirtyD3D9Surface();
-          }
-        } else {
-          static bool s_depthStencilWarningShown;
-
-          if (!std::exchange(s_depthStencilWarningShown, true))
-            Logger::warn("DDrawSurface::Blt: Source surface is a depth stencil");
-        }
-      }
+      DDrawSurface* surface = static_cast<DDrawSurface*>(lpDDSrcSurface);
+      DownloadSurfaceData(surface);
     }
+    DownloadSurfaceData(this);
 
     RefreshD3D9Device();
     if (likely(m_d3d9Device != nullptr)) {
@@ -387,12 +356,12 @@ namespace dxvk {
       }
 
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
-                              && !d3dOptions->ignoreExclusiveMode;
+                              && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
 
       // Eclusive mode back buffer guard
       if (exclusiveMode && m_commonIntf->HasDrawn() &&
-          m_commonSurf->IsGuardableSurface() &&
-          d3dOptions->backBufferGuard != D3DBackBufferGuard::Disabled) {
+          m_commonSurf->IsD3D9BackBuffer() &&
+          m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
         return DD_OK;
       // Windowed mode presentation path
       } else if (!exclusiveMode && m_commonIntf->HasDrawn() && m_commonSurf->IsPrimarySurface()) {
@@ -447,54 +416,23 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawSurface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDrawSurface::BltFast: Proxy");
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
-
-    // Write back any flippable surfaces or depth stencils from D3D9
+    // Write back any dirty surface data from bound D3D9 back buffers or
+    // depth stencils, for both the source surface and the current surface
     if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
-      DDrawSurface* sourceSurface = static_cast<DDrawSurface*>(lpDDSrcSurface);
-      if (unlikely(sourceSurface->GetCommonSurface()->IsGuardableSurface())) {
-        if (d3dOptions->backBufferWriteBack || d3dOptions->forceLegacyPresent || d3dOptions->apitraceMode) {
-          Logger::debug("DDrawSurface::BltFast: Source surface is a swapchain surface");
-
-          if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !sourceSurface->IsInitialized()))
-            sourceSurface->InitializeOrUploadD3D9();
-
-          if (sourceSurface->IsInitialized() && sourceSurface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
-            BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(sourceSurface->GetShadowOrProxied(), sourceSurface->GetD3D9());
-            sourceSurface->GetCommonSurface()->UnDirtyD3D9Surface();
-          }
-        } else {
-          static bool s_swapchainWarningShown;
-
-          if (!std::exchange(s_swapchainWarningShown, true))
-            Logger::warn("DDrawSurface::BltFast: Source surface is a swapchain surface");
-        }
-      } else if (unlikely(sourceSurface->GetCommonSurface()->IsDepthStencil())) {
-        if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
-          Logger::debug("DDrawSurface::BltFast: Source surface is a depth stencil");
-
-          if (sourceSurface->IsInitialized() && sourceSurface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
-            BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(sourceSurface->GetProxied(), sourceSurface->GetD3D9());
-            sourceSurface->GetCommonSurface()->UnDirtyD3D9Surface();
-          }
-        } else {
-          static bool s_depthStencilWarningShown;
-
-          if (!std::exchange(s_depthStencilWarningShown, true))
-            Logger::warn("DDrawSurface::BltFast: Source surface is a depth stencil");
-        }
-      }
+      DDrawSurface* surface = static_cast<DDrawSurface*>(lpDDSrcSurface);
+      DownloadSurfaceData(surface);
     }
+    DownloadSurfaceData(this);
 
     RefreshD3D9Device();
     if (likely(m_d3d9Device != nullptr)) {
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
-                              && !d3dOptions->ignoreExclusiveMode;
+                              && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
 
       // Eclusive mode back buffer guard
       if (exclusiveMode && m_commonIntf->HasDrawn() &&
-          m_commonSurf->IsGuardableSurface() &&
-          d3dOptions->backBufferGuard != D3DBackBufferGuard::Disabled) {
+          m_commonSurf->IsD3D9BackBuffer() &&
+          m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
         return DD_OK;
       // Windowed mode presentation path
       } else if (!exclusiveMode && m_commonIntf->HasDrawn() && m_commonSurf->IsPrimarySurface()) {
@@ -808,7 +746,7 @@ namespace dxvk {
       // Foward GetDC calls if we have drawn and the surface is flippable
       RefreshD3D9Device();
       if (m_d3d9Device != nullptr && (m_commonIntf->HasDrawn() &&
-                                      m_commonSurf->IsGuardableSurface())) {
+                                      m_commonSurf->IsD3D9BackBuffer())) {
         Logger::debug(">>> DDrawSurface::GetDC");
 
         if (unlikely(!IsInitialized())) {
@@ -826,41 +764,8 @@ namespace dxvk {
 
     Logger::debug("<<< DDrawSurface::GetDC: Proxy");
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
-
-    // Write back any flippable surfaces or depth stencils from D3D9
-    if (unlikely(m_commonSurf->IsGuardableSurface())) {
-      if (d3dOptions->backBufferWriteBack || d3dOptions->forceLegacyPresent || d3dOptions->apitraceMode) {
-        Logger::debug("DDrawSurface::GetDC: Surface is a swapchain surface");
-
-        if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !IsInitialized()))
-          InitializeOrUploadD3D9();
-
-        if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
-          BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(GetShadowOrProxied(), m_d3d9.ptr());
-          m_commonSurf->UnDirtyD3D9Surface();
-        }
-      } else {
-        static bool s_swapchainWarningShown;
-
-        if (!std::exchange(s_swapchainWarningShown, true))
-          Logger::warn("DDrawSurface::GetDC: Surface is a swapchain surface");
-      }
-    } else if (unlikely(m_commonSurf->IsDepthStencil())) {
-      if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
-        Logger::debug("DDrawSurface::GetDC: Surface is a depth stencil");
-
-        if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
-          BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_proxy.ptr(), m_d3d9.ptr());
-          m_commonSurf->UnDirtyD3D9Surface();
-        }
-      } else {
-        static bool s_depthStencilWarningShown;
-
-        if (!std::exchange(s_depthStencilWarningShown, true))
-          Logger::warn("DDrawSurface::GetDC: Surface is a depth stencil");
-      }
-    }
+    // Write back any dirty surface data from bound D3D9 back buffers or depth stencils
+    DownloadSurfaceData(this);
 
     return GetShadowOrProxied()->GetDC(lphDC);
   }
@@ -938,41 +843,8 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawSurface::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent) {
     Logger::debug("<<< DDrawSurface::Lock: Proxy");
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
-
-    // Write back any flippable surfaces or depth stencils from D3D9
-    if (unlikely(m_commonSurf->IsGuardableSurface())) {
-      if (d3dOptions->backBufferWriteBack || d3dOptions->forceLegacyPresent || d3dOptions->apitraceMode) {
-        Logger::debug("DDrawSurface::Lock: Surface is a swapchain surface");
-
-        if (unlikely(m_commonIntf->GetOptions()->apitraceMode && !IsInitialized()))
-          InitializeOrUploadD3D9();
-
-        if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
-          BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(GetShadowOrProxied(), m_d3d9.ptr());
-          m_commonSurf->UnDirtyD3D9Surface();
-        }
-      } else {
-        static bool s_swapchainWarningShown;
-
-        if (!std::exchange(s_swapchainWarningShown, true))
-          Logger::warn("DDrawSurface::Lock: Surface is a swapchain surface");
-      }
-    } else if (unlikely(m_commonSurf->IsDepthStencil())) {
-      if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
-        Logger::debug("DDrawSurface::Lock: Surface is a depth stencil");
-
-        if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
-          BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_proxy.ptr(), m_d3d9.ptr());
-          m_commonSurf->UnDirtyD3D9Surface();
-        }
-      } else {
-        static bool s_depthStencilWarningShown;
-
-        if (!std::exchange(s_depthStencilWarningShown, true))
-          Logger::warn("DDrawSurface::Lock: Surface is a depth stencil");
-      }
-    }
+    // Write back any dirty surface data from bound D3D9 back buffers or depth stencils
+    DownloadSurfaceData(this);
 
     return GetShadowOrProxied()->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
   }
@@ -982,7 +854,7 @@ namespace dxvk {
       // Foward ReleaseDC calls if we have drawn and the surface is flippable
       RefreshD3D9Device();
       if (m_d3d9Device != nullptr && (m_commonIntf->HasDrawn() &&
-                                      m_commonSurf->IsGuardableSurface())) {
+                                      m_commonSurf->IsD3D9BackBuffer())) {
         Logger::debug(">>> DDrawSurface::ReleaseDC");
 
         if (unlikely(!IsInitialized())) {
@@ -1181,6 +1053,8 @@ namespace dxvk {
     if (unlikely(!IsInitialized()))
       hr = InitializeD3D9(true);
 
+    m_commonSurf->MarkAsD3D9BackBuffer();
+
     return hr;
   }
 
@@ -1191,6 +1065,8 @@ namespace dxvk {
 
     if (unlikely(!IsInitialized()))
       hr = InitializeD3D9(false);
+
+    m_commonSurf->MarkAsD3D9DepthStencil();
 
     return hr;
   }
@@ -1369,6 +1245,8 @@ namespace dxvk {
 
       m_d3d9 = std::move(surf);
 
+      m_commonSurf->MarkAsD3D9BackBuffer();
+
     // Back Buffer
     } else if (m_commonSurf->IsBackBufferOrFlippable()) {
       Logger::debug("DDrawSurface::InitializeD3D9: Initializing back buffer...");
@@ -1382,6 +1260,8 @@ namespace dxvk {
       }
 
       m_d3d9 = std::move(surf);
+
+      m_commonSurf->MarkAsD3D9BackBuffer();
 
     // Textures
     } else if (m_commonSurf->IsTexture()) {
@@ -1457,6 +1337,8 @@ namespace dxvk {
 
       m_d3d9 = std::move(surf);
 
+      m_commonSurf->MarkAsD3D9BackBuffer();
+
     // Overlays (haven't seen any actual use of overlays in the wild)
     } else if (m_commonSurf->IsOverlay()) {
       Logger::debug("DDrawSurface::InitializeD3D9: Initializing overlay...");
@@ -1471,6 +1353,8 @@ namespace dxvk {
       }
 
       m_d3d9 = std::move(surf);
+
+      m_commonSurf->MarkAsD3D9BackBuffer();
 
     // Generic render target
     } else if (m_commonSurf->IsRenderTarget()) {
@@ -1523,7 +1407,7 @@ namespace dxvk {
   inline HRESULT DDrawSurface::UploadSurfaceData() {
     Logger::debug(str::format("DDrawSurface::UploadSurfaceData: Uploading nr. [[1-", m_surfCount, "]]"));
 
-    if (unlikely(m_commonIntf->HasDrawn() && m_commonSurf->IsGuardableSurface())) {
+    if (unlikely(m_commonIntf->HasDrawn() && m_commonSurf->IsD3D9BackBuffer())) {
       Logger::debug("DDrawSurface::UploadSurfaceData: Skipping upload");
       return DD_OK;
     }
@@ -1550,6 +1434,43 @@ namespace dxvk {
     return DD_OK;
   }
 
+  inline void DDrawSurface::DownloadSurfaceData(DDrawSurface* surface) {
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+    if (unlikely(surface->GetCommonSurface()->IsD3D9BackBuffer())) {
+      if (d3dOptions->backBufferWriteBack || d3dOptions->forceLegacyPresent || d3dOptions->apitraceMode) {
+        Logger::debug("DDrawSurface::DownloadSurfaceData: Surface is a bound swapchain surface");
+
+        if (unlikely(d3dOptions->apitraceMode && !surface->IsInitialized()))
+          surface->InitializeOrUploadD3D9();
+
+        if (surface->IsInitialized() && surface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
+          BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(surface->GetShadowOrProxied(), surface->GetD3D9());
+          surface->GetCommonSurface()->UnDirtyD3D9Surface();
+        }
+      } else {
+        static bool s_swapchainWarningShown;
+
+        if (!std::exchange(s_swapchainWarningShown, true))
+          Logger::warn("DDrawSurface::DownloadSurfaceData: Surface is a bound swapchain surface");
+      }
+    } else if (unlikely(surface->GetCommonSurface()->IsD3D9DepthStencil())) {
+      if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
+        Logger::debug("DDrawSurface::DownloadSurfaceData: Surface is a bound depth stencil");
+
+        if (surface->IsInitialized() && surface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
+          BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(surface->GetProxied(), surface->GetD3D9());
+          surface->GetCommonSurface()->UnDirtyD3D9Surface();
+        }
+      } else {
+        static bool s_depthStencilWarningShown;
+
+        if (!std::exchange(s_depthStencilWarningShown, true))
+          Logger::warn("DDrawSurface::DownloadSurfaceData: Surface is a bound depth stencil");
+      }
+    }
+  }
+
   inline HRESULT DDrawSurface::CreateDeviceInternal(REFIID riid, void** ppvObject) {
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
@@ -1557,7 +1478,7 @@ namespace dxvk {
     bool  rgbFallback          = false;
 
     if (likely(!d3dOptions->forceSWVP)) {
-      if (riid == IID_IDirect3DHALDevice) {
+      if (riid == IID_IDirect3DHALDevice || riid == IID_WineD3DDevice) {
         Logger::info("DDrawSurface::CreateDeviceInternal: Creating an IID_IDirect3DHALDevice device");
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
       } else if (riid == IID_IDirect3DRGBDevice) {
