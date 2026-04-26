@@ -457,14 +457,6 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
-        DDraw4Surface* shadowSurf = m_rt->GetShadowSurface();
-
-        if (likely(m_rt->IsInitialized() && m_rt->GetCommonSurface()->IsD3D9SurfaceDirty())) {
-          IDirectDrawSurface4* targetSurf = shadowSurf != nullptr ? shadowSurf->GetProxied() : m_rt->GetProxied();
-          BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(targetSurf, m_rt->GetD3D9());
-          m_rt->GetCommonSurface()->UnDirtyD3D9Surface();
-        }
-
         // Allow uploads to the D3D9 back buffer once a scene completes,
         // in order to reflect any post-rendering blits an application does
         if (likely(m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
@@ -576,20 +568,6 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       Logger::debug("D3D6Device::SetRenderTarget: Set a new D3D9 RT");
-
-      // Some games, like Age of Wonders II/Shadow Magic, use off-screen surfaces
-      // as temporary RTs to draw onto (e.g. for terrain rendering), so we need to make
-      // sure we blit their content back to the DDraw surface if the RT is changed inside
-      // of a scene, otherwise the D3D9 surface content will never be visible to DDraw.
-      if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
-        DDraw4Surface* shadowSurf = m_rt->GetShadowSurface();
-
-        if (likely(m_rt->IsInitialized() && m_rt->GetCommonSurface()->IsD3D9SurfaceDirty())) {
-          IDirectDrawSurface4* targetSurf = shadowSurf != nullptr ? shadowSurf->GetProxied() : m_rt->GetProxied();
-          BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(targetSurf, m_rt->GetD3D9());
-          m_rt->GetCommonSurface()->UnDirtyD3D9Surface();
-        }
-      }
 
       m_rt = rt6;
       m_ds = m_rt->GetAttachedDepthStencil();
@@ -1405,7 +1383,7 @@ namespace dxvk {
       return hr;
     }
 
-    UpdateSurfaceDirtyTracking();
+    UpdateSurfaceDirtyTracking(true, true, true);
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -1446,7 +1424,7 @@ namespace dxvk {
       return hr;
     }
 
-    UpdateSurfaceDirtyTracking();
+    UpdateSurfaceDirtyTracking(true, true, true);
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -1512,7 +1490,7 @@ namespace dxvk {
       return hr;
     }
 
-    UpdateSurfaceDirtyTracking();
+    UpdateSurfaceDirtyTracking(true, true, true);
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -1556,7 +1534,7 @@ namespace dxvk {
       return hr;
     }
 
-    UpdateSurfaceDirtyTracking();
+    UpdateSurfaceDirtyTracking(true, true, true);
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -1600,7 +1578,7 @@ namespace dxvk {
       return hr;
     }
 
-    UpdateSurfaceDirtyTracking();
+    UpdateSurfaceDirtyTracking(true, true, true);
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -1663,7 +1641,7 @@ namespace dxvk {
       return hr;
     }
 
-    UpdateSurfaceDirtyTracking();
+    UpdateSurfaceDirtyTracking(true, true, true);
     m_commonIntf->UpdateDrawTracking();
 
     return hr;
@@ -1907,16 +1885,19 @@ namespace dxvk {
     }
   }
 
-  void D3D6Device::UpdateSurfaceDirtyTracking() {
-    m_rt->GetCommonSurface()->DirtyD3D9Surface();
+  void D3D6Device::UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface) {
+    if(likely(dirtyRenderTarget))
+      m_rt->GetCommonSurface()->DirtyD3D9Surface();
 
-    DDrawCommonSurface* primarySurface = m_commonIntf->GetPrimarySurface();
-    // The primary surface can be bound as RT, in which case it will
-    // get dirtied twice, but we have no guarantees that will happen
-    if (likely(primarySurface != nullptr))
-      primarySurface->DirtyD3D9Surface();
+    if (likely(dirtyPrimarySurface)) {
+      DDrawCommonSurface* primarySurface = m_commonIntf->GetPrimarySurface();
+      // The primary surface can be bound as RT, in which case it will
+      // get dirtied twice, but we have no guarantees that will happen
+      if (likely(primarySurface != nullptr))
+        primarySurface->DirtyD3D9Surface();
+    }
 
-    if (likely(m_ds != nullptr))
+    if (likely(dirtyDepthStencil && m_ds != nullptr))
       m_ds->GetCommonSurface()->DirtyD3D9Surface();
   }
 

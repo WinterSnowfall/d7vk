@@ -40,7 +40,7 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* GetD3D9Device();
 
-    void UpdateSurfaceDirtyTracking();
+    void UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface);
 
     HRESULT TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen);
 

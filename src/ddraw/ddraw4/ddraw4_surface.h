@@ -188,6 +188,8 @@ namespace dxvk {
 
     inline HRESULT UploadSurfaceData();
 
+    inline void DownloadSurfaceData(DDraw4Surface* surface);
+
     inline void RefreshD3D9Device();
 
     bool             m_isChildObject = true;
