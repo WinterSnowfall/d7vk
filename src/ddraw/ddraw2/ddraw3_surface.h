@@ -167,6 +167,8 @@ namespace dxvk {
 
   private:
 
+    inline void DownloadSurfaceData(DDraw3Surface* surface);
+
     inline void RefreshD3D9Device();
 
     static uint32_t  s_surfCount;

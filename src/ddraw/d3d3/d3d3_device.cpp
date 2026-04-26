@@ -424,14 +424,6 @@ namespace dxvk {
 
     if (likely(SUCCEEDED(hr))) {
       if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
-        DDrawSurface* shadowSurf = m_rt->GetShadowSurface();
-
-        if (likely(m_rt->IsInitialized() && m_rt->GetCommonSurface()->IsD3D9SurfaceDirty())) {
-          IDirectDrawSurface* targetSurf = shadowSurf != nullptr ? shadowSurf->GetProxied() : m_rt->GetProxied();
-          BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(targetSurf, m_rt->GetD3D9());
-          m_rt->GetCommonSurface()->UnDirtyD3D9Surface();
-        }
-
         // Allow uploads to the D3D9 back buffer once a scene completes,
         // in order to reflect any post-rendering blits an application does
         if (likely(m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
@@ -963,16 +955,19 @@ namespace dxvk {
     }
   }
 
-  void D3D3Device::UpdateSurfaceDirtyTracking() {
-    m_rt->GetCommonSurface()->DirtyD3D9Surface();
+  void D3D3Device::UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface) {
+    if(likely(dirtyRenderTarget))
+      m_rt->GetCommonSurface()->DirtyD3D9Surface();
 
-    DDrawCommonSurface* primarySurface = m_commonIntf->GetPrimarySurface();
-    // The primary surface can be bound as RT, in which case it will
-    // get dirtied twice, but we have no guarantees that will happen
-    if (likely(primarySurface != nullptr))
-      primarySurface->DirtyD3D9Surface();
+    if (likely(dirtyPrimarySurface)) {
+      DDrawCommonSurface* primarySurface = m_commonIntf->GetPrimarySurface();
+      // The primary surface can be bound as RT, in which case it will
+      // get dirtied twice, but we have no guarantees that will happen
+      if (likely(primarySurface != nullptr))
+        primarySurface->DirtyD3D9Surface();
+    }
 
-    if (likely(m_ds != nullptr))
+    if (likely(dirtyDepthStencil && m_ds != nullptr))
       m_ds->GetCommonSurface()->DirtyD3D9Surface();
   }
 
@@ -1406,7 +1401,7 @@ namespace dxvk {
            GetFVFSize(D3DFVF_TLVERTEX));
 
       if (SUCCEEDED(hr)) {
-        UpdateSurfaceDirtyTracking();
+        UpdateSurfaceDirtyTracking(true, true, true);
         m_commonIntf->UpdateDrawTracking();
 
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_TRIANGLE drawn vertices: ", vertices.size()));
@@ -1441,7 +1436,7 @@ namespace dxvk {
            GetFVFSize(D3DFVF_TLVERTEX));
 
       if (SUCCEEDED(hr)) {
-        UpdateSurfaceDirtyTracking();
+        UpdateSurfaceDirtyTracking(true, true, true);
         m_commonIntf->UpdateDrawTracking();
 
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_LINE drawn vertices: ", vertices.size()));
@@ -1477,7 +1472,7 @@ namespace dxvk {
            GetFVFSize(D3DFVF_TLVERTEX));
 
       if (SUCCEEDED(hr)) {
-        UpdateSurfaceDirtyTracking();
+        UpdateSurfaceDirtyTracking(true, true, true);
         m_commonIntf->UpdateDrawTracking();
 
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_POINT drawn vertices: ", vertices.size()));
@@ -1512,7 +1507,7 @@ namespace dxvk {
            GetFVFSize(D3DFVF_TLVERTEX));
 
       if (SUCCEEDED(hr)) {
-        UpdateSurfaceDirtyTracking();
+        UpdateSurfaceDirtyTracking(true, true, true);
         m_commonIntf->UpdateDrawTracking();
 
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_SPAN drawn vertices: ", vertices.size()));
