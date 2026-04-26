@@ -86,6 +86,8 @@ namespace dxvk {
 
     void InitializeDS();
 
+    void UpdateSurfaceDirtyTracking();
+
     D3DCommonDevice* GetCommonD3DDevice() {
       return m_commonD3DDevice.ptr();
     }
@@ -124,11 +126,6 @@ namespace dxvk {
 
   private:
 
-    inline void RefreshLastUsedDevice() {
-      if (unlikely(m_commonIntf->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
-        m_commonIntf->SetCommonD3DDevice(m_commonD3DDevice.ptr());
-    }
-
     inline void AddViewportInternal(IDirect3DViewport* viewport);
 
     inline void DeleteViewportInternal(IDirect3DViewport* viewport);
@@ -148,6 +145,11 @@ namespace dxvk {
     inline void DrawSpanInternal(D3DSPAN* span, uint16_t count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer);
 
     inline void TextureLoadInternal(D3DTEXTURELOAD* textureLoad, uint16_t count);
+
+    inline void RefreshLastUsedDevice() {
+      if (unlikely(m_commonIntf->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
+        m_commonIntf->SetCommonD3DDevice(m_commonD3DDevice.ptr());
+    }
 
     static uint32_t                s_deviceCount;
     uint32_t                       m_deviceCount = 0;
