@@ -139,7 +139,7 @@ namespace dxvk {
 
     void InitializeDS();
 
-    void UpdateSurfaceDirtyTracking();
+    void UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface);
 
     HRESULT ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params);
 

@@ -367,7 +367,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr9))) {
       Logger::warn("D3D3Viewport::Clear: Failed D3D9 Clear call");
     } else {
-      m_commonViewport->UpdateSurfaceDirtyTracking();
+      m_commonViewport->UpdateSurfaceDirtyTracking(true, false, false);
     }
 
     return D3D_OK;

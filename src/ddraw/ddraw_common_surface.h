@@ -50,7 +50,6 @@ namespace dxvk {
       // determine and cache various frequently used flag combinations
       m_isBackBufferOrFlippable = !IsPrimarySurface() && !IsFrontBuffer() && (IsBackBuffer() || IsFlippable());
       m_isRenderTarget          = IsFrontBuffer() || IsBackBuffer() || IsFlippable() || Is3DSurface();
-      m_isGuardableSurface      = IsPrimarySurface() || IsFrontBuffer() || IsBackBuffer() || IsFlippable();
     }
 
     const DDSURFACEDESC2* GetDesc2() const {
@@ -68,7 +67,6 @@ namespace dxvk {
       // determine and cache various frequently used flag combinations
       m_isBackBufferOrFlippable = !IsPrimarySurface() && !IsFrontBuffer() && (IsBackBuffer() || IsFlippable());
       m_isRenderTarget          = IsFrontBuffer() || IsBackBuffer() || IsFlippable() || Is3DSurface();
-      m_isGuardableSurface      = IsPrimarySurface() || IsFrontBuffer() || IsBackBuffer() || IsFlippable();
     }
 
     const DDSURFACEDESC* GetDesc() const {
@@ -164,6 +162,22 @@ namespace dxvk {
 
     void SetIsAttached(bool isAttached) {
       m_isAttached = isAttached;
+    }
+
+    void MarkAsD3D9BackBuffer() {
+      m_isD3D9BackBuffer = true;
+    }
+
+    bool IsD3D9BackBuffer() const {
+      return m_isD3D9BackBuffer;
+    }
+
+    void MarkAsD3D9DepthStencil() {
+      m_isD3D9DepthStencil = true;
+    }
+
+    bool IsD3D9DepthStencil() const {
+      return m_isD3D9DepthStencil;
     }
 
     void SetClipper(DDrawClipper* clipper) {
@@ -331,10 +345,6 @@ namespace dxvk {
       return m_isRenderTarget;
     }
 
-    bool IsGuardableSurface() const {
-      return m_isGuardableSurface;
-    }
-
     bool Is8BitFormat() const {
       return m_format9 == d3d9::D3DFMT_R3G3B2
           || m_format9 == d3d9::D3DFMT_P8;
@@ -395,17 +405,19 @@ namespace dxvk {
 
   private:
 
-    bool                      m_dirtyMipMaps = false;
-    bool                      m_dirtyDDraw   = false;
-    bool                      m_dirtyD3D9    = false;
+    bool                      m_dirtyMipMaps       = false;
+    bool                      m_dirtyDDraw         = false;
+    bool                      m_dirtyD3D9          = false;
 
-    bool                      m_isAttached   = false;
-    bool                      m_isDesc2Set   = false;
-    bool                      m_isDescSet    = false;
+    bool                      m_isAttached         = false;
+    bool                      m_isD3D9BackBuffer   = false;
+    bool                      m_isD3D9DepthStencil = false;
+
+    bool                      m_isDesc2Set         = false;
+    bool                      m_isDescSet          = false;
 
     bool                      m_isBackBufferOrFlippable = false;
     bool                      m_isRenderTarget          = false;
-    bool                      m_isGuardableSurface      = false;
 
     uint16_t                  m_mipCount = 1;
     uint32_t                  m_backBufferIndex = 0;

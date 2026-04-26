@@ -1598,7 +1598,6 @@ namespace dxvk {
     /* The Nations (Gold Edition)                 */
     { R"(\\The Nations.*\\bin\\game\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.legacyPresentGuard",       "Strict" },
     }} },
     /* Need for Speed: Porsche Unleashed          *
      * Fixes missing mip maps on car models       */
@@ -1931,6 +1930,7 @@ namespace dxvk {
     /* Empire of the Ants                         */
     { R"(\\Empire of the Ants\\Game\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.legacyPresentGuard",       "Strict" },
     }} },
     /* N.I.C.E 2 - Fixes main menu flickering     */
     { R"(\\n2_(std|arc)\.exe$)", {{

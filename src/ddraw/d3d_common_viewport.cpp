@@ -48,13 +48,13 @@ namespace dxvk {
     return nullptr;
   }
 
-  void D3DCommonViewport::UpdateSurfaceDirtyTracking() {
+  void D3DCommonViewport::UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface) {
     if (m_device6 != nullptr) {
-      m_device6->UpdateSurfaceDirtyTracking();
+      m_device6->UpdateSurfaceDirtyTracking(dirtyRenderTarget, dirtyDepthStencil, dirtyPrimarySurface);
     } else if (m_device5 != nullptr) {
-      m_device5->UpdateSurfaceDirtyTracking();
+      m_device5->UpdateSurfaceDirtyTracking(dirtyRenderTarget, dirtyDepthStencil, dirtyPrimarySurface);
     } else if (m_device3 != nullptr) {
-      m_device3->UpdateSurfaceDirtyTracking();
+      m_device3->UpdateSurfaceDirtyTracking(dirtyRenderTarget, dirtyDepthStencil, dirtyPrimarySurface);
     }
   }
 

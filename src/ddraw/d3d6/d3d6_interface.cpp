@@ -357,7 +357,7 @@ namespace dxvk {
     bool  rgbFallback          = false;
 
     if (likely(!d3dOptions->forceSWVP)) {
-      if (rclsid == IID_IDirect3DHALDevice) {
+      if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
         Logger::info("D3D6Interface::CreateDevice: Creating an IID_IDirect3DHALDevice device");
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
       } else if (rclsid == IID_IDirect3DRGBDevice) {

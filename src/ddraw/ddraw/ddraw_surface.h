@@ -187,6 +187,8 @@ namespace dxvk {
 
     inline HRESULT UploadSurfaceData();
 
+    inline void DownloadSurfaceData(DDrawSurface* surface);
+
     inline HRESULT CreateDeviceInternal(REFIID riid, void** ppvObject);
 
     inline void RefreshD3D9Device();

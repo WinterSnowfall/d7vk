@@ -167,7 +167,7 @@ namespace dxvk {
       if (rclsid == IID_IDirect3DTnLHalDevice) {
         Logger::info("D3D7Interface::CreateDevice: Creating an IID_IDirect3DTnLHalDevice device");
         deviceCreationFlags9 = D3DCREATE_HARDWARE_VERTEXPROCESSING;
-      } else if (rclsid == IID_IDirect3DHALDevice) {
+      } else if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
         Logger::info("D3D7Interface::CreateDevice: Creating an IID_IDirect3DHALDevice device");
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
       } else if (rclsid == IID_IDirect3DRGBDevice) {
