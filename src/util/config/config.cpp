@@ -1454,7 +1454,6 @@ namespace dxvk {
     /* Dungeon Siege                              */
     { R"(\\DungeonSiege\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.backBufferWriteBack",        "True" },
     }} },
     /* Empire Earth / Art of Conquest             */
     { R"(\\(Empire Earth|EE-AOC)\.exe$)", {{

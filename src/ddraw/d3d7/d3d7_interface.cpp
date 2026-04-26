@@ -226,7 +226,7 @@ namespace dxvk {
       }
     }
 
-    d3d9::D3DFORMAT backBufferFormat = ConvertFormat(desc.ddpfPixelFormat);
+    const d3d9::D3DFORMAT backBufferFormat = ConvertFormat(desc.ddpfPixelFormat);
 
     // Determine the supported AA sample count by querying the D3D9 interface
     d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
@@ -266,19 +266,7 @@ namespace dxvk {
 
     Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
 
-    DWORD backBufferCount = 0;
-    if (likely(!d3dOptions->forceSingleBackBuffer && !d3dOptions->forceLegacyPresent)) {
-      IDirectDrawSurface7* backBuffer = rt7->GetProxied();
-      while (backBuffer != nullptr) {
-        IDirectDrawSurface7* parentSurface = backBuffer;
-        backBuffer = nullptr;
-        parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfaces7Callback);
-        backBufferCount++;
-        // the swapchain will eventually return to its origin
-        if (backBuffer == rt7->GetProxied())
-          break;
-      }
-    }
+    const DWORD backBufferCount = DetermineBackBufferCount(rt7->GetProxied());
     // Consider the front buffer as well when reporting the overall count
     Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer count: ", backBufferCount + 1));
 
@@ -412,6 +400,36 @@ namespace dxvk {
     }
 
     return D3D_OK;
+  }
+
+  inline DWORD D3D7Interface::DetermineBackBufferCount(IDirectDrawSurface7* renderTarget) {
+    DWORD backBufferCount = 0;
+
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+    if (likely(!d3dOptions->forceSingleBackBuffer && !d3dOptions->forceLegacyPresent)) {
+      IDirectDrawSurface7* backBuffer = renderTarget;
+      HRESULT hr;
+
+      while (backBuffer != nullptr) {
+        IDirectDrawSurface7* parentSurface = backBuffer;
+        backBuffer = nullptr;
+
+        hr = parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfaces7Callback);
+        if (unlikely(FAILED(hr))) {
+          Logger::warn("D3D7Interface::DetermineBackBufferCount: Unable to enumerate attached surfaces");
+          break;
+        }
+
+        backBufferCount++;
+
+        // the swapchain will eventually return to its origin
+        if (backBuffer == renderTarget)
+          break;
+      }
+    }
+
+    return backBufferCount;
   }
 
 }
