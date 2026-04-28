@@ -893,6 +893,15 @@ namespace dxvk {
         return hr;
 
       m_commonSurf->SetClipper(ddrawClipper);
+
+      // Retrieve a hWnd, if needed, during clipper attachment
+      HWND hWnd = nullptr;
+      hr = ddrawClipper->GetProxied()->GetHWnd(&hWnd);
+      if (unlikely(FAILED(hr))) {
+        Logger::debug("DDraw7Surface::SetClipper: Failed to retrieve hWnd");
+      } else {
+        m_commonIntf->SetHWND(hWnd);
+      }
     }
 
     return DD_OK;
