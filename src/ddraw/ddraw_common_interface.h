@@ -155,6 +155,14 @@ namespace dxvk {
              (m_cooperativeLevel & DDSCL_EXCLUSIVE);
     }
 
+    // Used to hook the hWnd during SetClipper calls,
+    // and use that on device creation if no other
+    // hWnd is specified through SetCooperativeLevel
+    void SetHWND(HWND hWnd) {
+      if (unlikely(m_hWnd == nullptr && hWnd != nullptr))
+        m_hWnd = hWnd;
+    }
+
     HWND GetHWND() const {
       return m_hWnd;
     }
