@@ -34,12 +34,6 @@ namespace dxvk {
 
     m_commonIntf->SetDD2Interface(this);
 
-    static bool s_apitraceModeWarningShown;
-
-    if (unlikely(m_commonIntf->GetOptions()->apitraceMode &&
-                 !std::exchange(s_apitraceModeWarningShown, true)))
-      Logger::warn("DDraw2Interface: Apitrace mode is enabled. Performance will be suboptimal!");
-
     m_intfCount = ++s_intfCount;
 
     Logger::debug(str::format("DDraw2Interface: Created a new interface nr. <<2-", m_intfCount, ">>"));
@@ -302,7 +296,7 @@ namespace dxvk {
             DDSURFACEDESC shadowDesc = *lpDDSurfaceDesc;
             const DDSURFACEDESC* primaryDesc = surface->GetCommonSurface()->GetDesc();
 
-            shadowDesc.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE & ~DDSCAPS_COMPLEX & ~DDSCAPS_FLIP;
+            shadowDesc.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE & ~DDSCAPS_FRONTBUFFER & ~DDSCAPS_COMPLEX & ~DDSCAPS_FLIP;
             shadowDesc.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
             shadowDesc.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
             // Dimensions aren't specified in the incoming desc,
