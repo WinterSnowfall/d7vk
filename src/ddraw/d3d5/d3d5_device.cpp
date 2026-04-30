@@ -429,16 +429,8 @@ namespace dxvk {
 
     HRESULT hr = m_d3d9->EndScene();
 
-    if (likely(SUCCEEDED(hr))) {
-      if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
-        // Allow uploads to the D3D9 back buffer once a scene completes,
-        // in order to reflect any post-rendering blits an application does
-        if (likely(m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
-          m_commonIntf->ResetDrawTracking();
-      }
-
+    if (likely(SUCCEEDED(hr)))
       m_commonD3DDevice->SetInScene(false);
-    }
 
     return hr;
   }
@@ -1353,6 +1345,8 @@ namespace dxvk {
     if (unlikely(vertices == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    m_rt->InitializeOrUploadD3D9();
+
     DWORD vertex_type5 = ConvertVertexType(vertex_type);
 
     HandlePreDrawFlags(flags, vertex_type5);
@@ -1374,7 +1368,6 @@ namespace dxvk {
     }
 
     UpdateSurfaceDirtyTracking(true, true, true);
-    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -1391,6 +1384,8 @@ namespace dxvk {
 
     if (unlikely(vertices == nullptr || indices == nullptr))
       return DDERR_INVALIDPARAMS;
+
+    m_rt->InitializeOrUploadD3D9();
 
     const DWORD fvf5 = ConvertVertexType(fvf);
 
@@ -1417,7 +1412,6 @@ namespace dxvk {
     }
 
     UpdateSurfaceDirtyTracking(true, true, true);
-    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -1548,26 +1542,18 @@ namespace dxvk {
 
     Logger::debug("D3D5Device::SetTextureInternal: Binding D3D9 texture");
 
-    // Only upload textures if any sort of blit/lock operation
-    // has been performed on them since the last SetTexture call,
-    // or textures which have been used on a different device, and
-    // need their D3D9 object to be reinitialized at this point
-    if (surface->GetCommonSurface()->HasDirtyMipMaps() ||
-        unlikely(surface->GetD3D9Device() != m_d3d9.ptr())) {
-      hr = surface->InitializeOrUploadD3D9();
-      if (unlikely(FAILED(hr))) {
-        Logger::err("D3D5Device::SetTextureInternal: Failed to initialize/upload D3D9 texture");
-        return hr;
-      }
+    // If textures have been used on a different device, they
+    // will get their D3D9 object reinitialized at this point
+    if (unlikely(surface->GetD3D9Device() != m_d3d9.ptr()))
+      surface->GetCommonSurface()->DirtyDDrawSurface();
 
-      surface->GetCommonSurface()->UnDirtyMipMaps();
-    } else {
-      Logger::debug("D3D5Device::SetTextureInternal: Skipping upload of texture and mip maps");
+    hr = surface->InitializeOrUploadD3D9();
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D6Device::D3D5Device: Failed to initialize/upload D3D9 texture");
+      return hr;
     }
 
-    // Only fast skip on D3D9 side, since we want to ensure
-    // color keying is applied properly even in the case
-    // of the same texture being set again (color key may change)
+    // Don't fast skip, since color key might change
     //if (unlikely(m_textureHandle == textureHandle))
       //return D3D_OK;
 

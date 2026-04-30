@@ -126,7 +126,7 @@ namespace dxvk {
       m_parent->GetCommonSurface()->SetDesc(desc);
     }
 
-    m_parent->GetCommonSurface()->DirtyMipMaps();
+    m_parent->GetCommonSurface()->DirtyDDrawSurface();
 
     return hr;
   }

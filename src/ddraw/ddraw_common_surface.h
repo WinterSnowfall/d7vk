@@ -120,18 +120,6 @@ namespace dxvk {
       m_backBufferIndex = index + 1;
     }
 
-    bool HasDirtyMipMaps() const {
-      return m_dirtyMipMaps;
-    }
-
-    void DirtyMipMaps() {
-      m_dirtyMipMaps = true;
-    }
-
-    void UnDirtyMipMaps() {
-      m_dirtyMipMaps = false;
-    }
-
     bool IsDDrawSurfaceDirty() const {
       return m_dirtyDDraw;
     }
@@ -375,7 +363,8 @@ namespace dxvk {
     void ListSurfaceDetails() const {
       const char* type = "generic surface";
 
-      if (IsFrontBuffer())                type = "front buffer";
+      if (IsPrimarySurface())             type = "primary surface";
+      else if (IsFrontBuffer())           type = "front buffer";
       else if (IsBackBuffer())            type = "back buffer";
       else if (IsTextureMip())            type = "texture mipmap";
       else if (IsTexture())               type = "texture";
@@ -383,7 +372,6 @@ namespace dxvk {
       else if (IsOffScreenPlainSurface()) type = "offscreen plain surface";
       else if (IsOverlay())               type = "overlay";
       else if (Is3DSurface())             type = "render target";
-      else if (IsPrimarySurface())        type = "primary surface";
       else if (IsNotKnown())              type = "unknown";
 
       const DWORD width           = IsDesc2Set() ? m_desc2.dwWidth  : m_desc.dwWidth;
@@ -405,7 +393,6 @@ namespace dxvk {
 
   private:
 
-    bool                      m_dirtyMipMaps       = false;
     bool                      m_dirtyDDraw         = false;
     bool                      m_dirtyD3D9          = false;
 
@@ -419,7 +406,7 @@ namespace dxvk {
     bool                      m_isBackBufferOrFlippable = false;
     bool                      m_isRenderTarget          = false;
 
-    uint16_t                  m_mipCount = 1;
+    uint16_t                  m_mipCount        = 1;
     uint32_t                  m_backBufferIndex = 0;
 
     DDSURFACEDESC             m_desc  = { };

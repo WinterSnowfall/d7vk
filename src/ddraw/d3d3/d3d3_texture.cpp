@@ -127,25 +127,21 @@ namespace dxvk {
       m_parent->GetCommonSurface()->SetDesc(desc);
     }
 
-    m_parent->GetCommonSurface()->DirtyMipMaps();
+    m_parent->GetCommonSurface()->DirtyDDrawSurface();
 
     return hr;
   }
 
+  // Docs state: "Returns DDERR_ALREADYINITIALIZED because the Direct3DTexture object is initialized when it is created."
   HRESULT STDMETHODCALLTYPE D3D3Texture::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIRECTDRAWSURFACE lpDDSurface) {
-    Logger::debug("<<< D3D3Texture::Initialize: Proxy");
-
-    if(unlikely(lpDirect3DDevice == nullptr || lpDDSurface == nullptr))
-      return DDERR_INVALIDPARAMS;
-
-    D3D3Device* d3d3Device = static_cast<D3D3Device*>(lpDirect3DDevice);
-    DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSurface);
-    return m_proxy->Initialize(d3d3Device->GetProxied(), ddrawSurface->GetProxied());
+    Logger::debug(">>> D3D3Texture::Initialize");
+    return DDERR_ALREADYINITIALIZED;
   }
 
+  // Apparently unsupported, or at least undocumented
   HRESULT STDMETHODCALLTYPE D3D3Texture::Unload() {
-    Logger::debug("<<< D3D3Texture::Unload: Proxy");
-    return m_proxy->Unload();
+    Logger::warn("!!! D3D3Texture::Unload: Stub");
+    return DDERR_UNSUPPORTED;
   }
 
 }

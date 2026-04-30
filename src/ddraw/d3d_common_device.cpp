@@ -95,6 +95,19 @@ namespace dxvk {
     return DDERR_GENERIC;
   }
 
+  DDrawSurface* D3DCommonDevice::GetCurrentRenderTarget() const {
+    return m_device5 != nullptr ? m_device5->GetRenderTarget() :
+           m_device3 != nullptr ? m_device3->GetRenderTarget() : nullptr;
+  }
+
+  DDraw4Surface* D3DCommonDevice::GetCurrentRenderTarget4() const {
+    return m_device6 != nullptr ? m_device6->GetRenderTarget() : nullptr;
+  }
+
+  DDraw7Surface* D3DCommonDevice::GetCurrentRenderTarget7() const {
+    return m_device7 != nullptr ? m_device7->GetRenderTarget() : nullptr;
+  }
+
   bool D3DCommonDevice::IsCurrentRenderTarget(DDrawSurface* surface) const {
     return m_device5 != nullptr ? m_device5->GetRenderTarget() == surface :
            m_device3 != nullptr ? m_device3->GetRenderTarget() == surface : false;

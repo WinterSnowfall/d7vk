@@ -44,6 +44,12 @@ namespace dxvk {
 
     HRESULT ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params);
 
+    DDrawSurface* GetCurrentRenderTarget() const;
+
+    DDraw4Surface* GetCurrentRenderTarget4() const;
+
+    DDraw7Surface* GetCurrentRenderTarget7() const;
+
     bool IsCurrentRenderTarget(DDrawSurface* surface) const;
 
     bool IsCurrentRenderTarget(DDraw4Surface* surface) const;

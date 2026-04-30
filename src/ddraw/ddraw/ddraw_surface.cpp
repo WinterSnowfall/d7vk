@@ -53,6 +53,15 @@ namespace dxvk {
       }
     }
 
+    // Retrieve and cache the next surface in a flippable chain
+    if (unlikely(m_commonSurf->IsFlippable() && !m_commonSurf->IsBackBuffer())) {
+      IDirectDrawSurface* nextFlippable = nullptr;
+      EnumAttachedSurfaces(&nextFlippable, ListBackBufferSurfacesCallback);
+      m_nextFlippable = reinterpret_cast<DDrawSurface*>(nextFlippable);
+      if (likely(m_nextFlippable != nullptr))
+        Logger::debug("DDraw4Surface: Retrieved the next swapchain surface");
+    }
+
     m_commonIntf->AddWrappedSurface(this);
 
     m_commonSurf->SetDDSurface(this);
@@ -279,14 +288,11 @@ namespace dxvk {
 
     DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSAttachedSurface);
 
+    // Unsupported by Wine's DDraw implementation, so we'll do our own present
     if (unlikely(ddrawSurface->GetCommonSurface()->IsBackBufferOrFlippable())) {
-      if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip)) {
-        Logger::debug("DDrawSurface::AddAttachedSurface: Caching surface as RT");
-        m_commonIntf->SetDDrawRenderTarget(ddrawSurface->GetCommonSurface());
-        return DD_OK;
-      } else {
-        Logger::warn("DDrawSurface::AddAttachedSurface: Trying to attach a flippable surface");
-      }
+      Logger::debug("DDrawSurface::AddAttachedSurface: Caching surface as DDraw RT");
+      m_commonIntf->SetDDrawRenderTarget(ddrawSurface->GetCommonSurface());
+      return DD_OK;
     }
 
     HRESULT hr = m_proxy->AddAttachedSurface(ddrawSurface->GetProxied());
@@ -314,9 +320,9 @@ namespace dxvk {
     // depth stencils, for both the source surface and the current surface
     if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
       DDrawSurface* surface = static_cast<DDrawSurface*>(lpDDSrcSurface);
-      DownloadSurfaceData(surface);
+      surface->DownloadSurfaceData();
     }
-    DownloadSurfaceData(this);
+    DownloadSurfaceData();
 
     RefreshD3D9Device();
     if (likely(m_d3d9Device != nullptr)) {
@@ -358,16 +364,19 @@ namespace dxvk {
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
                               && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
 
-      // Eclusive mode back buffer guard
-      if (exclusiveMode && m_commonIntf->HasDrawn() &&
-          m_commonSurf->IsD3D9BackBuffer() &&
-          m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
-        return DD_OK;
       // Windowed mode presentation path
-      } else if (!exclusiveMode && m_commonIntf->HasDrawn() && m_commonSurf->IsPrimarySurface()) {
-        m_commonIntf->ResetDrawTracking();
-        m_d3d9Device->Present(NULL, NULL, NULL, NULL);
-        return DD_OK;
+      if (!exclusiveMode && lpDDSrcSurface != nullptr && m_commonSurf->IsPrimarySurface()) {
+        // TODO: Handle this properly, not by uploading the RT again
+        D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+
+        DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSrcSurface);
+        DDrawSurface* renderTarget = commonDevice->GetCurrentRenderTarget();
+
+        if (ddrawSurface == renderTarget) {
+          renderTarget->InitializeOrUploadD3D9();
+          m_d3d9Device->Present(NULL, NULL, NULL, NULL);
+          return DD_OK;
+        }
       }
     }
 
@@ -385,22 +394,20 @@ namespace dxvk {
     }
 
     if (likely(SUCCEEDED(hr))) {
-      // Textures get uploaded during SetTexture calls
-      if (!m_commonSurf->IsTexture()) {
-        HRESULT hrUpload = InitializeOrUploadD3D9();
-        if (unlikely(FAILED(hrUpload)))
-          Logger::warn("DDrawSurface::Blt: Failed upload to d3d9 surface");
-      } else {
-        m_commonSurf->DirtyMipMaps();
-      }
+      m_commonSurf->DirtyDDrawSurface();
 
-      if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
+      // Depth stencil uploads need to happen on the spot
+      if (unlikely(m_commonSurf->IsDepthStencil())) {
+        InitializeOrUploadD3D9();
+      } else if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
         const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
                                   !m_commonIntf->GetCommonD3DDevice()->IsInScene() :
                                    m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
                                    false : true;
-        if (shouldPresent)
+        if (shouldPresent) {
+          InitializeOrUploadD3D9();
           m_d3d9Device->Present(NULL, NULL, NULL, NULL);
+        }
       }
     }
 
@@ -420,23 +427,29 @@ namespace dxvk {
     // depth stencils, for both the source surface and the current surface
     if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
       DDrawSurface* surface = static_cast<DDrawSurface*>(lpDDSrcSurface);
-      DownloadSurfaceData(surface);
+      surface->DownloadSurfaceData();
     }
-    DownloadSurfaceData(this);
+    DownloadSurfaceData();
 
     RefreshD3D9Device();
     if (likely(m_d3d9Device != nullptr)) {
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
                               && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
 
-      // Eclusive mode back buffer guard
-      if (exclusiveMode && m_commonIntf->HasDrawn() &&
-          m_commonSurf->IsD3D9BackBuffer() &&
-          m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Disabled) {
-        return DD_OK;
       // Windowed mode presentation path
-      } else if (!exclusiveMode && m_commonIntf->HasDrawn() && m_commonSurf->IsPrimarySurface()) {
-        m_commonIntf->ResetDrawTracking();
+      if (!exclusiveMode && lpDDSrcSurface != nullptr && m_commonSurf->IsPrimarySurface()) {
+        // TODO: Handle this properly, not by uploading the RT again
+        D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+
+        DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSrcSurface);
+        DDrawSurface* renderTarget = commonDevice->GetCurrentRenderTarget();
+
+        if (ddrawSurface == renderTarget) {
+          renderTarget->InitializeOrUploadD3D9();
+          m_d3d9Device->Present(NULL, NULL, NULL, NULL);
+          return DD_OK;
+        }
+
         m_d3d9Device->Present(NULL, NULL, NULL, NULL);
         return DD_OK;
       }
@@ -456,22 +469,20 @@ namespace dxvk {
     }
 
     if (likely(SUCCEEDED(hr))) {
-      // Textures get uploaded during SetTexture calls
-      if (!m_commonSurf->IsTexture()) {
-        HRESULT hrUpload = InitializeOrUploadD3D9();
-        if (unlikely(FAILED(hrUpload)))
-          Logger::warn("DDrawSurface::BltFast: Failed upload to d3d9 surface");
-      } else {
-        m_commonSurf->DirtyMipMaps();
-      }
+      m_commonSurf->DirtyDDrawSurface();
 
-      if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
+      // Depth stencil uploads need to happen on the spot
+      if (unlikely(m_commonSurf->IsDepthStencil())) {
+        InitializeOrUploadD3D9();
+      } else if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
         const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
                                   !m_commonIntf->GetCommonD3DDevice()->IsInScene() :
                                    m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
                                    false : true;
-        if (shouldPresent)
+        if (shouldPresent) {
+          InitializeOrUploadD3D9();
           m_d3d9Device->Present(NULL, NULL, NULL, NULL);
+        }
       }
     }
 
@@ -498,14 +509,11 @@ namespace dxvk {
 
     DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSAttachedSurface);
 
-    if (unlikely(ddrawSurface->GetCommonSurface()->IsBackBufferOrFlippable())) {
-      if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip)) {
-        Logger::debug("DDrawSurface::DeleteAttachedSurface: Removing cached RT surface");
-        m_commonIntf->SetDDrawRenderTarget(nullptr);
-        return DD_OK;
-      } else {
-        Logger::warn("DDrawSurface::DeleteAttachedSurface: Trying to detach a flippable surface");
-      }
+    if (unlikely(ddrawSurface->GetCommonSurface()->IsBackBufferOrFlippable() &&
+                 ddrawSurface->GetCommonSurface() == m_commonIntf->GetDDrawRenderTarget())) {
+      Logger::debug("DDrawSurface::DeleteAttachedSurface: Removing cached DDraw RT surface");
+      m_commonIntf->SetDDrawRenderTarget(nullptr);
+      return DD_OK;
     }
 
     HRESULT hr = m_proxy->DeleteAttachedSurface(dwFlags, ddrawSurface->GetProxied());
@@ -565,50 +573,61 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::Flip(LPDIRECTDRAWSURFACE lpDDSurfaceTargetOverride, DWORD dwFlags) {
-    // Lost surfaces are not flippable
-    HRESULT hr = m_proxy->IsLost();
-    if (unlikely(FAILED(hr))) {
-      Logger::debug("DDrawSurface::Flip: Lost surface");
-      return hr;
-    }
-
-    if (unlikely(!(m_commonSurf->IsFrontBuffer() || m_commonSurf->IsBackBufferOrFlippable()))) {
-      Logger::debug("DDrawSurface::Flip: Unflippable surface");
-      return DDERR_NOTFLIPPABLE;
-    }
-
-    const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
-
-    // Non-exclusive mode validations
-    if (unlikely(m_commonSurf->IsPrimarySurface() && !exclusiveMode)) {
-      Logger::debug("DDrawSurface::Flip: Primary surface flip in non-exclusive mode");
-      return DDERR_NOEXCLUSIVEMODE;
-    }
-
-    // Exclusive mode validations
-    if (unlikely(m_commonSurf->IsBackBufferOrFlippable() && exclusiveMode)) {
-      Logger::debug("DDrawSurface::Flip: Back buffer flip in exclusive mode");
-      return DDERR_NOTFLIPPABLE;
-    }
 
     Com<DDrawSurface> surf;
-    if (m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride)) {
+    if (m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))
       surf = static_cast<DDrawSurface*>(lpDDSurfaceTargetOverride);
-
-      if (unlikely(!surf->GetCommonSurface()->IsBackBufferOrFlippable())) {
-        Logger::debug("DDrawSurface::Flip: Unflippable override surface");
-        return DDERR_NOTFLIPPABLE;
-      }
-    }
-
-    DDrawSurface* rt = m_commonIntf->GetDDrawRenderTarget() != nullptr ?
-                       m_commonIntf->GetDDrawRenderTarget()->GetDDSurface() : nullptr;
 
     RefreshD3D9Device();
     if (likely(m_d3d9Device != nullptr)) {
       Logger::debug("*** DDrawSurface::Flip: Presenting");
 
-      m_commonIntf->ResetDrawTracking();
+      // Lost surfaces are not flippable
+      HRESULT hr = m_proxy->IsLost();
+      if (unlikely(FAILED(hr))) {
+        Logger::debug("DDrawSurface::Flip: Lost surface");
+        return hr;
+      }
+
+      if (unlikely(!(m_commonSurf->IsFrontBuffer() || m_commonSurf->IsBackBufferOrFlippable()))) {
+        Logger::debug("DDrawSurface::Flip: Unflippable surface");
+        return DDERR_NOTFLIPPABLE;
+      }
+
+      const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+
+      // Non-exclusive mode validations
+      if (unlikely(m_commonSurf->IsPrimarySurface() && !exclusiveMode)) {
+        Logger::debug("DDrawSurface::Flip: Primary surface flip in non-exclusive mode");
+        return DDERR_NOEXCLUSIVEMODE;
+      }
+
+      // Exclusive mode validations
+      if (unlikely(m_commonSurf->IsBackBufferOrFlippable() && exclusiveMode)) {
+        Logger::debug("DDrawSurface::Flip: Back buffer flip in exclusive mode");
+        return DDERR_NOTFLIPPABLE;
+      }
+
+      if (unlikely(surf != nullptr && !surf->GetCommonSurface()->IsBackBufferOrFlippable())) {
+        Logger::debug("DDrawSurface::Flip: Unflippable override surface");
+        return DDERR_NOTFLIPPABLE;
+      }
+
+      DDrawSurface* rt = m_commonIntf->GetDDrawRenderTarget() != nullptr ?
+                         m_commonIntf->GetDDrawRenderTarget()->GetDDSurface() : nullptr;
+
+      if (unlikely(rt != nullptr && m_commonSurf->IsPrimarySurface())) {
+        Logger::debug("DDrawSurface::Flip: Presenting from DDraw RT");
+        rt->InitializeOrUploadD3D9();
+        m_d3d9Device->Present(NULL, NULL, NULL, NULL);
+        return DD_OK;
+      }
+
+      if (likely(m_nextFlippable != nullptr)) {
+        m_nextFlippable->InitializeOrUploadD3D9();
+      } else {
+        InitializeOrUploadD3D9();
+      }
 
       m_d3d9Device->Present(NULL, NULL, NULL, NULL);
     // If we don't have a valid D3D5 device, this means a D3D3 application
@@ -616,13 +635,7 @@ namespace dxvk {
     } else {
       Logger::debug("<<< DDrawSurface::Flip: Proxy");
       if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
-        if (unlikely(m_commonIntf->GetOptions()->forceBlitOnFlip &&
-                     rt != nullptr && m_commonSurf->IsPrimarySurface())) {
-          Logger::debug("DDrawSurface::Flip: Blitting instead of flipping");
-          return GetShadowOrProxied()->Blt(nullptr, rt->GetShadowOrProxied(), nullptr, DDBLT_WAIT, nullptr);
-        } else {
-          return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
-        }
+        return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
       } else {
         return m_proxy->Flip(surf->GetProxied(), dwFlags);
       }
@@ -737,35 +750,10 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::GetDC(HDC *lphDC) {
-    if (unlikely(lphDC == nullptr))
-      return DDERR_INVALIDPARAMS;
-
-    InitReturnPtr(lphDC);
-
-    if (likely(!m_commonIntf->GetOptions()->forceLegacyPresent)) {
-      // Foward GetDC calls if we have drawn and the surface is flippable
-      RefreshD3D9Device();
-      if (m_d3d9Device != nullptr && (m_commonIntf->HasDrawn() &&
-                                      m_commonSurf->IsD3D9BackBuffer())) {
-        Logger::debug(">>> DDrawSurface::GetDC");
-
-        if (unlikely(!IsInitialized())) {
-          HRESULT hrUpload = InitializeOrUploadD3D9();
-          if (unlikely(FAILED(hrUpload)))
-            Logger::warn("DDrawSurface::GetDC: Failed to initialize d3d9 surface");
-        }
-
-        HRESULT hr9 = m_d3d9->GetDC(lphDC);
-        if (unlikely(FAILED(hr9)))
-          Logger::warn("DDrawSurface::GetDC: Failed D3D9 call");
-        return hr9;
-      }
-    }
-
     Logger::debug("<<< DDrawSurface::GetDC: Proxy");
 
     // Write back any dirty surface data from bound D3D9 back buffers or depth stencils
-    DownloadSurfaceData(this);
+    DownloadSurfaceData();
 
     return GetShadowOrProxied()->GetDC(lphDC);
   }
@@ -844,61 +832,31 @@ namespace dxvk {
     Logger::debug("<<< DDrawSurface::Lock: Proxy");
 
     // Write back any dirty surface data from bound D3D9 back buffers or depth stencils
-    DownloadSurfaceData(this);
+    DownloadSurfaceData();
 
     return GetShadowOrProxied()->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::ReleaseDC(HDC hDC) {
-    if (likely(!m_commonIntf->GetOptions()->forceLegacyPresent)) {
-      // Foward ReleaseDC calls if we have drawn and the surface is flippable
-      RefreshD3D9Device();
-      if (m_d3d9Device != nullptr && (m_commonIntf->HasDrawn() &&
-                                      m_commonSurf->IsD3D9BackBuffer())) {
-        Logger::debug(">>> DDrawSurface::ReleaseDC");
-
-        if (unlikely(!IsInitialized())) {
-          HRESULT hrUpload = InitializeOrUploadD3D9();
-          if (unlikely(FAILED(hrUpload)))
-            Logger::warn("DDrawSurface::ReleaseDC: Failed to initialize d3d9 surface");
-        }
-
-        HRESULT hr9 = m_d3d9->ReleaseDC(hDC);
-        if (unlikely(FAILED(hr9)))
-          Logger::warn("DDrawSurface::ReleaseDC: Failed D3D9 call");
-
-        if (m_commonSurf->IsPrimarySurface())
-          m_d3d9Device->Present(NULL, NULL, NULL, NULL);
-
-        return hr9;
-      }
-    }
-
     Logger::debug("<<< DDrawSurface::ReleaseDC: Proxy");
 
     HRESULT hr = GetShadowOrProxied()->ReleaseDC(hDC);
 
     if (likely(SUCCEEDED(hr))) {
-      // Textures get uploaded during SetTexture calls
-      if (m_commonSurf->IsTexture()) {
-        m_commonSurf->DirtyMipMaps();
-      } else if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent
-                       || m_commonIntf->GetOptions()->apitraceMode)) {
-        // We should ideally upload the surface contents here at all times,
-        // however some games are amazing, and do hundreds of locks on the same
-        // surface per frame, so this would absolutely tank performance
-        HRESULT hrUpload = InitializeOrUploadD3D9();
-        if (unlikely(FAILED(hrUpload)))
-          Logger::warn("DDrawSurface::ReleaseDC: Failed upload to d3d9 surface");
-      }
+      m_commonSurf->DirtyDDrawSurface();
 
-      if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
+      // Depth stencil uploads need to happen on the spot
+      if (unlikely(m_commonSurf->IsDepthStencil())) {
+        InitializeOrUploadD3D9();
+      } else if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
         const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
                                   !m_commonIntf->GetCommonD3DDevice()->IsInScene() :
                                    m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
                                    false : true;
-        if (shouldPresent)
+        if (shouldPresent) {
+          InitializeOrUploadD3D9();
           m_d3d9Device->Present(NULL, NULL, NULL, NULL);
+        }
       }
     }
 
@@ -990,22 +948,21 @@ namespace dxvk {
     HRESULT hr = GetShadowOrProxied()->Unlock(lpSurfaceData);
 
     if (likely(SUCCEEDED(hr))) {
-      // Textures and cubemaps get uploaded during SetTexture calls
-      if (!m_commonSurf->IsTexture()) {
-        HRESULT hrUpload = InitializeOrUploadD3D9();
-        if (unlikely(FAILED(hrUpload)))
-          Logger::warn("DDrawSurface::Unlock: Failed upload to d3d9 surface");
-      } else {
-        m_commonSurf->DirtyMipMaps();
-      }
+      m_commonSurf->DirtyDDrawSurface();
 
-      if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
+      RefreshD3D9Device();
+      // Depth stencil uploads need to happen on the spot
+      if (unlikely(m_commonSurf->IsDepthStencil())) {
+        InitializeOrUploadD3D9();
+      } else if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
         const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
                                   !m_commonIntf->GetCommonD3DDevice()->IsInScene() :
                                    m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
                                    false : true;
-        if (shouldPresent)
+        if (shouldPresent) {
+          InitializeOrUploadD3D9();
           m_d3d9Device->Present(NULL, NULL, NULL, NULL);
+        }
       }
     }
 
@@ -1055,46 +1012,65 @@ namespace dxvk {
   }
 
   HRESULT DDrawSurface::InitializeD3D9RenderTarget() {
-    HRESULT hr = DD_OK;
-
     RefreshD3D9Device();
-
-    if (unlikely(!IsInitialized()))
-      hr = InitializeD3D9(true);
 
     m_commonSurf->MarkAsD3D9BackBuffer();
 
-    return hr;
+    if (unlikely(!IsInitialized()))
+      return InitializeD3D9(true);
+
+    return DD_OK;
   }
 
   HRESULT DDrawSurface::InitializeD3D9DepthStencil() {
-    HRESULT hr = DD_OK;
-
     RefreshD3D9Device();
-
-    if (unlikely(!IsInitialized()))
-      hr = InitializeD3D9(false);
 
     m_commonSurf->MarkAsD3D9DepthStencil();
 
-    return hr;
+    if (unlikely(!IsInitialized()))
+      return InitializeD3D9(false);
+
+    return DD_OK;
   }
 
   HRESULT DDrawSurface::InitializeOrUploadD3D9() {
-    HRESULT hr = DD_OK;
-
     RefreshD3D9Device();
 
-    if (likely(IsInitialized())) {
-      hr = UploadSurfaceData();
-    } else {
-      hr = InitializeD3D9(false);
-    }
+    if (unlikely(!IsInitialized()))
+      return InitializeD3D9(false);
 
-    return hr;
+    return UploadSurfaceData();
   }
 
-  HRESULT DDrawSurface::InitializeD3D9(const bool initRT) {
+  void DDrawSurface::DownloadSurfaceData() {
+    // Some games, like The Settlers IV, use multiple devices for rendering, one to handle
+    // terrain and the overall 3D scene, and one to create textures/sprites to overlay on
+    // top of it. Since DXVK's D3D9 backend does not restrict cross-device surface/texture
+    // use, simply skip changing assigned surface devices during downloads. This is essentially
+    // a hack, which by some miracle works well enough in some cases, though may explode in others.
+    if (likely(!m_commonIntf->GetOptions()->deviceResourceSharing))
+      RefreshD3D9Device();
+
+    if (unlikely(m_commonSurf->IsD3D9BackBuffer())) {
+      Logger::debug("DDrawSurface::DownloadSurfaceData: Surface is a bound swapchain surface");
+
+      if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
+        Logger::debug(str::format("DDrawSurface::DownloadSurfaceData: Downloading nr. [[1-", m_surfCount, "]]"));
+        BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(GetShadowOrProxied(), m_d3d9.ptr());
+        m_commonSurf->UnDirtyD3D9Surface();
+      }
+    } else if (unlikely(m_commonSurf->IsD3D9DepthStencil())) {
+      Logger::debug("DDrawSurface::DownloadSurfaceData: Surface is a bound depth stencil");
+
+      if (IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
+        Logger::debug(str::format("DDrawSurface::DownloadSurfaceData: Downloading nr. [[1-", m_surfCount, "]]"));
+        BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_proxy.ptr(), m_d3d9.ptr());
+        m_commonSurf->UnDirtyD3D9Surface();
+      }
+    }
+  }
+
+  inline HRESULT DDrawSurface::InitializeD3D9(const bool initRT) {
     if (unlikely(m_d3d9Device == nullptr)) {
       Logger::debug("DDrawSurface::InitializeD3D9: Null device, can't initialize right now");
       return DD_OK;
@@ -1414,12 +1390,11 @@ namespace dxvk {
   }
 
   inline HRESULT DDrawSurface::UploadSurfaceData() {
-    Logger::debug(str::format("DDrawSurface::UploadSurfaceData: Uploading nr. [[1-", m_surfCount, "]]"));
-
-    if (unlikely(m_commonIntf->HasDrawn() && m_commonSurf->IsD3D9BackBuffer())) {
-      Logger::debug("DDrawSurface::UploadSurfaceData: Skipping upload");
+    // Fast skip
+    if (!m_commonSurf->IsDDrawSurfaceDirty())
       return DD_OK;
-    }
+
+    Logger::debug(str::format("DDrawSurface::UploadSurfaceData: Uploading nr. [[1-", m_surfCount, "]]"));
 
     const d3d9::D3DFORMAT format = m_commonSurf->GetD3D9Format();
 
@@ -1428,56 +1403,15 @@ namespace dxvk {
                                                            m_proxy.ptr(), m_commonSurf->GetMipCount());
     // Blit surfaces directly
     } else {
-      if (unlikely(m_commonSurf->IsDepthStencil())) {
-        if (likely(m_commonIntf->GetOptions()->uploadDepthStencils)) {
-          Logger::debug("DDrawSurface::UploadSurfaceData: Uploading depth stencil");
-        } else {
-          Logger::debug("DDrawSurface::UploadSurfaceData: Skipping upload of depth stencil");
-          return DD_OK;
-        }
-      }
+      if (unlikely(m_commonSurf->IsDepthStencil()))
+        Logger::debug("DDrawSurface::UploadSurfaceData: Uploading depth stencil");
 
       BlitToD3D9Surface<IDirectDrawSurface, DDSURFACEDESC>(m_d3d9.ptr(), format, GetShadowOrProxied());
     }
 
+    m_commonSurf->UnDirtyDDrawSurface();
+
     return DD_OK;
-  }
-
-  inline void DDrawSurface::DownloadSurfaceData(DDrawSurface* surface) {
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
-
-    if (unlikely(surface->GetCommonSurface()->IsD3D9BackBuffer())) {
-      if (d3dOptions->backBufferWriteBack || d3dOptions->forceLegacyPresent || d3dOptions->apitraceMode) {
-        Logger::debug("DDrawSurface::DownloadSurfaceData: Surface is a bound swapchain surface");
-
-        if (unlikely(d3dOptions->apitraceMode && !surface->IsInitialized()))
-          surface->InitializeOrUploadD3D9();
-
-        if (surface->IsInitialized() && surface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
-          BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(surface->GetShadowOrProxied(), surface->GetD3D9());
-          surface->GetCommonSurface()->UnDirtyD3D9Surface();
-        }
-      } else {
-        static bool s_swapchainWarningShown;
-
-        if (!std::exchange(s_swapchainWarningShown, true))
-          Logger::warn("DDrawSurface::DownloadSurfaceData: Surface is a bound swapchain surface");
-      }
-    } else if (unlikely(surface->GetCommonSurface()->IsD3D9DepthStencil())) {
-      if (d3dOptions->depthWriteBack || d3dOptions->apitraceMode) {
-        Logger::debug("DDrawSurface::DownloadSurfaceData: Surface is a bound depth stencil");
-
-        if (surface->IsInitialized() && surface->GetCommonSurface()->IsD3D9SurfaceDirty()) {
-          BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(surface->GetProxied(), surface->GetD3D9());
-          surface->GetCommonSurface()->UnDirtyD3D9Surface();
-        }
-      } else {
-        static bool s_depthStencilWarningShown;
-
-        if (!std::exchange(s_depthStencilWarningShown, true))
-          Logger::warn("DDrawSurface::DownloadSurfaceData: Surface is a bound depth stencil");
-      }
-    }
   }
 
   inline HRESULT DDrawSurface::CreateDeviceInternal(REFIID riid, void** ppvObject) {
@@ -1653,6 +1587,8 @@ namespace dxvk {
       if (m_d3d9Device != nullptr) {
         Logger::debug("DDrawSurface: Device context has changed, clearing all D3D9 resources");
         m_d3d9 = nullptr;
+        if (m_shadowSurf != nullptr)
+          m_shadowSurf->SetD3D9(nullptr);
       }
 
       m_d3d9Device = d3d9Device;
