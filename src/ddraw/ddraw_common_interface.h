@@ -30,6 +30,11 @@ namespace dxvk {
 
     ~DDrawCommonInterface();
 
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
+      *ppvObject = this;
+      return S_OK;
+    }
+
     bool IsWrappedSurface(IDirectDrawSurface* surface) const;
 
     void AddWrappedSurface(IDirectDrawSurface* surface);
@@ -62,47 +67,12 @@ namespace dxvk {
 
     DDrawSurface* GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle) const;
 
-    void SetFlipRTSurfaceAndFlags(IUnknown* surf, DWORD flags) {
-      m_flipRTSurf  = surf;
-      m_flipRTFlags = flags;
-    }
-
-    IUnknown* GetFlipRTSurface() const {
-      return m_flipRTSurf;
-    }
-
-    DWORD GetFlipRTFlags() const {
-      return m_flipRTFlags;
-    }
-
-    bool HasDrawn() const {
-      // Returning true here means we skip all proxied back buffer blits,
-      // whereas returning false means we allow all proxied back buffer blits
-      return m_d3dOptions.backBufferGuard == D3DBackBufferGuard::Strict   ? true :
-             m_d3dOptions.backBufferGuard == D3DBackBufferGuard::Disabled ? false : m_hasDrawn;
-    }
-
     void MarkAsInitialized() {
       m_isInitialized = true;
     }
 
     bool IsInitialized() const {
       return m_isInitialized;
-    }
-
-    void UpdateDrawTracking() {
-      if (unlikely(!m_hasDrawn))
-        m_hasDrawn = true;
-    }
-
-    void ResetDrawTracking() {
-      if (likely(m_d3dOptions.backBufferGuard != D3DBackBufferGuard::Strict))
-        m_hasDrawn = false;
-    }
-
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
-      *ppvObject = this;
-      return S_OK;
     }
 
     void SetAdapterIdentifier(const d3d9::D3DADAPTER_IDENTIFIER9& adapterIdentifier9) {
@@ -247,9 +217,6 @@ namespace dxvk {
   private:
 
     bool                              m_isInitialized      = false;
-    // Track draw state on the common interface, since the back buffer
-    // guard should protect against global blits, not device specific ones
-    bool                              m_hasDrawn           = false;
     bool                              m_waitForVBlank      = true;
 
     DWORD                             m_cooperativeLevel   = 0;
@@ -258,9 +225,6 @@ namespace dxvk {
     DDrawCommonSurface*               m_rt                 = nullptr;
     HWND                              m_hWnd               = nullptr;
     DDrawModeSize                     m_modeSize           = { };
-
-    IUnknown*                         m_flipRTSurf         = nullptr;
-    DWORD                             m_flipRTFlags        = 0;
 
     d3d9::D3DADAPTER_IDENTIFIER9      m_adapterIdentifier9 = { };
 
