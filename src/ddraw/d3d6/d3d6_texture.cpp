@@ -122,7 +122,7 @@ namespace dxvk {
       m_parent->GetCommonSurface()->SetDesc2(desc2);
     }
 
-    m_parent->GetCommonSurface()->DirtyMipMaps();
+    m_parent->GetCommonSurface()->DirtyDDrawSurface();
 
     return hr;
   }
