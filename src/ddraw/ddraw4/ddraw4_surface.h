@@ -121,6 +121,14 @@ namespace dxvk {
 
     IDirectDrawSurface4* GetShadowOrProxied();
 
+    HRESULT InitializeD3D9RenderTarget();
+
+    HRESULT InitializeD3D9DepthStencil();
+
+    HRESULT InitializeOrUploadD3D9();
+
+    void DownloadSurfaceData();
+
     void SetShadowSurface(DDraw4Surface* shadowSurf) {
       m_shadowSurf = shadowSurf;
     }
@@ -176,19 +184,11 @@ namespace dxvk {
       m_commonSurf->SetIsAttached(false);
     }
 
-    HRESULT InitializeD3D9RenderTarget();
-
-    HRESULT InitializeD3D9DepthStencil();
-
-    HRESULT InitializeOrUploadD3D9();
-
   private:
 
     inline HRESULT InitializeD3D9(const bool initRT);
 
     inline HRESULT UploadSurfaceData();
-
-    inline void DownloadSurfaceData(DDraw4Surface* surface);
 
     inline void RefreshD3D9Device();
 
@@ -207,6 +207,8 @@ namespace dxvk {
     Com<D3D6Texture, false>      m_texture6;
 
     Com<d3d9::IDirect3DTexture9> m_texture9;
+
+    DDraw4Surface*               m_nextFlippable = nullptr;
 
     // Offscreen plain surface we use to mask unwanted DDraw interactions, such
     // as forced swapchain presents caused by blits/locks on primary surfaces

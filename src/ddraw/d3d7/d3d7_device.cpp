@@ -73,14 +73,16 @@ namespace dxvk {
 
   D3D7Device::~D3D7Device() {
     if (LogIndexBufferUsageStats()) {
-      Logger::info("D3D7Device: Index buffer upload statistics:");
-      Logger::info(str::format("   XXS: ", m_ib9_uploads[0]));
-      Logger::info(str::format("   XS : ", m_ib9_uploads[1]));
-      Logger::info(str::format("   S  : ", m_ib9_uploads[2]));
-      Logger::info(str::format("   M  : ", m_ib9_uploads[3]));
-      Logger::info(str::format("   L  : ", m_ib9_uploads[4]));
-      Logger::info(str::format("   XL : ", m_ib9_uploads[5]));
-      Logger::info(str::format("   XXL: ", m_ib9_uploads[6]));
+      Logger::debug("D3D7Device: Index buffer upload statistics:");
+      Logger::debug(str::format("   0.5 kb : ", m_ib9_uploads[0]));
+      Logger::debug(str::format("   1   kb : ", m_ib9_uploads[1]));
+      Logger::debug(str::format("   2   kb : ", m_ib9_uploads[2]));
+      Logger::debug(str::format("   4   kb : ", m_ib9_uploads[3]));
+      Logger::debug(str::format("   8   kb : ", m_ib9_uploads[4]));
+      Logger::debug(str::format("   16  kb : ", m_ib9_uploads[5]));
+      Logger::debug(str::format("   32  kb : ", m_ib9_uploads[6]));
+      Logger::debug(str::format("   64  kb : ", m_ib9_uploads[7]));
+      Logger::debug(str::format("   128 kb : ", m_ib9_uploads[8]));
     }
 
     if (m_commonD3DDevice->GetD3D7Device() == this)
@@ -233,16 +235,8 @@ namespace dxvk {
 
     HRESULT hr = m_d3d9->EndScene();
 
-    if (likely(SUCCEEDED(hr))) {
-      if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
-        // Allow uploads to the D3D9 back buffer once a scene completes,
-        // in order to reflect any post-rendering blits an application does
-        if (likely(m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
-          m_commonIntf->ResetDrawTracking();
-      }
-
+    if (likely(SUCCEEDED(hr)))
       m_commonD3DDevice->SetInScene(false);
-    }
 
     return hr;
   }
@@ -884,6 +878,8 @@ namespace dxvk {
     if (unlikely(lpvVertices == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    m_rt->InitializeOrUploadD3D9();
+
     m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
@@ -897,7 +893,6 @@ namespace dxvk {
     }
 
     UpdateSurfaceDirtyTracking(true, true, true);
-    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -914,6 +909,8 @@ namespace dxvk {
 
     if (unlikely(lpvVertices == nullptr || lpwIndices == nullptr))
       return DDERR_INVALIDPARAMS;
+
+    m_rt->InitializeOrUploadD3D9();
 
     m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
@@ -932,7 +929,6 @@ namespace dxvk {
     }
 
     UpdateSurfaceDirtyTracking(true, true, true);
-    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -976,6 +972,8 @@ namespace dxvk {
     if (unlikely(lpVertexArray == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    m_rt->InitializeOrUploadD3D9();
+
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
 
@@ -992,7 +990,6 @@ namespace dxvk {
     }
 
     UpdateSurfaceDirtyTracking(true, true, true);
-    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -1009,6 +1006,8 @@ namespace dxvk {
 
     if (unlikely(lpVertexArray == nullptr || lpwIndices == nullptr))
       return DDERR_INVALIDPARAMS;
+
+    m_rt->InitializeOrUploadD3D9();
 
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
@@ -1030,7 +1029,6 @@ namespace dxvk {
     }
 
     UpdateSurfaceDirtyTracking(true, true, true);
-    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -1055,6 +1053,8 @@ namespace dxvk {
       return D3DERR_VERTEXBUFFERLOCKED;
     }
 
+    m_rt->InitializeOrUploadD3D9();
+
     m_d3d9->SetFVF(vb->GetFVF());
     m_d3d9->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
     HRESULT hr = m_d3d9->DrawPrimitive(
@@ -1068,7 +1068,6 @@ namespace dxvk {
     }
 
     UpdateSurfaceDirtyTracking(true, true, true);
-    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -1099,9 +1098,11 @@ namespace dxvk {
       ibIndex++;
       if (unlikely(ibIndex > ddrawCaps::IndexBufferCount - 1)) {
         Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Exceeded size of largest index buffer");
-        return DDERR_GENERIC;
+        return DDERR_UNSUPPORTED;
       }
     }
+
+    m_rt->InitializeOrUploadD3D9();
 
     d3d9::IDirect3DIndexBuffer9* ib9 = m_ib9[ibIndex].ptr();
 
@@ -1124,7 +1125,6 @@ namespace dxvk {
     }
 
     UpdateSurfaceDirtyTracking(true, true, true);
-    m_commonIntf->UpdateDrawTracking();
 
     return hr;
   }
@@ -1209,30 +1209,22 @@ namespace dxvk {
       return DDERR_UNSUPPORTED;
     }
 
-    DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
-
     Logger::debug("D3D7Device::SetTexture: Binding D3D9 texture");
 
-    // Only upload textures if any sort of blit/lock operation
-    // has been performed on them since the last SetTexture call,
-    // or textures which have been used on a different device, and
-    // need their D3D9 object to be reinitialized at this point
-    if (surface7->GetCommonSurface()->HasDirtyMipMaps() ||
-        unlikely(surface7->GetD3D9Device() != m_d3d9.ptr())) {
-      hr = surface7->InitializeOrUploadD3D9();
-      if (unlikely(FAILED(hr))) {
-        Logger::err("D3D7Device::SetTexture: Failed to initialize/upload D3D9 texture");
-        return hr;
-      }
+    DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
 
-      surface7->GetCommonSurface()->UnDirtyMipMaps();
-    } else {
-      Logger::debug("D3D7Device::SetTexture: Skipping upload of texture and mip maps");
+    // If textures have been used on a different device, they
+    // will get their D3D9 object reinitialized at this point
+    if (unlikely(surface7->GetD3D9Device() != m_d3d9.ptr()))
+      surface7->GetCommonSurface()->DirtyDDrawSurface();
+
+    hr = surface7->InitializeOrUploadD3D9();
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D7Device::SetTexture: Failed to initialize/upload D3D9 texture");
+      return hr;
     }
 
-    // Only fast skip on D3D9 side, since we want to ensure
-    // color keying is applied properly even in the case
-    // of the same texture being set again (color key may change)
+    // Don't fast skip, since color key might change
     //if (unlikely(m_textures[stage] == surface7))
       //return D3D_OK;
 
@@ -1275,8 +1267,8 @@ namespace dxvk {
     if (unlikely(lpdwState == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // In the case of D3DTSS_ADDRESS, which is D3D7 specific,
-    // simply return based on D3DTSS_ADDRESSU
+    // In the case of D3DTSS_ADDRESS, which is exclusive to D3D7
+    // and D3D6, simply return based on D3DTSS_ADDRESSU
     if (d3dTexStageStateType == D3DTSS_ADDRESS) {
       return m_d3d9->GetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSU, lpdwState);
     }
@@ -1303,8 +1295,8 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGESTATETYPE d3dTexStageStateType, DWORD dwState) {
     Logger::debug(">>> D3D7Device::SetTextureStageState");
 
-    // In the case of D3DTSS_ADDRESS, which is D3D7 specific,
-    // we need to set up both D3DTSS_ADDRESSU and D3DTSS_ADDRESSV
+    // In the case of D3DTSS_ADDRESS, which is exclusive to D3D7
+    // and D3D6, we need to set up both D3DTSS_ADDRESSU and D3DTSS_ADDRESSV
     if (d3dTexStageStateType == D3DTSS_ADDRESS) {
       m_d3d9->SetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSU, dwState);
       return m_d3d9->SetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSV, dwState);
@@ -1381,15 +1373,7 @@ namespace dxvk {
       ddraw7SurfaceDst->GetCommonSurface()->SetDesc2(desc2);
     }
 
-    // Textures and cubemaps get uploaded during SetTexture calls
-    if (!ddraw7SurfaceDst->GetCommonSurface()->IsTextureOrCubeMap()) {
-      HRESULT hrInitDst = ddraw7SurfaceDst->InitializeOrUploadD3D9();
-      if (unlikely(FAILED(hrInitDst))) {
-        Logger::err("D3D7Device::Load: Failed to upload D3D9 destination surface data");
-      }
-    } else {
-      ddraw7SurfaceDst->GetCommonSurface()->DirtyMipMaps();
-    }
+    ddraw7SurfaceDst->GetCommonSurface()->DirtyDDrawSurface();
 
     return hr;
   }
@@ -1504,7 +1488,7 @@ namespace dxvk {
     for (uint8_t ibIndex = 0; ibIndex < ddrawCaps::IndexBufferCount ; ibIndex++) {
       const UINT ibSize = ddrawCaps::IndexCount[ibIndex] * sizeof(WORD);
 
-      Logger::debug(str::format("D3D7Device::InitializeIndexBuffer: Creating index buffer, size: ", ibSize));
+      Logger::debug(str::format("D3D7Device::InitializeIndexBuffer: Creating D3D9 index buffer, size: ", ibSize));
 
       HRESULT hr = m_d3d9->CreateIndexBuffer(ibSize, Usage, d3d9::D3DFMT_INDEX16,
                                              d3d9::D3DPOOL_DEFAULT, &m_ib9[ibIndex], nullptr);

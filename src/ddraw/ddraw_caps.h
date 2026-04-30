@@ -15,9 +15,10 @@ namespace dxvk::ddrawCaps {
 
   static constexpr uint32_t MaxEnabledLights        = 8;
 
-  static constexpr uint8_t  IndexBufferCount        = 7;
-  // Index buffer sizes of XXS, XS, S, M, L, XL and XXL, corresponding to 0.1 kb, 0.5 kb, 2 kb, 8 kb, 32 kb, 64 kb and 128 kb
-  static constexpr UINT     IndexCount[IndexBufferCount] = {64, 256, 1024, 4096, 16384, 32768, D3DMAXNUMVERTICES};
+  static constexpr uint8_t  IndexBufferCount        = 9;
+  // Actual index buffer sizes are 2x, so 0.5 kb, 1kb, 2 kb, 4kb, 8 kb, 16kb, 32 kb, 64 kb and 128 kb
+  // Note: The DXVK backend gives us 256 byte chunks anyway as a minimum, so there's no point going below that
+  static constexpr UINT     IndexCount[IndexBufferCount] = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, D3DMAXNUMVERTICES};
 
   static constexpr uint8_t  NumberOfFOURCCCodes     = 6;
   static constexpr DWORD    SupportedFourCCs[]      =

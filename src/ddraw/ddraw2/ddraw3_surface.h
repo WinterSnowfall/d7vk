@@ -107,6 +107,8 @@ namespace dxvk {
 
     IDirectDrawSurface3* GetShadowOrProxied();
 
+    void DownloadSurfaceData();
+
     void SetShadowSurface(DDraw3Surface* shadowSurf) {
       m_shadowSurf = shadowSurf;
     }
@@ -166,8 +168,6 @@ namespace dxvk {
     }
 
   private:
-
-    inline void DownloadSurfaceData(DDraw3Surface* surface);
 
     inline void RefreshD3D9Device();
 

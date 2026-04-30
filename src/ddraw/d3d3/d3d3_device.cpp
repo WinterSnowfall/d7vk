@@ -422,16 +422,8 @@ namespace dxvk {
 
     HRESULT hr = m_d3d9->EndScene();
 
-    if (likely(SUCCEEDED(hr))) {
-      if (unlikely(m_commonIntf->GetOptions()->forceLegacyPresent)) {
-        // Allow uploads to the D3D9 back buffer once a scene completes,
-        // in order to reflect any post-rendering blits an application does
-        if (likely(m_commonIntf->GetOptions()->backBufferGuard != D3DBackBufferGuard::Strict))
-          m_commonIntf->ResetDrawTracking();
-      }
-
+    if (likely(SUCCEEDED(hr)))
       m_commonD3DDevice->SetInScene(false);
-    }
 
     return hr;
   }
@@ -1370,6 +1362,8 @@ namespace dxvk {
   }
 
   inline void D3D3Device::DrawTriangleInternal(D3DTRIANGLE* triangle, uint16_t count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer) {
+    m_rt->InitializeOrUploadD3D9();
+
     std::vector<D3DTLVERTEX> vertices;
 
     for (uint16_t i = 0; i < count; i++) {
@@ -1402,7 +1396,6 @@ namespace dxvk {
 
       if (SUCCEEDED(hr)) {
         UpdateSurfaceDirtyTracking(true, true, true);
-        m_commonIntf->UpdateDrawTracking();
 
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_TRIANGLE drawn vertices: ", vertices.size()));
         m_stats.dwTrianglesDrawn += std::max<DWORD>(vertices.size() / 3, 0u);
@@ -1415,6 +1408,8 @@ namespace dxvk {
   }
 
   inline void D3D3Device::DrawLineInternal(D3DLINE* line, uint16_t count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer) {
+    m_rt->InitializeOrUploadD3D9();
+
     std::vector<D3DTLVERTEX> vertices;
 
     for (uint16_t i = 0; i < count; i++) {
@@ -1437,7 +1432,6 @@ namespace dxvk {
 
       if (SUCCEEDED(hr)) {
         UpdateSurfaceDirtyTracking(true, true, true);
-        m_commonIntf->UpdateDrawTracking();
 
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_LINE drawn vertices: ", vertices.size()));
         m_stats.dwLinesDrawn += std::max<DWORD>(vertices.size() / 2, 0u);
@@ -1450,6 +1444,8 @@ namespace dxvk {
   }
 
   inline void D3D3Device::DrawPointInternal(D3DPOINT* point, uint16_t count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer) {
+    m_rt->InitializeOrUploadD3D9();
+
     std::vector<D3DTLVERTEX> vertices;
 
     for (uint16_t i = 0; i < count; i++) {
@@ -1473,7 +1469,6 @@ namespace dxvk {
 
       if (SUCCEEDED(hr)) {
         UpdateSurfaceDirtyTracking(true, true, true);
-        m_commonIntf->UpdateDrawTracking();
 
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_POINT drawn vertices: ", vertices.size()));
         m_stats.dwPointsDrawn += static_cast<DWORD>(vertices.size());
@@ -1485,6 +1480,8 @@ namespace dxvk {
   }
 
   inline void D3D3Device::DrawSpanInternal(D3DSPAN* span, uint16_t count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer) {
+    m_rt->InitializeOrUploadD3D9();
+
     std::vector<D3DTLVERTEX> vertices;
 
     for (uint16_t i = 0; i < count; i++) {
@@ -1508,7 +1505,6 @@ namespace dxvk {
 
       if (SUCCEEDED(hr)) {
         UpdateSurfaceDirtyTracking(true, true, true);
-        m_commonIntf->UpdateDrawTracking();
 
         Logger::debug(str::format("D3D3Device::Execute: D3DOP_SPAN drawn vertices: ", vertices.size()));
         m_stats.dwSpansDrawn += std::max<DWORD>(vertices.size() - 1, 0u);
@@ -1559,26 +1555,18 @@ namespace dxvk {
 
     Logger::debug("D3D3Device::SetTextureInternal: Binding D3D9 texture");
 
-    // Only upload textures if any sort of blit/lock operation
-    // has been performed on them since the last SetTexture call,
-    // or textures which have been used on a different device, and
-    // need their D3D9 object to be reinitialized at this point
-    if (surface->GetCommonSurface()->HasDirtyMipMaps() ||
-        unlikely(surface->GetD3D9Device() != m_d3d9.ptr())) {
-      hr = surface->InitializeOrUploadD3D9();
-      if (unlikely(FAILED(hr))) {
-        Logger::err("D3D3Device::SetTextureInternal: Failed to initialize/upload D3D9 texture");
-        return hr;
-      }
+    // If textures have been used on a different device, they
+    // will get their D3D9 object reinitialized at this point
+    if (unlikely(surface->GetD3D9Device() != m_d3d9.ptr()))
+      surface->GetCommonSurface()->DirtyDDrawSurface();
 
-      surface->GetCommonSurface()->UnDirtyMipMaps();
-    } else {
-      Logger::debug("D3D3Device::SetTextureInternal: Skipping upload of texture and mip maps");
+    hr = surface->InitializeOrUploadD3D9();
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D3Device::SetTexture: Failed to initialize/upload D3D9 texture");
+      return hr;
     }
 
-    // Only fast skip on D3D9 side, since we want to ensure
-    // color keying is applied properly even in the case
-    // of the same texture being set again (color key may change)
+    // Don't fast skip, since color key might change
     //if (unlikely(m_textureHandle == textureHandle))
       //return D3D_OK;
 
