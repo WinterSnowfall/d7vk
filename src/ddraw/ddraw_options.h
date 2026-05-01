@@ -50,9 +50,6 @@ namespace dxvk {
     /// Correction offset for X/Y vertex position
     float vertexOffset;
 
-    /// Circumvents the texelFetch color key shader path
-    bool colorKeyCompatibility;
-
     /// Map all back buffers onto a single D3D9 back buffer
     bool forceSingleBackBuffer;
 
@@ -97,7 +94,6 @@ namespace dxvk {
       this->forceLegacyDiscard    = config.getOption<bool>   ("ddraw.forceLegacyDiscard",    false);
       this->cpuProcessVertices    = config.getOption<bool>   ("ddraw.cpuProcessVertices",     true);
       this->vertexOffset          = config.getOption<float>  ("ddraw.vertexOffset",           0.0f);
-      this->colorKeyCompatibility = config.getOption<bool>   ("ddraw.colorKeyCompatibility", false);
       this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);
       this->forceLegacyPresent    = config.getOption<bool>   ("ddraw.forceLegacyPresent",    false);

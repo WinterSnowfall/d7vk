@@ -1395,7 +1395,6 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.legacyPresentGuard",       "Strict" },
       { "ddraw.emulateFSAA",                "True" },
-      { "ddraw.colorKeyCompatibility",      "True" },
     }} },
     /* Sacrifice - Prevents hitching on asset     *
      * loading and fixes broken AI above 60 FPS.  *
@@ -1485,6 +1484,13 @@ namespace dxvk {
     /* SCP - Containment Breach                   *
      * Crashes without multithreading protection  */
     { R"(\\SCP - Containment Breach\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.emulateFSAA",                "True" },
+      { "ddraw.forceMultiThreaded",         "True" },
+    }} },
+    /* SCP - Nine-Tailed Fox                      *
+     * Same engine as Containment Breach          */
+    { R"(\\SCP Nine-Tailed Fox\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.emulateFSAA",                "True" },
       { "ddraw.forceMultiThreaded",         "True" },
@@ -1643,10 +1649,6 @@ namespace dxvk {
     /* Age of Wonders II: The Wizard's Throne     */
     { R"(\\AoW2\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-    }} },
-    /* Hard Truck 2: King of the Road             */
-    { R"(\\king\.exe$)", {{
-      { "ddraw.colorKeyCompatibility",      "True" },
     }} },
     /* Anno 1503                                  *
      * Fixes missing loading screens              */
@@ -1808,7 +1810,6 @@ namespace dxvk {
      * Fixes unit and building transparency       */
     { R"(\\MFatigue\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.colorKeyCompatibility",      "True" },
     }} },
     /* Simon The Sorcerer 3D                      *
      * Fixes Z-fighting artifacts with D16        */
@@ -1818,7 +1819,6 @@ namespace dxvk {
     /* DethKarz - fixes crash post intro playback */
     { R"(\\Dethkarz\.exe$)", {{
       { "ddraw.mask8BitModes",              "True" },
-      { "ddraw.colorKeyCompatibility",      "True" },
     }} },
     /* Tomb Raider: The Last Revelation           */
     { R"(\\tomb4\.exe$)", {{
@@ -1828,12 +1828,9 @@ namespace dxvk {
     { R"(\\PCTomb5\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
-    /* Prince of Persia 3D                        *
-     * Increases performance and addresses        *
-     * missing background element visibility      */
+    /* Prince of Persia 3D                        */
     { R"(\\POP3D(Demo)?\.exe$)", {{
       { "d3d9.cachedWriteOnlyBuffers",      "True" },
-      { "ddraw.colorKeyCompatibility",      "True" },
     }} },
     /* Jurassic Park: Trespasser                  */
     { R"(\\trespass\.exe$)", {{
@@ -1907,11 +1904,9 @@ namespace dxvk {
     { R"(\\The Longest Journey\\game\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
-    /* Tom Clancy's Rainbow Six                   *
-     * Fixes broken color key transparency        */
+    /* Tom Clancy's Rainbow Six                   */
     { R"(\\RainbowSix\.exe$)", {{
       { "ddraw.forceSingleBackBuffer",      "True" },
-      { "ddraw.colorKeyCompatibility",      "True" },
     }} },
     /* Incoming - fixes load screen flickering    */
     { R"(\\incoming\.exe$)", {{
