@@ -73,6 +73,11 @@ namespace dxvk {
       return &m_desc;
     }
 
+    uint8_t GetColorBitCount() const {
+      return (m_desc2.dwFlags & DDSD_PIXELFORMAT) ? m_desc2.ddpfPixelFormat.dwRGBBitCount
+                                                  : m_desc.ddpfPixelFormat.dwRGBBitCount;
+    }
+
     bool IsAlphaFormat() const {
       return ((m_desc2.dwFlags & DDSD_PIXELFORMAT) && (m_desc2.ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS))
           || ((m_desc.dwFlags  & DDSD_PIXELFORMAT) && (m_desc.ddpfPixelFormat.dwFlags  & DDPF_ALPHAPIXELS));
