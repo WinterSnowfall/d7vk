@@ -81,6 +81,7 @@ namespace dxvk {
     PushDataFfvs,
     PushDataFfps,
 
+    FFTextureWrap,
     FFColorKeyState,
     FFColorKey,
     FFLegacyLightsState,
@@ -957,6 +958,8 @@ namespace dxvk {
     void UpdatePointMode(bool pointList);
 
     void UpdateFog();
+
+    void UpdateTextureWrap();
 
     void UpdateColorKeyState();
 
