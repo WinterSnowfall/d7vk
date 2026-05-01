@@ -74,6 +74,9 @@ namespace dxvk {
     /// Allow cross-device resource (surfaces/textures) use
     bool deviceResourceSharing;
 
+    /// Masks the color key values based on surface format color depth
+    bool colorKeyMasking;
+
     /// By default guards against legacy presents while inside of a scene
     D3DLegacyPresentGuard legacyPresentGuard;
 
@@ -102,6 +105,7 @@ namespace dxvk {
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
       this->autoGenMipMaps        = config.getOption<bool>   ("ddraw.autoGenMipMaps",        false);
       this->deviceResourceSharing = config.getOption<bool>   ("ddraw.deviceResourceSharing", false);
+      this->colorKeyMasking       = config.getOption<bool>   ("ddraw.colorKeyMasking",       false);
 
       // Clamp the vertex offset in the (sensible) -1.0f/1.0f range
       this->vertexOffset = dxvk::fclamp(this->vertexOffset, -1.0f, 1.0f);
