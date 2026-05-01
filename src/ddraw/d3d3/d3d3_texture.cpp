@@ -103,7 +103,7 @@ namespace dxvk {
   // Docs state: "This method only affects the legacy ramp device.
   // For all other devices, this method takes no action and returns D3D_OK."
   HRESULT STDMETHODCALLTYPE D3D3Texture::PaletteChanged(DWORD dwStart, DWORD dwCount) {
-    Logger::warn("!!! D3D3Texture::PaletteChanged: Stub");
+    Logger::debug(">>> D3D3Texture::PaletteChanged");
     return D3D_OK;
   }
 
@@ -138,10 +138,10 @@ namespace dxvk {
     return DDERR_ALREADYINITIALIZED;
   }
 
-  // Apparently unsupported, or at least undocumented
+  // Nothing to do here, this isn't managed texture unloading
   HRESULT STDMETHODCALLTYPE D3D3Texture::Unload() {
-    Logger::warn("!!! D3D3Texture::Unload: Stub");
-    return DDERR_UNSUPPORTED;
+    Logger::debug(">>> D3D3Texture::Unload");
+    return D3D_OK;
   }
 
 }

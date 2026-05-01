@@ -872,6 +872,16 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColorKey) {
     Logger::debug("<<< DDraw7Surface::SetColorKey: Proxy");
 
+    // The Combat Mission series of games set a color key which is
+    // outside the color range of the surface they are setting it on...
+    // clamp it to the surface color depth in that case. This doesn't
+    // appear to work well universally, however, so only apply when needed.
+    if (unlikely(m_commonIntf->GetOptions()->colorKeyMasking && lpDDColorKey != nullptr)) {
+      const uint8_t colorBitCount = m_commonSurf->GetColorBitCount();
+      lpDDColorKey->dwColorSpaceLowValue  &= (1 << colorBitCount) - 1;
+      lpDDColorKey->dwColorSpaceHighValue &= (1 << colorBitCount) - 1;
+    }
+
     HRESULT hr = m_proxy->SetColorKey(dwFlags, lpDDColorKey);
     if (unlikely(FAILED(hr)))
       return hr;
@@ -879,6 +889,17 @@ namespace dxvk {
     hr = m_commonSurf->RefreshSurfaceDescripton();
     if (unlikely(FAILED(hr)))
       Logger::err("DDraw7Surface::SetColorKey: Failed to retrieve updated surface desc");
+
+    if (unlikely(m_shadowSurf != nullptr)) {
+      hr = m_shadowSurf->GetProxied()->SetColorKey(dwFlags, lpDDColorKey);
+      if (unlikely(FAILED(hr))) {
+        Logger::warn("DDraw7Surface::SetColorKey: Failed to set shadow surface color key");
+      } else {
+        hr = m_shadowSurf->GetCommonSurface()->RefreshSurfaceDescripton();
+        if (unlikely(FAILED(hr)))
+          Logger::warn("DDraw7Surface::SetColorKey: Failed to retrieve updated shadow surface desc");
+      }
+    }
 
     return DD_OK;
   }

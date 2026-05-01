@@ -1834,6 +1834,21 @@ namespace dxvk {
     { R"(\\WMAIN\.EXE$)", {{
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
+    /* Combat Mission: Afrika Korps               *
+     * Fixes white backgrounds on text            */
+    { R"(\\CM Afrika Korps\.exe$)", {{
+      { "ddraw.colorKeyMasking",            "True" },
+    }} },
+    /* Combat Mission: Barbarossa to Berlin       *
+     * Fixes white backgrounds on text            */
+    { R"(\\Barbarossa to Berlin\.exe$)", {{
+      { "ddraw.colorKeyMasking",            "True" },
+    }} },
+    /* Combat Mission: Beyond Overlord            *
+     * Fixes white backgrounds on text            */
+    { R"(\\Combat Mission\.exe$)", {{
+      { "ddraw.colorKeyMasking",            "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */
@@ -1863,6 +1878,7 @@ namespace dxvk {
      * tied to framerate in various situations    */
     { R"(\\NC(_V12)?\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-30" },
+      { "ddraw.ignoreExclusiveMode",        "True" },
     }} },
     /* Deathtrap Dungeon                          *
      * Accelerated menu animations above 30 FPS   */
