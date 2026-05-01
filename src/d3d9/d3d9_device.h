@@ -84,6 +84,7 @@ namespace dxvk {
     DepthBounds,
     PointScale,
 
+    FFTextureWrap,
     FFColorKeyState,
     FFColorKey,
     FFLegacyLightsState,
@@ -997,6 +998,8 @@ namespace dxvk {
     void UpdatePointMode(bool pointList);
 
     void UpdateFog();
+
+    void UpdateTextureWrap();
 
     void UpdateColorKeyState();
 

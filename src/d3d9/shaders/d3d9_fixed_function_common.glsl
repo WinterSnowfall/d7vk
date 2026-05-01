@@ -8,6 +8,9 @@ const uint D3DFOG_EXP    = 1;
 const uint D3DFOG_EXP2   = 2;
 const uint D3DFOG_LINEAR = 3;
 
+const uint WRAPMODE_CLAMP  = 1;
+const uint WRAPMODE_MIRROR = 2;
+
 struct D3D9RenderStateInfo {
     float fogColor[3];
     float fogScale;
@@ -154,12 +157,13 @@ const uint SpecFFTextureStage4AlphaArg0 = 86;
 const uint SpecFFTextureStage5AlphaArg0 = 87;
 const uint SpecFFTextureStage6AlphaArg0 = 88;
 const uint SpecFFTextureStage7AlphaArg0 = 89;
-const uint SpecFFColorKeyEnabled        = 90;
-const uint SpecFFColorKeyCompatibility  = 91;
-const uint SpecFFUseLegacyLights        = 92;
-const uint SpecFFColorKeyLow            = 93;
-const uint SpecFFColorKeyHigh           = 94;
-const uint SpecConstantCount = 95;
+const uint SpecFFTextureWrapU           = 90;
+const uint SpecFFTextureWrapV           = 91;
+const uint SpecFFColorKeyEnabled        = 92;
+const uint SpecFFUseLegacyLights        = 93;
+const uint SpecFFColorKeyLow            = 94;
+const uint SpecFFColorKeyHigh           = 95;
+const uint SpecConstantCount = 96;
 
 struct BitfieldPosition {
     uint dwordOffset;
@@ -276,13 +280,14 @@ BitfieldPosition SpecConstLayout[SpecConstantCount] = {
     { 16,  5, 5 },  // FFTextureStage5AlphaArg0
     { 16, 10, 5 },  // FFTextureStage6AlphaArg0
     { 16, 15, 5 },  // FFTextureStage7AlphaArg0
-    { 16, 20, 1 },  // FFColorKeyEnable
-    { 16, 21, 1 },  // FFColorKeyCompatibility
-    { 16, 22, 1 },  // FFUseLegacyLights
+    { 16, 20, 2 },  // FFTextureWrapX
+    { 16, 22, 2 },  // FFTextureWrapY
+    { 16, 24, 1 },  // FFColorKeyEnable
+    { 16, 25, 1 },  // FFUseLegacyLights
 
-    { 17,  0, 24 }, // FFColorKeyLow
+    { 17,  0, 32 }, // FFColorKeyLow
 
-    { 18,  0, 24 }, // FFColorKeyHigh
+    { 18,  0, 32 }, // FFColorKeyHigh
 };
 
 bool specIsOptimized() {
