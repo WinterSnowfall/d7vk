@@ -80,9 +80,6 @@ namespace dxvk {
     // D3D8 options
     this->drefScaling                   = config.getOption<int32_t>     ("d3d8.scaleDref",                     0);
 
-    // D3D7/6/5/DDraw options
-    this->colorKeyCompatibility         = config.getOption<bool>        ("ddraw.colorKeyCompatibility",        false);
-
     // Clamp the shader model value between 0 and 3
     this->shaderModel    = dxvk::clamp(this->shaderModel, 0u, 3u);
     // Clamp LOD bias so that people don't abuse this in unintended ways

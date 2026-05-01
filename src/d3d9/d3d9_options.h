@@ -168,9 +168,6 @@ namespace dxvk {
     /// Use the uber shader for fixed function fragment shaders.
     bool ffUbershaderFS;
 
-    /// Circumvents the texelFetch color key shader path.
-    bool colorKeyCompatibility;
-
   };
 
 }

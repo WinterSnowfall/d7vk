@@ -899,13 +899,17 @@ namespace dxvk {
     DDCOLORKEY r = GetColorChannel(colorKey, fmt->dwRBitMask);
     DDCOLORKEY g = GetColorChannel(colorKey, fmt->dwGBitMask);
     DDCOLORKEY b = GetColorChannel(colorKey, fmt->dwBBitMask);
+    DDCOLORKEY a = (fmt->dwFlags & DDPF_ALPHAPIXELS) ? GetColorChannel(colorKey, fmt->dwRGBAlphaBitMask)
+                                                     : DDCOLORKEY{255,255};
 
     rgbColorKey.dwColorSpaceLowValue  = r.dwColorSpaceLowValue |
                                        (g.dwColorSpaceLowValue << 8) |
-                                       (b.dwColorSpaceLowValue << 16);
+                                       (b.dwColorSpaceLowValue << 16)|
+                                       (a.dwColorSpaceLowValue << 24);
     rgbColorKey.dwColorSpaceHighValue = r.dwColorSpaceHighValue |
                                        (g.dwColorSpaceHighValue << 8) |
-                                       (b.dwColorSpaceHighValue << 16);
+                                       (b.dwColorSpaceHighValue << 16)|
+                                       (a.dwColorSpaceHighValue << 24);
 
     return rgbColorKey;
   }
