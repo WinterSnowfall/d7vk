@@ -287,19 +287,43 @@ vec4 sampleTexture(uint stage, vec4 texcoord, vec4 previousStageTextureVal) {
                 texcoord.z = adjustDref(texcoord.z, stage);
                 texVal = texture(sampler2DShadow(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), texcoord.xyz).xxxx;
             } else {
-                if (!specBool(SpecFFColorKeyCompatibility) && specBool(SpecFFColorKeyEnabled)) {
+                if (specBool(SpecFFColorKeyEnabled)) {
+                    const uint wrapModeU = bitfieldExtract(specUint(SpecFFTextureWrapU), 0, 2);
+                    const uint wrapModeV = bitfieldExtract(specUint(SpecFFTextureWrapV), 0, 2);
                     const ivec2 texSize = textureSize(sampler2D(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), 0);
-                    const ivec2 pixelCoord = ivec2(texcoord.xy * vec2(texSize));
+
+                    ivec2 pixelCoord = ivec2(texcoord.xy * vec2(texSize));
+                    if (wrapModeU == WRAPMODE_CLAMP) {
+                        pixelCoord.x = clamp(pixelCoord.x, 0, texSize.x - 1);
+                    } else if (wrapModeU == WRAPMODE_MIRROR) {
+                        int period = texSize.x * 2;
+                        pixelCoord.x = (pixelCoord.x % period + period) % period;
+                        pixelCoord.x = min(pixelCoord.x, period - pixelCoord.x - 1);
+                    } else {
+                        pixelCoord.x = (pixelCoord.x % texSize.x + texSize.x) % texSize.x;
+                    }
+                    if (wrapModeV == WRAPMODE_CLAMP) {
+                        pixelCoord.y = clamp(pixelCoord.y, 0, texSize.y - 1);
+                    } else if (wrapModeV == WRAPMODE_MIRROR) {
+                        int period = texSize.y * 2;
+                        pixelCoord.y = (pixelCoord.y % period + period) % period;
+                        pixelCoord.y = min(pixelCoord.y, period - pixelCoord.y - 1);
+                    } else {
+                        pixelCoord.y = (pixelCoord.y % texSize.y + texSize.y) % texSize.y;
+                    }
+
                     texVal = texelFetch(sampler2D(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), pixelCoord, 0);
                     const float ckrl = bitfieldExtract(specUint(SpecFFColorKeyLow),  0,  8);
                     const float ckgl = bitfieldExtract(specUint(SpecFFColorKeyLow),  8,  8);
                     const float ckbl = bitfieldExtract(specUint(SpecFFColorKeyLow),  16, 8);
+                    const float ckal = bitfieldExtract(specUint(SpecFFColorKeyLow),  24, 8);
                     const float ckrh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 0,  8);
                     const float ckgh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 8,  8);
                     const float ckbh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 16, 8);
-                    const ivec3 src = ivec3(texVal.rgb * 255.0);
-                    if (src.r >= ckrl && src.g >= ckgl && src.b >= ckbl &&
-                        src.r <= ckrh && src.g <= ckgh && src.b <= ckbh) {
+                    const float ckah = bitfieldExtract(specUint(SpecFFColorKeyHigh), 24, 8);
+                    const ivec4 src = ivec4(texVal.rgba * 255.0);
+                    if (src.r >= ckrl && src.g >= ckgl && src.b >= ckbl && src.a >= ckal &&
+                        src.r <= ckrh && src.g <= ckgh && src.b <= ckbh && src.a <= ckah) {
                         discard;
                     }
                 }
@@ -323,20 +347,6 @@ vec4 sampleTexture(uint stage, vec4 texcoord, vec4 previousStageTextureVal) {
             // Produce a value that's obviously wrong to make it obvious when it somehow does happen.
             texVal = vec4(999.9);
             break;
-    }
-
-    if (specBool(SpecFFColorKeyCompatibility) && specBool(SpecFFColorKeyEnabled)) {
-        const float ckrl = bitfieldExtract(specUint(SpecFFColorKeyLow),  0,  8);
-        const float ckgl = bitfieldExtract(specUint(SpecFFColorKeyLow),  8,  8);
-        const float ckbl = bitfieldExtract(specUint(SpecFFColorKeyLow),  16, 8);
-        const float ckrh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 0,  8);
-        const float ckgh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 8,  8);
-        const float ckbh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 16, 8);
-        const ivec3 src = ivec3(texVal.rgb * 255.0);
-        if (src.r >= ckrl && src.g >= ckgl && src.b >= ckbl &&
-            src.r <= ckrh && src.g <= ckgh && src.b <= ckbh) {
-            discard;
-        }
     }
 
     if (stage != 0 && previousStageColorOp == D3DTOP_BUMPENVMAPLUMINANCE) {

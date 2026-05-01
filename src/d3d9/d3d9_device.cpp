@@ -196,13 +196,13 @@ namespace dxvk {
     m_dirty.set(D3D9DeviceDirtyFlag::DepthBounds);
     m_dirty.set(D3D9DeviceDirtyFlag::PointScale);
 
+    m_dirty.set(D3D9DeviceDirtyFlag::FFTextureWrap);
     m_dirty.set(D3D9DeviceDirtyFlag::FFColorKeyState);
     m_dirty.set(D3D9DeviceDirtyFlag::FFColorKey);
     m_dirty.set(D3D9DeviceDirtyFlag::FFLegacyLightsState);
 
     m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
 
-    m_specInfo.set<SpecFFColorKeyCompatibility>(m_d3d9Options.colorKeyCompatibility ? true : false);
     m_specInfo.set<SpecDrefScaling, uint32_t>(m_d3d9Options.drefScaling);
 
     BindFFUbershader<D3D9ShaderType::VertexShader>();
@@ -4652,6 +4652,9 @@ namespace dxvk {
     if (unlikely(Type == D3DSAMP_MAGFILTER && (m_textureSlotTracking.fetch4SamplerState & samplerBit)))
       UpdateActiveFetch4(StateSampler);
 
+    if (RemapSamplerState(0) == StateSampler && (Type == D3DSAMP_ADDRESSU || Type == D3DSAMP_ADDRESSV))
+      UpdateTextureWrap();
+
     return D3D_OK;
   }
 
@@ -6937,6 +6940,21 @@ namespace dxvk {
   }
 
 
+  void D3D9DeviceEx::UpdateTextureWrap() {
+    m_dirty.clr(D3D9DeviceDirtyFlag::FFTextureWrap);
+
+    auto sampler = m_state.samplerStates[RemapSamplerState(0)];
+
+    DWORD addressU = sampler[D3DSAMP_ADDRESSU] == D3DTADDRESS_CLAMP ? 1
+                   : sampler[D3DSAMP_ADDRESSU] == D3DTADDRESS_MIRROR ? 2 : 0;
+    DWORD addressV = sampler[D3DSAMP_ADDRESSV] == D3DTADDRESS_CLAMP ? 1
+                   : sampler[D3DSAMP_ADDRESSV] == D3DTADDRESS_MIRROR ? 2 : 0;
+
+    if (m_specInfo.set<SpecFFTextureWrapU>(addressU) || m_specInfo.set<SpecFFTextureWrapV>(addressV))
+      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
+  }
+
+
   void D3D9DeviceEx::UpdateColorKeyState() {
     m_dirty.clr(D3D9DeviceDirtyFlag::FFColorKeyState);
 
@@ -7691,6 +7709,9 @@ namespace dxvk {
       FlushBuffer(ibo);
 
     UpdateFog();
+
+    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFTextureWrap)))
+      UpdateTextureWrap();
 
     if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFColorKeyState)))
       UpdateColorKeyState();
