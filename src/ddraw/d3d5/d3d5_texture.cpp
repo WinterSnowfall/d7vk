@@ -102,7 +102,7 @@ namespace dxvk {
   // Docs state: "This method only affects the legacy ramp device.
   // For all other devices, this method takes no action and returns D3D_OK."
   HRESULT STDMETHODCALLTYPE D3D5Texture::PaletteChanged(DWORD dwStart, DWORD dwCount) {
-    Logger::warn("!!! D3D5Texture::PaletteChanged: Stub");
+    Logger::debug(">>> D3D5Texture::PaletteChanged");
     return D3D_OK;
   }
 
