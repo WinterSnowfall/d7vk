@@ -165,7 +165,7 @@ namespace dxvk {
       pvData.vertexCount = dwCount;
       pvData.correction = commonViewport->GetLegacyProjectionMatrix(0);
       pvData.dsStatus = nullptr;
-      pvData.clipStatus = device->GetClipStatusInternal();
+      pvData.clipStatus = device->GetCommonD3DDevice()->GetClipStatusInternal();
       pvData.doLighting = dwVertexOp & D3DVOP_LIGHT;
       pvData.doClipping = dwVertexOp & D3DVOP_CLIP;
       pvData.doNotCopyData = dwFlags & D3DPV_DONOTCOPYDATA;
