@@ -1774,9 +1774,13 @@ namespace dxvk {
     { R"(\\gorky17\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
-    /* Revenant                                   */
+    /* Revenant                                   *
+     * Fixes blurry texture filtering and         *
+     * too dark in-game gamma/brightness          */
     { R"(\\Revenant\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.forcePOW2Textures",          "True" },
+      { "ddraw.ignoreGammaRamp",            "True "},
     }} },
     /* Re-Volt                                    */
     { R"(\\revolt\.exe$)", {{

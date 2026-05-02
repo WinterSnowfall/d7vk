@@ -144,18 +144,6 @@ namespace dxvk {
       m_linePattern = linePattern;
     }
 
-    D3DCLIPSTATUS GetClipStatus() const {
-      return m_clipStatus;
-    }
-
-    void SetClipStatus(D3DCLIPSTATUS clipStatus) {
-      m_clipStatus = clipStatus;
-    }
-
-    D3DCLIPSTATUS* GetClipStatusInternal() {
-      return &m_clipStatus;
-    }
-
     DWORD GetTextureMapBlend() const {
       return m_textureMapBlend;
     }
@@ -227,8 +215,6 @@ namespace dxvk {
     DWORD                       m_antialias           = D3DANTIALIAS_NONE;
     // Value of D3DRENDERSTATE_LINEPATTERN
     D3DLINEPATTERN              m_linePattern         = { };
-    // Value of D3DCLIPSTATUS
-    D3DCLIPSTATUS               m_clipStatus          = { };
     // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
     DWORD                       m_textureMapBlend     = D3DTBLEND_MODULATE;
 
