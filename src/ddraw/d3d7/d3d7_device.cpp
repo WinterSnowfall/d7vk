@@ -16,6 +16,7 @@ namespace dxvk {
         Com<IDirect3DDevice7>&& d3d7DeviceProxy,
         D3D7Interface* pParent,
         D3DDEVICEDESC7 Desc,
+        GUID deviceGUID,
         d3d9::D3DPRESENT_PARAMETERS Params9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DDraw7Surface* pSurface,
@@ -23,7 +24,6 @@ namespace dxvk {
     : DDrawWrappedObject<D3D7Interface, IDirect3DDevice7, d3d9::IDirect3DDevice9>(pParent, std::move(d3d7DeviceProxy), std::move(pDevice9))
     , m_commonD3DDevice ( commonD3DDevice )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
-    , m_params9 ( Params9 )
     , m_desc ( Desc )
     , m_rt ( pSurface ) {
     if (m_parent != nullptr) {
@@ -45,7 +45,7 @@ namespace dxvk {
     }
 
     if (likely(m_commonD3DDevice == nullptr)) {
-      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, CreationFlags9,
+      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, deviceGUID, Params9, CreationFlags9,
                                               m_bridge->DetermineInitialTextureMemory());
 
       // Update D3D9 legacy light state
@@ -540,9 +540,9 @@ namespace dxvk {
         }
 
         State9        = d3d9::D3DRS_MULTISAMPLEANTIALIAS;
-        m_antialias   = dwRenderState;
-        dwRenderState = m_antialias == D3DANTIALIAS_SORTDEPENDENT
-                     || m_antialias == D3DANTIALIAS_SORTINDEPENDENT
+        m_commonD3DDevice->SetAntialias(dwRenderState);
+        dwRenderState = dwRenderState == D3DANTIALIAS_SORTDEPENDENT
+                     || dwRenderState == D3DANTIALIAS_SORTINDEPENDENT
                      || d3dOptions->emulateFSAA == FSAAEmulation::Forced ? TRUE : FALSE;
         break;
       }
@@ -561,7 +561,7 @@ namespace dxvk {
         if (!std::exchange(s_linePatternErrorShown, true))
           Logger::warn("D3D7Device::SetRenderState: Unimplemented render state D3DRS_LINEPATTERN");
 
-        m_linePattern = bit::cast<D3DLINEPATTERN>(dwRenderState);
+        m_commonD3DDevice->SetLinePattern(bit::cast<D3DLINEPATTERN>(dwRenderState));
         return D3D_OK;
 
       // Not supported by D3D7
@@ -582,11 +582,11 @@ namespace dxvk {
         break;
 
       case D3DRENDERSTATE_COLORKEYENABLE: {
-        m_colorKeyEnabled = dwRenderState;
+        m_commonD3DDevice->SetColorKeyEnable(dwRenderState);
 
         const bool validColorKey = m_textures[0] != nullptr ? m_textures[0]->GetCommonSurface()->HasValidColorKey() : false;
-        m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
-        if (m_colorKeyEnabled && validColorKey) {
+        m_bridge->SetColorKeyState(dwRenderState && validColorKey);
+        if (dwRenderState && validColorKey) {
           DDCOLORKEY normalizedColorKey = m_textures[0]->GetCommonSurface()->GetColorKeyNormalized();
           m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
                                 normalizedColorKey.dwColorSpaceHighValue);
@@ -611,7 +611,7 @@ namespace dxvk {
 
       // Used in conjunction with D3DRENDERSTATE_COLORKEYENABLE
       case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-        m_colorKeyBlendEnabled = dwRenderState;
+        m_commonD3DDevice->SetColorKeyBlendEnable(dwRenderState);
         return D3D_OK;
     }
 
@@ -642,7 +642,7 @@ namespace dxvk {
         break;
 
       case D3DRENDERSTATE_ANTIALIAS:
-        *lpdwRenderState = m_antialias;
+        *lpdwRenderState = m_commonD3DDevice->GetAntialias();
         return D3D_OK;
 
       // Always enabled on later APIs, so it can't really be turned off
@@ -653,7 +653,7 @@ namespace dxvk {
         return D3D_OK;
 
       case D3DRENDERSTATE_LINEPATTERN:
-        *lpdwRenderState = bit::cast<DWORD>(m_linePattern);
+        *lpdwRenderState = bit::cast<DWORD>(m_commonD3DDevice->GetLinePattern());
         return D3D_OK;
 
       // Not supported by D3D7
@@ -670,7 +670,7 @@ namespace dxvk {
         break;
 
       case D3DRENDERSTATE_COLORKEYENABLE:
-        *lpdwRenderState = m_colorKeyEnabled;
+        *lpdwRenderState = m_commonD3DDevice->GetColorKeyEnable();
         return D3D_OK;
 
       case D3DRENDERSTATE_ZBIAS: {
@@ -685,7 +685,7 @@ namespace dxvk {
         return D3D_OK;
 
       case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-        *lpdwRenderState = m_colorKeyBlendEnabled;
+        *lpdwRenderState = m_commonD3DDevice->GetColorKeyBlendEnable();
         return D3D_OK;
     }
 
@@ -941,7 +941,7 @@ namespace dxvk {
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    m_clipStatus = *clip_status;
+    m_commonD3DDevice->SetClipStatus(*clip_status);
 
     return D3D_OK;
   }
@@ -954,7 +954,7 @@ namespace dxvk {
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *clip_status = m_clipStatus;
+    *clip_status = m_commonD3DDevice->GetClipStatus();
 
     return D3D_OK;
   }
@@ -1238,9 +1238,10 @@ namespace dxvk {
       }
 
       if (likely(stage == 0)) {
+        const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
         const bool validColorKey = surface7->GetCommonSurface()->HasValidColorKey();
-        m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
-        if (m_colorKeyEnabled && validColorKey) {
+        m_bridge->SetColorKeyState(colorKeyEnable && validColorKey);
+        if (colorKeyEnable && validColorKey) {
           DDCOLORKEY normalizedColorKey = surface7->GetCommonSurface()->GetColorKeyNormalized();
           m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
                                 normalizedColorKey.dwColorSpaceHighValue);

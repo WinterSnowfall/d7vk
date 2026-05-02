@@ -121,7 +121,7 @@ namespace dxvk {
     SpecFFTextureStage7AlphaArg0, // Range: 0 -> 6 + 2 flags  | Bits: 5
     SpecFFTextureWrapU,           // Range: 0 -> 2            | Bits: 2
     SpecFFTextureWrapV,           // Range: 0 -> 2            | Bits: 2
-    SpecFFColorKeyEnabled,        // Range: 0 -> 1            | Bits: 1
+    SpecFFColorKeyEnable,         // Range: 0 -> 1            | Bits: 1
     SpecFFUseLegacyLights,        // Range: 0 -> 1            | Bits: 1
 
     SpecFFColorKeyLow,            // Range: 8 bits * 4        | Bits: 32
