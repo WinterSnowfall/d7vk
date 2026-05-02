@@ -656,7 +656,6 @@ namespace dxvk {
                 pvData.doNotCopyData = pv.dwFlags & D3DPROCESSVERTICES_NOCOLOR;
                 pvData.doExtents = pv.dwFlags & D3DPROCESSVERTICES_UPDATEEXTENTS;
                 pvData.isLegacy = true;
-                pvData.clipStatus = m_commonD3DDevice->GetClipStatusInternal();
 
                 std::vector<Com<D3DLight>> lights = commonViewport->GetLights();
                 std::vector<d3d9::D3DLIGHT9> lights9;
