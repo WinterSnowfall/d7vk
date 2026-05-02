@@ -24,6 +24,8 @@ namespace dxvk {
 
     D3DCommonDevice(
           DDrawCommonInterface* commonIntf,
+          GUID deviceGUID,
+          d3d9::D3DPRESENT_PARAMETERS params9,
           DWORD creationFlags9,
           uint32_t totalMemory);
 
@@ -37,10 +39,6 @@ namespace dxvk {
     d3d9::IDirect3DDevice9* GetD3D9Device();
 
     D3DCommonInterface* GetCommonD3DInterface() const;
-
-    d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType();
-
-    d3d9::D3DPRESENT_PARAMETERS GetPresentParameters();
 
     HRESULT ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params);
 
@@ -78,8 +76,92 @@ namespace dxvk {
       return m_commonIntf;
     }
 
+    uint32_t GetTotalTextureMemory() const {
+      return m_totalMemory;
+    }
+
+    GUID GetDeviceGUID() const {
+      return m_deviceGUID;
+    }
+
+    d3d9::D3DPRESENT_PARAMETERS GetPresentParameters() const {
+      return m_params9;
+    }
+
+    d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType() const {
+      return m_params9.MultiSampleType;
+    }
+
     DWORD GetD3D9CreationFlags() const {
       return m_creationFlags9;
+    }
+
+    D3DMATERIALHANDLE GetCurrentMaterialHandle() const {
+      return m_materialHandle;
+    }
+
+    void SetCurrentMaterialHandle(D3DMATERIALHANDLE materialHandle) {
+      m_materialHandle = materialHandle;
+    }
+
+    D3DTEXTUREHANDLE GetCurrentTextureHandle() const {
+      return m_textureHandle;
+    }
+
+    void SetCurrentTextureHandle(D3DTEXTUREHANDLE textureHandle) {
+      m_textureHandle = textureHandle;
+    }
+
+    DWORD GetColorKeyEnable() const {
+      return m_colorKeyEnable;
+    }
+
+    void SetColorKeyEnable(DWORD colorKeyEnable) {
+      m_colorKeyEnable = colorKeyEnable;
+    }
+
+    DWORD GetColorKeyBlendEnable() const {
+      return m_colorKeyBlendEnable;
+    }
+
+    void SetColorKeyBlendEnable(DWORD colorKeyBlendEnable) {
+      m_colorKeyBlendEnable = colorKeyBlendEnable;
+    }
+
+    DWORD GetAntialias() const {
+      return m_antialias;
+    }
+
+    void SetAntialias(DWORD antialias) {
+      m_antialias = antialias;
+    }
+
+    D3DLINEPATTERN GetLinePattern() const {
+      return m_linePattern;
+    }
+
+    void SetLinePattern(D3DLINEPATTERN linePattern) {
+      m_linePattern = linePattern;
+    }
+
+    D3DCLIPSTATUS GetClipStatus() const {
+      return m_clipStatus;
+    }
+
+    void SetClipStatus(D3DCLIPSTATUS clipStatus) {
+      m_clipStatus = clipStatus;
+    }
+
+    D3DCLIPSTATUS* GetClipStatusInternal() {
+      return &m_clipStatus;
+    }
+
+    DWORD GetTextureMapBlend() const {
+      return m_textureMapBlend;
+    }
+
+    void SetTextureMapBlend(DWORD textureMapBlend) {
+      m_textureMapBlend = textureMapBlend;
     }
 
     void SetD3D7Device(D3D7Device* device7) {
@@ -122,29 +204,43 @@ namespace dxvk {
       return m_origin;
     }
 
-    uint32_t GetTotalTextureMemory() const {
-      return m_totalMemory;
-    }
-
   private:
 
-    bool                  m_inScene        = false;
+    bool                        m_inScene        = false;
 
-    DDrawCommonInterface* m_commonIntf     = nullptr;
+    DDrawCommonInterface*       m_commonIntf     = nullptr;
 
-    uint32_t              m_totalMemory    = 0;
+    uint32_t                    m_totalMemory    = 0;
 
-    DWORD                 m_creationFlags9 = 0;
+    GUID                        m_deviceGUID;
+    d3d9::D3DPRESENT_PARAMETERS m_params9;
+    DWORD                       m_creationFlags9 = 0;
+
+    D3DMATERIALHANDLE           m_materialHandle = 0;
+    D3DTEXTUREHANDLE            m_textureHandle  = 0;
+
+    // Value of D3DRENDERSTATE_COLORKEYENABLE
+    DWORD                       m_colorKeyEnable      = 0;
+    // Value of D3DRENDERSTATE_COLORKEYBLENDENABLE
+    DWORD                       m_colorKeyBlendEnable = 0;
+    // Value of D3DRENDERSTATE_ANTIALIAS
+    DWORD                       m_antialias           = D3DANTIALIAS_NONE;
+    // Value of D3DRENDERSTATE_LINEPATTERN
+    D3DLINEPATTERN              m_linePattern         = { };
+    // Value of D3DCLIPSTATUS
+    D3DCLIPSTATUS               m_clipStatus          = { };
+    // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
+    DWORD                       m_textureMapBlend     = D3DTBLEND_MODULATE;
 
     // Track all possible last used D3D devices
-    D3D7Device*           m_device7        = nullptr;
-    D3D6Device*           m_device6        = nullptr;
-    D3D5Device*           m_device5        = nullptr;
-    D3D3Device*           m_device3        = nullptr;
+    D3D7Device*                 m_device7        = nullptr;
+    D3D6Device*                 m_device6        = nullptr;
+    D3D5Device*                 m_device5        = nullptr;
+    D3D3Device*                 m_device3        = nullptr;
 
     // Track the origin device, as in the device
     // that gets created through a CreateDevice call
-    IUnknown*             m_origin         = nullptr;
+    IUnknown*                   m_origin         = nullptr;
 
   };
 
