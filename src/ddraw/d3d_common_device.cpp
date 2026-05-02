@@ -15,10 +15,14 @@ namespace dxvk {
 
   D3DCommonDevice::D3DCommonDevice(
         DDrawCommonInterface* commonIntf,
+        GUID deviceGUID,
+        d3d9::D3DPRESENT_PARAMETERS params9,
         DWORD creationFlags9,
         uint32_t totalMemory)
     : m_commonIntf     ( commonIntf )
     , m_totalMemory    ( totalMemory )
+    , m_deviceGUID     ( deviceGUID )
+    , m_params9        ( params9 )
     , m_creationFlags9 ( creationFlags9 ) {
   }
 
@@ -56,34 +60,6 @@ namespace dxvk {
     return nullptr;
   }
 
-  d3d9::D3DMULTISAMPLE_TYPE D3DCommonDevice::GetMultiSampleType() {
-    if (m_device7 != nullptr) {
-      return m_device7->GetMultiSampleType();
-    } else if (m_device6 != nullptr) {
-      return m_device6->GetMultiSampleType();
-    } else if (m_device5 != nullptr) {
-      return m_device5->GetMultiSampleType();
-    } else if (m_device3 != nullptr) {
-      return m_device3->GetMultiSampleType();
-    }
-
-    return d3d9::D3DMULTISAMPLE_NONE;
-  }
-
-  d3d9::D3DPRESENT_PARAMETERS D3DCommonDevice::GetPresentParameters() {
-    if (m_device7 != nullptr) {
-      return m_device7->GetPresentParameters();
-    } else if (m_device6 != nullptr) {
-      return m_device6->GetPresentParameters();
-    } else if (m_device5 != nullptr) {
-      return m_device5->GetPresentParameters();
-    } else if (m_device3 != nullptr) {
-      return m_device3->GetPresentParameters();
-    }
-
-    return d3d9::D3DPRESENT_PARAMETERS();
-  }
-
   HRESULT D3DCommonDevice::ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params) {
     if (m_device7 != nullptr) {
       return m_device7->ResetD3D9Swapchain(params);
@@ -92,7 +68,7 @@ namespace dxvk {
     }
     // D3D5/3 has no way of disabling/re-enabling VSync
 
-    return DDERR_GENERIC;
+    return DDERR_UNSUPPORTED;
   }
 
   DDrawSurface* D3DCommonDevice::GetCurrentRenderTarget() const {

@@ -100,14 +100,6 @@ namespace dxvk {
       return m_stats;
     }
 
-    d3d9::D3DPRESENT_PARAMETERS GetPresentParameters() const {
-      return m_params9;
-    }
-
-    d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType() const {
-      return m_params9.MultiSampleType;
-    }
-
     DDrawSurface* GetRenderTarget() const {
       return m_rt.ptr();
     }
@@ -118,10 +110,6 @@ namespace dxvk {
 
     D3D3Viewport* GetCurrentViewportInternal() const {
       return m_currentViewport.ptr();
-    }
-
-    D3DMATERIALHANDLE GetCurrentMaterialHandle() const {
-      return m_materialHandle;
     }
 
   private:
@@ -162,25 +150,13 @@ namespace dxvk {
 
     D3DMultithread                 m_multithread;
 
-    d3d9::D3DPRESENT_PARAMETERS    m_params9;
-
-    D3DMATERIALHANDLE              m_materialHandle = 0;
-    D3DTEXTUREHANDLE               m_textureHandle  = 0;
-
     D3DDEVICEDESC3                 m_desc;
-    GUID                           m_deviceGUID;
 
     Com<DDrawSurface>              m_rt;
     Com<DDrawSurface, false>       m_ds;
 
     Com<D3D3Viewport>              m_currentViewport;
     std::vector<Com<D3D3Viewport>> m_viewports;
-
-    // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
-    DWORD                          m_textureMapBlend  = D3DTBLEND_MODULATE;
-
-    D3DMATRIX                      m_projectionMatrix = { };
-    const D3DMATRIX*               m_legacyProjection = nullptr;
 
     D3DSTATS                       m_stats            = { };
 

@@ -1492,9 +1492,9 @@ namespace dxvk {
     }
 
     HRESULT SetColorKeyState(bool colorKeyState) {
-      if (likely(m_colorKeyEnabled != colorKeyState)) {
+      if (likely(m_colorKeyEnable != colorKeyState)) {
         m_dirty.set(D3D9DeviceDirtyFlag::FFColorKeyState);
-        m_colorKeyEnabled = colorKeyState;
+        m_colorKeyEnable = colorKeyState;
       }
 
       return D3D_OK;
@@ -1721,7 +1721,7 @@ namespace dxvk {
     bool                            m_ffZTest          = false;
 
     // D3D7 and earlier color key transparency state
-    bool                            m_colorKeyEnabled  = false;
+    bool                            m_colorKeyEnable   = false;
     // D3D6 and earlier legacy light model state
     bool                            m_useLegacyLights  = false;
 

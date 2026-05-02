@@ -287,7 +287,7 @@ vec4 sampleTexture(uint stage, vec4 texcoord, vec4 previousStageTextureVal) {
                 texcoord.z = adjustDref(texcoord.z, stage);
                 texVal = texture(sampler2DShadow(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), texcoord.xyz).xxxx;
             } else {
-                if (specBool(SpecFFColorKeyEnabled)) {
+                if (specBool(SpecFFColorKeyEnable)) {
                     const uint wrapModeU = bitfieldExtract(specUint(SpecFFTextureWrapU), 0, 2);
                     const uint wrapModeV = bitfieldExtract(specUint(SpecFFTextureWrapV), 0, 2);
                     const ivec2 texSize = textureSize(sampler2D(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), 0);

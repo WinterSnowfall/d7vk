@@ -307,8 +307,8 @@ namespace dxvk {
     D3DDEVICEDESC7 desc7 = GetD3D7Caps(rclsidOverride, d3dOptions);
 
     try{
-      Com<D3D7Device> device7 = new D3D7Device(nullptr, std::move(d3d7DeviceProxy), this,
-                                               desc7, params, std::move(device9),
+      Com<D3D7Device> device7 = new D3D7Device(nullptr, std::move(d3d7DeviceProxy), this, desc7,
+                                               rclsidOverride, params, std::move(device9),
                                                rt7.ptr(), deviceCreationFlags9);
 
       // Set the common device on the common interface

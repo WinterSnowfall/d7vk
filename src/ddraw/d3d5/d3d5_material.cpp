@@ -1,8 +1,9 @@
 #include "d3d5_material.h"
 
-#include "d3d5_device.h"
 #include "d3d5_interface.h"
 #include "d3d5_viewport.h"
+
+#include "../d3d_common_device.h"
 
 #include "../ddraw/ddraw_interface.h"
 
@@ -65,12 +66,12 @@ namespace dxvk {
     Logger::debug(str::format("   Power:    ", material9->Power));
 
     // Update the D3D9 material directly if it's actively being used
-    D3D5Device* device5 = m_parent->GetCommonInterface()->GetCommonD3DDevice()->GetD3D5Device();
-    if (likely(device5 != nullptr)) {
-      D3DMATERIALHANDLE currentHandle = device5->GetCurrentMaterialHandle();
+    D3DCommonDevice* commonDevice = m_parent->GetCommonInterface()->GetCommonD3DDevice();
+    if (likely(commonDevice != nullptr)) {
+      D3DMATERIALHANDLE currentHandle = commonDevice->GetCurrentMaterialHandle();
       if (currentHandle == handle) {
         Logger::debug(str::format("D3D5Material::SetMaterial: Applying material nr. ", handle, " to D3D9"));
-        device5->GetD3D9()->SetMaterial(material9);
+        commonDevice->GetD3D9Device()->SetMaterial(material9);
       }
     }
 
