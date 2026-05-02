@@ -6958,7 +6958,7 @@ namespace dxvk {
   void D3D9DeviceEx::UpdateColorKeyState() {
     m_dirty.clr(D3D9DeviceDirtyFlag::FFColorKeyState);
 
-    if (m_specInfo.set<SpecFFColorKeyEnabled>(m_colorKeyEnabled))
+    if (m_specInfo.set<SpecFFColorKeyEnable>(m_colorKeyEnable))
       m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
   }
 

@@ -121,14 +121,6 @@ namespace dxvk {
       return m_multithread.AcquireLock();
     }
 
-    d3d9::D3DPRESENT_PARAMETERS GetPresentParameters() const {
-      return m_params9;
-    }
-
-    d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType() const {
-      return m_params9.MultiSampleType;
-    }
-
     DDrawSurface* GetRenderTarget() const {
       return m_rt.ptr();
     }
@@ -139,18 +131,6 @@ namespace dxvk {
 
     D3D5Viewport* GetCurrentViewportInternal() const {
       return m_currentViewport.ptr();
-    }
-
-    D3DMATERIALHANDLE GetCurrentMaterialHandle() const {
-      return m_materialHandle;
-    }
-
-    void SetCurrentMaterialHandle(D3DMATERIALHANDLE handle) {
-      m_materialHandle = handle;
-    }
-
-    D3DCLIPSTATUS* GetClipStatusInternal() {
-      return &m_clipStatus;
     }
 
   private:
@@ -169,7 +149,7 @@ namespace dxvk {
     inline void HandlePreDrawFlags(DWORD drawFlags, DWORD vertexTypeDesc) {
       // Docs: "Direct3D normally performs lighting calculations
       // on any vertices that contain a vertex normal."
-      if (m_materialHandle == 0 ||
+      if (m_commonD3DDevice->GetCurrentMaterialHandle() == 0 ||
           (drawFlags & D3DDP_DONOTLIGHT) ||
          !(vertexTypeDesc & D3DFVF_NORMAL)) {
         m_d3d9->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
@@ -181,7 +161,7 @@ namespace dxvk {
     }
 
     inline void HandlePostDrawFlags(DWORD drawFlags, DWORD vertexTypeDesc) {
-      if ((m_materialHandle == 0 ||
+      if ((m_commonD3DDevice->GetCurrentMaterialHandle() == 0 ||
           (drawFlags & D3DDP_DONOTLIGHT) ||
          !(vertexTypeDesc & D3DFVF_NORMAL)) && m_lighting) {
         //Logger::debug("D3D5Device: Enabling lighting");
@@ -223,13 +203,7 @@ namespace dxvk {
 
     D3DMultithread                 m_multithread;
 
-    d3d9::D3DPRESENT_PARAMETERS    m_params9;
-
-    D3DMATERIALHANDLE              m_materialHandle = 0;
-    D3DTEXTUREHANDLE               m_textureHandle  = 0;
-
     D3DDEVICEDESC2                 m_desc;
-    GUID                           m_deviceGUID;
 
     Com<DDrawSurface>              m_rt;
     Com<DDrawSurface, false>       m_ds;
@@ -241,17 +215,6 @@ namespace dxvk {
     std::vector<D3DVERTEX>         m_vertexStream;
     std::vector<D3DLVERTEX>        m_lvertexStream;
     std::vector<D3DTLVERTEX>       m_tlvertexStream;
-
-    // Value of D3DRENDERSTATE_COLORKEYENABLE
-    DWORD            m_colorKeyEnabled  = 0;
-    // Value of D3DRENDERSTATE_ANTIALIAS
-    DWORD            m_antialias        = D3DANTIALIAS_NONE;
-    // Value of D3DRENDERSTATE_LINEPATTERN
-    D3DLINEPATTERN   m_linePattern      = { };
-    // Value of D3DCLIPSTATUS
-    D3DCLIPSTATUS    m_clipStatus       = { };
-    // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
-    DWORD            m_textureMapBlend  = D3DTBLEND_MODULATE;
 
     D3DMATRIX        m_projectionMatrix = { };
     const D3DMATRIX* m_legacyProjection = nullptr;

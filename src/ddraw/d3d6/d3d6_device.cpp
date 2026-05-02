@@ -29,9 +29,7 @@ namespace dxvk {
     : DDrawWrappedObject<D3D6Interface, IDirect3DDevice3, d3d9::IDirect3DDevice9>(pParent, std::move(d3d6DeviceProxy), std::move(pDevice9))
     , m_commonD3DDevice ( commonD3DDevice )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
-    , m_params9 ( Params9 )
     , m_desc ( Desc )
-    , m_deviceGUID ( deviceGUID )
     , m_rt ( pSurface ) {
     if (m_parent != nullptr) {
       m_commonIntf = m_parent->GetCommonInterface();
@@ -52,7 +50,7 @@ namespace dxvk {
     }
 
     if (likely(m_commonD3DDevice == nullptr)) {
-      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, CreationFlags9,
+      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, deviceGUID, Params9, CreationFlags9,
                                               m_bridge->DetermineInitialTextureMemory());
 
       // Update D3D9 legacy light state
@@ -164,8 +162,9 @@ namespace dxvk {
       // to get access only to D3D3 execute buffers on a D3D6 device
       Com<d3d9::IDirect3DDevice9> device9 = m_d3d9.ptr();
       m_device3 = new D3D3Device(m_commonD3DDevice.ptr(), std::move(ppvProxyObject),
-                                 m_rt->GetCommonSurface()->GetDDSurface(), GetD3D3Caps(d3dOptions), m_deviceGUID,
-                                 m_params9, std::move(device9), m_commonD3DDevice->GetD3D9CreationFlags());
+                                 m_rt->GetCommonSurface()->GetDDSurface(), GetD3D3Caps(d3dOptions),
+                                 m_commonD3DDevice->GetDeviceGUID(), m_commonD3DDevice->GetPresentParameters(),
+                                 std::move(device9), m_commonD3DDevice->GetD3D9CreationFlags());
       m_commonD3DDevice->SetD3D3Device(m_device3.ptr());
 
       // On native this is the same object, so no need to ref
@@ -196,8 +195,10 @@ namespace dxvk {
       Com<d3d9::IDirect3DDevice9> device9 = m_d3d9.ptr();
       m_device5 = new D3D5Device(m_commonD3DDevice.ptr(), std::move(ppvProxyObject),
                                  m_commonD3DDevice->GetCommonD3DInterface()->GetD3D5Interface(),
-                                 GetD3D5Caps(m_deviceGUID, d3dOptions), m_deviceGUID, m_params9, std::move(device9),
-                                 m_rt->GetCommonSurface()->GetDDSurface(), m_commonD3DDevice->GetD3D9CreationFlags());
+                                 GetD3D5Caps(m_commonD3DDevice->GetDeviceGUID(), d3dOptions),
+                                 m_commonD3DDevice->GetDeviceGUID(), m_commonD3DDevice->GetPresentParameters(),
+                                 std::move(device9), m_rt->GetCommonSurface()->GetDDSurface(),
+                                 m_commonD3DDevice->GetD3D9CreationFlags());
       m_commonD3DDevice->SetD3D5Device(m_device5.ptr());
 
       // On native this is the same object, so no need to ref
@@ -229,7 +230,9 @@ namespace dxvk {
     D3DDEVICEDESC desc_HAL = m_desc;
     D3DDEVICEDESC desc_HEL = m_desc;
 
-    if (m_deviceGUID == IID_IDirect3DRGBDevice) {
+    const GUID deviceGUID = m_commonD3DDevice->GetDeviceGUID();
+
+    if (deviceGUID == IID_IDirect3DRGBDevice) {
       desc_HAL.dwFlags = 0;
       desc_HAL.dcmColorModel = 0;
       // Some applications apparently care about RGB texture caps
@@ -239,7 +242,7 @@ namespace dxvk {
                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
       desc_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
       desc_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
-    } else if (m_deviceGUID == IID_IDirect3DHALDevice) {
+    } else if (deviceGUID == IID_IDirect3DHALDevice) {
       desc_HEL.dcmColorModel = 0;
       desc_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
                           & ~D3DDEVCAPS_DRAWPRIMITIVES2
@@ -729,7 +732,7 @@ namespace dxvk {
         return D3D_OK;
 
       case D3DRENDERSTATE_ANTIALIAS:
-        *lpdwRenderState = m_antialias;
+        *lpdwRenderState = m_commonD3DDevice->GetAntialias();
         return D3D_OK;
 
       case D3DRENDERSTATE_TEXTUREADDRESS:
@@ -758,7 +761,7 @@ namespace dxvk {
       }
 
       case D3DRENDERSTATE_LINEPATTERN:
-        *lpdwRenderState = bit::cast<DWORD>(m_linePattern);
+        *lpdwRenderState = bit::cast<DWORD>(m_commonD3DDevice->GetLinePattern());
         return D3D_OK;
 
       case D3DRENDERSTATE_MONOENABLE:
@@ -787,7 +790,7 @@ namespace dxvk {
       }
 
       case D3DRENDERSTATE_TEXTUREMAPBLEND:
-        *lpdwRenderState = m_textureMapBlend;
+        *lpdwRenderState = m_commonD3DDevice->GetTextureMapBlend();
         return D3D_OK;
 
       // Not supported by D3D6
@@ -813,7 +816,7 @@ namespace dxvk {
         break;
 
       case D3DRENDERSTATE_COLORKEYENABLE:
-        *lpdwRenderState = m_colorKeyEnabled;
+        *lpdwRenderState = m_commonD3DDevice->GetColorKeyEnable();
         return D3D_OK;
 
       case D3DRENDERSTATE_BORDERCOLOR:
@@ -927,9 +930,9 @@ namespace dxvk {
         }
 
         State9        = d3d9::D3DRS_MULTISAMPLEANTIALIAS;
-        m_antialias   = dwRenderState;
-        dwRenderState = m_antialias == D3DANTIALIAS_SORTDEPENDENT
-                     || m_antialias == D3DANTIALIAS_SORTINDEPENDENT
+        m_commonD3DDevice->SetAntialias(dwRenderState);
+        dwRenderState = dwRenderState == D3DANTIALIAS_SORTDEPENDENT
+                     || dwRenderState == D3DANTIALIAS_SORTINDEPENDENT
                      || d3dOptions->emulateFSAA == FSAAEmulation::Forced ? TRUE : FALSE;
         break;
       }
@@ -975,7 +978,7 @@ namespace dxvk {
         if (!std::exchange(s_linePatternErrorShown, true))
           Logger::warn("D3D6Device::SetRenderState: Unimplemented render state D3DRS_LINEPATTERN");
 
-        m_linePattern = bit::cast<D3DLINEPATTERN>(dwRenderState);
+        m_commonD3DDevice->SetLinePattern(bit::cast<D3DLINEPATTERN>(dwRenderState));
         return D3D_OK;
 
       case D3DRENDERSTATE_MONOENABLE:
@@ -1048,7 +1051,7 @@ namespace dxvk {
       }
 
       case D3DRENDERSTATE_TEXTUREMAPBLEND:
-        m_textureMapBlend = dwRenderState;
+        m_commonD3DDevice->SetTextureMapBlend(dwRenderState);
 
         switch (dwRenderState) {
           // "In this mode, the RGB and alpha values of the texture replace
@@ -1149,11 +1152,11 @@ namespace dxvk {
         break;
 
       case D3DRENDERSTATE_COLORKEYENABLE: {
-        m_colorKeyEnabled = dwRenderState;
+        m_commonD3DDevice->SetColorKeyEnable(dwRenderState);
 
         const bool validColorKey = m_textures[0] != nullptr ? m_textures[0]->GetParent()->GetCommonSurface()->HasValidColorKey() : false;
-        m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
-        if (m_colorKeyEnabled && validColorKey) {
+        m_bridge->SetColorKeyState(dwRenderState && validColorKey);
+        if (dwRenderState && validColorKey) {
           DDCOLORKEY normalizedColorKey = m_textures[0]->GetParent()->GetCommonSurface()->GetColorKeyNormalized();
           m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
                                 normalizedColorKey.dwColorSpaceHighValue);
@@ -1250,7 +1253,7 @@ namespace dxvk {
 
     switch (dwLightStateType) {
       case D3DLIGHTSTATE_MATERIAL:
-        *lpdwLightState = m_materialHandle;
+        *lpdwLightState = m_commonD3DDevice->GetCurrentMaterialHandle();
         break;
       case D3DLIGHTSTATE_AMBIENT:
         m_d3d9->GetRenderState(d3d9::D3DRS_AMBIENT, lpdwLightState);
@@ -1288,7 +1291,7 @@ namespace dxvk {
     switch (dwLightStateType) {
       case D3DLIGHTSTATE_MATERIAL: {
         if (unlikely(!dwLightState)) {
-          m_materialHandle = dwLightState;
+          m_commonD3DDevice->SetCurrentMaterialHandle(dwLightState);
           return D3D_OK;
         }
 
@@ -1296,7 +1299,7 @@ namespace dxvk {
         if (unlikely(material9 == nullptr))
           return DDERR_INVALIDPARAMS;
 
-        m_materialHandle = dwLightState;
+        m_commonD3DDevice->SetCurrentMaterialHandle(dwLightState);
         Logger::debug(str::format("D3D6Device::SetLightState: Applying material nr. ", dwLightState, " to D3D9"));
         m_d3d9->SetMaterial(material9);
 
@@ -1434,7 +1437,7 @@ namespace dxvk {
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    m_clipStatus = *clip_status;
+    m_commonD3DDevice->SetClipStatus(*clip_status);
 
     return D3D_OK;
   }
@@ -1447,7 +1450,7 @@ namespace dxvk {
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *clip_status = m_clipStatus;
+    *clip_status = m_commonD3DDevice->GetClipStatus();
 
     return D3D_OK;
   }
@@ -1751,14 +1754,15 @@ namespace dxvk {
         // "Any alpha values in the texture replace the alpha values in the colors that would
         //  have been used with no texturing; if the texture does not contain an alpha component,
         //  alpha values at the vertices in the source are interpolated between vertices."
-        if (m_textureMapBlend == D3DTBLEND_MODULATE && !m_alphaOpSet) {
+        if (m_commonD3DDevice->GetTextureMapBlend() == D3DTBLEND_MODULATE && !m_alphaOpSet) {
           const DWORD textureOp = surface6->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_MODULATE;
           m_d3d9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
         }
 
+        const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
         const bool validColorKey = surface6->GetCommonSurface()->HasValidColorKey();
-        m_bridge->SetColorKeyState(m_colorKeyEnabled && validColorKey);
-        if (m_colorKeyEnabled && validColorKey) {
+        m_bridge->SetColorKeyState(colorKeyEnable && validColorKey);
+        if (colorKeyEnable && validColorKey) {
           DDCOLORKEY normalizedColorKey = surface6->GetCommonSurface()->GetColorKeyNormalized();
           m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
                                 normalizedColorKey.dwColorSpaceHighValue);
