@@ -1420,27 +1420,31 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SetClipStatus(D3DCLIPSTATUS *clip_status) {
-    D3DDeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D5Device::SetClipStatus");
 
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    m_commonD3DDevice->SetClipStatus(*clip_status);
-
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetClipStatus(D3DCLIPSTATUS *clip_status) {
-    D3DDeviceLock lock = LockDevice();
-
     Logger::debug(">>> D3D5Device::GetClipStatus");
 
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *clip_status = m_commonD3DDevice->GetClipStatus();
+    d3d9::D3DVIEWPORT9 viewport9;
+    if (SUCCEEDED(m_d3d9->GetViewport(&viewport9))) {
+      clip_status->dwFlags = D3DCLIPSTATUS_EXTENTS2;
+      clip_status->dwStatus = 0;
+      clip_status->minx = viewport9.X;
+      clip_status->maxx = viewport9.X + viewport9.Height;
+      clip_status->miny = viewport9.Y;
+      clip_status->maxy = viewport9.Y + viewport9.Width;
+      clip_status->minz = 0;
+      clip_status->maxz = 0;
+    }
 
     return D3D_OK;
   }
