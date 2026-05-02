@@ -27,7 +27,6 @@ namespace dxvk {
     uint8_t* outData;
     const D3DMATRIX* correction;
     D3DSTATUS* dsStatus;
-    D3DCLIPSTATUS* clipStatus;
     std::vector<d3d9::D3DLIGHT9>* lights;
   };
 
@@ -539,36 +538,16 @@ namespace dxvk {
         outPosition.y += options->vertexOffset;
       }
 
-      // TODO: clipping & update extents, report nothing is clipped for now
       if (unlikely(pvData->doClipping)) {
-        if (pvData->clipStatus != nullptr && (pvData->clipStatus->dwFlags & D3DCLIPSTATUS_STATUS)) {
-          pvData->clipStatus->dwFlags = 0;
-          pvData->clipStatus->dwStatus = 0;
-          if (pvData->doExtents) {
-            pvData->clipStatus->dwFlags |= D3DCLIPSTATUS_EXTENTS2;
-            pvData->clipStatus->minx = 0;
-            pvData->clipStatus->miny = 0;
-            pvData->clipStatus->maxx = viewport9.Width;
-            pvData->clipStatus->maxy = viewport9.Height;
-            if (unlikely(pvData->clipStatus->dwFlags & D3DCLIPSTATUS_EXTENTS3)) {
-              pvData->clipStatus->minz = viewport9.MinZ;
-              pvData->clipStatus->maxz = viewport9.MaxZ;
-            } else {
-              pvData->clipStatus->minz = 0;
-              pvData->clipStatus->maxz = 0;
-            }
-          }
-        }
-
         if (pvData->dsStatus != nullptr && (pvData->dsStatus->dwFlags & D3DSETSTATUS_STATUS)) {
           pvData->dsStatus->dwFlags = 0;
           pvData->dsStatus->dwStatus = 0;
           if (pvData->doExtents) {
             pvData->dsStatus->dwFlags |= D3DSETSTATUS_EXTENTS;
-            pvData->dsStatus->drExtent.x1 = 0;
-            pvData->dsStatus->drExtent.y1 = 0;
-            pvData->dsStatus->drExtent.x2 = viewport9.Width;
-            pvData->dsStatus->drExtent.y2 = viewport9.Height;
+            pvData->dsStatus->drExtent.x1 = viewport9.X;
+            pvData->dsStatus->drExtent.y1 = viewport9.Y;
+            pvData->dsStatus->drExtent.x2 = viewport9.X + viewport9.Width;
+            pvData->dsStatus->drExtent.y2 = viewport9.Y + viewport9.Height;
           }
         }
       }
