@@ -1349,6 +1349,8 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     DWORD vertex_type5 = ConvertVertexType(vertex_type);
 
@@ -1389,6 +1391,8 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     const DWORD fvf5 = ConvertVertexType(fvf);
 

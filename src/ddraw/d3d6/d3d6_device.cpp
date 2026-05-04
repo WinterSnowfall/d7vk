@@ -1363,6 +1363,8 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     HandlePreDrawFlags(flags, vertex_type);
     HandlePreDrawLegacyProjection(flags);
@@ -1401,6 +1403,8 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     HandlePreDrawFlags(flags, fvf);
     HandlePreDrawLegacyProjection(flags);
@@ -1473,6 +1477,8 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(fvf, strided_data, vertex_count);
@@ -1514,6 +1520,8 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(fvf, strided_data, vertex_count);
@@ -1566,6 +1574,8 @@ namespace dxvk {
     }
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     HandlePreDrawFlags(flags, vb6->GetFVF());
     HandlePreDrawLegacyProjection(flags);
@@ -1622,6 +1632,8 @@ namespace dxvk {
     }
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     HandlePreDrawFlags(flags, vb6->GetFVF());
     HandlePreDrawLegacyProjection(flags);
