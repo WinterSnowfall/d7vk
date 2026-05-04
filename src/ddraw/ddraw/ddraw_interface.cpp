@@ -22,7 +22,7 @@ namespace dxvk {
   DDrawInterface::DDrawInterface(
         DDrawCommonInterface* commonIntf,
         Com<IDirectDraw>&& proxyIntf)
-    : DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
+    : DDrawWrappedObject<IUnknown, IDirectDraw>(nullptr, std::move(proxyIntf))
     , m_commonIntf ( commonIntf ) {
 
     if (likely(m_commonIntf == nullptr)) {

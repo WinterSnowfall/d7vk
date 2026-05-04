@@ -17,7 +17,7 @@ namespace dxvk {
   /**
   * \brief DirectDraw interface implementation
   */
-  class DDrawInterface final : public DDrawWrappedObject<IUnknown, IDirectDraw, IUnknown> {
+  class DDrawInterface final : public DDrawWrappedObject<IUnknown, IDirectDraw> {
 
   public:
     DDrawInterface(

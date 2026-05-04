@@ -9,7 +9,7 @@ namespace dxvk {
   DDrawPalette::DDrawPalette(
         Com<IDirectDrawPalette>&& paletteProxy,
         IUnknown* pParent)
-    : DDrawWrappedObject<IUnknown, IDirectDrawPalette, IUnknown>(pParent, std::move(paletteProxy), nullptr) {
+    : DDrawWrappedObject<IUnknown, IDirectDrawPalette>(pParent, std::move(paletteProxy)) {
     if (m_parent != nullptr)
       m_parent->AddRef();
 

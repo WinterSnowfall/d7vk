@@ -5,7 +5,7 @@
 
 namespace dxvk {
 
-  class DDrawClipper final : public DDrawWrappedObject<IUnknown, IDirectDrawClipper, IUnknown> {
+  class DDrawClipper final : public DDrawWrappedObject<IUnknown, IDirectDrawClipper> {
 
   public:
 

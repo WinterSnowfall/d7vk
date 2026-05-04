@@ -10,7 +10,7 @@
 
 namespace dxvk {
 
-  class D3D7VertexBuffer final : public DDrawWrappedObject<D3D7Interface, IDirect3DVertexBuffer7, d3d9::IDirect3DVertexBuffer9> {
+  class D3D7VertexBuffer final : public DDrawWrappedObject<D3D7Interface, IDirect3DVertexBuffer7> {
 
   public:
 
@@ -34,7 +34,15 @@ namespace dxvk {
 
     HRESULT InitializeD3D9();
 
-    void RefreshD3D7Device();
+    d3d9::IDirect3DDevice9* RefreshD3DDevice();
+
+    bool IsInitialized() const {
+      return m_vb9 != nullptr;
+    }
+
+    d3d9::IDirect3DVertexBuffer9* GetD3D9VertexBuffer() const {
+      return m_vb9.ptr();
+    }
 
     DWORD GetFVF() const {
       return m_desc.dwFVF;
@@ -54,23 +62,12 @@ namespace dxvk {
 
   private:
 
+    inline void HandlePreProcessVerticesFlags(DWORD pvFlags);
+
+    inline void HandlePostProcessVerticesFlags(DWORD pvFlags);
+
     inline bool IsOptimized() const {
       return m_desc.dwCaps & D3DVBCAPS_OPTIMIZED;
-    }
-
-    inline void HandlePreProcessVerticesFlags(DWORD pvFlags) {
-      // Disable lighting if the D3DVOP_LIGHT isn't specified
-      if (!(pvFlags & D3DVOP_LIGHT)) {
-        m_d3d7Device->GetD3D9()->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
-        if (m_lighting)
-          m_d3d7Device->GetD3D9()->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
-      }
-    }
-
-    inline void HandlePostProcessVerticesFlags(DWORD pvFlags) {
-      if (!(pvFlags & D3DVOP_LIGHT) && m_lighting) {
-        m_d3d7Device->GetD3D9()->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
-      }
     }
 
     inline void ListBufferDetails() const {
@@ -80,22 +77,24 @@ namespace dxvk {
       Logger::debug(str::format("   Vertices: ", m_size / m_stride));
     }
 
-    bool                  m_locked  = false;
-    bool                  m_legacyDiscard = false;
+    bool                              m_locked  = false;
+    bool                              m_legacyDiscard = false;
 
-    static uint32_t       s_buffCount;
-    uint32_t              m_buffCount  = 0;
+    static uint32_t                   s_buffCount;
+    uint32_t                          m_buffCount  = 0;
 
-    DDrawCommonInterface* m_commonIntf = nullptr;
+    DDrawCommonInterface*             m_commonIntf = nullptr;
 
-    D3D7Device*           m_d3d7Device = nullptr;
+    D3D7Device*                       m_d3d7Device = nullptr;
 
-    DWORD                 m_lighting   = FALSE;
+    Com<d3d9::IDirect3DVertexBuffer9> m_vb9;
 
-    D3DVERTEXBUFFERDESC   m_desc;
+    DWORD                             m_lighting   = FALSE;
 
-    UINT                  m_stride = 0;
-    UINT                  m_size   = 0;
+    D3DVERTEXBUFFERDESC               m_desc;
+
+    UINT                              m_stride = 0;
+    UINT                              m_size   = 0;
 
   };
 
