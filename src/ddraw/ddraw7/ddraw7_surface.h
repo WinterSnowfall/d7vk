@@ -135,7 +135,7 @@ namespace dxvk {
 
     void DownloadSurfaceData();
 
-    void SetShadowSurface(DDraw7Surface* shadowSurf) {
+    void SetShadowSurface(Com<DDraw7Surface>&& shadowSurf) {
       m_shadowSurf = shadowSurf;
     }
 
@@ -153,6 +153,10 @@ namespace dxvk {
 
     D3DCommonDevice* GetCommonD3DDevice() const {
       return m_commonD3DDevice;
+    }
+
+    void SetAttachedDepthStencil(Com<DDraw7Surface>&& depthStencil) {
+      m_depthStencil = depthStencil;
     }
 
     DDraw7Surface* GetAttachedDepthStencil() {

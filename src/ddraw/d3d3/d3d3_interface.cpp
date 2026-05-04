@@ -135,6 +135,8 @@ namespace dxvk {
     // and HAL last. A RAMP device also needs to be advertised in D3D3,
     // since some games like Resident Evil expect it to be present.
 
+    HRESULT hr;
+
     // RAMP device (monochrome), this is expected to be exposed
     GUID guidRAMP = IID_IDirect3DRampDevice;
     D3DDEVICEDESC3 desc3RAMP_HAL = GetD3D3Caps(d3dOptions);
@@ -154,11 +156,17 @@ namespace dxvk {
     desc3RAMP_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
     memcpy(&descRAMP_HAL, &desc3RAMP_HAL, sizeof(D3DDEVICEDESC3));
     memcpy(&descRAMP_HEL, &desc3RAMP_HEL, sizeof(D3DDEVICEDESC3));
-    static char deviceDescRAMP[100] = "D3VK RAMP";
-    static char deviceNameRAMP[100] = "D3VK RAMP";
-
-    HRESULT hr = lpEnumDevicesCallback(&guidRAMP, &deviceDescRAMP[0], &deviceNameRAMP[0],
-                                       &descRAMP_HAL, &descRAMP_HEL, lpUserArg);
+    if (likely(!d3dOptions->legacyDeviceNames)) {
+      static char deviceDescRAMP[100] = "D3VK Ramp";
+      static char deviceNameRAMP[100] = "D3VK Ramp";
+      hr = lpEnumDevicesCallback(&guidRAMP, &deviceDescRAMP[0], &deviceNameRAMP[0],
+                                 &descRAMP_HAL, &descRAMP_HEL, lpUserArg);
+    } else {
+      static char legacyDeviceDescRAMP[100] = "Ramp Emulation";
+      static char legacyDeviceNameRAMP[100] = "Ramp Emulation";
+      hr = lpEnumDevicesCallback(&guidRAMP, &legacyDeviceDescRAMP[0], &legacyDeviceNameRAMP[0],
+                                 &descRAMP_HAL, &descRAMP_HEL, lpUserArg);
+    }
     if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
@@ -179,11 +187,17 @@ namespace dxvk {
     desc3RGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
     memcpy(&descRGB_HAL, &desc3RGB_HAL, sizeof(D3DDEVICEDESC3));
     memcpy(&descRGB_HEL, &desc3RGB_HEL, sizeof(D3DDEVICEDESC3));
-    static char deviceDescRGB[100] = "D3VK RGB";
-    static char deviceNameRGB[100] = "D3VK RGB";
-
-    hr = lpEnumDevicesCallback(&guidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
-                               &descRGB_HAL, &descRGB_HEL, lpUserArg);
+    if (likely(!d3dOptions->legacyDeviceNames)) {
+      static char deviceDescRGB[100] = "D3VK RGB";
+      static char deviceNameRGB[100] = "D3VK RGB";
+      hr = lpEnumDevicesCallback(&guidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
+                                 &descRGB_HAL, &descRGB_HEL, lpUserArg);
+    } else {
+      static char legacyDeviceDescRGB[100] = "RGB Emulation";
+      static char legacyDeviceNameRGB[100] = "RGB Emulation";
+      hr = lpEnumDevicesCallback(&guidRGB, &legacyDeviceDescRGB[0], &legacyDeviceNameRGB[0],
+                                 &descRGB_HAL, &descRGB_HEL, lpUserArg);
+    }
     if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
@@ -201,11 +215,17 @@ namespace dxvk {
                                            & ~D3DPTEXTURECAPS_POW2;
     memcpy(&descHAL_HAL, &desc3HAL_HAL, sizeof(D3DDEVICEDESC3));
     memcpy(&descHAL_HEL, &desc3HAL_HEL, sizeof(D3DDEVICEDESC3));
-    static char deviceDescHAL[100] = "D3VK HAL";
-    static char deviceNameHAL[100] = "D3VK HAL";
-
-    hr = lpEnumDevicesCallback(&guidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
-                               &descHAL_HAL, &descHAL_HEL, lpUserArg);
+    if (likely(!d3dOptions->legacyDeviceNames)) {
+      static char deviceDescHAL[100] = "D3VK HAL";
+      static char deviceNameHAL[100] = "D3VK HAL";
+      hr = lpEnumDevicesCallback(&guidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
+                                 &descHAL_HAL, &descHAL_HEL, lpUserArg);
+    } else {
+      static char legacyDeviceDescHAL[100] = "Direct3D HAL";
+      static char legacyDeviceNameHAL[100] = "Direct3D HAL";
+      hr = lpEnumDevicesCallback(&guidHAL, &legacyDeviceDescHAL[0], &legacyDeviceNameHAL[0],
+                                 &descHAL_HAL, &descHAL_HEL, lpUserArg);
+    }
     if (hr != D3DENUMRET_OK)
       return D3D_OK;
 

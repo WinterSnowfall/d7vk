@@ -59,7 +59,7 @@ namespace dxvk {
       EnumAttachedSurfaces(&nextFlippable, ListBackBufferSurfacesCallback);
       m_nextFlippable = reinterpret_cast<DDrawSurface*>(nextFlippable);
       if (likely(m_nextFlippable != nullptr))
-        Logger::debug("DDraw4Surface: Retrieved the next swapchain surface");
+        Logger::debug("DDrawSurface: Retrieved the next swapchain surface");
     }
 
     m_commonIntf->AddWrappedSurface(this);
@@ -237,7 +237,24 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD4Interface(), nullptr, false));
+      Com<DDraw4Surface> surface4 = new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                                      m_commonIntf->GetDD4Interface(), nullptr, false);
+
+      // Dungeon Keeper 2 creates and attaches a IDirectDrawSurface4 depth stencil,
+      // but then keeps using clears from the IDirectDrawSurface object...
+      if (m_depthStencil != nullptr) {
+        Com<IDirectDrawSurface4> dsProxyObject;
+        hr = m_depthStencil->GetProxied()->QueryInterface(riid, reinterpret_cast<void**>(&dsProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        Com<DDraw4Surface> depthStencil4 = new DDraw4Surface(m_depthStencil->GetCommonSurface(), std::move(dsProxyObject),
+                                                             m_commonIntf->GetDD4Interface(), nullptr, false);
+
+        surface4->SetAttachedDepthStencil(std::move(depthStencil4));
+      }
+
+      *ppvObject = surface4.ref();
 
       return S_OK;
     }
@@ -442,9 +459,6 @@ namespace dxvk {
           d3d9Device->Present(NULL, NULL, NULL, NULL);
           return DD_OK;
         }
-
-        d3d9Device->Present(NULL, NULL, NULL, NULL);
-        return DD_OK;
       }
     }
 

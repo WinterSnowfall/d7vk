@@ -308,8 +308,9 @@ namespace dxvk {
             if (unlikely(FAILED(hr))) {
               Logger::warn("DDraw4Interface::CreateSurface: Failed to create shadow surface");
             } else {
-              Com<DDraw4Surface> shadowSurf = new DDraw4Surface(nullptr, std::move(ddraw4SurfaceShadow), this, nullptr, false);
-              surface4->SetShadowSurface(shadowSurf.ptr());
+              Com<DDraw4Surface> shadowSurf = new DDraw4Surface(nullptr, std::move(ddraw4SurfaceShadow),
+                                                                this, nullptr, false);
+              surface4->SetShadowSurface(std::move(shadowSurf));
             }
           }
         }
