@@ -1867,6 +1867,11 @@ namespace dxvk {
     { R"(\\X-TENSION\.exe$)", {{
       { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
+    /* Dungeon Keeper 2                           *
+     * Fixes missing HW acceleration option       */
+    { R"(\\DKII(-DX)?\.exe$)", {{
+      { "ddraw.legacyDeviceNames",          "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */

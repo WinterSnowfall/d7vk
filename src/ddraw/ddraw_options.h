@@ -80,6 +80,9 @@ namespace dxvk {
     /// Extends features and relaxes validations to enable apitrace debugging
     bool apitraceMode;
 
+    /// Enumerate with legacy/official implementation device names
+    bool legacyDeviceNames;
+
     /// By default guards against legacy presents while inside of a scene
     D3DLegacyPresentGuard legacyPresentGuard;
 
@@ -109,6 +112,7 @@ namespace dxvk {
       this->deviceResourceSharing = config.getOption<bool>   ("ddraw.deviceResourceSharing", false);
       this->colorKeyMasking       = config.getOption<bool>   ("ddraw.colorKeyMasking",       false);
       this->colorKeyTolerance     = config.getOption<bool>   ("ddraw.colorKeyTolerance",     false);
+      this->legacyDeviceNames     = config.getOption<bool>   ("ddraw.legacyDeviceNames",     false);
       this->apitraceMode          = config.getOption<bool>   ("ddraw.apitraceMode",          false);
 
       // Clamp the vertex offset in the (sensible) -1.0f/1.0f range
