@@ -343,10 +343,7 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       m_commonSurf->DirtyDDrawSurface();
 
-      // Depth stencil uploads need to happen on the spot
-      if (unlikely(m_commonSurf->IsDepthStencil())) {
-        InitializeOrUploadD3D9();
-      } else if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
+      if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
         const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
                                   !m_commonIntf->GetCommonD3DDevice()->IsInScene() :
                                    m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
@@ -417,10 +414,7 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       m_commonSurf->DirtyDDrawSurface();
 
-      // Depth stencil uploads need to happen on the spot
-      if (unlikely(m_commonSurf->IsDepthStencil())) {
-        InitializeOrUploadD3D9();
-      } else if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
+      if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
         const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
                                   !m_commonIntf->GetCommonD3DDevice()->IsInScene() :
                                    m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
@@ -814,10 +808,7 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       m_commonSurf->DirtyDDrawSurface();
 
-      // Depth stencil uploads need to happen on the spot
-      if (unlikely(m_commonSurf->IsDepthStencil())) {
-        InitializeOrUploadD3D9();
-      } else if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
+      if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
         const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
                                   !m_commonIntf->GetCommonD3DDevice()->IsInScene() :
                                    m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
@@ -941,10 +932,7 @@ namespace dxvk {
       m_commonSurf->DirtyDDrawSurface();
 
       RefreshD3D9Device();
-      // Depth stencil uploads need to happen on the spot
-      if (unlikely(m_commonSurf->IsDepthStencil())) {
-        InitializeOrUploadD3D9();
-      } else if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
+      if (unlikely(m_shadowSurf != nullptr && m_d3d9Device != nullptr)) {
         const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
                                   !m_commonIntf->GetCommonD3DDevice()->IsInScene() :
                                    m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?

@@ -1869,6 +1869,7 @@ namespace dxvk {
     { R"(\\Empire of the Ants\\Game\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.legacyPresentGuard",       "Strict" },
+      { "ddraw.colorKeyTolerance",          "True" },
     }} },
     /* N.I.C.E 2 - Fixes main menu flickering     */
     { R"(\\n2_(std|arc)\.exe$)", {{
