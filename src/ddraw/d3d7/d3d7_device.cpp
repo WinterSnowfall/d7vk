@@ -879,6 +879,8 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawPrimitiveUP(
@@ -911,6 +913,8 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     m_d3d9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = m_d3d9->DrawIndexedPrimitiveUP(
@@ -977,6 +981,8 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
@@ -1012,6 +1018,8 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
@@ -1058,6 +1066,8 @@ namespace dxvk {
     }
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     m_d3d9->SetFVF(vb->GetFVF());
     m_d3d9->SetStreamSource(0, vb->GetD3D9(), 0, vb->GetStride());
@@ -1107,6 +1117,8 @@ namespace dxvk {
     }
 
     m_rt->InitializeOrUploadD3D9();
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
 
     d3d9::IDirect3DIndexBuffer9* ib9 = m_ib9[ibIndex].ptr();
 
