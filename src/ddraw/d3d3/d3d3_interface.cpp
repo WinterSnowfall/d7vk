@@ -18,16 +18,22 @@ namespace dxvk {
         D3DCommonInterface* commonD3DIntf,
         Com<IDirect3D>&& d3d3IntfProxy,
         IUnknown* pParent)
-    : DDrawWrappedObject<IUnknown, IDirect3D, d3d9::IDirect3D9>(pParent, std::move(d3d3IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)))
+    : DDrawWrappedObject<IUnknown, IDirect3D>(pParent, std::move(d3d3IntfProxy))
     , m_commonIntf ( commonIntf )
     , m_commonD3DIntf ( commonD3DIntf ) {
-    // Get the bridge interface to D3D9.
-    if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
-      throw DxvkError("D3D3Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+    if (m_commonD3DIntf == nullptr) {
+      m_commonD3DIntf = new D3DCommonInterface();
+
+      Com<d3d9::IDirect3D9> d3dIntf9 = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
+      m_commonD3DIntf->SetD3D9Interface(std::move(d3dIntf9));
     }
 
-    if (m_commonD3DIntf == nullptr)
-      m_commonD3DIntf = new D3DCommonInterface();
+    d3d9::IDirect3D9* d3dIntf9 = m_commonD3DIntf->GetD3D9Interface();
+
+    // Get the bridge interface to D3D9.
+    if (unlikely(FAILED(d3dIntf9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
+      throw DxvkError("D3D3Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+    }
 
     m_commonD3DIntf->SetD3D3Interface(this);
 

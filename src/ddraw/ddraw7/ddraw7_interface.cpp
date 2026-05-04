@@ -21,7 +21,7 @@ namespace dxvk {
   DDraw7Interface::DDraw7Interface(
         DDrawCommonInterface* commonIntf,
         Com<IDirectDraw7>&& proxyIntf)
-    : DDrawWrappedObject<IUnknown, IDirectDraw7, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
+    : DDrawWrappedObject<IUnknown, IDirectDraw7>(nullptr, std::move(proxyIntf))
     , m_commonIntf ( commonIntf ) {
     // We need a temporary D3D9 interface at this point to retrieve the
     // adapter identifier, as well as (potentially) the options through a bridge

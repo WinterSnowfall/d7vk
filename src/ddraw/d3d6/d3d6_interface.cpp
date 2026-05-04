@@ -22,16 +22,22 @@ namespace dxvk {
         D3DCommonInterface* commonD3DIntf,
         Com<IDirect3D3>&& d3d6IntfProxy,
         IUnknown* pParent)
-    : DDrawWrappedObject<IUnknown, IDirect3D3, d3d9::IDirect3D9>(pParent, std::move(d3d6IntfProxy), std::move(d3d9::Direct3DCreate9(D3D_SDK_VERSION)))
+    : DDrawWrappedObject<IUnknown, IDirect3D3>(pParent, std::move(d3d6IntfProxy))
     , m_commonIntf ( commonIntf )
     , m_commonD3DIntf ( commonD3DIntf ) {
-    // Get the bridge interface to D3D9.
-    if (unlikely(FAILED(m_d3d9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
-      throw DxvkError("D3D6Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+    if (m_commonD3DIntf == nullptr) {
+      m_commonD3DIntf = new D3DCommonInterface();
+
+      Com<d3d9::IDirect3D9> d3dIntf9 = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
+      m_commonD3DIntf->SetD3D9Interface(std::move(d3dIntf9));
     }
 
-    if (m_commonD3DIntf == nullptr)
-      m_commonD3DIntf = new D3DCommonInterface();
+    d3d9::IDirect3D9* d3dIntf9 = m_commonD3DIntf->GetD3D9Interface();
+
+    // Get the bridge interface to D3D9.
+    if (unlikely(FAILED(d3dIntf9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
+      throw DxvkError("D3D6Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+    }
 
     m_commonD3DIntf->SetD3D6Interface(this);
 
@@ -341,6 +347,8 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Interface::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE4 lpDDS, LPDIRECT3DDEVICE3 *lplpD3DDevice, IUnknown *pUnkOuter) {
     Logger::debug(">>> D3D6Interface::CreateDevice");
 
+    d3d9::IDirect3D9* d3dIntf9 = m_commonD3DIntf->GetD3D9Interface();
+
     if (unlikely(lplpD3DDevice == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -425,11 +433,11 @@ namespace dxvk {
     // Determine the supported AA sample count by querying the D3D9 interface
     d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
     if (likely(d3dOptions->emulateFSAA != FSAAEmulation::Disabled)) {
-      HRESULT hr4S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
-                                                        TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
+      HRESULT hr4S = d3dIntf9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
+                                                          TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
       if (unlikely(FAILED(hr4S))) {
-        HRESULT hr2S = m_d3d9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
-                                                          TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
+        HRESULT hr2S = d3dIntf9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
+                                                            TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
         if (unlikely(FAILED(hr2S))) {
           Logger::warn("D3D6Interface::CreateDevice: No MSAA support has been detected");
         } else {
@@ -483,7 +491,7 @@ namespace dxvk {
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
     Com<d3d9::IDirect3DDevice9> device9;
-    hr = m_d3d9->CreateDevice(
+    hr = d3dIntf9->CreateDevice(
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
       hWnd,

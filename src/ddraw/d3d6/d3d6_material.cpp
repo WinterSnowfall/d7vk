@@ -15,7 +15,7 @@ namespace dxvk {
         Com<IDirect3DMaterial3>&& proxyMaterial,
         D3D6Interface* pParent,
         D3DMATERIALHANDLE handle)
-    : DDrawWrappedObject<D3D6Interface, IDirect3DMaterial3, IUnknown>(pParent, std::move(proxyMaterial), nullptr) {
+    : DDrawWrappedObject<D3D6Interface, IDirect3DMaterial3>(pParent, std::move(proxyMaterial)) {
     m_commonMaterial = new D3DCommonMaterial(handle);
 
     m_commonMaterial->SetD3D6Material(this);
