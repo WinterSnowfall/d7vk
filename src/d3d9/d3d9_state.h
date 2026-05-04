@@ -412,7 +412,7 @@ namespace dxvk {
 
     float                                               nPatchSegments = 0.0f;
 
-    DWORD                                               colorKeyLow = 0;
+    DWORD                                               colorKeyLow  = 0;
     DWORD                                               colorKeyHigh = 0;
 
     bool IsLightEnabled(DWORD Index) const {
