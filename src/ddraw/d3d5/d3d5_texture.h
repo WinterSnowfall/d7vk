@@ -9,7 +9,7 @@ namespace dxvk {
 
   class DDrawSurface;
 
-  class D3D5Texture final : public DDrawWrappedObject<DDrawSurface, IDirect3DTexture2, IUnknown> {
+  class D3D5Texture final : public DDrawWrappedObject<DDrawSurface, IDirect3DTexture2> {
 
   public:
 

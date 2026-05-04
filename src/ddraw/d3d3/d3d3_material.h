@@ -9,7 +9,7 @@ namespace dxvk {
 
   class D3D3Interface;
 
-  class D3D3Material final : public DDrawWrappedObject<D3D3Interface, IDirect3DMaterial, IUnknown> {
+  class D3D3Material final : public DDrawWrappedObject<D3D3Interface, IDirect3DMaterial> {
 
   public:
 

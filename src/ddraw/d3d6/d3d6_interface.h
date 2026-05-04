@@ -16,7 +16,7 @@ namespace dxvk {
   /**
   * \brief D3D6 interface implementation
   */
-  class D3D6Interface final : public DDrawWrappedObject<IUnknown, IDirect3D3, d3d9::IDirect3D9> {
+  class D3D6Interface final : public DDrawWrappedObject<IUnknown, IDirect3D3> {
 
   public:
     D3D6Interface(

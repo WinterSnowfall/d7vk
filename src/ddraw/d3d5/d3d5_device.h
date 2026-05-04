@@ -27,7 +27,7 @@ namespace dxvk {
   /**
   * \brief D3D5 device implementation
   */
-  class D3D5Device final : public DDrawWrappedObject<D3D5Interface, IDirect3DDevice2, d3d9::IDirect3DDevice9> {
+  class D3D5Device final : public DDrawWrappedObject<D3D5Interface, IDirect3DDevice2> {
 
   public:
     D3D5Device(
@@ -152,10 +152,12 @@ namespace dxvk {
       if (m_commonD3DDevice->GetCurrentMaterialHandle() == 0 ||
           (drawFlags & D3DDP_DONOTLIGHT) ||
          !(vertexTypeDesc & D3DFVF_NORMAL)) {
-        m_d3d9->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
+        d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
+
+        device9->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
         if (m_lighting) {
           //Logger::debug("D3D5Device: Disabling lighting");
-          m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+          device9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
         }
       }
     }
@@ -164,8 +166,10 @@ namespace dxvk {
       if ((m_commonD3DDevice->GetCurrentMaterialHandle() == 0 ||
           (drawFlags & D3DDP_DONOTLIGHT) ||
          !(vertexTypeDesc & D3DFVF_NORMAL)) && m_lighting) {
+        d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
+
         //Logger::debug("D3D5Device: Enabling lighting");
-        m_d3d9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
+        device9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
       }
     }
 
@@ -174,17 +178,21 @@ namespace dxvk {
         m_legacyProjection = m_currentViewport->GetCommonViewport()->GetLegacyProjectionMatrix(drawFlags);
 
         if (m_legacyProjection != nullptr) {
+          d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
+
           //Logger::debug("D3D5Device: Applying legacy projection");
-          m_d3d9->GetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
-          m_d3d9->MultiplyTransform(d3d9::D3DTS_PROJECTION, m_legacyProjection);
+          device9->GetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
+          device9->MultiplyTransform(d3d9::D3DTS_PROJECTION, m_legacyProjection);
         }
       }
     }
 
     inline void HandlePostDrawLegacyProjection() {
       if (m_legacyProjection != nullptr) {
+        d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
+
         //Logger::debug("D3D5Device: Reverting legacy projection");
-        m_d3d9->SetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
+        device9->SetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
       }
     }
 

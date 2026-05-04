@@ -21,7 +21,7 @@ namespace dxvk {
         D3DCommonViewport* commonViewport,
         Com<IDirect3DViewport3>&& proxyViewport,
         D3D6Interface* pParent)
-    : DDrawWrappedObject<D3D6Interface, IDirect3DViewport3, IUnknown>(pParent, std::move(proxyViewport), nullptr)
+    : DDrawWrappedObject<D3D6Interface, IDirect3DViewport3>(pParent, std::move(proxyViewport))
     , m_commonViewport ( commonViewport ) {
 
     if (m_commonViewport == nullptr)

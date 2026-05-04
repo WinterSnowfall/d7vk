@@ -15,7 +15,7 @@ namespace dxvk {
   class D3D5Viewport;
   class D3D3Viewport;
 
-  class D3D6Viewport final : public DDrawWrappedObject<D3D6Interface, IDirect3DViewport3, IUnknown> {
+  class D3D6Viewport final : public DDrawWrappedObject<D3D6Interface, IDirect3DViewport3> {
 
   public:
 

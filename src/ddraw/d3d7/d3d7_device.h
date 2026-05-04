@@ -28,7 +28,7 @@ namespace dxvk {
   /**
   * \brief D3D7 device implementation
   */
-  class D3D7Device final : public DDrawWrappedObject<D3D7Interface, IDirect3DDevice7, d3d9::IDirect3DDevice9> {
+  class D3D7Device final : public DDrawWrappedObject<D3D7Interface, IDirect3DDevice7> {
 
   friend class D3D7StateBlock;
 

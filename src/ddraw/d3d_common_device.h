@@ -26,8 +26,7 @@ namespace dxvk {
           DDrawCommonInterface* commonIntf,
           GUID deviceGUID,
           d3d9::D3DPRESENT_PARAMETERS params9,
-          DWORD creationFlags9,
-          uint32_t totalMemory);
+          DWORD creationFlags9);
 
     ~D3DCommonDevice();
 
@@ -35,8 +34,6 @@ namespace dxvk {
       *ppvObject = this;
       return S_OK;
     }
-
-    d3d9::IDirect3DDevice9* GetD3D9Device();
 
     D3DCommonInterface* GetCommonD3DInterface() const;
 
@@ -74,6 +71,10 @@ namespace dxvk {
 
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf;
+    }
+
+    void SetTotalTextureMemory(uint32_t totalMemory) {
+      m_totalMemory = totalMemory;
     }
 
     uint32_t GetTotalTextureMemory() const {
@@ -152,6 +153,14 @@ namespace dxvk {
       m_textureMapBlend = textureMapBlend;
     }
 
+    void SetD3D9Device(Com<d3d9::IDirect3DDevice9>&& device9) {
+      m_device9 = device9;
+    }
+
+    d3d9::IDirect3DDevice9* GetD3D9Device() const {
+      return m_device9.ptr();
+    }
+
     void SetD3D7Device(D3D7Device* device7) {
       m_device7 = device7;
     }
@@ -217,6 +226,8 @@ namespace dxvk {
     D3DLINEPATTERN              m_linePattern         = { };
     // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
     DWORD                       m_textureMapBlend     = D3DTBLEND_MODULATE;
+
+    Com<d3d9::IDirect3DDevice9> m_device9;
 
     // Track all possible last used D3D devices
     D3D7Device*                 m_device7        = nullptr;

@@ -21,7 +21,7 @@ namespace dxvk {
   /**
   * \brief IDirectDrawSurface interface implementation
   */
-  class DDrawSurface final : public DDrawWrappedObject<DDrawInterface, IDirectDrawSurface, d3d9::IDirect3DSurface9> {
+  class DDrawSurface final : public DDrawWrappedObject<DDrawInterface, IDirectDrawSurface> {
 
   public:
 
@@ -128,12 +128,8 @@ namespace dxvk {
       return m_commonIntf;
     }
 
-    d3d9::IDirect3DDevice9* GetD3D9Device() const {
-      return m_d3d9Device;
-    }
-
-    d3d9::IDirect3DTexture9* GetD3D9Texture() const {
-      return m_texture9.ptr();
+    D3DCommonDevice* GetCommonD3DDevice() const {
+      return m_commonD3DDevice;
     }
 
     DDrawSurface* GetNextFlippable() const {
@@ -189,13 +185,13 @@ namespace dxvk {
 
   private:
 
-    inline HRESULT InitializeD3D9(const bool initRT);
+    inline void UpdateMipMapCount();
 
     inline HRESULT UploadSurfaceData();
 
-    inline HRESULT CreateDeviceInternal(REFIID riid, void** ppvObject);
+    inline d3d9::IDirect3DDevice9* RefreshD3D9Device();
 
-    inline void RefreshD3D9Device();
+    inline HRESULT CreateDeviceInternal(REFIID riid, void** ppvObject);
 
     inline DWORD DetermineBackBufferCount(IDirectDrawSurface* renderTarget);
 
@@ -204,27 +200,25 @@ namespace dxvk {
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount       = 0;
 
-    Com<DDrawCommonSurface>      m_commonSurf;
-    DDrawCommonInterface*        m_commonIntf = nullptr;
+    Com<DDrawCommonSurface> m_commonSurf;
+    DDrawCommonInterface*   m_commonIntf = nullptr;
 
-    DDrawSurface*                m_parentSurf = nullptr;
+    DDrawSurface*           m_parentSurf = nullptr;
 
-    d3d9::IDirect3DDevice9*      m_d3d9Device = nullptr;
+    D3DCommonDevice*        m_commonD3DDevice = nullptr;
 
-    Com<D3D3Texture, false>      m_texture3;
-    Com<D3D5Texture, false>      m_texture5;
+    Com<D3D3Texture, false> m_texture3;
+    Com<D3D5Texture, false> m_texture5;
 
-    Com<d3d9::IDirect3DTexture9> m_texture9;
-
-    DDrawSurface*                m_nextFlippable = nullptr;
+    DDrawSurface*           m_nextFlippable = nullptr;
 
     // Offscreen plain surface we use to mask unwanted DDraw interactions, such
     // as forced swapchain presents caused by blits/locks on primary surfaces
-    Com<DDrawSurface>            m_shadowSurf;
+    Com<DDrawSurface>       m_shadowSurf;
 
     // Back buffers will have depth stencil surfaces as attachments (in practice
     // I have never seen more than one depth stencil being attached at a time)
-    Com<DDrawSurface>            m_depthStencil;
+    Com<DDrawSurface>       m_depthStencil;
 
     // These are attached surfaces, which are typically mips or other types of generated
     // surfaces, which need to exist for the entire lifecycle of their parent surface.

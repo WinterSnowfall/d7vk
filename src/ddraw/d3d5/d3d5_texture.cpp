@@ -12,7 +12,7 @@ namespace dxvk {
         Com<IDirect3DTexture2>&& proxyTexture,
         DDrawSurface* pParent,
         D3DTEXTUREHANDLE handle)
-    : DDrawWrappedObject<DDrawSurface, IDirect3DTexture2, IUnknown>(pParent, std::move(proxyTexture), nullptr) {
+    : DDrawWrappedObject<DDrawSurface, IDirect3DTexture2>(pParent, std::move(proxyTexture)) {
     m_commonTex = new D3DCommonTexture(m_parent->GetCommonSurface(), handle);
 
     m_texCount = ++s_texCount;

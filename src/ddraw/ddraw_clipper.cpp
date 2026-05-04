@@ -5,7 +5,7 @@ namespace dxvk {
   DDrawClipper::DDrawClipper(
         Com<IDirectDrawClipper>&& clipperProxy,
         IUnknown* pParent)
-    : DDrawWrappedObject<IUnknown, IDirectDrawClipper, IUnknown>(pParent, std::move(clipperProxy), nullptr) {
+    : DDrawWrappedObject<IUnknown, IDirectDrawClipper>(pParent, std::move(clipperProxy)) {
     Logger::debug("DDrawClipper: Created a new clipper");
   }
 
