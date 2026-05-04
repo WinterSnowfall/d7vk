@@ -142,6 +142,8 @@ namespace dxvk {
     // with minor differences between the two. Note that the
     // device listing order matters, so list RGB first, HAL second.
 
+    HRESULT hr;
+
     // Software emulation, this is expected to be exposed
     GUID guidRGB = IID_IDirect3DRGBDevice;
     D3DDEVICEDESC descRGB_HAL = GetD3D6Caps(IID_IDirect3DRGBDevice, d3dOptions);
@@ -157,11 +159,18 @@ namespace dxvk {
                                            & ~D3DPTEXTURECAPS_POW2;
     descRGB_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
     descRGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
-    static char deviceDescRGB[100] = "D6VK RGB";
-    static char deviceNameRGB[100] = "D6VK RGB";
 
-    HRESULT hr = lpEnumDevicesCallback(&guidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
-                                       &descRGB_HAL, &descRGB_HEL, lpUserArg);
+    if (likely(!d3dOptions->legacyDeviceNames)) {
+      static char deviceDescRGB[100] = "D6VK RGB";
+      static char deviceNameRGB[100] = "D6VK RGB";
+      hr = lpEnumDevicesCallback(&guidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
+                                 &descRGB_HAL, &descRGB_HEL, lpUserArg);
+    } else {
+      static char legacyDeviceDescRGB[100] = "RGB Emulation";
+      static char legacyDeviceNameRGB[100] = "RGB Emulation";
+      hr = lpEnumDevicesCallback(&guidRGB, &legacyDeviceDescRGB[0], &legacyDeviceNameRGB[0],
+                                 &descRGB_HAL, &descRGB_HEL, lpUserArg);
+    }
     if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
@@ -180,11 +189,18 @@ namespace dxvk {
     descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
-    static char deviceDescHAL[100] = "D6VK HAL";
-    static char deviceNameHAL[100] = "D6VK HAL";
 
-    hr = lpEnumDevicesCallback(&guidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
-                               &descHAL_HAL, &descHAL_HEL, lpUserArg);
+    if (likely(!d3dOptions->legacyDeviceNames)) {
+      static char deviceDescHAL[100] = "D6VK HAL";
+      static char deviceNameHAL[100] = "D6VK HAL";
+      hr = lpEnumDevicesCallback(&guidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
+                                 &descHAL_HAL, &descHAL_HEL, lpUserArg);
+    } else {
+      static char legacyDeviceDescHAL[100] = "Direct3D HAL";
+      static char legacyDeviceNameHAL[100] = "Direct3D HAL";
+      hr = lpEnumDevicesCallback(&guidHAL, &legacyDeviceDescHAL[0], &legacyDeviceNameHAL[0],
+                                 &descHAL_HAL, &descHAL_HEL, lpUserArg);
+    }
     if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
