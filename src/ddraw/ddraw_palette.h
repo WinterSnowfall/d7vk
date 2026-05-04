@@ -7,7 +7,7 @@ namespace dxvk {
 
   class DDrawCommonSurface;
 
-  class DDrawPalette final : public DDrawWrappedObject<IUnknown, IDirectDrawPalette, IUnknown> {
+  class DDrawPalette final : public DDrawWrappedObject<IUnknown, IDirectDrawPalette> {
 
   public:
 

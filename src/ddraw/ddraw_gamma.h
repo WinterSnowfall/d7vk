@@ -7,7 +7,7 @@
 
 namespace dxvk {
 
-  class DDrawGammaControl final : public DDrawWrappedObject<IUnknown, IDirectDrawGammaControl, IUnknown> {
+  class DDrawGammaControl final : public DDrawWrappedObject<IUnknown, IDirectDrawGammaControl> {
 
   public:
 

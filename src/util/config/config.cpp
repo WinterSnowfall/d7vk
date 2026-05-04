@@ -1735,10 +1735,6 @@ namespace dxvk {
     { R"(\\h&d\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
-    /* Dungeon Keeper 2                           */
-    { R"(\\DKII(-DX)?\.exe$)", {{
-      { "ddraw.ignoreExclusiveMode",        "True" },
-    }} },
     /* Star Wars: Rogue Squadron 3D               */
     { R"(\\Rogue Squadron\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
@@ -1862,6 +1858,14 @@ namespace dxvk {
      * Fixes white backgrounds on text            */
     { R"(\\Combat Mission\.exe$)", {{
       { "ddraw.colorKeyMasking",            "True" },
+    }} },
+    /* X: Beyond the Frontier                     */
+    { R"(\\X\.exe$)", {{
+      { "ddraw.forceSingleBackBuffer",      "True" },
+    }} },
+    /* X: Tension                                 */
+    { R"(\\X-TENSION\.exe$)", {{
+      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
 
     /**********************************************/

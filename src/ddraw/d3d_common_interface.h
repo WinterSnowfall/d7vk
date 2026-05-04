@@ -38,6 +38,14 @@ namespace dxvk {
       return ++m_materialHandle;
     }
 
+    void SetD3D9Interface(Com<d3d9::IDirect3D9>&& d3d9Intf) {
+      m_d3d9Intf = d3d9Intf;
+    }
+
+    d3d9::IDirect3D9* GetD3D9Interface() const {
+      return m_d3d9Intf.ptr();
+    }
+
     void SetD3D7Interface(D3D7Interface* d3d7Intf) {
       m_d3d7Intf = d3d7Intf;
     }
@@ -72,11 +80,13 @@ namespace dxvk {
 
   private:
 
+    Com<d3d9::IDirect3D9> m_d3d9Intf       = nullptr;
+
     // Track all possible last used D3D interfaces
-    D3D7Interface*    m_d3d7Intf       = nullptr;
-    D3D6Interface*    m_d3d6Intf       = nullptr;
-    D3D5Interface*    m_d3d5Intf       = nullptr;
-    D3D3Interface*    m_d3d3Intf       = nullptr;
+    D3D7Interface*        m_d3d7Intf       = nullptr;
+    D3D6Interface*        m_d3d6Intf       = nullptr;
+    D3D5Interface*        m_d3d5Intf       = nullptr;
+    D3D3Interface*        m_d3d3Intf       = nullptr;
 
     std::atomic<D3DMATERIALHANDLE> m_materialHandle = 0;
     std::unordered_map<D3DMATERIALHANDLE, D3DCommonMaterial*> m_materials;
