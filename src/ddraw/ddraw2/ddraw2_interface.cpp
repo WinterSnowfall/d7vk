@@ -312,7 +312,7 @@ namespace dxvk {
             } else {
               Com<DDrawSurface> shadowSurf = new DDrawSurface(nullptr, std::move(ddrawSurfaceShadow),
                                                               m_commonIntf->GetDDInterface(), nullptr, false);
-              surface->SetShadowSurface(shadowSurf.ptr());
+              surface->SetShadowSurface(std::move(shadowSurf));
             }
           }
         }
