@@ -77,6 +77,9 @@ namespace dxvk {
     /// Uses a tolerance interval for color key inverval matching
     bool colorKeyTolerance;
 
+    /// Extends features and relaxes validations to enable apitrace debugging
+    bool apitraceMode;
+
     /// By default guards against legacy presents while inside of a scene
     D3DLegacyPresentGuard legacyPresentGuard;
 
@@ -106,6 +109,7 @@ namespace dxvk {
       this->deviceResourceSharing = config.getOption<bool>   ("ddraw.deviceResourceSharing", false);
       this->colorKeyMasking       = config.getOption<bool>   ("ddraw.colorKeyMasking",       false);
       this->colorKeyTolerance     = config.getOption<bool>   ("ddraw.colorKeyTolerance",     false);
+      this->apitraceMode          = config.getOption<bool>   ("ddraw.apitraceMode",          false);
 
       // Clamp the vertex offset in the (sensible) -1.0f/1.0f range
       this->vertexOffset = dxvk::fclamp(this->vertexOffset, -1.0f, 1.0f);

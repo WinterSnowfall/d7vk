@@ -25,7 +25,7 @@ namespace dxvk {
   /**
   * \brief D3D3 device implementation
   */
-  class D3D3Device final : public DDrawWrappedObject<DDrawSurface, IDirect3DDevice, d3d9::IDirect3DDevice9> {
+  class D3D3Device final : public DDrawWrappedObject<DDrawSurface, IDirect3DDevice> {
 
   public:
     D3D3Device(

@@ -20,7 +20,7 @@ namespace dxvk {
   DDraw2Interface::DDraw2Interface(
         DDrawCommonInterface* commonIntf,
         Com<IDirectDraw2>&& proxyIntf)
-    : DDrawWrappedObject<IUnknown, IDirectDraw2, IUnknown>(nullptr, std::move(proxyIntf), nullptr)
+    : DDrawWrappedObject<IUnknown, IDirectDraw2>(nullptr, std::move(proxyIntf))
     , m_commonIntf ( commonIntf ) {
     // Hold a reference to the parent IDirectDraw object, since
     // it is needed to be able to create surfaces from this interface

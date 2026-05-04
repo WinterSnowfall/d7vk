@@ -11,13 +11,12 @@
 
 namespace dxvk {
 
-  class DDrawSurface;
-  class DDraw7Surface;
+  class D3DCommonDevice;
 
   /**
   * \brief IDirectDrawSurface3 interface implementation
   */
-  class DDraw3Surface final : public DDrawWrappedObject<DDrawSurface, IDirectDrawSurface3, d3d9::IDirect3DSurface9> {
+  class DDraw3Surface final : public DDrawWrappedObject<DDrawSurface, IDirectDrawSurface3> {
 
   public:
 
@@ -125,8 +124,8 @@ namespace dxvk {
       return m_commonIntf;
     }
 
-    d3d9::IDirect3DDevice9* GetD3D9Device() const {
-      return m_d3d9Device;
+    D3DCommonDevice* GetCommonD3DDevice() const {
+      return m_commonD3DDevice;
     }
 
     DDraw3Surface* GetAttachedDepthStencil() {
@@ -161,27 +160,24 @@ namespace dxvk {
     }
 
     HRESULT InitializeOrUploadD3D9() {
-      HRESULT hr = m_parent->InitializeOrUploadD3D9();
-      if (unlikely(m_d3d9 == nullptr && SUCCEEDED(hr)))
-        m_d3d9 = m_parent->GetD3D9();
-      return hr;
+      return m_parent->InitializeOrUploadD3D9();
     }
 
   private:
 
-    inline void RefreshD3D9Device();
+    inline d3d9::IDirect3DDevice9* RefreshD3D9Device();
 
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
 
     Com<DDrawCommonSurface>  m_commonSurf;
-    DDrawCommonInterface*    m_commonIntf = nullptr;
+    DDrawCommonInterface*    m_commonIntf      = nullptr;
 
     Com<DDrawSurface, false> m_originSurf;
 
-    DDraw3Surface*           m_parentSurf = nullptr;
+    DDraw3Surface*           m_parentSurf      = nullptr;
 
-    d3d9::IDirect3DDevice9*  m_d3d9Device = nullptr;
+    D3DCommonDevice*         m_commonD3DDevice = nullptr;
 
     // Offscreen plain surface we use to mask unwanted DDraw interactions, such
     // as forced swapchain presents caused by blits/locks on primary surfaces

@@ -17,10 +17,8 @@ namespace dxvk {
         DDrawCommonInterface* commonIntf,
         GUID deviceGUID,
         d3d9::D3DPRESENT_PARAMETERS params9,
-        DWORD creationFlags9,
-        uint32_t totalMemory)
+        DWORD creationFlags9)
     : m_commonIntf     ( commonIntf )
-    , m_totalMemory    ( totalMemory )
     , m_deviceGUID     ( deviceGUID )
     , m_params9        ( params9 )
     , m_creationFlags9 ( creationFlags9 ) {
@@ -29,20 +27,6 @@ namespace dxvk {
   D3DCommonDevice::~D3DCommonDevice() {
     if (m_commonIntf->GetCommonD3DDevice() == this)
       m_commonIntf->SetCommonD3DDevice(nullptr);
-  }
-
-  d3d9::IDirect3DDevice9* D3DCommonDevice::GetD3D9Device() {
-    if (m_device7 != nullptr) {
-      return m_device7->GetD3D9();
-    } else if (m_device6 != nullptr) {
-      return m_device6->GetD3D9();
-    } else if (m_device5 != nullptr) {
-      return m_device5->GetD3D9();
-    } else if (m_device3 != nullptr) {
-      return m_device3->GetD3D9();
-    }
-
-    return nullptr;
   }
 
   D3DCommonInterface* D3DCommonDevice::GetCommonD3DInterface() const {
@@ -102,13 +86,13 @@ namespace dxvk {
       return false;
 
     if (m_device7 != nullptr) {
-      return surface == m_device7->GetRenderTarget()->GetD3D9();
+      return surface == m_device7->GetRenderTarget()->GetCommonSurface()->GetD3D9Surface();
     } else if (m_device6 != nullptr) {
-      return surface == m_device6->GetRenderTarget()->GetD3D9();
+      return surface == m_device6->GetRenderTarget()->GetCommonSurface()->GetD3D9Surface();
     } else if (m_device5 != nullptr) {
-      return surface == m_device5->GetRenderTarget()->GetD3D9();
+      return surface == m_device5->GetRenderTarget()->GetCommonSurface()->GetD3D9Surface();
     } else if (m_device3 != nullptr) {
-      return surface == m_device3->GetRenderTarget()->GetD3D9();
+      return surface == m_device3->GetRenderTarget()->GetCommonSurface()->GetD3D9Surface();
     }
 
     return false;
@@ -132,13 +116,13 @@ namespace dxvk {
       return false;
 
     if (m_device7 != nullptr) {
-      return surface == m_device7->GetDepthStencil()->GetD3D9();
+      return surface == m_device7->GetDepthStencil()->GetCommonSurface()->GetD3D9Surface();
     } else if (m_device6 != nullptr) {
-      return surface == m_device6->GetDepthStencil()->GetD3D9();
+      return surface == m_device6->GetDepthStencil()->GetCommonSurface()->GetD3D9Surface();
     } else if (m_device5 != nullptr) {
-      return surface == m_device5->GetDepthStencil()->GetD3D9();
+      return surface == m_device5->GetDepthStencil()->GetCommonSurface()->GetD3D9Surface();
     } else if (m_device3 != nullptr) {
-      return surface == m_device3->GetDepthStencil()->GetD3D9();
+      return surface == m_device3->GetDepthStencil()->GetCommonSurface()->GetD3D9Surface();
     }
 
     return false;

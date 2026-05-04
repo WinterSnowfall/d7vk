@@ -35,8 +35,38 @@ namespace dxvk {
 
     HRESULT RefreshSurfaceDescripton();
 
+    HRESULT InitializeD3D9(const bool initRenderTarget);
+
+    bool IsInitialized() const {
+      return m_surface9 != nullptr;
+    }
+
     DDrawCommonInterface* GetCommonInterface() const {
       return m_commonIntf.ptr();
+    }
+
+    void SetD3D9Surface(Com<d3d9::IDirect3DSurface9>&& surface9) {
+      m_surface9 = surface9;
+    }
+
+    d3d9::IDirect3DSurface9* GetD3D9Surface() const {
+      return m_surface9.ptr();
+    }
+
+    void SetD3D9Texture(Com<d3d9::IDirect3DTexture9>&& texture9) {
+      m_texture9 = texture9;
+    }
+
+    d3d9::IDirect3DTexture9* GetD3D9Texture() const {
+      return m_texture9.ptr();
+    }
+
+    void SetD3D9CubeTexture(Com<d3d9::IDirect3DCubeTexture9>&& cubeMap9) {
+      m_cubeMap9 = cubeMap9;
+    }
+
+    d3d9::IDirect3DCubeTexture9* GetD3D9CubeTexture() const {
+      return m_cubeMap9.ptr();
     }
 
     bool IsDesc2Set() const {
@@ -327,7 +357,8 @@ namespace dxvk {
 
     bool IsTextureOrCubeMap() const {
       return m_desc2.ddsCaps.dwCaps  & DDSCAPS_TEXTURE
-          || m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP;
+          || m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP
+          || m_desc.ddsCaps.dwCaps   & DDSCAPS_TEXTURE;
     }
 
     bool IsBackBufferOrFlippable() const {
@@ -371,6 +402,7 @@ namespace dxvk {
       if (IsPrimarySurface())             type = "primary surface";
       else if (IsFrontBuffer())           type = "front buffer";
       else if (IsBackBuffer())            type = "back buffer";
+      else if (IsCubeMap())               type = "cube texture";
       else if (IsTextureMip())            type = "texture mipmap";
       else if (IsTexture())               type = "texture";
       else if (IsDepthStencil())          type = "depth stencil";
@@ -398,41 +430,45 @@ namespace dxvk {
 
   private:
 
-    bool                      m_dirtyDDraw         = false;
-    bool                      m_dirtyD3D9          = false;
+    bool                             m_dirtyDDraw         = false;
+    bool                             m_dirtyD3D9          = false;
 
-    bool                      m_isAttached         = false;
-    bool                      m_isD3D9BackBuffer   = false;
-    bool                      m_isD3D9DepthStencil = false;
+    bool                             m_isAttached         = false;
+    bool                             m_isD3D9BackBuffer   = false;
+    bool                             m_isD3D9DepthStencil = false;
 
-    bool                      m_isDesc2Set         = false;
-    bool                      m_isDescSet          = false;
+    bool                             m_isDesc2Set         = false;
+    bool                             m_isDescSet          = false;
 
-    bool                      m_isBackBufferOrFlippable = false;
-    bool                      m_isRenderTarget          = false;
+    bool                             m_isBackBufferOrFlippable = false;
+    bool                             m_isRenderTarget          = false;
 
-    uint16_t                  m_mipCount        = 1;
-    uint32_t                  m_backBufferIndex = 0;
+    uint16_t                         m_mipCount        = 1;
+    uint32_t                         m_backBufferIndex = 0;
 
-    DDSURFACEDESC             m_desc  = { };
-    DDSURFACEDESC2            m_desc2 = { };
-    d3d9::D3DFORMAT           m_format9 = d3d9::D3DFMT_UNKNOWN;
+    DDSURFACEDESC                    m_desc  = { };
+    DDSURFACEDESC2                   m_desc2 = { };
+    d3d9::D3DFORMAT                  m_format9 = d3d9::D3DFMT_UNKNOWN;
 
-    Com<DDrawClipper>         m_clipper;
-    Com<DDrawPalette>         m_palette;
+    Com<DDrawClipper>                m_clipper;
+    Com<DDrawPalette>                m_palette;
 
-    Com<DDrawCommonInterface> m_commonIntf;
+    Com<DDrawCommonInterface>        m_commonIntf;
+
+    Com<d3d9::IDirect3DSurface9>     m_surface9;
+    Com<d3d9::IDirect3DTexture9>     m_texture9;
+    Com<d3d9::IDirect3DCubeTexture9> m_cubeMap9;
 
     // Track all possible surface versions of the same object
-    DDraw7Surface*            m_surf7        = nullptr;
-    DDraw4Surface*            m_surf4        = nullptr;
-    DDraw3Surface*            m_surf3        = nullptr;
-    DDraw2Surface*            m_surf2        = nullptr;
-    DDrawSurface*             m_surf         = nullptr;
+    DDraw7Surface*                   m_surf7  = nullptr;
+    DDraw4Surface*                   m_surf4  = nullptr;
+    DDraw3Surface*                   m_surf3  = nullptr;
+    DDraw2Surface*                   m_surf2  = nullptr;
+    DDrawSurface*                    m_surf   = nullptr;
 
     // Track the origin surface, as in the DDraw surface
     // that gets created through a CreateSurface call
-    IUnknown*                 m_origin       = nullptr;
+    IUnknown*                        m_origin = nullptr;
 
   };
 

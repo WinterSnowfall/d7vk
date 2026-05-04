@@ -38,11 +38,11 @@ namespace dxvk {
 
   d3d9::IDirect3DDevice9* D3DCommonViewport::GetD3D9Device() {
     if (m_device6 != nullptr) {
-      return m_device6->GetD3D9();
+      return m_device6->GetCommonD3DDevice()->GetD3D9Device();
     } else if (m_device5 != nullptr) {
-      return m_device5->GetD3D9();
+      return m_device5->GetCommonD3DDevice()->GetD3D9Device();
     } else if (m_device3 != nullptr) {
-      return m_device3->GetD3D9();
+      return m_device3->GetCommonD3DDevice()->GetD3D9Device();
     }
 
     return nullptr;
