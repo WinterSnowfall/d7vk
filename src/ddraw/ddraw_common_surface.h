@@ -96,7 +96,7 @@ namespace dxvk {
       const DDCOLORKEY*    colorKey    = (m_desc2.dwFlags & DDSD_CKSRCBLT) ? &m_desc2.ddckCKSrcBlt : &m_desc.ddckCKSrcBlt;
 
       // Empire of the Ants relies on us using the "Low" color space DWORD
-      return ColorKeyToRGB(pixelFormat, colorKey->dwColorSpaceLowValue);
+      return ColorKeyToRGB(pixelFormat, colorKey->dwColorSpaceLowValue, m_commonIntf->GetOptions()->colorKeyTolerance);
     }
 
     d3d9::D3DFORMAT GetD3D9Format() const {
