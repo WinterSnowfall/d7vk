@@ -122,10 +122,6 @@ namespace dxvk {
       return m_commonIntf;
     }
 
-    D3DCommonDevice* GetCommonD3DDevice() const {
-      return m_commonD3DDevice;
-    }
-
     void SetAttachedDepthStencil(Com<DDraw2Surface>&& depthStencil) {
       m_depthStencil = depthStencil;
     }
@@ -167,8 +163,6 @@ namespace dxvk {
 
   private:
 
-    inline d3d9::IDirect3DDevice9* RefreshD3D9Device();
-
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
 
@@ -178,8 +172,6 @@ namespace dxvk {
     Com<DDrawSurface, false> m_originSurf;
 
     DDraw2Surface*           m_parentSurf      = nullptr;
-
-    D3DCommonDevice*         m_commonD3DDevice = nullptr;
 
     // Offscreen plain surface we use to mask unwanted DDraw interactions, such
     // as forced swapchain presents caused by blits/locks on primary surfaces

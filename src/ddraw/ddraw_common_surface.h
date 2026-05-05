@@ -10,6 +10,8 @@
 
 namespace dxvk {
 
+  class D3DCommonDevice;
+
   class DDraw7Surface;
   class DDraw4Surface;
   class DDraw3Surface;
@@ -35,10 +37,20 @@ namespace dxvk {
 
     HRESULT RefreshSurfaceDescripton();
 
+    d3d9::IDirect3DDevice9* RefreshD3D9Device();
+
     HRESULT InitializeD3D9(const bool initRenderTarget);
 
     bool IsInitialized() const {
       return m_surface9 != nullptr;
+    }
+
+    void SetCommonD3DDevice(D3DCommonDevice* commonD3DDevice) {
+      m_commonD3DDevice = commonD3DDevice;
+    }
+
+    D3DCommonDevice* GetCommonD3DDevice() const {
+      return m_commonD3DDevice;
     }
 
     DDrawCommonInterface* GetCommonInterface() const {
@@ -454,6 +466,8 @@ namespace dxvk {
     Com<DDrawPalette>                m_palette;
 
     Com<DDrawCommonInterface>        m_commonIntf;
+
+    D3DCommonDevice*                 m_commonD3DDevice = nullptr;
 
     Com<d3d9::IDirect3DSurface9>     m_surface9;
     Com<d3d9::IDirect3DTexture9>     m_texture9;
