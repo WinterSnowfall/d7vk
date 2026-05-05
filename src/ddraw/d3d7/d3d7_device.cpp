@@ -1257,7 +1257,7 @@ namespace dxvk {
 
     // If textures have been used on a different device, they
     // will get their D3D9 object reinitialized at this point
-    if (unlikely(surface7->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
+    if (unlikely(surface7->GetCommonSurface()->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
       surface7->GetCommonSurface()->DirtyDDrawSurface();
 
     hr = surface7->InitializeOrUploadD3D9();

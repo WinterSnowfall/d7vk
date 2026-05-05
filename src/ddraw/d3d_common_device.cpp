@@ -1,5 +1,7 @@
 #include "d3d_common_device.h"
 
+#include "ddraw_common_surface.h"
+
 #include "d3d_common_interface.h"
 
 #include "ddraw/ddraw_surface.h"
@@ -68,17 +70,11 @@ namespace dxvk {
     return m_device7 != nullptr ? m_device7->GetRenderTarget() : nullptr;
   }
 
-  bool D3DCommonDevice::IsCurrentRenderTarget(DDrawSurface* surface) const {
-    return m_device5 != nullptr ? m_device5->GetRenderTarget() == surface :
-           m_device3 != nullptr ? m_device3->GetRenderTarget() == surface : false;
-  }
-
-  bool D3DCommonDevice::IsCurrentRenderTarget(DDraw4Surface* surface) const {
-    return m_device6 != nullptr ? m_device6->GetRenderTarget() == surface : false;
-  }
-
-  bool D3DCommonDevice::IsCurrentRenderTarget(DDraw7Surface* surface) const {
-    return m_device7 != nullptr ? m_device7->GetRenderTarget() == surface : false;
+  bool D3DCommonDevice::IsCurrentRenderTarget(DDrawCommonSurface* commonSurface) const {
+    return m_device7 != nullptr ? m_device7->GetRenderTarget()->GetCommonSurface() == commonSurface :
+           m_device6 != nullptr ? m_device6->GetRenderTarget()->GetCommonSurface() == commonSurface :
+           m_device5 != nullptr ? m_device5->GetRenderTarget()->GetCommonSurface() == commonSurface :
+           m_device3 != nullptr ? m_device3->GetRenderTarget()->GetCommonSurface() == commonSurface : false;
   }
 
   bool D3DCommonDevice::IsCurrentD3D9RenderTarget(d3d9::IDirect3DSurface9* surface) const {
@@ -96,19 +92,6 @@ namespace dxvk {
     }
 
     return false;
-  }
-
-  bool D3DCommonDevice::IsCurrentDepthStencil(DDrawSurface* surface) const {
-    return m_device5 != nullptr ? m_device5->GetDepthStencil() == surface :
-           m_device3 != nullptr ? m_device3->GetDepthStencil() == surface : false;
-  }
-
-  bool D3DCommonDevice::IsCurrentDepthStencil(DDraw4Surface* surface) const {
-    return m_device6 != nullptr ? m_device6->GetDepthStencil() == surface : false;
-  }
-
-  bool D3DCommonDevice::IsCurrentDepthStencil(DDraw7Surface* surface) const {
-    return m_device7 != nullptr ? m_device7->GetDepthStencil() == surface : false;
   }
 
   bool D3DCommonDevice::IsCurrentD3D9DepthStencil(d3d9::IDirect3DSurface9* surface) const {

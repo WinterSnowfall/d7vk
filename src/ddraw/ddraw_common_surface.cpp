@@ -120,6 +120,24 @@ namespace dxvk {
     return DD_OK;
   }
 
+  d3d9::IDirect3DDevice9* DDrawCommonSurface::RefreshD3D9Device() {
+    D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
+
+    if (unlikely(m_commonD3DDevice != commonD3DDevice)) {
+      // Check if the device has been recreated and reset all D3D9 resources
+      if (m_commonD3DDevice != nullptr) {
+        Logger::debug("DDrawCommonSurface: Device context has changed, clearing all D3D9 resources");
+        m_cubeMap9 = nullptr;
+        m_texture9 = nullptr;
+        m_surface9 = nullptr;
+      }
+
+      m_commonD3DDevice = commonD3DDevice;
+    }
+
+    return m_commonD3DDevice != nullptr ? m_commonD3DDevice->GetD3D9Device() : nullptr;
+  }
+
   HRESULT DDrawCommonSurface::InitializeD3D9(const bool initRenderTarget) {
     const DWORD dwHeight = (m_desc2.dwFlags & DDSD_HEIGHT) ? m_desc2.dwHeight : m_desc.dwHeight;
     const DWORD dwWidth  = (m_desc2.dwFlags & DDSD_WIDTH)  ? m_desc2.dwWidth  : m_desc.dwWidth;
