@@ -128,10 +128,6 @@ namespace dxvk {
       return m_commonIntf;
     }
 
-    D3DCommonDevice* GetCommonD3DDevice() const {
-      return m_commonD3DDevice;
-    }
-
     DDrawSurface* GetNextFlippable() const {
       return m_nextFlippable;
     }
@@ -193,8 +189,6 @@ namespace dxvk {
 
     inline HRESULT UploadSurfaceData();
 
-    inline d3d9::IDirect3DDevice9* RefreshD3D9Device();
-
     inline HRESULT CreateDeviceInternal(REFIID riid, void** ppvObject);
 
     inline DWORD DetermineBackBufferCount(IDirectDrawSurface* renderTarget);
@@ -208,8 +202,6 @@ namespace dxvk {
     DDrawCommonInterface*   m_commonIntf = nullptr;
 
     DDrawSurface*           m_parentSurf = nullptr;
-
-    D3DCommonDevice*        m_commonD3DDevice = nullptr;
 
     Com<D3D3Texture, false> m_texture3;
     Com<D3D5Texture, false> m_texture5;
