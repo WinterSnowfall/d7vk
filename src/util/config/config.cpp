@@ -1881,7 +1881,7 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Empire of the Ants                         */
-    { R"(\\Empire of the Ants\\Game\.exe$)", {{
+    { R"(\\Empire of the Ants*\\Game\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.legacyPresentGuard",       "Strict" },
       { "ddraw.colorKeyTolerance",          "True" },

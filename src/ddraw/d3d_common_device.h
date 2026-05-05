@@ -6,6 +6,7 @@
 
 namespace dxvk {
 
+  class DDrawCommonSurface;
   class D3DCommonInterface;
   class DDrawCommonInterface;
 
@@ -45,19 +46,9 @@ namespace dxvk {
 
     DDraw7Surface* GetCurrentRenderTarget7() const;
 
-    bool IsCurrentRenderTarget(DDrawSurface* surface) const;
-
-    bool IsCurrentRenderTarget(DDraw4Surface* surface) const;
-
-    bool IsCurrentRenderTarget(DDraw7Surface* surface) const;
+    bool IsCurrentRenderTarget(DDrawCommonSurface* commonSurface) const;
 
     bool IsCurrentD3D9RenderTarget(d3d9::IDirect3DSurface9* surface) const;
-
-    bool IsCurrentDepthStencil(DDrawSurface* surface) const;
-
-    bool IsCurrentDepthStencil(DDraw4Surface* surface) const;
-
-    bool IsCurrentDepthStencil(DDraw7Surface* surface) const;
 
     bool IsCurrentD3D9DepthStencil(d3d9::IDirect3DSurface9* surface) const;
 
