@@ -145,10 +145,6 @@ namespace dxvk {
       return m_commonIntf;
     }
 
-    D3DCommonDevice* GetCommonD3DDevice() const {
-      return m_commonD3DDevice;
-    }
-
     void SetAttachedDepthStencil(Com<DDraw4Surface>&& depthStencil) {
       m_depthStencil = depthStencil;
     }
@@ -190,8 +186,6 @@ namespace dxvk {
 
     inline HRESULT UploadSurfaceData();
 
-    inline d3d9::IDirect3DDevice9* RefreshD3D9Device();
-
     bool             m_isChildObject = true;
 
     static uint32_t  s_surfCount;
@@ -201,8 +195,6 @@ namespace dxvk {
     DDrawCommonInterface*   m_commonIntf = nullptr;
 
     DDraw4Surface*          m_parentSurf = nullptr;
-
-    D3DCommonDevice*        m_commonD3DDevice = nullptr;
 
     Com<D3D6Texture, false> m_texture6;
 

@@ -290,13 +290,13 @@ namespace dxvk {
     }
     DownloadSurfaceData();
 
-    d3d9::IDirect3DDevice9* d3d9Device = RefreshD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
     if (likely(d3d9Device != nullptr)) {
       // Forward DDBLT_DEPTHFILL clears to D3D9 if done on the current depth stencil
       if (unlikely(lpDDSrcSurface == nullptr &&
                   (dwFlags & DDBLT_DEPTHFILL) &&
                   lpDDBltFx != nullptr &&
-                  m_commonIntf->GetCommonD3DDevice()->IsCurrentD3D9DepthStencil(m_commonSurf->GetD3D9Surface()))) {
+                  m_commonSurf->GetCommonD3DDevice()->IsCurrentD3D9DepthStencil(m_commonSurf->GetD3D9Surface()))) {
         Logger::debug("DDraw4Surface::Blt: Clearing d3d9 depth stencil");
 
         HRESULT hrClear;
@@ -314,7 +314,7 @@ namespace dxvk {
       if (unlikely(lpDDSrcSurface == nullptr &&
                   (dwFlags & DDBLT_COLORFILL) &&
                   lpDDBltFx != nullptr &&
-                  m_commonIntf->GetCommonD3DDevice()->IsCurrentD3D9RenderTarget(m_commonSurf->GetD3D9Surface()))) {
+                  m_commonSurf->GetCommonD3DDevice()->IsCurrentD3D9RenderTarget(m_commonSurf->GetD3D9Surface()))) {
         Logger::debug("DDraw4Surface::Blt: Clearing d3d9 render target");
 
         HRESULT hrClear;
@@ -333,10 +333,8 @@ namespace dxvk {
       // Windowed mode presentation path
       if (!exclusiveMode && lpDDSrcSurface != nullptr && m_commonSurf->IsPrimarySurface()) {
         // TODO: Handle this properly, not by uploading the RT again
-        D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
-
         DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
-        DDraw4Surface* renderTarget = commonDevice->GetCurrentRenderTarget4();
+        DDraw4Surface* renderTarget = m_commonSurf->GetCommonD3DDevice()->GetCurrentRenderTarget4();
 
         if (ddraw4Surface == renderTarget) {
           renderTarget->InitializeOrUploadD3D9();
@@ -364,7 +362,7 @@ namespace dxvk {
 
       if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
         const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
-                                  !m_commonIntf->GetCommonD3DDevice()->IsInScene() :
+                                  !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
                                    m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
                                    false : true;
         if (shouldPresent) {
@@ -394,7 +392,7 @@ namespace dxvk {
     }
     DownloadSurfaceData();
 
-    d3d9::IDirect3DDevice9* d3d9Device = RefreshD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
     if (likely(d3d9Device != nullptr)) {
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
                               && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
@@ -402,10 +400,8 @@ namespace dxvk {
       // Windowed mode presentation path
       if (!exclusiveMode && lpDDSrcSurface != nullptr && m_commonSurf->IsPrimarySurface()) {
         // TODO: Handle this properly, not by uploading the RT again
-        D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
-
         DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
-        DDraw4Surface* renderTarget = commonDevice->GetCurrentRenderTarget4();
+        DDraw4Surface* renderTarget = m_commonSurf->GetCommonD3DDevice()->GetCurrentRenderTarget4();
 
         if (ddraw4Surface == renderTarget) {
           renderTarget->InitializeOrUploadD3D9();
@@ -433,7 +429,7 @@ namespace dxvk {
 
       if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
         const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
-                                  !m_commonIntf->GetCommonD3DDevice()->IsInScene() :
+                                  !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
                                    m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
                                    false : true;
         if (shouldPresent) {
@@ -536,7 +532,7 @@ namespace dxvk {
     if (m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))
       surf4 = static_cast<DDraw4Surface*>(lpDDSurfaceTargetOverride);
 
-    d3d9::IDirect3DDevice9* d3d9Device = RefreshD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
     if (likely(d3d9Device != nullptr)) {
       Logger::debug("*** DDraw4Surface::Flip: Presenting");
 
@@ -576,11 +572,11 @@ namespace dxvk {
       if (unlikely(m_commonIntf->GetWaitForVBlank() && (dwFlags & DDFLIP_NOVSYNC))) {
         Logger::info("DDraw4Surface::Flip: Switching to D3DPRESENT_INTERVAL_IMMEDIATE for presentation");
 
-        D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+        D3DCommonDevice* commonD3DDevice = m_commonSurf->GetCommonD3DDevice();
 
-        d3d9::D3DPRESENT_PARAMETERS resetParams = commonDevice->GetPresentParameters();
+        d3d9::D3DPRESENT_PARAMETERS resetParams = commonD3DDevice->GetPresentParameters();
         resetParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-        HRESULT hrReset = commonDevice->ResetD3D9Swapchain(&resetParams);
+        HRESULT hrReset = commonD3DDevice->ResetD3D9Swapchain(&resetParams);
         if (unlikely(FAILED(hrReset))) {
           Logger::warn("DDraw4Surface::Flip: Failed D3D9 swapchain reset");
         } else {
@@ -591,11 +587,11 @@ namespace dxvk {
       } else if (unlikely(!m_commonIntf->GetWaitForVBlank() && IsVSyncFlipFlag(dwFlags))) {
         Logger::info("DDraw4Surface::Flip: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
 
-        D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+        D3DCommonDevice* commonD3DDevice = m_commonSurf->GetCommonD3DDevice();
 
-        d3d9::D3DPRESENT_PARAMETERS resetParams = commonDevice->GetPresentParameters();
+        d3d9::D3DPRESENT_PARAMETERS resetParams = commonD3DDevice->GetPresentParameters();
         resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
-        HRESULT hrReset = commonDevice->ResetD3D9Swapchain(&resetParams);
+        HRESULT hrReset = commonD3DDevice->ResetD3D9Swapchain(&resetParams);
         if (unlikely(FAILED(hrReset))) {
           Logger::warn("DDraw4Surface::Flip: Failed D3D9 swapchain reset");
         } else {
@@ -620,8 +616,7 @@ namespace dxvk {
       }
 
       d3d9Device->Present(NULL, NULL, NULL, NULL);
-    // If we don't have a valid D3D6 device, this means a D3D7 application
-    // is trying to flip the surface. Allow that for compatibility reasons.
+
     } else {
       Logger::debug("<<< DDraw4Surface::Flip: Proxy");
 
@@ -840,10 +835,10 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       m_commonSurf->DirtyDDrawSurface();
 
-      d3d9::IDirect3DDevice9* d3d9Device = RefreshD3D9Device();
+      d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
       if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
         const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
-                                  !m_commonIntf->GetCommonD3DDevice()->IsInScene() :
+                                  !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
                                    m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
                                    false : true;
         if (shouldPresent)
@@ -962,10 +957,10 @@ namespace dxvk {
     if (likely(SUCCEEDED(hr))) {
       m_commonSurf->DirtyDDrawSurface();
 
-      d3d9::IDirect3DDevice9* d3d9Device = RefreshD3D9Device();
+      d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
       if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
         const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
-                                  !m_commonIntf->GetCommonD3DDevice()->IsInScene() :
+                                  !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
                                    m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
                                    false : true;
         if (shouldPresent) {
@@ -1091,7 +1086,7 @@ namespace dxvk {
   }
 
   IDirectDrawSurface4* DDraw4Surface::GetShadowOrProxied() {
-    d3d9::IDirect3DDevice9* d3d9Device = RefreshD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
 
     if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr))
       return m_shadowSurf->GetProxied();
@@ -1100,7 +1095,7 @@ namespace dxvk {
   }
 
   HRESULT DDraw4Surface::InitializeD3D9RenderTarget() {
-    RefreshD3D9Device();
+    m_commonSurf->RefreshD3D9Device();
 
     m_commonSurf->MarkAsD3D9BackBuffer();
 
@@ -1121,7 +1116,7 @@ namespace dxvk {
   }
 
   HRESULT DDraw4Surface::InitializeD3D9DepthStencil() {
-    RefreshD3D9Device();
+    m_commonSurf->RefreshD3D9Device();
 
     m_commonSurf->MarkAsD3D9DepthStencil();
 
@@ -1139,7 +1134,7 @@ namespace dxvk {
   }
 
   HRESULT DDraw4Surface::InitializeOrUploadD3D9() {
-    d3d9::IDirect3DDevice9* d3d9Device = RefreshD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
 
     // Fast skip
     if (unlikely(d3d9Device == nullptr)) {
@@ -1151,7 +1146,7 @@ namespace dxvk {
       if (m_commonSurf->IsTexture())
         UpdateMipMapCount();
 
-      const bool initRenderTarget = m_commonIntf->GetCommonD3DDevice()->IsCurrentRenderTarget(this);
+      const bool initRenderTarget = m_commonSurf->GetCommonD3DDevice()->IsCurrentRenderTarget(m_commonSurf.ptr());
 
       HRESULT hr = m_commonSurf->InitializeD3D9(initRenderTarget);
       if (unlikely(FAILED(hr)))
@@ -1173,7 +1168,7 @@ namespace dxvk {
     // use, simply skip changing assigned surface devices during downloads. This is essentially
     // a hack, which by some miracle works well enough in some cases, though may explode in others.
     if (likely(!m_commonIntf->GetOptions()->deviceResourceSharing))
-      RefreshD3D9Device();
+      m_commonSurf->RefreshD3D9Device();
 
     if (unlikely(m_commonSurf->IsD3D9BackBuffer())) {
       Logger::debug("DDraw4Surface::DownloadSurfaceData: Surface is a bound swapchain surface");
@@ -1261,23 +1256,6 @@ namespace dxvk {
     m_commonSurf->UnDirtyDDrawSurface();
 
     return DD_OK;
-  }
-
-  inline d3d9::IDirect3DDevice9* DDraw4Surface::RefreshD3D9Device() {
-    D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
-
-    if (unlikely(m_commonD3DDevice != commonD3DDevice)) {
-      // Check if the device has been recreated and reset all D3D9 resources
-      if (m_commonD3DDevice != nullptr) {
-        Logger::debug("DDraw4Surface: Device context has changed, clearing all D3D9 resources");
-        m_commonSurf->SetD3D9Texture(nullptr);
-        m_commonSurf->SetD3D9Surface(nullptr);
-      }
-
-      m_commonD3DDevice = commonD3DDevice;
-    }
-
-    return m_commonD3DDevice != nullptr ? m_commonD3DDevice->GetD3D9Device() : nullptr;
   }
 
 }
