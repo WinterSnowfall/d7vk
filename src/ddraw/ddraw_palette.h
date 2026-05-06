@@ -17,6 +17,8 @@ namespace dxvk {
 
     ~DDrawPalette();
 
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+
     HRESULT STDMETHODCALLTYPE Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable);
 
     HRESULT STDMETHODCALLTYPE GetCaps(LPDWORD lpdwCaps);
