@@ -32,10 +32,6 @@ D3D1 never existed, because the first release of DirectX didn't include a 3D com
 
 Then this is your lucky day, because through the efforts of [pythonlover02](https://github.com/pythonlover02), D7VK, or rather D3D7/6/5/3 support was ported back to [DXVK-Sarek](https://github.com/pythonlover02/DXVK-Sarek). Apart from a few missing features, due to lack of support in the old 1.10.x backend, you're getting everything that D7VK has to offer, and you can now run it even on a Vulkan 1.1 capable GPU.
 
-### What should I do if a game doesn't work (properly) with D7VK?
-
-I'll try to get as much game coverage as possible in D7VK, of course, but if something just doesn't work, simply use WineD3D - it's awesome and has the benefit of implementing _everything_ there ever is to worry about in DDraw and GDI, so it's far, far less prone to cursed interop madness. Reports of issues and bugs are very welcome, as they ensure proper tracking and awareness, so please do report any problems you encounter if you have the time.
-
 ### Will DXVK's D3D9 config options work with D7VK?
 
 Yes, because D7VK relies on DXVK's D3D9 backend, so everything ends up there anyway.
@@ -57,12 +53,6 @@ Yes, use `ddraw.emulateFSAA = Forced`. Note that FSAA emulation is supported by 
 Should you encounter any situation in which AA support is listed as unavailable / greyed out by an application (without it being forced, as per the above), please raise an issue on our tracker.
 
 **Note**: _In DXVK-Sarek you'll only be able to (optionally) force enable FSAA emulation, as the functionality required to let games control the AA state is missing._
-
-### Is D7VK really needed?
-
-No, not really. I am aware there are plenty of other (good) options out there for older D3D translation, and while D7VK may perform better in some applications/situations, it will most likely not outperform those other options universally. But having more options on the table is a good thing in my book at least.
-
-You can also expect it to have the same level of per application/targeted configuration profiles and fixes that you're used to seeing in DXVK proper. It also gives us (D3D8/9 DXVK developers) a platform to stress test the fixed function implementation with even older games, which is one of the main goals of the project... besides me wanting to play Sacrifice and Disciples II on top of DXVK. Yeah, that's how it all started.
 
 ### Will it work on Windows?
 

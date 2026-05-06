@@ -20,6 +20,8 @@ namespace dxvk {
 
     ~D3D7VertexBuffer();
 
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+
     HRESULT STDMETHODCALLTYPE GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC lpVBDesc);
 
     HRESULT STDMETHODCALLTYPE Lock(DWORD flags, void **data, DWORD *data_size);

@@ -1659,11 +1659,11 @@ namespace dxvk {
     /* Radeon's Ark (ATI Radeon 7000 Tech Demo)   *
      * Needs custom vendor ID to run on anything  *
      * outside AMD, and a frame cap to not freeze *
-     * or slow down upwards of 500 FPS. Legacy    *
+     * or slow down upwards of 480 FPS. Legacy    *
      * DISCARD handling fixes missing geometry.   */
     { R"(\\Radeon'sArk1.3\.exe$)", {{
       { "d3d9.customVendorId",              "1002" },
-      { "d3d9.maxFrameRate",                "-500" },
+      { "d3d9.maxFrameRate",                "-480" },
       { "ddraw.forceLegacyDiscard",         "True" },
     }} },
     /* Tribes 2 - Fix odd buffer access patterns  */
@@ -1690,6 +1690,15 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.autoGenMipMaps",             "True" },
       { "ddraw.supportD16",                "False" },
+    }} },
+    /* Space Pirates and Zombies                  */
+    { R"(\\SpazGame\.exe$)", {{
+      { "ddraw.ignoreExclusiveMode",        "True" },
+    }} },
+    /* Hard Truck 2: King of the Road             *
+     * Fixes top bar speed indicator flickering   */
+    { R"(\\king\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
     }} },
 
     /**********************************************/
@@ -1866,6 +1875,24 @@ namespace dxvk {
     { R"(\\DKII(-DX)?\.exe$)", {{
       { "ddraw.legacyDeviceNames",          "True" },
     }} },
+    /* Earthworm Jim 3D                           */
+    { R"(\\EarthwormJim3D\.exe$)", {{
+      { "ddraw.forceSingleBackBuffer",      "True" },
+    }} },
+    /* Homeworld: Cataclysm (Emergence)           */
+    { R"(\\cataclysm\.exe$)", {{
+      { "ddraw.forceSingleBackBuffer",      "True" },
+    }} },
+    /* Might and Magic VII: For Blood and Honor   *
+     * Fixes missing loading screens              */
+    { R"(\\MM7(-Rel)?\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+    }} },
+    /* Might and Magic VIII: Day of the Destroyer *
+     * Fixes missing loading screens              */
+    { R"(\\MM8(-Rel)?\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */
@@ -1915,6 +1942,7 @@ namespace dxvk {
     /* Tom Clancy's Rainbow Six                   */
     { R"(\\RainbowSix\.exe$)", {{
       { "ddraw.forceSingleBackBuffer",      "True" },
+      { "ddraw.colorKeyTolerance",          "True" },
     }} },
     /* Incoming - fixes load screen flickering    */
     { R"(\\incoming\.exe$)", {{
@@ -1939,6 +1967,10 @@ namespace dxvk {
     /* Tomb Raider III: Adventures of Lara Croft  *
      * Fixes missing pause screen background      */
     { R"(\\tomb3\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+    }} },
+    /* Outwars                                    */
+    { R"(\\outwars\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
 

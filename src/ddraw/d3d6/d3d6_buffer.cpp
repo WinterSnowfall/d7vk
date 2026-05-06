@@ -32,6 +32,24 @@ namespace dxvk {
     Logger::debug(str::format("D3D6VertexBuffer: Buffer nr. {{1-", m_buffCount, "}} bites the dust"));
   }
 
+  HRESULT STDMETHODCALLTYPE D3D6VertexBuffer::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> D3D6VertexBuffer::QueryInterface");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    try {
+      *ppvObject = ref(this->GetInterface(riid));
+      return S_OK;
+    } catch (const DxvkError& e) {
+      Logger::warn(e.message());
+      Logger::warn(str::format(riid));
+      return E_NOINTERFACE;
+    }
+  }
+
   HRESULT STDMETHODCALLTYPE D3D6VertexBuffer::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC lpVBDesc) {
     Logger::debug(">>> D3D6VertexBuffer::GetVertexBufferDesc");
 
@@ -104,11 +122,11 @@ namespace dxvk {
     if (unlikely(!(dwVertexOp & D3DVOP_TRANSFORM)))
       return DDERR_INVALIDPARAMS;
 
-    D3D6Device* device = static_cast<D3D6Device*>(lpD3DDevice);
+    D3D6Device* device6 = static_cast<D3D6Device*>(lpD3DDevice);
     D3D6VertexBuffer* vb = static_cast<D3D6VertexBuffer*>(lpSrcBuffer);
 
     vb->RefreshD3DDevice();
-    if (unlikely(vb->GetDevice() == nullptr || device != vb->GetDevice())) {
+    if (unlikely(vb->GetDevice() == nullptr || device6 != vb->GetDevice())) {
       Logger::err("D3D6VertexBuffer::ProcessVertices: Incompatible or null device");
       return DDERR_GENERIC;
     }
@@ -130,7 +148,7 @@ namespace dxvk {
         return hrInit;
     }
 
-    D3DDeviceLock lock = device->LockDevice();
+    D3DDeviceLock lock = device6->LockDevice();
 
     HRESULT hr = D3D_OK;
 
@@ -154,7 +172,7 @@ namespace dxvk {
         return D3DERR_VERTEXBUFFERLOCKED;
       }
 
-      D3DCommonViewport* commonViewport = device->GetCurrentViewportInternal()->GetCommonViewport();
+      D3DCommonViewport* commonViewport = device6->GetCurrentViewportInternal()->GetCommonViewport();
 
       ProcessVerticesData pvData;
       pvData.inData = inData;
