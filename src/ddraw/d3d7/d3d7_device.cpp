@@ -103,6 +103,39 @@ namespace dxvk {
     Logger::debug(str::format("D3D7Device: Device nr. ((7-", m_deviceCount, ")) bites the dust"));
   }
 
+  HRESULT STDMETHODCALLTYPE D3D7Device::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> D3D7Device::QueryInterface");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    if (unlikely(riid == __uuidof(IDirect3DDevice))) {
+      Logger::debug("D3D7Device::QueryInterface: Query for IDirect3DDevice");
+      return E_NOINTERFACE;
+    }
+    if (unlikely(riid == __uuidof(IDirect3DDevice2))) {
+      Logger::debug("D3D7Device::QueryInterface: Query for IDirect3DDevice2");
+      return E_NOINTERFACE;
+    }
+    // Some games, like Conquest: Frontier Wars, query for
+    // IDirect3DDevice3, although that's not supported
+    if (unlikely(riid == __uuidof(IDirect3DDevice3))) {
+      Logger::debug("D3D7Device::QueryInterface: Query for IDirect3DDevice3");
+      return E_NOINTERFACE;
+    }
+
+    try {
+      *ppvObject = ref(this->GetInterface(riid));
+      return S_OK;
+    } catch (const DxvkError& e) {
+      Logger::warn(e.message());
+      Logger::warn(str::format(riid));
+      return E_NOINTERFACE;
+    }
+  }
+
   HRESULT STDMETHODCALLTYPE D3D7Device::GetCaps(D3DDEVICEDESC7 *desc) {
     Logger::debug(">>> D3D7Device::GetCaps");
 

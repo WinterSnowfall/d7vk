@@ -30,14 +30,18 @@ namespace dxvk {
 
     d3d9::IDirect3D9* d3dIntf9 = m_commonD3DIntf->GetD3D9Interface();
 
-    // Get the bridge interface to D3D9.
+    // Get the bridge interface to D3D9
     if (unlikely(FAILED(d3dIntf9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
       throw DxvkError("D3D3Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
     m_commonD3DIntf->SetD3D3Interface(this);
 
-    m_bridge->EnableD3D3CompatibilityMode();
+    // Don't enable D3D3 compatibility mode when coming from a higher interface
+    if (likely(m_commonD3DIntf->GetD3D5Interface() == nullptr
+            && m_commonD3DIntf->GetD3D6Interface() == nullptr)) {
+      m_bridge->EnableD3D3CompatibilityMode();
+    }
 
     m_intfCount = ++s_intfCount;
 

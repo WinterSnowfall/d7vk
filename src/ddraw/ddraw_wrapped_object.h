@@ -38,24 +38,6 @@ namespace dxvk {
       throw DxvkError("DDrawWrappedObject::QueryInterface: Unknown interface query");
     }
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
-      Logger::debug(">>> DDrawWrappedObject::QueryInterface");
-
-      if (unlikely(ppvObject == nullptr))
-        return E_POINTER;
-
-      InitReturnPtr(ppvObject);
-
-      try {
-        *ppvObject = ref(this->GetInterface(riid));
-        return S_OK;
-      } catch (const DxvkError& e) {
-        Logger::warn(e.message());
-        Logger::warn(str::format(riid));
-        return E_NOINTERFACE;
-      }
-    }
-
   protected:
 
     Parent*    m_parent = nullptr;
