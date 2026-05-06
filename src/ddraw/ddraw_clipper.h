@@ -15,6 +15,8 @@ namespace dxvk {
 
     ~DDrawClipper();
 
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+
     HRESULT STDMETHODCALLTYPE Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags);
 
     HRESULT STDMETHODCALLTYPE GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, LPDWORD lpdwSize);

@@ -33,6 +33,24 @@ namespace dxvk {
     Logger::debug(str::format("D3D5Material: Material nr. [[2-", m_materialCount, "]] bites the dust"));
   }
 
+  HRESULT STDMETHODCALLTYPE D3D5Material::QueryInterface(REFIID riid, void** ppvObject) {
+    Logger::debug(">>> D3D5Material::QueryInterface");
+
+    if (unlikely(ppvObject == nullptr))
+      return E_POINTER;
+
+    InitReturnPtr(ppvObject);
+
+    try {
+      *ppvObject = ref(this->GetInterface(riid));
+      return S_OK;
+    } catch (const DxvkError& e) {
+      Logger::warn(e.message());
+      Logger::warn(str::format(riid));
+      return E_NOINTERFACE;
+    }
+  }
+
   HRESULT STDMETHODCALLTYPE D3D5Material::SetMaterial(D3DMATERIAL *data) {
     Logger::debug(">>> D3D5Material::SetMaterial");
 
