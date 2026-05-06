@@ -464,8 +464,8 @@ namespace dxvk {
     D3DLIGHTINGCAPS lightingCaps;
     lightingCaps.dwSize  = sizeof(D3DLIGHTINGCAPS);
     lightingCaps.dwCaps  = D3DLIGHTCAPS_DIRECTIONAL
-                      // | D3DLIGHTCAPS_GLSPOT // D3D3 specific
-                      // | D3DLIGHTCAPS_PARALLELPOINT // Not supported by D3D9
+                      // | D3DLIGHTCAPS_GLSPOT
+                         | D3DLIGHTCAPS_PARALLELPOINT // Not supported by D3D9
                          | D3DLIGHTCAPS_POINT
                          | D3DLIGHTCAPS_SPOT;
     lightingCaps.dwLightingModel = D3DLIGHTINGMODEL_RGB;
@@ -643,7 +643,8 @@ namespace dxvk {
     D3DLIGHTINGCAPS lightingCaps;
     lightingCaps.dwSize  = sizeof(D3DLIGHTINGCAPS);
     lightingCaps.dwCaps  = D3DLIGHTCAPS_DIRECTIONAL
-                      // | D3DLIGHTCAPS_PARALLELPOINT // Not supported by D3D9
+                      // | D3DLIGHTCAPS_GLSPOT
+                         | D3DLIGHTCAPS_PARALLELPOINT // Not supported by D3D9
                          | D3DLIGHTCAPS_POINT
                          | D3DLIGHTCAPS_SPOT;
     lightingCaps.dwLightingModel = D3DLIGHTINGMODEL_RGB;
@@ -850,7 +851,7 @@ namespace dxvk {
     lightingCaps.dwSize  = sizeof(D3DLIGHTINGCAPS);
     lightingCaps.dwCaps  = D3DLIGHTCAPS_DIRECTIONAL
                       // | D3DLIGHTCAPS_GLSPOT
-                      // | D3DLIGHTCAPS_PARALLELPOINT // Not supported by D3D9
+                         | D3DLIGHTCAPS_PARALLELPOINT // Not supported by D3D9
                          | D3DLIGHTCAPS_POINT
                          | D3DLIGHTCAPS_SPOT;
     lightingCaps.dwLightingModel = D3DLIGHTINGMODEL_RGB;
