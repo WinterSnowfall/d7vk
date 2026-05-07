@@ -55,10 +55,11 @@ namespace dxvk {
   private:
 
     bool             m_isActive    = false;
-    bool             m_isD3DLight2 = false;
 
     static uint32_t  s_lightCount;
     uint32_t         m_lightCount  = 0;
+
+    DWORD            m_flags       = 0;
 
     D3D6Viewport*    m_viewport6   = nullptr;
     D3D5Viewport*    m_viewport5   = nullptr;

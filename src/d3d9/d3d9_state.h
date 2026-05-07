@@ -144,7 +144,6 @@ namespace dxvk {
         uint32_t SpecularEnabled : 1;
 
         uint32_t UseLegacyLights : 1;
-        uint32_t IsD3DLight2     : 1;
 
         // End of uint32_t
 
