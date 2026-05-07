@@ -586,15 +586,19 @@ namespace dxvk {
     if (unlikely(hr != D3DENUMRET_OK))
       return D3D_OK;
 
-    depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
-    hr = lpEnumCallback(&depthFormat, lpContext);
-    if (unlikely(hr != D3DENUMRET_OK))
-      return D3D_OK;
+    // Expendable relies on having only the 24-bit dwZBufferBitDepth variant
+    // of D3DFMT_D24X8 enumerated in order to have working projected shadows
+    if (likely(d3dOptions->support32BitDepth)) {
+      depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
+      hr = lpEnumCallback(&depthFormat, lpContext);
+      if (unlikely(hr != D3DENUMRET_OK))
+        return D3D_OK;
 
-    depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24S8);
-    hr = lpEnumCallback(&depthFormat, lpContext);
-    if (unlikely(hr != D3DENUMRET_OK))
-      return D3D_OK;
+      depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24S8);
+      hr = lpEnumCallback(&depthFormat, lpContext);
+      if (unlikely(hr != D3DENUMRET_OK))
+        return D3D_OK;
+    }
 
     return D3D_OK;
   }
