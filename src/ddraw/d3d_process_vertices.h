@@ -112,8 +112,8 @@ namespace dxvk {
         else
           return D3DCOLORVALUE{1.0, 1.0, 1.0, 1.0};
       case d3d9::D3DMCS_COLOR2:
-        if (diffuse != nullptr)
-          return ColorToColorV(*diffuse);
+        if (specular != nullptr)
+          return ColorToColorV(*specular);
         break;
       case d3d9::D3DMCS_MATERIAL:
         return materialColor;
@@ -171,7 +171,7 @@ namespace dxvk {
   inline void ProcessVerticesInput(
         DWORD dwFVF, uint8_t *ptr, Vector4& position, Vector4& normals,
         Vector4& texCoords, D3DCOLOR& diffuse, D3DCOLOR& specular) {
-    DWORD dwNumTextures = (dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+    const DWORD dwNumTextures = (dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
     if (uint8_t type = (dwFVF & D3DFVF_POSITION_MASK)) {
       switch (type) {
         case D3DFVF_XYZ:
@@ -271,7 +271,7 @@ namespace dxvk {
     }
 
     for (DWORD tex = 0; tex < dwNumTextures; tex++) {
-      DWORD texCoordSize = (dwFVF >> (tex * 2 + 16)) & 0x3;
+      const DWORD texCoordSize = (dwFVF >> (tex * 2 + 16)) & 0x3;
       switch (texCoordSize) {
         case D3DFVF_TEXTUREFORMAT1:
           texCoords.x = *reinterpret_cast<FLOAT*>(ptr);
@@ -308,7 +308,7 @@ namespace dxvk {
   inline void ProcessVerticesOutput(
         DWORD dwFVF, uint8_t *ptr, Vector4* position, Vector4* normals,
         Vector4* texCoords, D3DCOLOR* diffuse, D3DCOLOR* specular) {
-    DWORD dwNumTextures = (dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+    const DWORD dwNumTextures = (dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
     if (uint8_t type = (dwFVF & D3DFVF_POSITION_MASK)) {
       switch (type) {
         case D3DFVF_XYZ:
@@ -408,7 +408,7 @@ namespace dxvk {
     }
 
     for (DWORD tex = 0; tex < dwNumTextures; tex++) {
-      DWORD texCoordSize = (dwFVF >> (tex * 2 + 16)) & 0x3;
+      const DWORD texCoordSize = (dwFVF >> (tex * 2 + 16)) & 0x3;
       switch (texCoordSize) {
         case D3DFVF_TEXTUREFORMAT1:
           if (texCoords != nullptr)
@@ -519,7 +519,8 @@ namespace dxvk {
       Vector4 inNormals{};
       D3DCOLOR inDiffuse = 0, inSpecular = 0;
       Vector4 inTexCoords{};
-      const bool hasDiffUse = pvData->inFVF & D3DFVF_DIFFUSE, hasSpecular = pvData->inFVF & D3DFVF_SPECULAR;
+      const bool hasDiffUse  = pvData->inFVF & D3DFVF_DIFFUSE;
+      const bool hasSpecular = pvData->inFVF & D3DFVF_SPECULAR;
       ProcessVerticesInput(pvData->inFVF, inPtr, inPosition, inNormals, inTexCoords, inDiffuse, inSpecular);
 
       // Transform vertices
