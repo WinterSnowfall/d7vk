@@ -508,12 +508,12 @@ namespace dxvk {
     } else {
       HRESULT hrLE;
       if (light->IsActive()) {
-        Logger::debug(str::format("D3D3Viewport: Enabling light nr. ", index));
+        Logger::debug(str::format("D3D3Viewport: Enabling D3D9 light nr. ", index));
         hrLE = d3d9Device->LightEnable(index, TRUE);
         if (unlikely(FAILED(hrLE)))
           Logger::err("D3D3Viewport: Failed D3D9 LightEnable call (TRUE)");
       } else {
-        Logger::debug(str::format("D3D3Viewport: Disabling light nr. ", index));
+        Logger::debug(str::format("D3D3Viewport: Disabling D3D9 light nr. ", index));
         hrLE = d3d9Device->LightEnable(index, FALSE);
         if (unlikely(FAILED(hrLE)))
           Logger::err("D3D3Viewport: Failed D3D9 LightEnable call (FALSE)");
