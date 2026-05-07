@@ -380,6 +380,18 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps) {
     Logger::debug("<<< DDraw7Interface::GetCaps: Proxy");
 
+    if (unlikely(lpDDDriverCaps == nullptr && lpDDHELCaps == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    // Interstate '76 sends invalid dwSizes part of the structs,
+    // and that explodes in Wine, so validate it before proxying
+
+    if (unlikely(lpDDDriverCaps != nullptr && !IsValidDDrawCapsSize(lpDDDriverCaps->dwSize)))
+      return DDERR_INVALIDPARAMS;
+
+    if (unlikely(lpDDHELCaps != nullptr && !IsValidDDrawCapsSize(lpDDHELCaps->dwSize)))
+      return DDERR_INVALIDPARAMS;
+
     HRESULT hr = m_proxy->GetCaps(lpDDDriverCaps, lpDDHELCaps);
     if (unlikely(FAILED(hr)))
       return hr;

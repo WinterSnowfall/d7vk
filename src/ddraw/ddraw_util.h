@@ -22,6 +22,13 @@ namespace dxvk {
     DWORD dwFlags = 0;
   };
 
+  inline bool IsValidDDrawCapsSize(DWORD size) {
+    return size == sizeof(DDCAPS_DX7)
+        || size == sizeof(DDCAPS_DX6)
+        || size == sizeof(DDCAPS_DX5)
+        || size == sizeof(DDCAPS_DX3);
+  }
+
   // MS, in their infinite wisdom, decided to have 3 distinct versions
   // of D3DDEVICEDESC, the first shipped with D3D2/3, the second with D3D5,
   // and the third (which is what we have in modern headers) with D3D6.
