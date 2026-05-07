@@ -1769,6 +1769,7 @@ namespace dxvk {
     /* Expendable                                 */
     { R"(\\Expendable\\go_start\.exe$)", {{
       { "ddraw.emulateFSAA",                "True" },
+      { "ddraw.support32BitDepth",         "False" },
     }} },
     /* Total Annihilation: Kingdoms               */
     { R"(\\KINGDOMS\.icd$)", {{

@@ -32,6 +32,9 @@ namespace dxvk {
     /// Advertise support for D16
     bool supportD16;
 
+    /// Advertise support for any 32-bit bitmask depth foramts
+    bool support32BitDepth;
+
     /// Replaces any use of D32 with D24X8
     bool useD24X8forD32;
 
@@ -97,6 +100,7 @@ namespace dxvk {
       this->forceSWVP             = config.getOption<bool>   ("ddraw.forceSWVP",             false);
       this->supportR3G3B2         = config.getOption<bool>   ("ddraw.supportR3G3B2",         false);
       this->supportD16            = config.getOption<bool>   ("ddraw.supportD16",             true);
+      this->support32BitDepth     = config.getOption<bool>   ("ddraw.support32BitDepth",      true);
       this->useD24X8forD32        = config.getOption<bool>   ("ddraw.useD24X8forD32",        false);
       this->mask8BitModes         = config.getOption<bool>   ("ddraw.mask8BitModes",         false);
       this->forcePOW2Textures     = config.getOption<bool>   ("ddraw.forcePOW2Textures",     false);
