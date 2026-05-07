@@ -74,9 +74,9 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    m_isD3DLight2 = data->dwSize == sizeof(D3DLIGHT2);
-
-    const bool hasSpecular = m_isD3DLight2 ? !(reinterpret_cast<D3DLIGHT2*>(data)->dwFlags & D3DLIGHT_NO_SPECULAR) : true;
+    const bool isD3DLight2 = data->dwSize == sizeof(D3DLIGHT2);
+    m_flags                = isD3DLight2 ? reinterpret_cast<D3DLIGHT2*>(data)->dwFlags : 0;
+    const bool hasSpecular = isD3DLight2 ? !(m_flags & D3DLIGHT_NO_SPECULAR) : true;
 
     // Docs: "Although this method's declaration specifies the lpLight parameter as being
     // the address of a D3DLIGHT structure, that structure is not normally used. Rather,
@@ -84,8 +84,8 @@ namespace dxvk {
     m_light9.Type         = d3d9::D3DLIGHTTYPE(data->dltType);
     m_light9.Diffuse      = data->dcvColor;
     m_light9.Specular     = hasSpecular ? data->dcvColor : noLight;
-    // Ambient light comes from the material
-    m_light9.Ambient      = noLight;
+    // Ambient light always comes from the material
+    //m_light9.Ambient    = noLight;
     m_light9.Position     = data->dvPosition;
     m_light9.Direction    = data->dvDirection;
     m_light9.Range        = data->dvRange;
@@ -96,22 +96,7 @@ namespace dxvk {
     m_light9.Theta        = data->dvTheta;
     m_light9.Phi          = data->dvPhi;
     // D3DLIGHT structure lights are, apparently, considered to be active by default
-    m_isActive            = m_isD3DLight2 ? (reinterpret_cast<D3DLIGHT2*>(data)->dwFlags & D3DLIGHT_ACTIVE) : true;
-
-    Logger::debug(str::format(">>> D3DLight::SetLight: Updated light nr. ", m_lightCount));
-    Logger::debug(str::format("   Type:         ", m_light9.Type));
-    Logger::debug(str::format("   Diffuse:      ", m_light9.Diffuse.r, " ", m_light9.Diffuse.g, " ", m_light9.Diffuse.b));
-    Logger::debug(str::format("   Specular:     ", m_light9.Specular.r, " ", m_light9.Specular.g, " ", m_light9.Specular.b));
-    Logger::debug(str::format("   Ambient:      ", m_light9.Ambient.r, " ", m_light9.Ambient.g, " ", m_light9.Ambient.b));
-    Logger::debug(str::format("   Position:     ", m_light9.Position.x, " ", m_light9.Position.y, " ", m_light9.Position.z));
-    Logger::debug(str::format("   Direction:    ", m_light9.Direction.x, " ", m_light9.Direction.y, " ", m_light9.Direction.z));
-    Logger::debug(str::format("   Range:        ", m_light9.Range));
-    Logger::debug(str::format("   Falloff:      ", m_light9.Falloff));
-    Logger::debug(str::format("   Attenuation0: ", m_light9.Attenuation0));
-    Logger::debug(str::format("   Attenuation1: ", m_light9.Attenuation1));
-    Logger::debug(str::format("   Attenuation2: ", m_light9.Attenuation2));
-    Logger::debug(str::format("   Theta:        ", m_light9.Theta));
-    Logger::debug(str::format("   Phi:          ", m_light9.Phi));
+    m_isActive            = isD3DLight2 ? (m_flags & D3DLIGHT_ACTIVE) : true;
 
     // Update the D3D9 light directly if it's actively being used
     if (m_viewport6 != nullptr && m_viewport6->GetCommonViewport()->IsCurrentViewport())
@@ -130,6 +115,9 @@ namespace dxvk {
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    if (unlikely(!data->dwSize))
+      return DDERR_INVALIDPARAMS;
+
     data->dltType         = D3DLIGHTTYPE(m_light9.Type);
     data->dcvColor        = m_light9.Diffuse;
     //data->dcvColor      = m_light9.Specular;
@@ -143,8 +131,8 @@ namespace dxvk {
     data->dvTheta         = m_light9.Theta;
     data->dvPhi           = m_light9.Phi;
 
-    if (m_isD3DLight2)
-      reinterpret_cast<D3DLIGHT2*>(data)->dwFlags = m_isActive;
+    if (data->dwSize == sizeof(D3DLIGHT2))
+      reinterpret_cast<D3DLIGHT2*>(data)->dwFlags = m_flags;
 
     return D3D_OK;
   }
