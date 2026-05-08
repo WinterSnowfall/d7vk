@@ -77,38 +77,4 @@ namespace dxvk {
            m_device3 != nullptr ? m_device3->GetRenderTarget()->GetCommonSurface() == commonSurface : false;
   }
 
-  bool D3DCommonDevice::IsCurrentD3D9RenderTarget(d3d9::IDirect3DSurface9* surface) const {
-    if (unlikely(surface == nullptr))
-      return false;
-
-    if (m_device7 != nullptr) {
-      return surface == m_device7->GetRenderTarget()->GetCommonSurface()->GetD3D9Surface();
-    } else if (m_device6 != nullptr) {
-      return surface == m_device6->GetRenderTarget()->GetCommonSurface()->GetD3D9Surface();
-    } else if (m_device5 != nullptr) {
-      return surface == m_device5->GetRenderTarget()->GetCommonSurface()->GetD3D9Surface();
-    } else if (m_device3 != nullptr) {
-      return surface == m_device3->GetRenderTarget()->GetCommonSurface()->GetD3D9Surface();
-    }
-
-    return false;
-  }
-
-  bool D3DCommonDevice::IsCurrentD3D9DepthStencil(d3d9::IDirect3DSurface9* surface) const {
-    if (unlikely(surface == nullptr))
-      return false;
-
-    if (m_device7 != nullptr) {
-      return surface == m_device7->GetDepthStencil()->GetCommonSurface()->GetD3D9Surface();
-    } else if (m_device6 != nullptr) {
-      return surface == m_device6->GetDepthStencil()->GetCommonSurface()->GetD3D9Surface();
-    } else if (m_device5 != nullptr) {
-      return surface == m_device5->GetDepthStencil()->GetCommonSurface()->GetD3D9Surface();
-    } else if (m_device3 != nullptr) {
-      return surface == m_device3->GetDepthStencil()->GetCommonSurface()->GetD3D9Surface();
-    }
-
-    return false;
-  }
-
 }

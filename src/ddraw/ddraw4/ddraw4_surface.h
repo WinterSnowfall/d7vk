@@ -189,7 +189,7 @@ namespace dxvk {
     bool             m_isChildObject = true;
 
     static uint32_t  s_surfCount;
-    uint32_t         m_surfCount = 0;
+    uint32_t         m_surfCount     = 0;
 
     Com<DDrawCommonSurface> m_commonSurf;
     DDrawCommonInterface*   m_commonIntf = nullptr;
