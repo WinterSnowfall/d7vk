@@ -343,41 +343,6 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
     if (likely(d3d9Device != nullptr)) {
-      // Forward DDBLT_DEPTHFILL clears to D3D9 if done on the current depth stencil
-      if (unlikely(lpDDSrcSurface == nullptr &&
-                  (dwFlags & DDBLT_DEPTHFILL) &&
-                  lpDDBltFx != nullptr &&
-                  m_commonSurf->GetCommonD3DDevice()->IsCurrentD3D9DepthStencil(m_commonSurf->GetD3D9Surface()))) {
-        Logger::debug("DDrawSurface::Blt: Clearing d3d9 depth stencil");
-
-        HRESULT hrClear;
-        const float zClear = m_commonSurf->GetNormalizedFloatDepth(lpDDBltFx->dwFillDepth);
-
-        if (lpDestRect == nullptr) {
-          hrClear = d3d9Device->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, zClear, 0);
-        } else {
-          hrClear = d3d9Device->Clear(1, reinterpret_cast<D3DRECT*>(lpDestRect), D3DCLEAR_ZBUFFER, 0, zClear, 0);
-        }
-        if (unlikely(FAILED(hrClear)))
-          Logger::warn("DDrawSurface::Blt: Failed to clear d3d9 depth");
-      }
-      // Forward DDBLT_COLORFILL clears to D3D9 if done on the current render target
-      if (unlikely(lpDDSrcSurface == nullptr &&
-                  (dwFlags & DDBLT_COLORFILL) &&
-                  lpDDBltFx != nullptr &&
-                  m_commonSurf->GetCommonD3DDevice()->IsCurrentD3D9RenderTarget(m_commonSurf->GetD3D9Surface()))) {
-        Logger::debug("DDrawSurface::Blt: Clearing d3d9 render target");
-
-        HRESULT hrClear;
-        if (lpDestRect == nullptr) {
-          hrClear = d3d9Device->Clear(0, NULL, D3DCLEAR_TARGET, lpDDBltFx->dwFillColor, 0.0f, 0);
-        } else {
-          hrClear = d3d9Device->Clear(1, reinterpret_cast<D3DRECT*>(lpDestRect), D3DCLEAR_TARGET, lpDDBltFx->dwFillColor, 0.0f, 0);
-        }
-        if (unlikely(FAILED(hrClear)))
-          Logger::warn("DDrawSurface::Blt: Failed to clear d3d9 render target");
-      }
-
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
                               && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
 
@@ -1127,7 +1092,7 @@ namespace dxvk {
     }
   }
 
-  inline void DDrawSurface::UpdateMipMapCount() {
+  void DDrawSurface::UpdateMipMapCount() {
     // We need to count the number of actual mips on initialization by going through
     // the mip chain, since the dwMipMapCount number may or may not be accurate. I am
     // guessing it was intended more as a hint, not neceesarily a set number.

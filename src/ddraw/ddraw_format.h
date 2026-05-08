@@ -493,7 +493,6 @@ namespace dxvk {
     return DD_OK;
   }
 
-  // D3D5 Callback function used to navigate a flipable surface swapchain
   inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfacesCallback(IDirectDrawSurface* subsurf, DDSURFACEDESC* desc, void* ctx) {
     IDirectDrawSurface** nextBackBuffer = static_cast<IDirectDrawSurface**>(ctx);
 
@@ -505,7 +504,6 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  // D3D6 Callback function used to navigate a flipable surface swapchain
   inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfaces4Callback(IDirectDrawSurface4* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     IDirectDrawSurface4** nextBackBuffer = static_cast<IDirectDrawSurface4**>(ctx);
 
@@ -517,7 +515,6 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  // D3D7 callback function used to navigate a flipable surface swapchain
   inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfaces7Callback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     IDirectDrawSurface7** nextBackBuffer = static_cast<IDirectDrawSurface7**>(ctx);
 
@@ -529,7 +526,6 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  // D3D5 callback function used to navigate the linked mip map chain
   inline HRESULT STDMETHODCALLTYPE ListMipChainSurfacesCallback(IDirectDrawSurface* subsurf, DDSURFACEDESC* desc, void* ctx) {
     IDirectDrawSurface** nextMip = static_cast<IDirectDrawSurface**>(ctx);
 
@@ -541,7 +537,6 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  // D3D6 callback function used to navigate the linked mip map chain
   inline HRESULT STDMETHODCALLTYPE ListMipChainSurfaces4Callback(IDirectDrawSurface4* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     IDirectDrawSurface4** nextMip = static_cast<IDirectDrawSurface4**>(ctx);
 
@@ -554,7 +549,6 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  // D3D7 callback function used to navigate the linked mip map chain
   inline HRESULT STDMETHODCALLTYPE ListMipChainSurfaces7Callback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     IDirectDrawSurface7** nextMip = static_cast<IDirectDrawSurface7**>(ctx);
 
@@ -567,7 +561,6 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  // D3D5 callback function used to enumerate attached surfaces
   inline HRESULT STDMETHODCALLTYPE EnumAttachedSurfacesCallback(IDirectDrawSurface* surface, DDSURFACEDESC* desc, void* ctx) {
     auto& attachedSurfaces = *static_cast<std::vector<AttachedSurface>*>(ctx);
 
@@ -577,7 +570,6 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  // D3D6 callback function used to enumerate attached surfaces
   inline HRESULT STDMETHODCALLTYPE EnumAttachedSurfaces4Callback(IDirectDrawSurface4* surface, DDSURFACEDESC2* desc, void* ctx) {
     auto& attachedSurfaces = *static_cast<std::vector<AttachedSurface4>*>(ctx);
 
@@ -587,7 +579,6 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  // D3D7 callback function used to enumerate attached surfaces
   inline HRESULT STDMETHODCALLTYPE EnumAttachedSurfaces7Callback(IDirectDrawSurface7* surface, DDSURFACEDESC2* desc, void* ctx) {
     auto& attachedSurfaces = *static_cast<std::vector<AttachedSurface7>*>(ctx);
 
@@ -597,7 +588,6 @@ namespace dxvk {
     return DDENUMRET_OK;
   }
 
-  // D3D7 callback function used in cube map face/surface initialization
   inline HRESULT STDMETHODCALLTYPE EnumAndAttachCubeMapFacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     CubeMapAttachedSurfaces* cubeMapAttachedSurfaces = static_cast<CubeMapAttachedSurfaces*>(ctx);
 
