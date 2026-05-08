@@ -50,6 +50,8 @@ namespace dxvk {
       }
     } else {
       device9 = m_commonD3DDevice->GetD3D9Device();
+      // Very important, otherwise the depth stencil isn't dirtied on draws
+      m_ds = m_rt->GetAttachedDepthStencil();
     }
 
     // Common D3D9 index buffers
