@@ -23,14 +23,14 @@ namespace dxvk {
     if (m_commonD3DIntf == nullptr) {
       m_commonD3DIntf = new D3DCommonInterface();
 
-      Com<d3d9::IDirect3D9> d3dIntf9 = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
-      m_commonD3DIntf->SetD3D9Interface(std::move(d3dIntf9));
+      Com<d3d9::IDirect3D9> d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
+      m_commonD3DIntf->SetD3D9Interface(std::move(d3d9Intf));
     }
 
-    d3d9::IDirect3D9* d3dIntf9 = m_commonD3DIntf->GetD3D9Interface();
+    d3d9::IDirect3D9* d3d9Intf = m_commonD3DIntf->GetD3D9Interface();
 
     // Get the bridge interface to D3D9
-    if (unlikely(FAILED(d3dIntf9->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
+    if (unlikely(FAILED(d3d9Intf->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
       throw DxvkError("D3D7Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
     }
 
@@ -171,8 +171,6 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Interface::CreateDevice(REFCLSID rclsid, IDirectDrawSurface7 *surface, IDirect3DDevice7 **ppd3dDevice) {
     Logger::debug(">>> D3D7Interface::CreateDevice");
 
-    d3d9::IDirect3D9* d3dIntf9 = m_commonD3DIntf->GetD3D9Interface();
-
     if (unlikely(ppd3dDevice == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -253,28 +251,6 @@ namespace dxvk {
 
     const d3d9::D3DFORMAT backBufferFormat = ConvertFormat(desc.ddpfPixelFormat);
 
-    // Determine the supported AA sample count by querying the D3D9 interface
-    d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
-    if (likely(d3dOptions->emulateFSAA != FSAAEmulation::Disabled)) {
-      HRESULT hr4S = d3dIntf9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
-                                                          TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
-      if (unlikely(FAILED(hr4S))) {
-        HRESULT hr2S = d3dIntf9->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
-                                                            TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
-        if (unlikely(FAILED(hr2S))) {
-          Logger::warn("D3D7Interface::CreateDevice: No MSAA support has been detected");
-        } else {
-          Logger::info("D3D7Interface::CreateDevice: Using 2x MSAA for FSAA emulation");
-          multiSampleType = d3d9::D3DMULTISAMPLE_2_SAMPLES;
-        }
-      } else {
-        Logger::info("D3D7Interface::CreateDevice: Using 4x MSAA for FSAA emulation");
-        multiSampleType = d3d9::D3DMULTISAMPLE_4_SAMPLES;
-      }
-    } else {
-      Logger::info("D3D7Interface::CreateDevice: FSAA emulation is disabled");
-    }
-
     const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
 
     if ((cooperativeLevel & DDSCL_MULTITHREADED) || d3dOptions->forceMultiThreaded) {
@@ -294,6 +270,13 @@ namespace dxvk {
     const DWORD backBufferCount = DetermineBackBufferCount(rt7->GetProxied());
     // Consider the front buffer as well when reporting the overall count
     Logger::info(str::format("D3D7Interface::CreateDevice: Back buffer count: ", backBufferCount + 1));
+
+    Com<d3d9::IDirect3D9> d3d9Intf = m_commonD3DIntf->GetD3D9Interface();
+
+    // Determine the supported AA sample count by querying the D3D9 interface
+    const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3dOptions->emulateFSAA != FSAAEmulation::Disabled ?
+                                                      GetSupportedMultiSampleType(d3d9Intf.ptr(), backBufferFormat) :
+                                                      d3d9::D3DMULTISAMPLE_NONE;
 
     // Always appears to be enabled when running in non-exclusive mode
     const bool vBlankStatus = m_commonIntf->GetWaitForVBlank();
@@ -315,7 +298,7 @@ namespace dxvk {
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
     Com<d3d9::IDirect3DDevice9> device9;
-    hr = d3dIntf9->CreateDevice(
+    hr = d3d9Intf->CreateDevice(
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
       hWnd,
