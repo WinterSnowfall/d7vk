@@ -1244,7 +1244,8 @@ namespace dxvk {
 
       if (m_commonSurf->IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
         Logger::debug(str::format("DDraw7Surface::DownloadSurfaceData: Downloading nr. [[7-", m_surfCount, "]]"));
-        BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(GetShadowOrProxied(), m_commonSurf->GetD3D9Surface());
+        BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(GetShadowOrProxied(), m_commonSurf->GetD3D9Surface(),
+                                                                m_commonSurf->IsDXTFormat());
         m_commonSurf->UnDirtyD3D9Surface();
       }
     } else if (unlikely(m_commonSurf->IsD3D9DepthStencil())) {
@@ -1252,7 +1253,8 @@ namespace dxvk {
 
       if (m_commonSurf->IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
         Logger::debug(str::format("DDraw7Surface::DownloadSurfaceData: Downloading nr. [[7-", m_surfCount, "]]"));
-        BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(m_proxy.ptr(), m_commonSurf->GetD3D9Surface());
+        BlitToDDrawSurface<IDirectDrawSurface7, DDSURFACEDESC2>(m_proxy.ptr(), m_commonSurf->GetD3D9Surface(),
+                                                                m_commonSurf->IsDXTFormat());
         m_commonSurf->UnDirtyD3D9Surface();
       }
     }
@@ -1382,53 +1384,53 @@ namespace dxvk {
 
     Logger::debug(str::format("DDraw7Surface::UploadSurfaceData: Uploading nr. [[7-", m_surfCount, "]]"));
 
-    const d3d9::D3DFORMAT format = m_commonSurf->GetD3D9Format();
-
     // Cube maps will also get marked as textures, so need to be handled first
     if (unlikely(m_commonSurf->IsCubeMap())) {
       // In theory we won't know which faces have been generated,
       // so check them one by one, and upload as needed
-      const uint16_t mipCount = m_commonSurf->GetMipCount();
+      const uint16_t mipCount    = m_commonSurf->GetMipCount();
+      const bool     isDXTFormat = m_commonSurf->IsDXTFormat();
       if (likely(m_cubeMapSurfaces[0] != nullptr)) {
-        BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), format, m_cubeMapSurfaces[0], mipCount);
+        BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), m_cubeMapSurfaces[0], mipCount, isDXTFormat);
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Positive X face is null, skpping");
       }
       if (likely(m_cubeMapSurfaces[1] != nullptr)) {
-        BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), format, m_cubeMapSurfaces[1], mipCount);
+        BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), m_cubeMapSurfaces[1], mipCount, isDXTFormat);
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Negative X face is null, skpping");
       }
       if (likely(m_cubeMapSurfaces[2] != nullptr)) {
-        BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), format, m_cubeMapSurfaces[2], mipCount);
+        BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), m_cubeMapSurfaces[2], mipCount, isDXTFormat);
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Positive Y face is null, skpping");
       }
       if (likely(m_cubeMapSurfaces[3] != nullptr)) {
-        BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), format, m_cubeMapSurfaces[3], mipCount);
+        BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), m_cubeMapSurfaces[3], mipCount, isDXTFormat);
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Negative Y face is null, skpping");
       }
       if (likely(m_cubeMapSurfaces[4] != nullptr)) {
-        BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), format, m_cubeMapSurfaces[4], mipCount);
+        BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), m_cubeMapSurfaces[4], mipCount, isDXTFormat);
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Positive Z face is null, skpping");
       }
       if (likely(m_cubeMapSurfaces[5] != nullptr)) {
-        BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), format, m_cubeMapSurfaces[5], mipCount);
+        BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), m_cubeMapSurfaces[5], mipCount, isDXTFormat);
       } else {
         Logger::debug("DDraw7Surface::UploadSurfaceData: Negative Z face is null, skpping");
       }
     // Blit all the mips for textures
     } else if (m_commonSurf->IsTexture()) {
-      BlitToD3D9Texture<IDirectDrawSurface7, DDSURFACEDESC2>(m_commonSurf->GetD3D9Texture(), format,
-                                                             m_proxy.ptr(), m_commonSurf->GetMipCount());
+      BlitToD3D9Texture<IDirectDrawSurface7, DDSURFACEDESC2>(m_commonSurf->GetD3D9Texture(), m_proxy.ptr(),
+                                                             m_commonSurf->GetMipCount(), m_commonSurf->IsDXTFormat());
     // Blit surfaces directly
     } else {
       if (unlikely(m_commonSurf->IsDepthStencil()))
         Logger::debug("DDrawSurface::UploadSurfaceData: Uploading depth stencil");
 
-      BlitToD3D9Surface<IDirectDrawSurface7, DDSURFACEDESC2>(m_commonSurf->GetD3D9Surface(), format, GetShadowOrProxied());
+      BlitToD3D9Surface<IDirectDrawSurface7, DDSURFACEDESC2>(m_commonSurf->GetD3D9Surface(), GetShadowOrProxied(),
+                                                             m_commonSurf->IsDXTFormat());
     }
 
     m_commonSurf->UnDirtyDDrawSurface();
