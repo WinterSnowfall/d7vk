@@ -63,6 +63,8 @@ namespace dxvk {
       device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
     } else {
       device9 = m_commonD3DDevice->GetD3D9Device();
+      // Very important, otherwise the depth stencil isn't dirtied on draws
+      m_ds = m_rt->GetAttachedDepthStencil();
     }
 
     // Get the bridge interface to D3D9
@@ -919,6 +921,7 @@ namespace dxvk {
     return D3D_OK;
   }
 
+  // Not called when the device is created from a D3D5/6 device
   void D3D3Device::InitializeDS() {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
@@ -932,8 +935,7 @@ namespace dxvk {
       HRESULT hrDS = m_ds->InitializeD3D9DepthStencil();
       if (unlikely(FAILED(hrDS))) {
         Logger::err("D3D3Device::InitializeDS: Failed to initialize D3D9 DS");
-      } else if (m_commonD3DDevice->GetD3D5Device() == nullptr &&
-                 m_commonD3DDevice->GetD3D6Device() == nullptr) {
+      } else {
         Logger::info("D3D3Device::InitializeDS: Got depth stencil from RT");
 
         DDSURFACEDESC descDS;
@@ -949,8 +951,7 @@ namespace dxvk {
           device9->SetRenderState(d3d9::D3DRS_ZENABLE, d3d9::D3DZB_TRUE);
         }
       }
-    } else if (m_commonD3DDevice->GetD3D5Device() == nullptr &&
-               m_commonD3DDevice->GetD3D6Device() == nullptr) {
+    } else {
       Logger::info("D3D3Device::InitializeDS: RT has no depth stencil attached");
       device9->SetDepthStencilSurface(nullptr);
       // Should be superfluous, but play it safe

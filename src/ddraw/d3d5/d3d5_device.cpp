@@ -70,6 +70,8 @@ namespace dxvk {
       device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
     } else {
       device9 = m_commonD3DDevice->GetD3D9Device();
+      // Very important, otherwise the depth stencil isn't dirtied on draws
+      m_ds = m_rt->GetAttachedDepthStencil();
     }
 
     // Get the bridge interface to D3D9
