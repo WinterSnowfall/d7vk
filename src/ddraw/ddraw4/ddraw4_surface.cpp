@@ -1175,7 +1175,8 @@ namespace dxvk {
 
       if (m_commonSurf->IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
         Logger::debug(str::format("DDraw4Surface::DownloadSurfaceData: Downloading nr. [[4-", m_surfCount, "]]"));
-        BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(GetShadowOrProxied(), m_commonSurf->GetD3D9Surface());
+        BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(GetShadowOrProxied(), m_commonSurf->GetD3D9Surface(),
+                                                                m_commonSurf->IsDXTFormat());
         m_commonSurf->UnDirtyD3D9Surface();
       }
     } else if (unlikely(m_commonSurf->IsD3D9DepthStencil())) {
@@ -1183,7 +1184,8 @@ namespace dxvk {
 
       if (m_commonSurf->IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
         Logger::debug(str::format("DDraw4Surface::DownloadSurfaceData: Downloading nr. [[4-", m_surfCount, "]]"));
-        BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(m_proxy.ptr(), m_commonSurf->GetD3D9Surface());
+        BlitToDDrawSurface<IDirectDrawSurface4, DDSURFACEDESC2>(m_proxy.ptr(), m_commonSurf->GetD3D9Surface(),
+                                                                m_commonSurf->IsDXTFormat());
         m_commonSurf->UnDirtyD3D9Surface();
       }
     }
@@ -1240,17 +1242,16 @@ namespace dxvk {
 
     Logger::debug(str::format("DDraw4Surface::UploadSurfaceData: Uploading nr. [[4-", m_surfCount, "]]"));
 
-    const d3d9::D3DFORMAT format = m_commonSurf->GetD3D9Format();
-
     if (m_commonSurf->IsTexture()) {
-      BlitToD3D9Texture<IDirectDrawSurface4, DDSURFACEDESC2>(m_commonSurf->GetD3D9Texture(), format,
-                                                             m_proxy.ptr(), m_commonSurf->GetMipCount());
+      BlitToD3D9Texture<IDirectDrawSurface4, DDSURFACEDESC2>(m_commonSurf->GetD3D9Texture(), m_proxy.ptr(),
+                                                             m_commonSurf->GetMipCount(), m_commonSurf->IsDXTFormat());
     // Blit surfaces directly
     } else {
       if (unlikely(m_commonSurf->IsDepthStencil()))
         Logger::debug("DDrawSurface::UploadSurfaceData: Uploading depth stencil");
 
-      BlitToD3D9Surface<IDirectDrawSurface4, DDSURFACEDESC2>(m_commonSurf->GetD3D9Surface(), format, GetShadowOrProxied());
+      BlitToD3D9Surface<IDirectDrawSurface4, DDSURFACEDESC2>(m_commonSurf->GetD3D9Surface(), GetShadowOrProxied(),
+                                                             m_commonSurf->IsDXTFormat());
     }
 
     m_commonSurf->UnDirtyDDrawSurface();
