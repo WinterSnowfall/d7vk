@@ -308,41 +308,6 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
     if (likely(d3d9Device != nullptr)) {
-      // Forward DDBLT_DEPTHFILL clears to D3D9 if done on the current depth stencil
-      if (unlikely(lpDDSrcSurface == nullptr &&
-                  (dwFlags & DDBLT_DEPTHFILL) &&
-                  lpDDBltFx != nullptr &&
-                  m_commonSurf->GetCommonD3DDevice()->IsCurrentD3D9DepthStencil(m_commonSurf->GetD3D9Surface()))) {
-        Logger::debug("DDraw3Surface::Blt: Clearing d3d9 depth stencil");
-
-        HRESULT hrClear;
-        const float zClear = m_commonSurf->GetNormalizedFloatDepth(lpDDBltFx->dwFillDepth);
-
-        if (lpDestRect == nullptr) {
-          hrClear = d3d9Device->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, zClear, 0);
-        } else {
-          hrClear = d3d9Device->Clear(1, reinterpret_cast<D3DRECT*>(lpDestRect), D3DCLEAR_ZBUFFER, 0, zClear, 0);
-        }
-        if (unlikely(FAILED(hrClear)))
-          Logger::warn("DDraw3Surface::Blt: Failed to clear d3d9 depth");
-      }
-      // Forward DDBLT_COLORFILL clears to D3D9 if done on the current render target
-      if (unlikely(lpDDSrcSurface == nullptr &&
-                  (dwFlags & DDBLT_COLORFILL) &&
-                  lpDDBltFx != nullptr &&
-                  m_commonSurf->GetCommonD3DDevice()->IsCurrentD3D9RenderTarget(m_commonSurf->GetD3D9Surface()))) {
-        Logger::debug("DDraw3Surface::Blt: Clearing d3d9 render target");
-
-        HRESULT hrClear;
-        if (lpDestRect == nullptr) {
-          hrClear = d3d9Device->Clear(0, NULL, D3DCLEAR_TARGET, lpDDBltFx->dwFillColor, 0.0f, 0);
-        } else {
-          hrClear = d3d9Device->Clear(1, reinterpret_cast<D3DRECT*>(lpDestRect), D3DCLEAR_TARGET, lpDDBltFx->dwFillColor, 0.0f, 0);
-        }
-        if (unlikely(FAILED(hrClear)))
-          Logger::warn("DDraw3Surface::Blt: Failed to clear d3d9 render target");
-      }
-
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
                               && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
 
@@ -1014,6 +979,34 @@ namespace dxvk {
     return m_proxy.ptr();
   }
 
+  HRESULT DDraw3Surface::InitializeOrUploadD3D9() {
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
+
+    // Fast skip
+    if (unlikely(d3d9Device == nullptr)) {
+      Logger::debug("DDraw3Surface::InitializeOrUploadD3D9: Null device, can't initialize right now");
+      return DD_OK;
+    }
+
+    if (unlikely(!m_commonSurf->IsInitialized())) {
+      if (m_commonSurf->IsTexture())
+        m_parent->UpdateMipMapCount();
+
+      const bool initRenderTarget = m_commonSurf->GetCommonD3DDevice()->IsCurrentRenderTarget(m_commonSurf.ptr());
+
+      HRESULT hr = m_commonSurf->InitializeD3D9(initRenderTarget);
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      Logger::debug(str::format("DDraw3Surface::InitializeOrUploadD3D9: Initialized surface nr. [[3-", m_surfCount, "]]"));
+    }
+
+    if (likely(m_commonSurf->IsInitialized()))
+      return UploadSurfaceData();
+
+    return DD_OK;
+  }
+
   void DDraw3Surface::DownloadSurfaceData() {
     // Some games, like The Settlers IV, use multiple devices for rendering, one to handle
     // terrain and the overall 3D scene, and one to create textures/sprites to overlay on
@@ -1042,6 +1035,30 @@ namespace dxvk {
         m_commonSurf->UnDirtyD3D9Surface();
       }
     }
+  }
+
+  inline HRESULT DDraw3Surface::UploadSurfaceData() {
+    // Fast skip
+    if (!m_commonSurf->IsDDrawSurfaceDirty())
+      return DD_OK;
+
+    Logger::debug(str::format("DDraw3Surface::UploadSurfaceData: Uploading nr. [[3-", m_surfCount, "]]"));
+
+    if (m_commonSurf->IsTexture()) {
+      BlitToD3D9Texture<IDirectDrawSurface3, DDSURFACEDESC>(m_commonSurf->GetD3D9Texture(), m_proxy.ptr(),
+                                                            m_commonSurf->GetMipCount(), m_commonSurf->IsDXTFormat());
+    // Blit surfaces directly
+    } else {
+      if (unlikely(m_commonSurf->IsDepthStencil()))
+        Logger::debug("DDraw3Surface::UploadSurfaceData: Uploading depth stencil");
+
+      BlitToD3D9Surface<IDirectDrawSurface3, DDSURFACEDESC>(m_commonSurf->GetD3D9Surface(), GetShadowOrProxied(),
+                                                            m_commonSurf->IsDXTFormat());
+    }
+
+    m_commonSurf->UnDirtyDDrawSurface();
+
+    return DD_OK;
   }
 
 }

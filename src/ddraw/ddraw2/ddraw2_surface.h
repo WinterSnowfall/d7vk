@@ -104,6 +104,8 @@ namespace dxvk {
 
     IDirectDrawSurface2* GetShadowOrProxied();
 
+    HRESULT InitializeOrUploadD3D9();
+
     void DownloadSurfaceData();
 
     void SetShadowSurface(Com<DDraw2Surface>&& shadowSurf) {
@@ -157,21 +159,19 @@ namespace dxvk {
       m_commonSurf->SetIsAttached(false);
     }
 
-    HRESULT InitializeOrUploadD3D9() {
-      return m_parent->InitializeOrUploadD3D9();
-    }
-
   private:
+
+    inline HRESULT UploadSurfaceData();
 
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount = 0;
 
     Com<DDrawCommonSurface>  m_commonSurf;
-    DDrawCommonInterface*    m_commonIntf      = nullptr;
+    DDrawCommonInterface*    m_commonIntf = nullptr;
 
     Com<DDrawSurface, false> m_originSurf;
 
-    DDraw2Surface*           m_parentSurf      = nullptr;
+    DDraw2Surface*           m_parentSurf = nullptr;
 
     // Offscreen plain surface we use to mask unwanted DDraw interactions, such
     // as forced swapchain presents caused by blits/locks on primary surfaces

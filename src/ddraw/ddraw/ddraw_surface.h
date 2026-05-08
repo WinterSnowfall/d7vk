@@ -112,6 +112,8 @@ namespace dxvk {
 
     void DownloadSurfaceData();
 
+    void UpdateMipMapCount();
+
     void SetShadowSurface(Com<DDrawSurface>&& shadowSurf) {
       m_shadowSurf = shadowSurf;
     }
@@ -185,23 +187,21 @@ namespace dxvk {
 
   private:
 
-    inline void UpdateMipMapCount();
-
     inline HRESULT UploadSurfaceData();
 
     inline HRESULT CreateDeviceInternal(REFIID riid, void** ppvObject);
 
     inline DWORD DetermineBackBufferCount(IDirectDrawSurface* renderTarget);
 
-    bool             m_isChildObject   = true;
+    bool             m_isChildObject = true;
 
     static uint32_t  s_surfCount;
-    uint32_t         m_surfCount       = 0;
+    uint32_t         m_surfCount     = 0;
 
     Com<DDrawCommonSurface> m_commonSurf;
-    DDrawCommonInterface*   m_commonIntf = nullptr;
+    DDrawCommonInterface*   m_commonIntf    = nullptr;
 
-    DDrawSurface*           m_parentSurf = nullptr;
+    DDrawSurface*           m_parentSurf    = nullptr;
 
     Com<D3D3Texture, false> m_texture3;
     Com<D3D5Texture, false> m_texture5;
