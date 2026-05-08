@@ -48,10 +48,6 @@ namespace dxvk {
 
     bool IsCurrentRenderTarget(DDrawCommonSurface* commonSurface) const;
 
-    bool IsCurrentD3D9RenderTarget(d3d9::IDirect3DSurface9* surface) const;
-
-    bool IsCurrentD3D9DepthStencil(d3d9::IDirect3DSurface9* surface) const;
-
     void SetInScene(bool inScene) {
       m_inScene = inScene;
     }
