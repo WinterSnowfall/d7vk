@@ -152,7 +152,8 @@ namespace dxvk {
     }
 
     uint16_t GetMipCount() const {
-      return m_mipCount;
+      // Properly handle textures with auto-generated mip maps
+      return std::max<uint16_t>(1u, m_mipCount);
     }
 
     void SetMipCount(uint16_t mipCount) {
@@ -379,6 +380,14 @@ namespace dxvk {
 
     bool IsRenderTarget() const {
       return m_isRenderTarget;
+    }
+
+    bool IsDXTFormat() const {
+      return m_format9 == d3d9::D3DFMT_DXT1
+          || m_format9 == d3d9::D3DFMT_DXT2
+          || m_format9 == d3d9::D3DFMT_DXT3
+          || m_format9 == d3d9::D3DFMT_DXT4
+          || m_format9 == d3d9::D3DFMT_DXT5;
     }
 
     bool Is8BitFormat() const {

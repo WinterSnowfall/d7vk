@@ -993,7 +993,8 @@ namespace dxvk {
 
       if (m_commonSurf->IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
         Logger::debug(str::format("DDraw2Surface::DownloadSurfaceData: Downloading nr. [[2-", m_surfCount, "]]"));
-        BlitToDDrawSurface<IDirectDrawSurface2, DDSURFACEDESC>(GetShadowOrProxied(), m_commonSurf->GetD3D9Surface());
+        BlitToDDrawSurface<IDirectDrawSurface2, DDSURFACEDESC>(GetShadowOrProxied(), m_commonSurf->GetD3D9Surface(),
+                                                               m_commonSurf->IsDXTFormat());
         m_commonSurf->UnDirtyD3D9Surface();
       }
     } else if (unlikely(m_commonSurf->IsD3D9DepthStencil())) {
@@ -1001,7 +1002,8 @@ namespace dxvk {
 
       if (m_commonSurf->IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
         Logger::debug(str::format("DDraw2Surface::DownloadSurfaceData: Downloading nr. [[2-", m_surfCount, "]]"));
-        BlitToDDrawSurface<IDirectDrawSurface2, DDSURFACEDESC>(m_proxy.ptr(), m_commonSurf->GetD3D9Surface());
+        BlitToDDrawSurface<IDirectDrawSurface2, DDSURFACEDESC>(m_proxy.ptr(), m_commonSurf->GetD3D9Surface(),
+                                                               m_commonSurf->IsDXTFormat());
         m_commonSurf->UnDirtyD3D9Surface();
       }
     }

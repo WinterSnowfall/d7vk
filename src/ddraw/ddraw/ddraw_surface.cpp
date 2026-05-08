@@ -1111,7 +1111,8 @@ namespace dxvk {
 
       if (m_commonSurf->IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
         Logger::debug(str::format("DDrawSurface::DownloadSurfaceData: Downloading nr. [[1-", m_surfCount, "]]"));
-        BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(GetShadowOrProxied(), m_commonSurf->GetD3D9Surface());
+        BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(GetShadowOrProxied(), m_commonSurf->GetD3D9Surface(),
+                                                              m_commonSurf->IsDXTFormat());
         m_commonSurf->UnDirtyD3D9Surface();
       }
     } else if (unlikely(m_commonSurf->IsD3D9DepthStencil())) {
@@ -1119,7 +1120,8 @@ namespace dxvk {
 
       if (m_commonSurf->IsInitialized() && m_commonSurf->IsD3D9SurfaceDirty()) {
         Logger::debug(str::format("DDrawSurface::DownloadSurfaceData: Downloading nr. [[1-", m_surfCount, "]]"));
-        BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_proxy.ptr(), m_commonSurf->GetD3D9Surface());
+        BlitToDDrawSurface<IDirectDrawSurface, DDSURFACEDESC>(m_proxy.ptr(), m_commonSurf->GetD3D9Surface(),
+                                                              m_commonSurf->IsDXTFormat());
         m_commonSurf->UnDirtyD3D9Surface();
       }
     }
@@ -1176,17 +1178,16 @@ namespace dxvk {
 
     Logger::debug(str::format("DDrawSurface::UploadSurfaceData: Uploading nr. [[1-", m_surfCount, "]]"));
 
-    const d3d9::D3DFORMAT format = m_commonSurf->GetD3D9Format();
-
     if (m_commonSurf->IsTexture()) {
-      BlitToD3D9Texture<IDirectDrawSurface, DDSURFACEDESC>(m_commonSurf->GetD3D9Texture(), format,
-                                                           m_proxy.ptr(), m_commonSurf->GetMipCount());
+      BlitToD3D9Texture<IDirectDrawSurface, DDSURFACEDESC>(m_commonSurf->GetD3D9Texture(), m_proxy.ptr(),
+                                                           m_commonSurf->GetMipCount(), m_commonSurf->IsDXTFormat());
     // Blit surfaces directly
     } else {
       if (unlikely(m_commonSurf->IsDepthStencil()))
         Logger::debug("DDrawSurface::UploadSurfaceData: Uploading depth stencil");
 
-      BlitToD3D9Surface<IDirectDrawSurface, DDSURFACEDESC>(m_commonSurf->GetD3D9Surface(), format, GetShadowOrProxied());
+      BlitToD3D9Surface<IDirectDrawSurface, DDSURFACEDESC>(m_commonSurf->GetD3D9Surface(), GetShadowOrProxied(),
+                                                           m_commonSurf->IsDXTFormat());
     }
 
     m_commonSurf->UnDirtyDDrawSurface();
@@ -1252,6 +1253,27 @@ namespace dxvk {
       }
     }
 
+    const d3d9::D3DFORMAT backBufferFormat = m_commonSurf->GetD3D9Format();
+
+    const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
+
+    if ((cooperativeLevel & DDSCL_MULTITHREADED) || d3dOptions->forceMultiThreaded) {
+      Logger::info("DDrawSurface::CreateDeviceInternal: Using thread safe runtime synchronization");
+      deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
+    }
+    // DDSCL_FPUPRESERVE does not exist prior to DDraw7,
+    // and DDSCL_FPUSETUP is NOT the default state
+    if (!(cooperativeLevel & DDSCL_FPUSETUP))
+      deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
+    if (cooperativeLevel & DDSCL_NOWINDOWCHANGES)
+      deviceCreationFlags9 |= D3DCREATE_NOWINDOWCHANGES;
+
+    Logger::info(str::format("DDrawSurface::CreateDeviceInternal: Back buffer size: ", backBufferWidth, "x", BackBufferHeight));
+
+    const DWORD backBufferCount = DetermineBackBufferCount(m_proxy.ptr());
+    // Consider the front buffer as well when reporting the overall count
+    Logger::info(str::format("DDrawSurface::CreateDeviceInternal: Back buffer count: ", backBufferCount + 1));
+
     Com<d3d9::IDirect3D9> d3d9Intf;
     // D3D3 is "special", so we might not have a valid D3D3 interface to work with
     // at this point. Create a temporary D3D9 interface should that ever happen.
@@ -1273,50 +1295,14 @@ namespace dxvk {
     }
 
     // Determine the supported AA sample count by querying the D3D9 interface
-    d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3d9::D3DMULTISAMPLE_NONE;
-    if (likely(d3dOptions->emulateFSAA != FSAAEmulation::Disabled)) {
-      HRESULT hr4S = d3d9Intf->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, m_commonSurf->GetD3D9Format(),
-                                                          TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
-      if (unlikely(FAILED(hr4S))) {
-        HRESULT hr2S = d3d9Intf->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, m_commonSurf->GetD3D9Format(),
-                                                            TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
-        if (unlikely(FAILED(hr2S))) {
-          Logger::warn("DDrawSurface::CreateDeviceInternal: No MSAA support has been detected");
-        } else {
-          Logger::info("DDrawSurface::CreateDeviceInternal: Using 2x MSAA for FSAA emulation");
-          multiSampleType = d3d9::D3DMULTISAMPLE_2_SAMPLES;
-        }
-      } else {
-        Logger::info("DDrawSurface::CreateDeviceInternal: Using 4x MSAA for FSAA emulation");
-        multiSampleType = d3d9::D3DMULTISAMPLE_4_SAMPLES;
-      }
-    } else {
-      Logger::info("DDrawSurface::CreateDeviceInternal: FSAA emulation is disabled");
-    }
-
-    const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
-
-    if ((cooperativeLevel & DDSCL_MULTITHREADED) || d3dOptions->forceMultiThreaded) {
-      Logger::info("DDrawSurface::CreateDeviceInternal: Using thread safe runtime synchronization");
-      deviceCreationFlags9 |= D3DCREATE_MULTITHREADED;
-    }
-    // DDSCL_FPUPRESERVE does not exist prior to DDraw7,
-    // and DDSCL_FPUSETUP is NOT the default state
-    if (!(cooperativeLevel & DDSCL_FPUSETUP))
-      deviceCreationFlags9 |= D3DCREATE_FPU_PRESERVE;
-    if (cooperativeLevel & DDSCL_NOWINDOWCHANGES)
-      deviceCreationFlags9 |= D3DCREATE_NOWINDOWCHANGES;
-
-    Logger::info(str::format("DDrawSurface::CreateDeviceInternal: Back buffer size: ", backBufferWidth, "x", BackBufferHeight));
-
-    const DWORD backBufferCount = DetermineBackBufferCount(m_proxy.ptr());
-    // Consider the front buffer as well when reporting the overall count
-    Logger::info(str::format("DDrawSurface::CreateDeviceInternal: Back buffer count: ", backBufferCount + 1));
+    const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3dOptions->emulateFSAA != FSAAEmulation::Disabled ?
+                                                      GetSupportedMultiSampleType(d3d9Intf.ptr(), backBufferFormat) :
+                                                      d3d9::D3DMULTISAMPLE_NONE;
 
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = backBufferWidth;
     params.BackBufferHeight   = BackBufferHeight;
-    params.BackBufferFormat   = m_commonSurf->GetD3D9Format();
+    params.BackBufferFormat   = backBufferFormat;
     params.BackBufferCount    = backBufferCount;
     params.MultiSampleType    = multiSampleType;
     params.MultiSampleQuality = 0;
