@@ -460,8 +460,7 @@ namespace dxvk {
     Logger::info(str::format("D3D6Interface::CreateDevice: Back buffer size: ", desc.dwWidth, "x", desc.dwHeight));
 
     const DWORD backBufferCount = DetermineBackBufferCount(rt4->GetProxied());
-    // Consider the front buffer as well when reporting the overall count
-    Logger::info(str::format("D3D6Interface::CreateDevice: Back buffer count: ", backBufferCount + 1));
+    Logger::info(str::format("D3D6Interface::CreateDevice: Back buffer count: ", backBufferCount));
 
     Com<d3d9::IDirect3D9> d3d9Intf = m_commonD3DIntf->GetD3D9Interface();
 
@@ -613,7 +612,7 @@ namespace dxvk {
 
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
-    if (likely(!d3dOptions->forceSingleBackBuffer && !d3dOptions->forceLegacyPresent)) {
+    if (likely(!d3dOptions->forceLegacyPresent)) {
       IDirectDrawSurface4* backBuffer = renderTarget;
       HRESULT hr;
 
@@ -627,15 +626,16 @@ namespace dxvk {
           break;
         }
 
-        backBufferCount++;
-
         // the swapchain will eventually return to its origin
         if (backBuffer == renderTarget)
           break;
+
+        if (likely(backBuffer != nullptr))
+          backBufferCount++;
       }
     }
 
-    return backBufferCount;
+    return std::max<DWORD>(1u, backBufferCount);
   }
 
 }

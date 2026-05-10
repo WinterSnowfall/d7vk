@@ -68,7 +68,6 @@ namespace dxvk {
 
     if (m_parentSurf != nullptr
      && m_parentSurf->GetCommonSurface()->IsBackBufferOrFlippable()
-     && !m_commonIntf->GetOptions()->forceSingleBackBuffer
      && !m_commonIntf->GetOptions()->forceLegacyPresent) {
       const uint32_t index = m_parentSurf->GetCommonSurface()->GetBackBufferIndex();
       m_commonSurf->IncrementBackBufferIndex(index);
