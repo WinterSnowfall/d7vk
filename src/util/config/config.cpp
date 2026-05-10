@@ -1196,7 +1196,6 @@ namespace dxvk {
      * (with the "Modern Patch")                  */
     { R"(\\nfs3\.exe$)", {{
       { "d3d8.batching",                    "True" },
-      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Need for Speed: High Stakes / Road         *
      * Challenge (with the "Modern Patch") -      *
@@ -1207,7 +1206,6 @@ namespace dxvk {
       { "d3d9.maxAvailableMemory",          "1024" },
       { "d3d8.batching",                    "True" },
       { "ddraw.forceSWVP",                  "True" },
-      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Need for Speed: Hot Pursuit 2              */
     { R"(\\NFSHP2\.exe$)", {{
@@ -1375,6 +1373,7 @@ namespace dxvk {
     /**********************************************/
     /* D3D7 GAMES                                 */
     /**********************************************/
+
     /* 1NSANE - Invalid buffer discards and       *
      * artifacting when using a T&L HAL device,   *
      * and broken main menu animations.           */
@@ -1412,10 +1411,9 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Escape from Monkey Island                  *
-     * Fixes broken physics, and flip logic       */
+     * Fixes broken physics above 30 FPS          */
     { R"(\\Monkey4\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-30" },
-      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Gothic 1 - broken physics and              *
      * flickering during video playback           */
@@ -1573,7 +1571,6 @@ namespace dxvk {
     { R"(\\hitman\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.emulateFSAA",                "True" },
-      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Screamer 4x4 - Broken menu animation speed */
     { R"(\\Screamer4x4_d3d\.exe$)", {{
@@ -1650,11 +1647,9 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Knight Rider: The Game                     *
-     * Fixes in-game vehicle environment maps     *
-     * and Z-fighting artifacts when using D16    */
+     * Fixes Z-fighting artifacts when using D16  */
     { R"(\\(Knight Rider|KR( Demo)?)\.exe$)", {{
       { "ddraw.supportD16",                "False" },
-      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Radeon's Ark (ATI Radeon 7000 Tech Demo)   *
      * Needs custom vendor ID to run on anything  *
@@ -1704,6 +1699,7 @@ namespace dxvk {
     /**********************************************/
     /* D3D6 GAMES                                 */
     /**********************************************/
+
     /* Drakan: Order of the Flame                 *
      * Fixes physics glitches at over 60 FPS      */
     { R"(\\Drakan\.exe$)", {{
@@ -1721,7 +1717,6 @@ namespace dxvk {
     /* Urban Chaos                                */
     { R"(\\fallen\.exe$)", {{
       { "ddraw.ignoreExclusiveMode",        "True" },
-      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Redline - Fixes missing weapon mip maps    */
     { R"(\\Redline\.exe$)", {{
@@ -1749,7 +1744,6 @@ namespace dxvk {
     /* Shogo: Mobile Armor Division               */
     { R"(\\Shogo.*\\Client\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* KISS: Psycho Circus - The Nightmare Child  */
     { R"(\\(KISS.*|Psycho.*)\\client\.exe$)", {{
@@ -1805,11 +1799,6 @@ namespace dxvk {
     { R"(\\nocturne\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
     }} },
-    /* Arabian Nights                             *
-     * Fixes flickering during level load         */
-    { R"(\\Arabian Nights\\_start\.exe$)", {{
-      { "ddraw.forceSingleBackBuffer",      "True" },
-    }} },
     /* Metal Fatigue                              *
      * Fixes unit and building transparency       */
     { R"(\\MFatigue\.exe$)", {{
@@ -1844,10 +1833,6 @@ namespace dxvk {
     { R"(\\deep6\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
     }} },
-    /* Star Wars: Episode I - The Phantom Menace  */
-    { R"(\\WMAIN\.EXE$)", {{
-      { "ddraw.forceSingleBackBuffer",      "True" },
-    }} },
     /* Combat Mission: Afrika Korps               *
      * Fixes white backgrounds on text            */
     { R"(\\CM Afrika Korps\.exe$)", {{
@@ -1863,26 +1848,10 @@ namespace dxvk {
     { R"(\\Combat Mission\.exe$)", {{
       { "ddraw.colorKeyMasking",            "True" },
     }} },
-    /* X: Beyond the Frontier                     */
-    { R"(\\X\.exe$)", {{
-      { "ddraw.forceSingleBackBuffer",      "True" },
-    }} },
-    /* X: Tension                                 */
-    { R"(\\X-TENSION\.exe$)", {{
-      { "ddraw.forceSingleBackBuffer",      "True" },
-    }} },
     /* Dungeon Keeper 2                           *
      * Fixes missing HW acceleration option       */
     { R"(\\DKII(-DX)?\.exe$)", {{
       { "ddraw.legacyDeviceNames",          "True" },
-    }} },
-    /* Earthworm Jim 3D                           */
-    { R"(\\EarthwormJim3D\.exe$)", {{
-      { "ddraw.forceSingleBackBuffer",      "True" },
-    }} },
-    /* Homeworld: Cataclysm (Emergence)           */
-    { R"(\\cataclysm\.exe$)", {{
-      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Might and Magic VII: For Blood and Honor   *
      * Fixes missing loading screens              */
@@ -1898,6 +1867,7 @@ namespace dxvk {
     /**********************************************/
     /* D3D5 GAMES                                 */
     /**********************************************/
+
     /* Descent: FreeSpace - The Great War         */
     { R"(\\FS\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
@@ -1908,16 +1878,14 @@ namespace dxvk {
       { "ddraw.legacyPresentGuard",       "Strict" },
       { "ddraw.colorKeyTolerance",          "True" },
     }} },
-    /* N.I.C.E 2 - Fixes main menu flickering     */
+    /* N.I.C.E 2                                  */
     { R"(\\n2_(std|arc)\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Mobil 1 Rally Championship                 *
      * Crashes on certain tracks above 30 FPS     */
     { R"(\\Ral\.exe$)", {{
       { "d3d9.maxFrameRate",                  "30" },
-      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Nightmare Creatures                        *
      * Fixes presentation and physics, which is   *
@@ -1942,12 +1910,7 @@ namespace dxvk {
     }} },
     /* Tom Clancy's Rainbow Six                   */
     { R"(\\RainbowSix\.exe$)", {{
-      { "ddraw.forceSingleBackBuffer",      "True" },
       { "ddraw.colorKeyTolerance",          "True" },
-    }} },
-    /* Incoming - fixes load screen flickering    */
-    { R"(\\incoming\.exe$)", {{
-      { "ddraw.forceSingleBackBuffer",      "True" },
     }} },
     /* Lands of Lore III                          */
     { R"(\\LOL3\.dat$)", {{
@@ -1978,10 +1941,7 @@ namespace dxvk {
     /**********************************************/
     /* D3D3 GAMES                                 */
     /**********************************************/
-    /* Moto Racer 2 - fixes menu flickering       */
-    { R"(\\moto\.exe$)", {{
-      { "ddraw.forceSingleBackBuffer",      "True" },
-    }} },
+
     /* Resident Evil                              *
      * Fixes black lines in the background image  */
     { R"(\\ResidentEvil\.exe$)", {{
