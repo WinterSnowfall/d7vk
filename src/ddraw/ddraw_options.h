@@ -3,6 +3,7 @@
 #include "ddraw_include.h"
 
 #include "../util/config/config.h"
+#include "../util/util_math.h"
 
 namespace dxvk {
 
@@ -52,9 +53,6 @@ namespace dxvk {
 
     /// Correction offset for X/Y vertex position
     float vertexOffset;
-
-    /// Map all back buffers onto a single D3D9 back buffer
-    bool forceSingleBackBuffer;
 
     /// Resize the back buffer size to screen size when needed
     bool backBufferResize;
@@ -107,7 +105,6 @@ namespace dxvk {
       this->forceLegacyDiscard    = config.getOption<bool>   ("ddraw.forceLegacyDiscard",    false);
       this->cpuProcessVertices    = config.getOption<bool>   ("ddraw.cpuProcessVertices",     true);
       this->vertexOffset          = config.getOption<float>  ("ddraw.vertexOffset",           0.0f);
-      this->forceSingleBackBuffer = config.getOption<bool>   ("ddraw.forceSingleBackBuffer", false);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);
       this->forceLegacyPresent    = config.getOption<bool>   ("ddraw.forceLegacyPresent",    false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("ddraw.ignoreGammaRamp",       false);
