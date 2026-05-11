@@ -586,29 +586,25 @@ namespace dxvk {
   inline DWORD D3D5Interface::DetermineBackBufferCount(IDirectDrawSurface* renderTarget) {
     DWORD backBufferCount = 0;
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+    IDirectDrawSurface* backBuffer = renderTarget;
+    HRESULT hr;
 
-    if (likely(!d3dOptions->forceLegacyPresent)) {
-      IDirectDrawSurface* backBuffer = renderTarget;
-      HRESULT hr;
+    while (backBuffer != nullptr) {
+      IDirectDrawSurface* parentSurface = backBuffer;
+      backBuffer = nullptr;
 
-      while (backBuffer != nullptr) {
-        IDirectDrawSurface* parentSurface = backBuffer;
-        backBuffer = nullptr;
-
-        hr = parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfacesCallback);
-        if (unlikely(FAILED(hr))) {
-          Logger::warn("D3D5Interface::DetermineBackBufferCount: Unable to enumerate attached surfaces");
-          break;
-        }
-
-        // the swapchain will eventually return to its origin
-        if (backBuffer == renderTarget)
-          break;
-
-        if (likely(backBuffer != nullptr))
-          backBufferCount++;
+      hr = parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfacesCallback);
+      if (unlikely(FAILED(hr))) {
+        Logger::warn("D3D5Interface::DetermineBackBufferCount: Unable to enumerate attached surfaces");
+        break;
       }
+
+      // the swapchain will eventually return to its origin
+      if (backBuffer == renderTarget)
+        break;
+
+      if (likely(backBuffer != nullptr))
+        backBufferCount++;
     }
 
     return std::max<DWORD>(1u, backBufferCount);
