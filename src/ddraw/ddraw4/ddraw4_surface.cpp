@@ -67,8 +67,7 @@ namespace dxvk {
     m_commonSurf->SetDD4Surface(this);
 
     if (m_parentSurf != nullptr
-     && m_parentSurf->GetCommonSurface()->IsBackBufferOrFlippable()
-     && !m_commonIntf->GetOptions()->forceLegacyPresent) {
+     && m_parentSurf->GetCommonSurface()->IsBackBufferOrFlippable()) {
       const uint32_t index = m_parentSurf->GetCommonSurface()->GetBackBufferIndex();
       m_commonSurf->IncrementBackBufferIndex(index);
     }
@@ -574,6 +573,8 @@ namespace dxvk {
       }
 
       if (likely(m_nextFlippable != nullptr)) {
+        if (unlikely(m_commonIntf->GetOptions()->uploadFrontBuffer))
+          InitializeOrUploadD3D9();
         m_nextFlippable->InitializeOrUploadD3D9();
       } else {
         InitializeOrUploadD3D9();

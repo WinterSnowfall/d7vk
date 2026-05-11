@@ -514,8 +514,12 @@ namespace dxvk {
         return DD_OK;
       }
 
-      if (likely(m_parent->GetNextFlippable() != nullptr)) {
-        m_parent->GetNextFlippable()->InitializeOrUploadD3D9();
+      DDrawSurface* nextFlippable = m_parent->GetNextFlippable();
+
+      if (likely(nextFlippable != nullptr)) {
+        if (unlikely(m_commonIntf->GetOptions()->uploadFrontBuffer))
+          InitializeOrUploadD3D9();
+        nextFlippable->InitializeOrUploadD3D9();
       } else {
         InitializeOrUploadD3D9();
       }
