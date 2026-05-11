@@ -67,8 +67,7 @@ namespace dxvk {
     m_commonSurf->SetDDSurface(this);
 
     if (m_parentSurf != nullptr
-     && m_parentSurf->GetCommonSurface()->IsBackBufferOrFlippable()
-     && !m_commonIntf->GetOptions()->forceLegacyPresent) {
+     && m_parentSurf->GetCommonSurface()->IsBackBufferOrFlippable()) {
       const uint32_t index = m_parentSurf->GetCommonSurface()->GetBackBufferIndex();
       m_commonSurf->IncrementBackBufferIndex(index);
     }
@@ -592,6 +591,8 @@ namespace dxvk {
       }
 
       if (likely(m_nextFlippable != nullptr)) {
+        if (unlikely(m_commonIntf->GetOptions()->uploadFrontBuffer))
+          InitializeOrUploadD3D9();
         m_nextFlippable->InitializeOrUploadD3D9();
       } else {
         InitializeOrUploadD3D9();
@@ -1310,29 +1311,25 @@ namespace dxvk {
   inline DWORD DDrawSurface::DetermineBackBufferCount(IDirectDrawSurface* renderTarget) {
     DWORD backBufferCount = 0;
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+    IDirectDrawSurface* backBuffer = renderTarget;
+    HRESULT hr;
 
-    if (likely(!d3dOptions->forceLegacyPresent)) {
-      IDirectDrawSurface* backBuffer = renderTarget;
-      HRESULT hr;
+    while (backBuffer != nullptr) {
+      IDirectDrawSurface* parentSurface = backBuffer;
+      backBuffer = nullptr;
 
-      while (backBuffer != nullptr) {
-        IDirectDrawSurface* parentSurface = backBuffer;
-        backBuffer = nullptr;
-
-        hr = parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfacesCallback);
-        if (unlikely(FAILED(hr))) {
-          Logger::warn("DDrawSurface::DetermineBackBufferCount: Unable to enumerate attached surfaces");
-          break;
-        }
-
-        // the swapchain will eventually return to its origin
-        if (backBuffer == renderTarget)
-          break;
-
-        if (likely(backBuffer != nullptr))
-          backBufferCount++;
+      hr = parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfacesCallback);
+      if (unlikely(FAILED(hr))) {
+        Logger::warn("DDrawSurface::DetermineBackBufferCount: Unable to enumerate attached surfaces");
+        break;
       }
+
+      // the swapchain will eventually return to its origin
+      if (backBuffer == renderTarget)
+        break;
+
+      if (likely(backBuffer != nullptr))
+        backBufferCount++;
     }
 
     return std::max<DWORD>(1u, backBufferCount);

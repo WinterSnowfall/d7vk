@@ -1411,9 +1411,12 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Escape from Monkey Island                  *
-     * Fixes broken physics above 30 FPS          */
+     * Fixes broken physics above 30 FPS and      *
+     * missing pause screen background            */
     { R"(\\Monkey4\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-30" },
+      { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.uploadFrontBuffer",          "True" },
     }} },
     /* Gothic 1 - broken physics and              *
      * flickering during video playback           */
@@ -1594,10 +1597,6 @@ namespace dxvk {
     { R"(\\Silent Hunter.*\\(Sim|Shell(1)?)\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
     }} },
-    /* Enemy Engaged: Comanche vs Hokum           */
-    { R"(\\cohokum\.exe$)", {{
-      { "ddraw.forceLegacyPresent",         "True" },
-    }} },
     /* The Nations (Gold Edition)                 *
      * Works around cursor flickering             */
     { R"(\\The Nations.*\\bin\\game\.exe$)", {{
@@ -1626,7 +1625,6 @@ namespace dxvk {
      * Works around the game's concurrent use     *
      * of two D3D devices for rendering           */
     { R"(\\S4(_Main?)\.exe$)", {{
-      { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.deviceResourceSharing",      "True" },
     }} },
     /* Spider-Man (2001) - broken cutscenes       */
@@ -1666,10 +1664,6 @@ namespace dxvk {
       { "ddraw.ignoreExclusiveMode",        "True" },
       { "ddraw.forceSWVP",                  "True" },
     }} },
-    /* Space Empires V                            */
-    { R"(\\SE5\.exe$)", {{
-      { "ddraw.forceLegacyPresent",         "True" },
-    }} },
     /* Will Rock                                  */
     { R"(\\WillRock\.exe$)", {{
       { "ddraw.emulateFSAA",                "True" },
@@ -1690,10 +1684,16 @@ namespace dxvk {
     { R"(\\SpazGame\.exe$)", {{
       { "ddraw.ignoreExclusiveMode",        "True" },
     }} },
-    /* Hard Truck 2: King of the Road             *
-     * Fixes top bar speed indicator flickering   */
-    { R"(\\king\.exe$)", {{
+    /* Evolva - Fixes character camera flickers   */
+    { R"(\\Evolva\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.uploadFrontBuffer",          "True" },
+    }} },
+    /* Black & White                              *
+     * Fixes missing save game screenshots        */
+    { R"(\\runblack\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.uploadFrontBuffer",          "True" },
     }} },
 
     /**********************************************/
@@ -1799,11 +1799,6 @@ namespace dxvk {
     { R"(\\nocturne\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
     }} },
-    /* Metal Fatigue                              *
-     * Fixes unit and building transparency       */
-    { R"(\\MFatigue\.exe$)", {{
-      { "ddraw.forceLegacyPresent",         "True" },
-    }} },
     /* Simon The Sorcerer 3D                      *
      * Fixes Z-fighting artifacts with D16        */
     { R"(\\Simon3D\.exe$)", {{
@@ -1813,21 +1808,21 @@ namespace dxvk {
     { R"(\\Dethkarz\.exe$)", {{
       { "ddraw.mask8BitModes",              "True" },
     }} },
-    /* Tomb Raider: The Last Revelation           */
+    /* Tomb Raider: The Last Revelation           *
+     * Fixes missing pause screen background      */
     { R"(\\tomb4\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.uploadFrontBuffer",          "True" },
     }} },
-    /* Tomb Raider Chronicles                     */
+    /* Tomb Raider Chronicles                     *
+     * Fixes missing pause screen background      */
     { R"(\\PCTomb5\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.uploadFrontBuffer",          "True" },
     }} },
     /* Prince of Persia 3D                        */
     { R"(\\POP3D(Demo)?\.exe$)", {{
       { "d3d9.cachedWriteOnlyBuffers",      "True" },
-    }} },
-    /* Jurassic Park: Trespasser                  */
-    { R"(\\trespass\.exe$)", {{
-      { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Wizards & Warriors                         */
     { R"(\\deep6\.exe$)", {{
@@ -1863,18 +1858,33 @@ namespace dxvk {
     { R"(\\MM8(-Rel)?\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
+    /* Star Wars: Episode I - The Phantom Menace  *
+     * Fixes missing inventory screen background  */
+    { R"(\\WMAIN\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.uploadFrontBuffer",          "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */
     /**********************************************/
 
-    /* Descent: FreeSpace - The Great War         */
+    /* Descent: FreeSpace - The Great War         *
+     * Fixes exit screen dialogue background      */
     { R"(\\FS\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.uploadFrontBuffer",          "True" },
+    }} },
+    /* FreeSpace 2                                *
+     * Fixes exit screen dialogue background      */
+    { R"(\\FS2\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.uploadFrontBuffer",          "True" },
     }} },
     /* Empire of the Ants                         */
     { R"(\\Empire of the Ants*\\Game\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.uploadFrontBuffer",          "True" },
       { "ddraw.legacyPresentGuard",       "Strict" },
       { "ddraw.colorKeyTolerance",          "True" },
     }} },
@@ -1912,17 +1922,9 @@ namespace dxvk {
     { R"(\\RainbowSix\.exe$)", {{
       { "ddraw.colorKeyTolerance",          "True" },
     }} },
-    /* Lands of Lore III                          */
-    { R"(\\LOL3\.dat$)", {{
-      { "ddraw.forceLegacyPresent",         "True" },
-    }} },
     /* Virtua Fighter 2                           */
     { R"(\\VF2\.exe$)", {{
       { "ddraw.emulateFSAA",                "True" },
-    }} },
-    /* RoBoRumble                                 */
-    { R"(\\rr_dx5\.exe$)", {{
-      { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Warhammer: Dark Omen                       */
     { R"(\\DarkOmen\.exe$)", {{
@@ -1936,6 +1938,12 @@ namespace dxvk {
     /* Outwars                                    */
     { R"(\\outwars\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
+    }} },
+    /* Interstate '76 (: Nitro Pack)              *
+     * Fixes missing pause screen background      */
+    { R"(\\(i76|nitro)\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.uploadFrontBuffer",          "True" },
     }} },
 
     /**********************************************/
