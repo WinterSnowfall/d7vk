@@ -19,9 +19,8 @@ namespace dxvk {
 
   D3D6Viewport::D3D6Viewport(
         D3DCommonViewport* commonViewport,
-        Com<IDirect3DViewport3>&& proxyViewport,
         D3D6Interface* pParent)
-    : DDrawWrappedObject<D3D6Interface, IDirect3DViewport3>(pParent, std::move(proxyViewport))
+    : DDrawWrappedObject<D3D6Interface, IDirect3DViewport3>(pParent, nullptr)
     , m_commonViewport ( commonViewport ) {
 
     if (m_commonViewport == nullptr)
@@ -90,12 +89,7 @@ namespace dxvk {
 
       Logger::debug("D3D6Viewport::QueryInterface: Query for IDirect3DViewport");
 
-      Com<IDirect3DViewport> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      m_viewport3 = new D3D3Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr);
+      m_viewport3 = new D3D3Viewport(m_commonViewport.ptr(), nullptr);
 
       // On native this is the same object, so no need to ref
       *ppvObject = m_viewport3.ptr();
@@ -110,12 +104,7 @@ namespace dxvk {
 
       Logger::debug("D3D6Viewport::QueryInterface: Query for IDirect3DViewport2");
 
-      Com<IDirect3DViewport2> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      m_viewport5 = new D3D5Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr);
+      m_viewport5 = new D3D5Viewport(m_commonViewport.ptr(), nullptr);
 
       // On native this is the same object, so no need to ref
       *ppvObject = m_viewport5.ptr();
@@ -172,10 +161,6 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetViewport(D3DVIEWPORT *data) {
     Logger::debug(">>> D3D6Viewport::SetViewport");
-
-    HRESULT hr = m_proxy->SetViewport(data);
-    if (unlikely(FAILED(hr)))
-      return hr;
 
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -266,18 +251,6 @@ namespace dxvk {
     if (unlikely(commonMaterial == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // We still need to proxy this call to DDraw for
-    // proxied clear colors to be accurate
-    D3D6Device* device6 = m_commonViewport->GetD3D6Device();
-    if (likely(device6 != nullptr)) {
-      D3DMATERIALHANDLE proxyHandle = commonMaterial->GetProxiedMaterialHandle(device6->GetProxied());
-      HRESULT hr = m_proxy->SetBackground(proxyHandle);
-      if (unlikely(FAILED(hr)))
-        Logger::warn("D3D6Viewport::SetBackground: Failed to set the proxied viewport background");
-    }
-
-    m_commonViewport->MarkMaterialAsSet();
-
     // Cache only the set material handle, as its color can
     // change after it is set (get it on Clear directly)
     m_commonViewport->SetMaterialHandle(hMat);
@@ -324,10 +297,6 @@ namespace dxvk {
     // Fast skip
     if (unlikely(!count && rects))
       return D3D_OK;
-
-    HRESULT hr = m_proxy->Clear(count, rects, flags);
-    if (unlikely(FAILED(hr)))
-      return hr;
 
     if (unlikely(!m_commonViewport->HasDevice()))
       return D3DERR_VIEWPORTHASNODEVICE;
@@ -481,10 +450,6 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetViewport2(D3DVIEWPORT2 *data) {
     Logger::debug(">>> D3D6Viewport::SetViewport2");
 
-    HRESULT hr = m_proxy->SetViewport2(data);
-    if (unlikely(FAILED(hr)))
-      return hr;
-
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -551,10 +516,6 @@ namespace dxvk {
     if (unlikely(!count && rects))
       return D3D_OK;
 
-    HRESULT hr = m_proxy->Clear2(count, rects, flags, color, z, stencil);
-    if (unlikely(FAILED(hr)))
-      return hr;
-
     if (unlikely(!m_commonViewport->HasDevice()))
       return D3DERR_VIEWPORTHASNODEVICE;
 
@@ -572,14 +533,14 @@ namespace dxvk {
       d3d9Device->SetViewport(m_commonViewport->GetD3D9Viewport());
     }
 
-    HRESULT hr9 = d3d9Device->Clear(count, rects, flags, color, z, stencil);
+    HRESULT hr = d3d9Device->Clear(count, rects, flags, color, z, stencil);
 
     // Restore the previously active viewport
     if (!m_commonViewport->IsCurrentViewport()) {
       d3d9Device->SetViewport(&currentViewport9);
     }
 
-    if (unlikely(FAILED(hr9))) {
+    if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Viewport::Clear2: Failed D3D9 Clear call");
       // Unlike Clear(), Clear2() is supposed to error out on
       // z/stencil clears and no z/stencil attachments

@@ -21,8 +21,6 @@ namespace dxvk {
       return S_OK;
     }
 
-    D3DMATERIALHANDLE GetProxiedMaterialHandle(IUnknown* d3dDevice) const;
-
     d3d9::D3DMATERIAL9* GetD3D9Material() {
       return &m_material9;
     }
