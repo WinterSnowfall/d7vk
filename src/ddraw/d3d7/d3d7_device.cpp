@@ -313,11 +313,6 @@ namespace dxvk {
 
     DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
 
-    // Needed to ensure proxied Z/Stencil viewport clears will work
-    HRESULT hrRT = m_proxy->SetRenderTarget(rt7->GetShadowOrProxied(), flags);
-    if (unlikely(FAILED(hrRT)))
-      Logger::debug("D3D7Device::SetRenderTarget: Failed to set RT");
-
     HRESULT hr = rt7->GetCommonSurface()->ValidateRTUsage();
     if (unlikely(FAILED(hr)))
       return hr;
@@ -401,13 +396,7 @@ namespace dxvk {
     if (unlikely(!count && rects))
       return D3D_OK;
 
-    // We are now allowing proxy back buffer blits in certain cases, so
-    // we must also ensure the back buffer clear calls are proxied
-    HRESULT hr = m_proxy->Clear(count, rects, flags, color, z, stencil);
-    if (unlikely(FAILED(hr)))
-      Logger::debug("D3D7Device::Clear: Failed proxied call");
-
-    hr = m_commonD3DDevice->GetD3D9Device()->Clear(count, rects, flags, color, static_cast<float>(z), stencil);
+    HRESULT hr = m_commonD3DDevice->GetD3D9Device()->Clear(count, rects, flags, color, static_cast<float>(z), stencil);
     if (unlikely(FAILED(hr)))
       return hr;
 
@@ -441,12 +430,6 @@ namespace dxvk {
 
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
-
-    // Clear() calls are affected by the set viewport, so we
-    // must ensure SetViewport() calls are also proxied
-    HRESULT hr = m_proxy->SetViewport(data);
-    if (unlikely(FAILED(hr)))
-      Logger::debug("D3D7Device::SetViewport: Failed proxied call");
 
     const DDSURFACEDESC2* rtDesc2 = m_rt->GetCommonSurface()->GetDesc2();
 

@@ -19,14 +19,13 @@ namespace dxvk {
 
   D3D3Device::D3D3Device(
         D3DCommonDevice* commonD3DDevice,
-        Com<IDirect3DDevice>&& d3d3DeviceProxy,
         DDrawSurface* pParent,
         D3DDEVICEDESC3 Desc,
         GUID deviceGUID,
         d3d9::D3DPRESENT_PARAMETERS Params9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DWORD CreationFlags9)
-    : DDrawWrappedObject<DDrawSurface, IDirect3DDevice>(pParent, std::move(d3d3DeviceProxy))
+    : DDrawWrappedObject<DDrawSurface, IDirect3DDevice>(pParent, nullptr)
     , m_commonD3DDevice ( commonD3DDevice )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_desc ( Desc )
@@ -280,11 +279,6 @@ namespace dxvk {
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
-    HRESULT hr = m_proxy->AddViewport(d3d3Viewport->GetProxied());
-    if (unlikely(FAILED(hr)))
-      return hr;
-
     AddViewportInternal(viewport);
 
     return D3D_OK;
@@ -298,14 +292,10 @@ namespace dxvk {
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
-    HRESULT hr = m_proxy->DeleteViewport(d3d3Viewport->GetProxied());
-    if (unlikely(FAILED(hr)))
-      return hr;
-
     DeleteViewportInternal(viewport);
 
     // Clear the current viewport if it is deleted from the device
+    D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
     if (m_currentViewport.ptr() == d3d3Viewport)
       m_currentViewport = nullptr;
 
@@ -457,13 +447,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::Initialize(IDirect3D *d3d, GUID *lpGUID, D3DDEVICEDESC *desc) {
-    Logger::debug("<<< D3D3Device::Initialize: Proxy");
+    Logger::debug(">>> D3D3Device::Initialize");
 
     if (unlikely(d3d == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D3Interface* d3d3Intf = static_cast<D3D3Interface*>(d3d);
-    return m_proxy->Initialize(d3d3Intf->GetProxied(), lpGUID, desc);
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::CreateExecuteBuffer(D3DEXECUTEBUFFERDESC *desc, IDirect3DExecuteBuffer **buffer, IUnknown *pkOuter) {
