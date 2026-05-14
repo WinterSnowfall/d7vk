@@ -397,11 +397,18 @@ namespace dxvk {
       return D3D_OK;
 
     HRESULT hr = m_commonD3DDevice->GetD3D9Device()->Clear(count, rects, flags, color, static_cast<float>(z), stencil);
-    if (unlikely(FAILED(hr)))
+    if (unlikely(FAILED(hr))) {
+      Logger::debug("D3D7Device::Clear: Failed D3D9 Clear call");
       return hr;
+    }
 
     const bool clearRenderTarget = flags & D3DCLEAR_TARGET;
     const bool clearDepthStencil = (flags & D3DCLEAR_ZBUFFER) || (flags & D3DCLEAR_STENCIL);
+
+    if (clearRenderTarget)
+      m_rt->GetCommonSurface()->UnDirtyDDrawSurface();
+    if (clearDepthStencil && m_ds != nullptr)
+      m_ds->GetCommonSurface()->UnDirtyDDrawSurface();
 
     UpdateSurfaceDirtyTracking(clearRenderTarget, clearDepthStencil, false);
 

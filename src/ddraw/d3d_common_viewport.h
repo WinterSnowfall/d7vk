@@ -9,6 +9,7 @@
 
 namespace dxvk {
 
+  class DDrawCommonSurface;
   class D3DCommonInterface;
 
   class D3D6Viewport;
@@ -37,6 +38,10 @@ namespace dxvk {
     D3D5Viewport* GetCurrentD3D5Viewport();
 
     D3D3Viewport* GetCurrentD3D3Viewport();
+
+    DDrawCommonSurface* GetCommonRenderTarget();
+
+    DDrawCommonSurface* GetCommonDepthStencil();
 
     d3d9::IDirect3DDevice9* GetD3D9Device();
 
