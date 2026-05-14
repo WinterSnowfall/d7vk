@@ -1,6 +1,11 @@
 #include "d3d_common_viewport.h"
 
+#include "ddraw_common_surface.h"
+
 #include "d3d_common_interface.h"
+
+#include "ddraw4/ddraw4_surface.h"
+#include "ddraw/ddraw_surface.h"
 
 #include "d3d6/d3d6_device.h"
 #include "d3d5/d3d5_device.h"
@@ -32,6 +37,46 @@ namespace dxvk {
   D3D3Viewport* D3DCommonViewport::GetCurrentD3D3Viewport() {
     if (m_device3 != nullptr)
       return m_device3->GetCurrentViewportInternal();
+
+    return nullptr;
+  }
+
+  DDrawCommonSurface* D3DCommonViewport::GetCommonRenderTarget() {
+    if (m_device6 != nullptr) {
+      DDraw4Surface* rt = m_device6->GetRenderTarget();
+      if (likely(rt != nullptr))
+        return rt->GetCommonSurface();
+    }
+    if (m_device5 != nullptr) {
+      DDrawSurface* rt = m_device5->GetRenderTarget();
+      if (likely(rt != nullptr))
+        return rt->GetCommonSurface();
+    }
+    if (m_device3 != nullptr) {
+      DDrawSurface* rt = m_device3->GetRenderTarget();
+      if (likely(rt != nullptr))
+        return rt->GetCommonSurface();
+    }
+
+    return nullptr;
+  }
+
+  DDrawCommonSurface* D3DCommonViewport::GetCommonDepthStencil() {
+    if (m_device6 != nullptr) {
+      DDraw4Surface* ds = m_device6->GetDepthStencil();
+      if (likely(ds != nullptr))
+        return ds->GetCommonSurface();
+    }
+    if (m_device5 != nullptr) {
+      DDrawSurface* ds = m_device5->GetDepthStencil();
+      if (likely(ds != nullptr))
+        return ds->GetCommonSurface();
+    }
+    if (m_device3 != nullptr) {
+      DDrawSurface* ds = m_device3->GetDepthStencil();
+      if (likely(ds != nullptr))
+        return ds->GetCommonSurface();
+    }
 
     return nullptr;
   }
