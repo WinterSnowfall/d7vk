@@ -1864,6 +1864,11 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.uploadFrontBuffer",          "True" },
     }} },
+    /* Star Trek: TNG - Klingon Honor Guard       */
+    { R"(\\Khg\.exe$)", {{
+      { "ddraw.ignoreExclusiveMode",        "True" },
+      { "ddraw.ignoreGammaRamp",            "True "},
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */

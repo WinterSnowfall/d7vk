@@ -578,6 +578,15 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw2Interface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
     Logger::debug("<<< DDraw2Interface::SetCooperativeLevel: Proxy");
 
+    // DDSCL_CREATEDEVICEWINDOW doesn't appear to behave properly in
+    // Wine, so use the cached hWnd to set the device window instead
+    if (unlikely((dwFlags & DDSCL_CREATEDEVICEWINDOW) && hWnd == nullptr
+               && m_commonIntf->GetHWND() != nullptr)) {
+      dwFlags &= ~DDSCL_CREATEDEVICEWINDOW;
+      dwFlags |= DDSCL_SETDEVICEWINDOW;
+      hWnd = m_commonIntf->GetHWND();
+    }
+
     HRESULT hr = m_proxy->SetCooperativeLevel(hWnd, dwFlags);
     if (unlikely(FAILED(hr)))
       return hr;
