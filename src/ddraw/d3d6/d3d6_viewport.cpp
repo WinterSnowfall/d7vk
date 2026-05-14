@@ -2,6 +2,8 @@
 
 #include "d3d6_device.h"
 
+#include "../ddraw_common_surface.h"
+
 #include "../d3d_light.h"
 #include "../d3d_common_material.h"
 
@@ -320,17 +322,31 @@ namespace dxvk {
     D3DCommonMaterial* commonMaterial = m_commonViewport->GetCommonD3DInterface()->GetCommonMaterialFromHandle(handle);
     D3DCOLOR clearColor = commonMaterial != nullptr ? commonMaterial->GetMaterialColor() : defaultColor;
 
-    HRESULT hr9 = d3d9Device->Clear(count, rects, flags, clearColor, 1.0f, 0u);
+    HRESULT hr = d3d9Device->Clear(count, rects, flags, clearColor, 1.0f, 0u);
 
     // Restore the previously active viewport
     if (!m_commonViewport->IsCurrentViewport()) {
       d3d9Device->SetViewport(&currentViewport9);
     }
 
-    if (unlikely(FAILED(hr9))) {
-      Logger::warn("D3D6Viewport::Clear: Failed D3D9 Clear call");
+    if (unlikely(FAILED(hr))) {
+      Logger::debug("D3D6Viewport::Clear: Failed D3D9 Clear call");
     } else {
-      m_commonViewport->UpdateSurfaceDirtyTracking(true, false, false);
+      const bool clearRenderTarget = flags & D3DCLEAR_TARGET;
+      const bool clearDepthStencil = flags & D3DCLEAR_ZBUFFER;
+
+      if (clearRenderTarget) {
+        DDrawCommonSurface* rt = m_commonViewport->GetCommonRenderTarget();
+        if (likely(rt != nullptr))
+          rt->UnDirtyDDrawSurface();
+      }
+      if (clearDepthStencil) {
+        DDrawCommonSurface* ds = m_commonViewport->GetCommonDepthStencil();
+        if (likely(ds != nullptr))
+          ds->UnDirtyDDrawSurface();
+      }
+
+      m_commonViewport->UpdateSurfaceDirtyTracking(clearRenderTarget, clearDepthStencil, false);
     }
 
     return D3D_OK;
@@ -541,7 +557,7 @@ namespace dxvk {
     }
 
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6Viewport::Clear2: Failed D3D9 Clear call");
+      Logger::debug("D3D6Viewport::Clear2: Failed D3D9 Clear call");
       // Unlike Clear(), Clear2() is supposed to error out on
       // z/stencil clears and no z/stencil attachments
       return hr;
@@ -549,6 +565,17 @@ namespace dxvk {
 
     const bool clearRenderTarget = flags & D3DCLEAR_TARGET;
     const bool clearDepthStencil = (flags & D3DCLEAR_ZBUFFER) || (flags & D3DCLEAR_STENCIL);
+
+    if (clearRenderTarget) {
+      DDrawCommonSurface* rt = m_commonViewport->GetCommonRenderTarget();
+      if (likely(rt != nullptr))
+        rt->UnDirtyDDrawSurface();
+    }
+    if (clearDepthStencil) {
+      DDrawCommonSurface* ds = m_commonViewport->GetCommonDepthStencil();
+      if (likely(ds != nullptr))
+        ds->UnDirtyDDrawSurface();
+    }
 
     m_commonViewport->UpdateSurfaceDirtyTracking(clearRenderTarget, clearDepthStencil, false);
 
