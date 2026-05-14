@@ -68,7 +68,7 @@ ddraw_dll = shared_library(dxvk_name_prefix+'ddraw', ddraw_src, ddraw_res,
 )
 
 ddraw_dep = declare_dependency(
-  link_with           : [ ddraw_dll, d3d9_static ],
+  link_with           : [ ddraw_dll ],
   include_directories : [ dxvk_include_path ],
 )
 

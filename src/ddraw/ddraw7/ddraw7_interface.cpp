@@ -444,8 +444,8 @@ namespace dxvk {
       Logger::debug(str::format("DDraw7Interface::GetCaps: Free : ", free9));
     }
 
-    // Report all possible flip capabilities as supported
     if (lpDDDriverCaps != nullptr) {
+      lpDDDriverCaps->dwCaps2 &= ~DDCAPS2_CANCALIBRATEGAMMA;
       lpDDDriverCaps->dwCaps2 |= DDCAPS2_FLIPINTERVAL | DDCAPS2_FLIPNOVSYNC;
       lpDDDriverCaps->dwZBufferBitDepths = d3dOptions->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
       lpDDDriverCaps->dwVidMemTotal = total9;
@@ -453,6 +453,7 @@ namespace dxvk {
       lpDDDriverCaps->dwNumFourCCCodes = ddrawCaps::NumberOfFOURCCCodes;
     }
     if (lpDDHELCaps != nullptr) {
+      lpDDDriverCaps->dwCaps2 &= ~DDCAPS2_CANCALIBRATEGAMMA;
       lpDDHELCaps->dwCaps2 |= DDCAPS2_FLIPINTERVAL | DDCAPS2_FLIPNOVSYNC;
       lpDDHELCaps->dwZBufferBitDepths = d3dOptions->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
       lpDDHELCaps->dwVidMemTotal = total9;
@@ -567,6 +568,15 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
     Logger::debug("<<< DDraw7Interface::SetCooperativeLevel: Proxy");
+
+    // DDSCL_CREATEDEVICEWINDOW doesn't appear to behave properly in
+    // Wine, so use the cached hWnd to set the device window instead
+    if (unlikely((dwFlags & DDSCL_CREATEDEVICEWINDOW) && hWnd == nullptr
+               && m_commonIntf->GetHWND() != nullptr)) {
+      dwFlags &= ~DDSCL_CREATEDEVICEWINDOW;
+      dwFlags |= DDSCL_SETDEVICEWINDOW;
+      hWnd = m_commonIntf->GetHWND();
+    }
 
     HRESULT hr = m_proxy->SetCooperativeLevel(hWnd, dwFlags);
     if (unlikely(FAILED(hr)))

@@ -806,8 +806,10 @@ namespace dxvk {
                                   !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
                                    m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
                                    false : true;
-        if (shouldPresent)
+        if (shouldPresent) {
+          InitializeOrUploadD3D9();
           d3d9Device->Present(NULL, NULL, NULL, NULL);
+        }
       }
     }
 
