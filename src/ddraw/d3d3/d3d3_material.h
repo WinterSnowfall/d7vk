@@ -14,7 +14,6 @@ namespace dxvk {
   public:
 
     D3D3Material(
-          Com<IDirect3DMaterial>&& proxyMaterial,
           D3D3Interface* pParent,
           D3DMATERIALHANDLE handle);
 
