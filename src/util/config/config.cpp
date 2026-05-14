@@ -1780,7 +1780,7 @@ namespace dxvk {
     { R"(\\Revenant\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.forcePOW2Textures",          "True" },
-      { "ddraw.ignoreGammaRamp",            "True "},
+      { "ddraw.ignoreGammaRamp",            "True" },
     }} },
     /* Re-Volt                                    */
     { R"(\\revolt\.exe$)", {{
@@ -1867,7 +1867,7 @@ namespace dxvk {
     /* Star Trek: TNG - Klingon Honor Guard       */
     { R"(\\Khg\.exe$)", {{
       { "ddraw.ignoreExclusiveMode",        "True" },
-      { "ddraw.ignoreGammaRamp",            "True "},
+      { "ddraw.ignoreGammaRamp",            "True" },
     }} },
 
     /**********************************************/

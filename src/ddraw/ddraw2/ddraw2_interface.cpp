@@ -126,12 +126,7 @@ namespace dxvk {
 
       Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D");
 
-      Com<IDirect3D> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      Com<D3D3Interface> d3d3Intf = new D3D3Interface(m_commonIntf.ptr(), nullptr, std::move(ppvProxyObject), this);
+      Com<D3D3Interface> d3d3Intf = new D3D3Interface(m_commonIntf.ptr(), nullptr, this);
       m_commonIntf->SetD3D3Interface(d3d3Intf.ptr());
       *ppvObject = d3d3Intf.ref();
 
@@ -146,12 +141,7 @@ namespace dxvk {
 
       Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D2");
 
-      Com<IDirect3D2> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      Com<D3D5Interface> d3d5Intf = new D3D5Interface(m_commonIntf.ptr(), nullptr, std::move(ppvProxyObject), this);
+      Com<D3D5Interface> d3d5Intf = new D3D5Interface(m_commonIntf.ptr(), nullptr, this);
       *ppvObject = d3d5Intf.ref();
 
       return S_OK;
