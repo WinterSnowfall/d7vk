@@ -27,18 +27,20 @@ namespace dxvk {
     // adapter identifier, as well as (potentially) the options through a bridge
     Com<d3d9::IDirect3D9> d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
 
+    if (m_commonIntf == nullptr) {
+      Com<IDxvkD3D8InterfaceBridge> d3d9Bridge;
+
+      if (unlikely(FAILED(d3d9Intf->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&d3d9Bridge))))) {
+        throw DxvkError("DDraw7Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+      }
+
+      m_commonIntf = new DDrawCommonInterface(D3DOptions(*d3d9Bridge->GetConfig()));
+    }
+
     d3d9::D3DADAPTER_IDENTIFIER9 adapterIdentifier9;
     HRESULT hr = d3d9Intf->GetAdapterIdentifier(0, 0, &adapterIdentifier9);
     if (unlikely(FAILED(hr))) {
       throw DxvkError("DDraw7Interface: ERROR! Failed to get D3D9 adapter identifier!");
-    }
-
-    if (m_commonIntf == nullptr) {
-      Com<IDxvkD3D8InterfaceBridge> d3d9Bridge;
-      // Can never fail while we statically link the d3d9 module
-      d3d9Intf->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&d3d9Bridge));
-
-      m_commonIntf = new DDrawCommonInterface(D3DOptions(*d3d9Bridge->GetConfig()));
     }
 
     m_commonIntf->SetAdapterIdentifier(adapterIdentifier9);

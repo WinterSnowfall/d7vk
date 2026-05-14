@@ -16,9 +16,8 @@ namespace dxvk {
   D3D3Interface::D3D3Interface(
         DDrawCommonInterface* commonIntf,
         D3DCommonInterface* commonD3DIntf,
-        Com<IDirect3D>&& d3d3IntfProxy,
         IUnknown* pParent)
-    : DDrawWrappedObject<IUnknown, IDirect3D>(pParent, std::move(d3d3IntfProxy))
+    : DDrawWrappedObject<IUnknown, IDirect3D>(pParent, nullptr)
     , m_commonIntf ( commonIntf )
     , m_commonD3DIntf ( commonD3DIntf ) {
     if (m_commonD3DIntf == nullptr) {
@@ -257,15 +256,8 @@ namespace dxvk {
 
     InitReturnPtr(lplpDirect3DMaterial);
 
-    Com<IDirect3DMaterial> ddrawMaterialProxied;
-    HRESULT hr = m_proxy->CreateMaterial(&ddrawMaterialProxied, pUnkOuter);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("D3D3Interface::CreateMaterial: Failed to create proxied material");
-      return hr;
-    }
-
     D3DMATERIALHANDLE handle = m_commonD3DIntf->GetNextMaterialHandle();
-    Com<D3D3Material> d3d3Material = new D3D3Material(std::move(ddrawMaterialProxied), this, handle);
+    Com<D3D3Material> d3d3Material = new D3D3Material(this, handle);
     m_commonD3DIntf->EmplaceMaterial(d3d3Material->GetCommonMaterial(), handle);
 
     *lplpDirect3DMaterial = d3d3Material.ref();
@@ -276,14 +268,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D3Interface::CreateViewport(LPDIRECT3DVIEWPORT *lplpD3DViewport, IUnknown *pUnkOuter) {
     Logger::debug(">>> D3D3Interface::CreateViewport");
 
-    Com<IDirect3DViewport> lplpD3DViewportProxy;
-    HRESULT hr = m_proxy->CreateViewport(&lplpD3DViewportProxy, pUnkOuter);
-    if (unlikely(FAILED(hr)))
-      return hr;
-
     InitReturnPtr(lplpD3DViewport);
 
-    *lplpD3DViewport = ref(new D3D3Viewport(nullptr, std::move(lplpD3DViewportProxy), this));
+    *lplpD3DViewport = ref(new D3D3Viewport(nullptr, this));
 
     return D3D_OK;
   }

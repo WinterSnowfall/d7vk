@@ -18,7 +18,6 @@ namespace dxvk {
 
   D3D6Device::D3D6Device(
         D3DCommonDevice* commonD3DDevice,
-        Com<IDirect3DDevice3>&& d3d6DeviceProxy,
         D3D6Interface* pParent,
         D3DDEVICEDESC Desc,
         GUID deviceGUID,
@@ -26,7 +25,7 @@ namespace dxvk {
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DDraw4Surface* pSurface,
         DWORD CreationFlags9)
-    : DDrawWrappedObject<D3D6Interface, IDirect3DDevice3>(pParent, std::move(d3d6DeviceProxy))
+    : DDrawWrappedObject<D3D6Interface, IDirect3DDevice3>(pParent, nullptr)
     , m_commonD3DDevice ( commonD3DDevice )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_desc ( Desc )
@@ -159,11 +158,6 @@ namespace dxvk {
 
       Logger::debug("D3D6Device::QueryInterface: Query for IDirect3DDevice");
 
-      Com<IDirect3DDevice> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
       const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
       // TODO: Make sure the RT has an existing DDrawSurface,
@@ -171,9 +165,9 @@ namespace dxvk {
 
       // Reuse the existing D3D9 device in situations where games want
       // to get access only to D3D3 execute buffers on a D3D6 device
-      m_device3 = new D3D3Device(m_commonD3DDevice.ptr(), std::move(ppvProxyObject),
-                                 m_rt->GetCommonSurface()->GetDDSurface(), GetD3D3Caps(d3dOptions),
-                                 m_commonD3DDevice->GetDeviceGUID(), m_commonD3DDevice->GetPresentParameters(),
+      m_device3 = new D3D3Device(m_commonD3DDevice.ptr(), m_rt->GetCommonSurface()->GetDDSurface(),
+                                 GetD3D3Caps(d3dOptions), m_commonD3DDevice->GetDeviceGUID(),
+                                 m_commonD3DDevice->GetPresentParameters(),
                                  nullptr, m_commonD3DDevice->GetD3D9CreationFlags());
       m_commonD3DDevice->SetD3D3Device(m_device3.ptr());
 
@@ -192,18 +186,12 @@ namespace dxvk {
 
       Logger::debug("D3D6Device::QueryInterface: Query for IDirect3DDevice2");
 
-      Com<IDirect3DDevice2> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
       const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
       // TODO: Make sure the RT has an existing DDrawSurface,
       // and QueryInterface for one if that's not the case
 
-      m_device5 = new D3D5Device(m_commonD3DDevice.ptr(), std::move(ppvProxyObject),
-                                 m_commonD3DDevice->GetCommonD3DInterface()->GetD3D5Interface(),
+      m_device5 = new D3D5Device(m_commonD3DDevice.ptr(), m_commonD3DDevice->GetCommonD3DInterface()->GetD3D5Interface(),
                                  GetD3D5Caps(m_commonD3DDevice->GetDeviceGUID(), d3dOptions),
                                  m_commonD3DDevice->GetDeviceGUID(), m_commonD3DDevice->GetPresentParameters(),
                                  nullptr, m_rt->GetCommonSurface()->GetDDSurface(),
@@ -281,11 +269,6 @@ namespace dxvk {
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
-    HRESULT hr = m_proxy->AddViewport(d3d6Viewport->GetProxied());
-    if (unlikely(FAILED(hr)))
-      return hr;
-
     AddViewportInternal(viewport);
 
     return D3D_OK;
@@ -299,14 +282,10 @@ namespace dxvk {
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
-    HRESULT hr = m_proxy->DeleteViewport(d3d6Viewport->GetProxied());
-    if (unlikely(FAILED(hr)))
-      return hr;
-
     DeleteViewportInternal(viewport);
 
     // Clear the current viewport if it is deleted from the device
+    D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
     if (m_currentViewport.ptr() == d3d6Viewport)
       m_currentViewport = nullptr;
 
@@ -495,11 +474,6 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
-    HRESULT hr = m_proxy->SetCurrentViewport(d3d6Viewport->GetProxied());
-    if (unlikely(FAILED(hr))) {
-      Logger::debug("D3D6Device::SetCurrentViewport: Failed to set proxied viewport");
-      return hr;
-    }
 
     if (unlikely(m_currentViewport == d3d6Viewport))
       return D3D_OK;
@@ -554,11 +528,6 @@ namespace dxvk {
     }
 
     DDraw4Surface* rt6 = static_cast<DDraw4Surface*>(surface);
-
-    // Needed to ensure proxied Z/Stencil viewport clears will work
-    HRESULT hrRT = m_proxy->SetRenderTarget(rt6->GetShadowOrProxied(), flags);
-    if (unlikely(FAILED(hrRT)))
-      Logger::debug("D3D6Device::SetRenderTarget: Failed to set RT");
 
     HRESULT hr = rt6->GetCommonSurface()->ValidateRTUsage();
     if (unlikely(FAILED(hr)))

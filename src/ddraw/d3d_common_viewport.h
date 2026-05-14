@@ -66,16 +66,13 @@ namespace dxvk {
       return m_isViewportSet;
     }
 
-    void MarkMaterialAsSet() {
-      m_isMaterialSet = true;
-    }
-
     bool IsMaterialSet() const {
       return m_isMaterialSet;
     }
 
     void SetMaterialHandle(D3DMATERIALHANDLE materialHandle) {
       m_materialHandle = materialHandle;
+      m_isMaterialSet = true;
     }
 
     D3DMATERIALHANDLE GetMaterialHandle() const {

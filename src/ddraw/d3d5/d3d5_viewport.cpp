@@ -19,9 +19,8 @@ namespace dxvk {
 
   D3D5Viewport::D3D5Viewport(
         D3DCommonViewport* commonViewport,
-        Com<IDirect3DViewport2>&& proxyViewport,
         D3D5Interface* pParent)
-    : DDrawWrappedObject<D3D5Interface, IDirect3DViewport2>(pParent, std::move(proxyViewport))
+    : DDrawWrappedObject<D3D5Interface, IDirect3DViewport2>(pParent, nullptr)
     , m_commonViewport ( commonViewport ) {
 
     if (m_commonViewport == nullptr)
@@ -90,12 +89,7 @@ namespace dxvk {
 
       Logger::debug("D3D5Viewport::QueryInterface: Query for IDirect3DViewport");
 
-      Com<IDirect3DViewport> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      m_viewport3 = new D3D3Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr);
+      m_viewport3 = new D3D3Viewport(m_commonViewport.ptr(), nullptr);
 
       // On native this is the same object, so no need to ref
       *ppvObject = m_viewport3.ptr();
@@ -110,12 +104,7 @@ namespace dxvk {
 
       Logger::debug("D3D5Viewport::QueryInterface: Query for IDirect3DViewport3");
 
-      Com<IDirect3DViewport3> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      m_viewport6 = new D3D6Viewport(m_commonViewport.ptr(), std::move(ppvProxyObject), nullptr);
+      m_viewport6 = new D3D6Viewport(m_commonViewport.ptr(), nullptr);
 
       // On native this is the same object, so no need to ref
       *ppvObject = m_viewport6.ptr();
@@ -173,10 +162,6 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::SetViewport(D3DVIEWPORT *data) {
     Logger::debug(">>> D3D5Viewport::SetViewport");
-
-    HRESULT hr = m_proxy->SetViewport(data);
-    if (unlikely(FAILED(hr)))
-      return hr;
 
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -267,18 +252,6 @@ namespace dxvk {
     if (unlikely(commonMaterial == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // We still need to proxy this call to DDraw for
-    // proxied clear colors to be accurate
-    D3D5Device* device5 = m_commonViewport->GetD3D5Device();
-    if (likely(device5 != nullptr)) {
-      D3DMATERIALHANDLE proxyHandle = commonMaterial->GetProxiedMaterialHandle(device5->GetProxied());
-      HRESULT hr = m_proxy->SetBackground(proxyHandle);
-      if (unlikely(FAILED(hr)))
-        Logger::warn("D3D5Viewport::SetBackground: Failed to set the proxied viewport background");
-    }
-
-    m_commonViewport->MarkMaterialAsSet();
-
     // Cache only the set material handle, as its color can
     // change after it is set (get it on Clear directly)
     m_commonViewport->SetMaterialHandle(hMat);
@@ -325,10 +298,6 @@ namespace dxvk {
     // Fast skip
     if (unlikely(!count && rects))
       return D3D_OK;
-
-    HRESULT hr = m_proxy->Clear(count, rects, flags);
-    if (unlikely(FAILED(hr)))
-      return hr;
 
     if (unlikely(!m_commonViewport->HasDevice()))
       return D3DERR_VIEWPORTHASNODEVICE;
@@ -481,10 +450,6 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::SetViewport2(D3DVIEWPORT2 *data) {
     Logger::debug(">>> D3D5Viewport::SetViewport2");
-
-    HRESULT hr = m_proxy->SetViewport2(data);
-    if (unlikely(FAILED(hr)))
-      return hr;
 
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;

@@ -20,9 +20,8 @@ namespace dxvk {
   D3D5Interface::D3D5Interface(
         DDrawCommonInterface* m_commonIntf,
         D3DCommonInterface* commonD3DIntf,
-        Com<IDirect3D2>&& d3d5IntfProxy,
         IUnknown* pParent)
-    : DDrawWrappedObject<IUnknown, IDirect3D2>(pParent, std::move(d3d5IntfProxy))
+    : DDrawWrappedObject<IUnknown, IDirect3D2>(pParent, nullptr)
     , m_commonIntf ( m_commonIntf )
     , m_commonD3DIntf ( commonD3DIntf ) {
     if (m_commonD3DIntf == nullptr) {
@@ -106,12 +105,7 @@ namespace dxvk {
 
       Logger::debug("D3D5Interface::QueryInterface: Query for IDirect3D");
 
-      Com<IDirect3D> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      Com<D3D3Interface> d3d3Intf = new D3D3Interface(m_commonIntf, m_commonD3DIntf.ptr(), std::move(ppvProxyObject), m_parent);
+      Com<D3D3Interface> d3d3Intf = new D3D3Interface(m_commonIntf, m_commonD3DIntf.ptr(), m_parent);
       m_commonIntf->SetD3D3Interface(d3d3Intf.ptr());
       *ppvObject = d3d3Intf.ref();
 
@@ -264,15 +258,8 @@ namespace dxvk {
 
     InitReturnPtr(lplpDirect3DMaterial);
 
-    Com<IDirect3DMaterial2> ddrawMaterial2Proxied;
-    HRESULT hr = m_proxy->CreateMaterial(&ddrawMaterial2Proxied, pUnkOuter);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("D3D5Interface::CreateMaterial: Failed to create proxied material");
-      return hr;
-    }
-
     D3DMATERIALHANDLE handle = m_commonD3DIntf->GetNextMaterialHandle();
-    Com<D3D5Material> d3d5Material = new D3D5Material(std::move(ddrawMaterial2Proxied), this, handle);
+    Com<D3D5Material> d3d5Material = new D3D5Material(this, handle);
     m_commonD3DIntf->EmplaceMaterial(d3d5Material->GetCommonMaterial(), handle);
 
     *lplpDirect3DMaterial = d3d5Material.ref();
@@ -283,14 +270,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D5Interface::CreateViewport(LPDIRECT3DVIEWPORT2 *lplpD3DViewport, IUnknown *pUnkOuter) {
     Logger::debug(">>> D3D5Interface::CreateViewport");
 
-    Com<IDirect3DViewport2> lplpD3DViewportProxy;
-    HRESULT hr = m_proxy->CreateViewport(&lplpD3DViewportProxy, pUnkOuter);
-    if (unlikely(FAILED(hr)))
-      return hr;
-
     InitReturnPtr(lplpD3DViewport);
 
-    *lplpD3DViewport = ref(new D3D5Viewport(nullptr, std::move(lplpD3DViewportProxy), this));
+    *lplpD3DViewport = ref(new D3D5Viewport(nullptr, this));
 
     return D3D_OK;
   }
@@ -473,13 +455,6 @@ namespace dxvk {
       rt = static_cast<DDrawSurface*>(lpDDS);
     }
 
-    Com<IDirect3DDevice2> d3d5DeviceProxy;
-    HRESULT hr = m_proxy->CreateDevice(rclsidOverride, rt->GetShadowOrProxied(), &d3d5DeviceProxy);
-    if (unlikely(FAILED(hr))) {
-      Logger::warn("D3D5Interface::CreateDevice: Failed to create the proxy device");
-      return hr;
-    }
-
     DDSURFACEDESC desc;
     desc.dwSize = sizeof(DDSURFACEDESC);
     lpDDS->GetSurfaceDesc(&desc);
@@ -548,7 +523,7 @@ namespace dxvk {
     params.PresentationInterval       = D3DPRESENT_INTERVAL_DEFAULT; // A D3D5 device always uses VSync
 
     Com<d3d9::IDirect3DDevice9> device9;
-    hr = d3d9Intf->CreateDevice(
+    HRESULT hr = d3d9Intf->CreateDevice(
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
       hWnd,
@@ -565,9 +540,8 @@ namespace dxvk {
     D3DDEVICEDESC2 desc5 = GetD3D5Caps(rclsidOverride, d3dOptions);
 
     try{
-      Com<D3D5Device> device5 = new D3D5Device(nullptr, std::move(d3d5DeviceProxy), this, desc5,
-                                               rclsidOverride, params, std::move(device9),
-                                               rt.ptr(), deviceCreationFlags9);
+      Com<D3D5Device> device5 = new D3D5Device(nullptr, this, desc5, rclsidOverride,
+                                               params, std::move(device9), rt.ptr(), deviceCreationFlags9);
 
       // Set the common device on the common interface
       m_commonIntf->SetCommonD3DDevice(device5->GetCommonD3DDevice());

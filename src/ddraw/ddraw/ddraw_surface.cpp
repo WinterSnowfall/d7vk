@@ -1193,11 +1193,6 @@ namespace dxvk {
       Logger::debug("DDrawSurface::CreateDeviceInternal: HWND is NULL");
     }
 
-    Com<IDirect3DDevice> ppvProxyObject;
-    HRESULT hr = GetShadowOrProxied()->QueryInterface(rclsidOverride, reinterpret_cast<void**>(&ppvProxyObject));
-    if (unlikely(FAILED(hr)))
-      return hr;
-
     DWORD backBufferWidth  = m_commonSurf->GetDesc()->dwWidth;
     DWORD BackBufferHeight = m_commonSurf->GetDesc()->dwHeight;
 
@@ -1280,7 +1275,7 @@ namespace dxvk {
     params.PresentationInterval       = D3DPRESENT_INTERVAL_DEFAULT; // A D3D3 device always uses VSync
 
     Com<d3d9::IDirect3DDevice9> device9;
-    hr = d3d9Intf->CreateDevice(
+    HRESULT hr = d3d9Intf->CreateDevice(
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
       hWnd,
@@ -1294,9 +1289,8 @@ namespace dxvk {
       return hr;
     }
 
-    Com<D3D3Device> device3 = new D3D3Device(nullptr, std::move(ppvProxyObject), this,
-                                             GetD3D3Caps(d3dOptions), rclsidOverride, params,
-                                             std::move(device9), deviceCreationFlags9);
+    Com<D3D3Device> device3 = new D3D3Device(nullptr, this, GetD3D3Caps(d3dOptions), rclsidOverride,
+                                             params, std::move(device9), deviceCreationFlags9);
 
     // Set the common device on the common interface
     m_commonIntf->SetCommonD3DDevice(device3->GetCommonD3DDevice());

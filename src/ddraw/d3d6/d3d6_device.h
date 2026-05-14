@@ -36,7 +36,6 @@ namespace dxvk {
   public:
     D3D6Device(
           D3DCommonDevice* commonD3DDevice,
-          Com<IDirect3DDevice3>&& d3d6DeviceProxy,
           D3D6Interface* pParent,
           D3DDEVICEDESC Desc,
           GUID deviceGUID,

@@ -12,10 +12,9 @@ namespace dxvk {
   uint32_t D3D6Material::s_materialCount = 0;
 
   D3D6Material::D3D6Material(
-        Com<IDirect3DMaterial3>&& proxyMaterial,
         D3D6Interface* pParent,
         D3DMATERIALHANDLE handle)
-    : DDrawWrappedObject<D3D6Interface, IDirect3DMaterial3>(pParent, std::move(proxyMaterial)) {
+    : DDrawWrappedObject<D3D6Interface, IDirect3DMaterial3>(pParent, nullptr) {
     m_commonMaterial = new D3DCommonMaterial(handle);
 
     m_commonMaterial->SetD3D6Material(this);
@@ -59,12 +58,6 @@ namespace dxvk {
 
     if (unlikely(!data->dwSize))
       return DDERR_INVALIDPARAMS;
-
-    // This call needs to be forwarded to the proxied material
-    // too, in order to have a proper color used during proxied clears
-    HRESULT hr = m_proxy->SetMaterial(data);
-    if (unlikely(FAILED(hr)))
-      Logger::warn("D3D6Material::SetMaterial: Failed to set the proxied material");
 
     d3d9::D3DMATERIAL9* material9 = m_commonMaterial->GetD3D9Material();
 

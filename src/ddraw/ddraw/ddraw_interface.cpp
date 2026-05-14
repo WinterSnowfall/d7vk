@@ -90,14 +90,8 @@ namespace dxvk {
       Logger::debug("DDrawInterface::QueryInterface: Query for IDirect3D2");
 
       // Initialize the IDirect3D2 interlocked object
-      if (unlikely(m_d3d5Intf == nullptr)) {
-        Com<IDirect3D2> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
-
-        m_d3d5Intf = new D3D5Interface(m_commonIntf.ptr(), nullptr, std::move(ppvProxyObject), this);
-      }
+      if (unlikely(m_d3d5Intf == nullptr))
+        m_d3d5Intf = new D3D5Interface(m_commonIntf.ptr(), nullptr, this);
 
       *ppvObject = m_d3d5Intf.ref();
 
@@ -109,12 +103,7 @@ namespace dxvk {
 
       // Initialize the IDirect3D interlocked object
       if (unlikely(m_d3d3Intf == nullptr)) {
-        Com<IDirect3D> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
-
-        m_d3d3Intf = new D3D3Interface(m_commonIntf.ptr(), nullptr, std::move(ppvProxyObject), this);
+        m_d3d3Intf = new D3D3Interface(m_commonIntf.ptr(), nullptr, this);
         m_commonIntf->SetD3D3Interface(m_d3d3Intf.ptr());
       }
 

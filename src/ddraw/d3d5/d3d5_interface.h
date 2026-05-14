@@ -22,7 +22,6 @@ namespace dxvk {
     D3D5Interface(
           DDrawCommonInterface* commonIntf,
           D3DCommonInterface* commonD3DIntf,
-          Com<IDirect3D2>&& d3d5Intf,
           IUnknown* pParent);
 
     ~D3D5Interface();
