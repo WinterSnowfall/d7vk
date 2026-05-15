@@ -917,9 +917,7 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    m_rt->InitializeOrUploadD3D9();
-    if (likely(m_ds != nullptr))
-      m_ds->InitializeOrUploadD3D9();
+    DDrawDirtySurfaceUpload();
 
     device9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = device9->DrawPrimitiveUP(
@@ -953,9 +951,7 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    m_rt->InitializeOrUploadD3D9();
-    if (likely(m_ds != nullptr))
-      m_ds->InitializeOrUploadD3D9();
+    DDrawDirtySurfaceUpload();
 
     device9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = device9->DrawIndexedPrimitiveUP(
@@ -1023,9 +1019,7 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    m_rt->InitializeOrUploadD3D9();
-    if (likely(m_ds != nullptr))
-      m_ds->InitializeOrUploadD3D9();
+    DDrawDirtySurfaceUpload();
 
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
@@ -1062,9 +1056,7 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    m_rt->InitializeOrUploadD3D9();
-    if (likely(m_ds != nullptr))
-      m_ds->InitializeOrUploadD3D9();
+    DDrawDirtySurfaceUpload();
 
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
@@ -1112,9 +1104,7 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    m_rt->InitializeOrUploadD3D9();
-    if (likely(m_ds != nullptr))
-      m_ds->InitializeOrUploadD3D9();
+    DDrawDirtySurfaceUpload();
 
     device9->SetFVF(vb->GetFVF());
     device9->SetStreamSource(0, vb->GetD3D9VertexBuffer(), 0, vb->GetStride());
@@ -1165,9 +1155,7 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    m_rt->InitializeOrUploadD3D9();
-    if (likely(m_ds != nullptr))
-      m_ds->InitializeOrUploadD3D9();
+    DDrawDirtySurfaceUpload();
 
     d3d9::IDirect3DIndexBuffer9* ib9 = m_ib9[ibIndex].ptr();
 
@@ -1585,6 +1573,19 @@ namespace dxvk {
     ib9->Lock(0, size, &pData, D3DLOCK_DISCARD);
     memcpy(pData, static_cast<void*>(indices), size);
     ib9->Unlock();
+  }
+
+  inline void D3D7Device::DDrawDirtySurfaceUpload() {
+    // Render target
+    m_rt->InitializeOrUploadD3D9();
+    // Depth stencil (if present)
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
+    // Bound texture(s)
+    for (auto& tex : m_textures) {
+      if (tex.ptr() != nullptr)
+        tex->InitializeOrUploadD3D9();
+    }
   }
 
 }
