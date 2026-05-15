@@ -113,6 +113,8 @@ namespace dxvk {
 
   private:
 
+    inline void DDrawDirtySurfaceUpload();
+
     inline void AddViewportInternal(IDirect3DViewport* viewport);
 
     inline void DeleteViewportInternal(IDirect3DViewport* viewport);

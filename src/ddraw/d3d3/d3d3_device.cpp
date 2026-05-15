@@ -964,6 +964,21 @@ namespace dxvk {
       m_ds->GetCommonSurface()->DirtyD3D9Surface();
   }
 
+  inline void D3D3Device::DDrawDirtySurfaceUpload() {
+    // Render target
+    m_rt->InitializeOrUploadD3D9();
+    // Depth stencil (if present)
+    if (likely(m_ds != nullptr))
+      m_ds->InitializeOrUploadD3D9();
+    // Bound texture(s)
+    D3DTEXTUREHANDLE texHandle = m_commonD3DDevice->GetCurrentTextureHandle();
+    if (likely(texHandle != 0)) {
+      DDrawSurface* tex = m_commonIntf->GetSurfaceFromTextureHandle(texHandle);
+      if (likely(tex != nullptr))
+        tex->InitializeOrUploadD3D9();
+    }
+  }
+
   inline void D3D3Device::AddViewportInternal(IDirect3DViewport* viewport) {
     D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
 
@@ -1352,9 +1367,7 @@ namespace dxvk {
   inline void D3D3Device::DrawTriangleInternal(D3DTRIANGLE* triangle, uint16_t count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer) {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    m_rt->InitializeOrUploadD3D9();
-    if (likely(m_ds != nullptr))
-      m_ds->InitializeOrUploadD3D9();
+    DDrawDirtySurfaceUpload();
 
     std::vector<D3DTLVERTEX> vertices;
 
@@ -1402,9 +1415,7 @@ namespace dxvk {
   inline void D3D3Device::DrawLineInternal(D3DLINE* line, uint16_t count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer) {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    m_rt->InitializeOrUploadD3D9();
-    if (likely(m_ds != nullptr))
-      m_ds->InitializeOrUploadD3D9();
+    DDrawDirtySurfaceUpload();
 
     std::vector<D3DTLVERTEX> vertices;
 
@@ -1442,9 +1453,7 @@ namespace dxvk {
   inline void D3D3Device::DrawPointInternal(D3DPOINT* point, uint16_t count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer) {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    m_rt->InitializeOrUploadD3D9();
-    if (likely(m_ds != nullptr))
-      m_ds->InitializeOrUploadD3D9();
+    DDrawDirtySurfaceUpload();
 
     std::vector<D3DTLVERTEX> vertices;
 
@@ -1482,9 +1491,7 @@ namespace dxvk {
   inline void D3D3Device::DrawSpanInternal(D3DSPAN* span, uint16_t count, DWORD vertexCount, const D3DTLVERTEX* vertexBuffer) {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    m_rt->InitializeOrUploadD3D9();
-    if (likely(m_ds != nullptr))
-      m_ds->InitializeOrUploadD3D9();
+    DDrawDirtySurfaceUpload();
 
     std::vector<D3DTLVERTEX> vertices;
 

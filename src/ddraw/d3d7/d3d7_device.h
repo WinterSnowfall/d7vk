@@ -179,6 +179,8 @@ namespace dxvk {
 
     inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
 
+    inline void DDrawDirtySurfaceUpload();
+
     inline bool LogIndexBufferUsageStats() const {
       for (uint32_t m_ib9_upload : m_ib9_uploads) {
         if (m_ib9_upload > 0)

@@ -184,6 +184,8 @@ namespace dxvk {
 
     inline void UploadIndices(d3d9::IDirect3DIndexBuffer9* ib9, WORD* indices, DWORD indexCount);
 
+    inline void DDrawDirtySurfaceUpload();
+
     inline void AddViewportInternal(IDirect3DViewport3* viewport);
 
     inline void DeleteViewportInternal(IDirect3DViewport3* viewport);
