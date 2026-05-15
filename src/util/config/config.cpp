@@ -1701,6 +1701,11 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.uploadFrontBuffer",          "True" },
     }} },
+    /* Test Drive 6                               *
+     * Fixes physics engine speed up at high FPS  */
+    { R"(\\TD6\.exe$)", {{
+      { "d3d9.maxFrameRate",                 "-60" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
