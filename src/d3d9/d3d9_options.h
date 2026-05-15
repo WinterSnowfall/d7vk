@@ -73,6 +73,9 @@ namespace dxvk {
     /// D3D9 Floating Point Emulation (anything * 0 = 0)
     D3D9FloatEmulation d3d9FloatEmulation;
 
+    /// Support depth formats for cube textures
+    bool supportCubeDepthFormats;
+
     /// Support the DF16 & DF24 texture format
     bool supportDFFormats;
 
