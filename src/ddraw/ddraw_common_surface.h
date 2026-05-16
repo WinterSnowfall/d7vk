@@ -88,6 +88,8 @@ namespace dxvk {
     void SetDesc2(const DDSURFACEDESC2& desc2) {
       m_desc2 = desc2;
       m_isDesc2Set = true;
+      m_rect.right  = desc2.dwWidth;
+      m_rect.bottom = desc2.dwHeight;
       m_format9 = ConvertFormat(m_desc2.ddpfPixelFormat);
       // determine and cache various frequently used flag combinations
       m_isBackBufferOrFlippable = !IsPrimarySurface() && !IsFrontBuffer() && (IsBackBuffer() || IsFlippable());
@@ -105,6 +107,8 @@ namespace dxvk {
     void SetDesc(const DDSURFACEDESC& desc) {
       m_desc = desc;
       m_isDescSet = true;
+      m_rect.right  = desc.dwWidth;
+      m_rect.bottom = desc.dwHeight;
       m_format9 = ConvertFormat(m_desc.ddpfPixelFormat);
       // determine and cache various frequently used flag combinations
       m_isBackBufferOrFlippable = !IsPrimarySurface() && !IsFrontBuffer() && (IsBackBuffer() || IsFlippable());
@@ -143,6 +147,25 @@ namespace dxvk {
 
     d3d9::D3DFORMAT GetD3D9Format() const {
       return m_format9;
+    }
+
+    bool IsFullSurfaceLock(RECT* lockRect, RECT* fullSurfaceRect) const {
+      if (lockRect == nullptr) {
+        if (fullSurfaceRect == nullptr)
+          return true;
+
+        lockRect = fullSurfaceRect;
+      }
+
+      const DWORD width  = IsDesc2Set() ? m_desc2.dwWidth  : m_desc.dwWidth;
+      const DWORD height = IsDesc2Set() ? m_desc2.dwHeight : m_desc.dwHeight;
+
+      return width  == static_cast<DWORD>(lockRect->right  - lockRect->left) &&
+             height == static_cast<DWORD>(lockRect->bottom - lockRect->top);
+    }
+
+    RECT* GetFullSurfaceRect() {
+      return &m_rect;
     }
 
     float GetNormalizedFloatDepth(DWORD input) const {
@@ -469,6 +492,7 @@ namespace dxvk {
 
     DDSURFACEDESC                    m_desc  = { };
     DDSURFACEDESC2                   m_desc2 = { };
+    RECT                             m_rect  = { };
     d3d9::D3DFORMAT                  m_format9 = d3d9::D3DFMT_UNKNOWN;
 
     Com<DDrawClipper>                m_clipper;

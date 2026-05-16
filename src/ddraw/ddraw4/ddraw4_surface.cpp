@@ -251,22 +251,22 @@ namespace dxvk {
       return DDERR_CANNOTATTACHSURFACE;
     }
 
-    DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSAttachedSurface);
+    DDraw4Surface* attachedSurf = static_cast<DDraw4Surface*>(lpDDSAttachedSurface);
 
     // Unsupported by Wine's DDraw implementation, so we'll do our own present
-    if (unlikely(ddraw4Surface->GetCommonSurface()->IsBackBufferOrFlippable())) {
-      Logger::debug("ddraw4Surface::AddAttachedSurface: Caching surface as DDraw RT");
-      m_commonIntf->SetDDrawRenderTarget(ddraw4Surface->GetCommonSurface());
+    if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable())) {
+      Logger::debug("DDraw4Surface::AddAttachedSurface: Caching surface as DDraw RT");
+      m_commonIntf->SetDDrawRenderTarget(attachedSurf->GetCommonSurface());
       return DD_OK;
     }
 
-    HRESULT hr = m_proxy->AddAttachedSurface(ddraw4Surface->GetProxied());
+    HRESULT hr = m_proxy->AddAttachedSurface(attachedSurf->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
-    ddraw4Surface->SetParentSurface(this);
-    if (likely(ddraw4Surface->GetCommonSurface()->IsDepthStencil()))
-      m_depthStencil = ddraw4Surface;
+    attachedSurf->SetParentSurface(this);
+    if (likely(attachedSurf->GetCommonSurface()->IsDepthStencil()))
+      m_depthStencil = attachedSurf;
 
     return hr;
   }
@@ -280,13 +280,20 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw4Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE4 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
     Logger::debug("<<< DDraw4Surface::Blt: Proxy");
 
+    const bool sourceIsWrappedSurface = m_commonIntf->IsWrappedSurface(lpDDSrcSurface);
+
     // Write back any dirty surface data from bound D3D9 back buffers or
     // depth stencils, for both the source surface and the current surface
-    if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
-      DDraw4Surface* surface4 = static_cast<DDraw4Surface*>(lpDDSrcSurface);
-      surface4->DownloadSurfaceData();
+    if (likely(lpDDSrcSurface != nullptr && sourceIsWrappedSurface)) {
+      DDraw4Surface* sourceSurface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
+      sourceSurface->DownloadSurfaceData();
     }
-    DownloadSurfaceData();
+    // No point in downloading the destination surface if it's going to be overwritten
+    if (m_commonSurf->IsFullSurfaceLock(lpDestRect, nullptr)) {
+      m_commonSurf->UnDirtyD3D9Surface();
+    } else {
+      DownloadSurfaceData();
+    }
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
     if (likely(d3d9Device != nullptr)) {
@@ -296,10 +303,10 @@ namespace dxvk {
       // Windowed mode presentation path
       if (!exclusiveMode && lpDDSrcSurface != nullptr && m_commonSurf->IsPrimarySurface()) {
         // TODO: Handle this properly, not by uploading the RT again
-        DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
+        DDraw4Surface* sourceSurface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
         DDraw4Surface* renderTarget = m_commonSurf->GetCommonD3DDevice()->GetCurrentRenderTarget4();
 
-        if (ddraw4Surface == renderTarget) {
+        if (sourceSurface == renderTarget) {
           renderTarget->InitializeOrUploadD3D9();
           d3d9Device->Present(NULL, NULL, NULL, NULL);
           return DD_OK;
@@ -309,15 +316,15 @@ namespace dxvk {
 
     HRESULT hr;
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
+    if (unlikely(!sourceIsWrappedSurface)) {
       if (unlikely(lpDDSrcSurface != nullptr)) {
         Logger::warn("DDraw4Surface::Blt: Received an unwrapped source surface");
         return DDERR_UNSUPPORTED;
       }
       hr = GetShadowOrProxied()->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     } else {
-      DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
-      hr = GetShadowOrProxied()->Blt(lpDestRect, ddraw4Surface->GetShadowOrProxied(), lpSrcRect, dwFlags, lpDDBltFx);
+      DDraw4Surface* sourceSurface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
+      hr = GetShadowOrProxied()->Blt(lpDestRect, sourceSurface->GetShadowOrProxied(), lpSrcRect, dwFlags, lpDDBltFx);
     }
 
     if (likely(SUCCEEDED(hr))) {
@@ -347,13 +354,22 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw4Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE4 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDraw4Surface::BltFast: Proxy");
 
+    const bool sourceIsWrappedSurface = m_commonIntf->IsWrappedSurface(lpDDSrcSurface);
+
+    RECT* sourceFullSurfaceRect = nullptr;
     // Write back any dirty surface data from bound D3D9 back buffers or
     // depth stencils, for both the source surface and the current surface
-    if (likely(lpDDSrcSurface != nullptr && m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
-      DDraw4Surface* surface4 = static_cast<DDraw4Surface*>(lpDDSrcSurface);
-      surface4->DownloadSurfaceData();
+    if (likely(lpDDSrcSurface != nullptr && sourceIsWrappedSurface)) {
+      DDraw4Surface* sourceSurface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
+      sourceSurface->DownloadSurfaceData();
+      sourceFullSurfaceRect = sourceSurface->GetCommonSurface()->GetFullSurfaceRect();
     }
-    DownloadSurfaceData();
+    // No point in downloading the destination surface if it's going to be overwritten
+    if (dwX == 0 && dwY == 0 && m_commonSurf->IsFullSurfaceLock(lpSrcRect, sourceFullSurfaceRect)) {
+      m_commonSurf->UnDirtyD3D9Surface();
+    } else {
+      DownloadSurfaceData();
+    }
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
     if (likely(d3d9Device != nullptr)) {
@@ -363,10 +379,10 @@ namespace dxvk {
       // Windowed mode presentation path
       if (!exclusiveMode && lpDDSrcSurface != nullptr && m_commonSurf->IsPrimarySurface()) {
         // TODO: Handle this properly, not by uploading the RT again
-        DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
+        DDraw4Surface* sourceSurface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
         DDraw4Surface* renderTarget = m_commonSurf->GetCommonD3DDevice()->GetCurrentRenderTarget4();
 
-        if (ddraw4Surface == renderTarget) {
+        if (sourceSurface == renderTarget) {
           renderTarget->InitializeOrUploadD3D9();
           d3d9Device->Present(NULL, NULL, NULL, NULL);
           return DD_OK;
@@ -376,15 +392,15 @@ namespace dxvk {
 
     HRESULT hr;
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSrcSurface))) {
+    if (unlikely(!sourceIsWrappedSurface)) {
       if (unlikely(lpDDSrcSurface != nullptr)) {
         Logger::warn("DDraw4Surface::BltFast: Received an unwrapped source surface");
         return DDERR_UNSUPPORTED;
       }
       hr = GetShadowOrProxied()->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
     } else {
-      DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
-      hr = GetShadowOrProxied()->BltFast(dwX, dwY, ddraw4Surface->GetShadowOrProxied(), lpSrcRect, dwTrans);
+      DDraw4Surface* sourceSurface = static_cast<DDraw4Surface*>(lpDDSrcSurface);
+      hr = GetShadowOrProxied()->BltFast(dwX, dwY, sourceSurface->GetShadowOrProxied(), lpSrcRect, dwTrans);
     }
 
     if (likely(SUCCEEDED(hr))) {
@@ -418,27 +434,27 @@ namespace dxvk {
       HRESULT hrProxy = m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
 
       // If lpDDSAttachedSurface is NULL, then all surfaces are detached
-      if (lpDDSAttachedSurface == nullptr && likely(SUCCEEDED(hrProxy)))
+      if (likely(SUCCEEDED(hrProxy)))
         m_depthStencil = nullptr;
 
       return hrProxy;
     }
 
-    DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSAttachedSurface);
+    DDraw4Surface* attachedSurf = static_cast<DDraw4Surface*>(lpDDSAttachedSurface);
 
-    if (unlikely(ddraw4Surface->GetCommonSurface()->IsBackBufferOrFlippable() &&
-                 ddraw4Surface->GetCommonSurface() == m_commonIntf->GetDDrawRenderTarget())) {
+    if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable() &&
+                 attachedSurf->GetCommonSurface() == m_commonIntf->GetDDrawRenderTarget())) {
       Logger::debug("DDraw4Surface::DeleteAttachedSurface: Removing cached DDraw RT surface");
       m_commonIntf->SetDDrawRenderTarget(nullptr);
       return DD_OK;
     }
 
-    HRESULT hr = m_proxy->DeleteAttachedSurface(dwFlags, ddraw4Surface->GetProxied());
+    HRESULT hr = m_proxy->DeleteAttachedSurface(dwFlags, attachedSurf->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (likely(m_depthStencil == ddraw4Surface)) {
-      ddraw4Surface->ClearParentSurface();
+    if (likely(m_depthStencil == attachedSurf)) {
+      attachedSurf->ClearParentSurface();
       m_depthStencil = nullptr;
     }
 
@@ -490,10 +506,9 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::Flip(LPDIRECTDRAWSURFACE4 lpDDSurfaceTargetOverride, DWORD dwFlags) {
+    const bool overrideIsWrappedSurface = m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride);
 
-    Com<DDraw4Surface> surf4;
-    if (m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))
-      surf4 = static_cast<DDraw4Surface*>(lpDDSurfaceTargetOverride);
+    Com<DDraw4Surface> overrideSurf = static_cast<DDraw4Surface*>(lpDDSurfaceTargetOverride);
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
     if (likely(d3d9Device != nullptr)) {
@@ -525,7 +540,7 @@ namespace dxvk {
         return DDERR_NOTFLIPPABLE;
       }
 
-      if (unlikely(surf4 != nullptr && !surf4->GetCommonSurface()->IsBackBufferOrFlippable())) {
+      if (unlikely(overrideIsWrappedSurface && !overrideSurf->GetCommonSurface()->IsBackBufferOrFlippable())) {
         Logger::debug("DDraw4Surface::Flip: Unflippable override surface");
         return DDERR_NOTFLIPPABLE;
       }
@@ -588,10 +603,10 @@ namespace dxvk {
       // Update the VBlank wait status based on the flip flags
       m_commonIntf->SetWaitForVBlank(IsVSyncFlipFlag(dwFlags));
 
-      if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride))) {
+      if (!overrideIsWrappedSurface) {
         return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
       } else {
-        return m_proxy->Flip(surf4->GetProxied(), dwFlags);
+        return m_proxy->Flip(overrideSurf->GetShadowOrProxied(), dwFlags);
       }
     }
 

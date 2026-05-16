@@ -126,10 +126,14 @@ namespace dxvk {
     if (unlikely(m_commonD3DDevice != commonD3DDevice)) {
       // Check if the device has been recreated and reset all D3D9 resources
       if (m_commonD3DDevice != nullptr) {
-        Logger::debug("DDrawCommonSurface: Device context has changed, clearing all D3D9 resources");
+        Logger::debug("DDrawCommonSurface: Device has changed, clearing all D3D9 resources");
         m_cubeMap9 = nullptr;
         m_texture9 = nullptr;
         m_surface9 = nullptr;
+        // Also reset all D3D9 related tracking flags
+        m_isD3D9BackBuffer = false;
+        m_isD3D9DepthStencil = false;
+        m_dirtyD3D9 = false;
       }
 
       m_commonD3DDevice = commonD3DDevice;
