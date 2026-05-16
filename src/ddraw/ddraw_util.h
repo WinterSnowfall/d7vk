@@ -626,11 +626,16 @@ namespace dxvk {
                 // | D3DDEVCAPS_SORTDECREASINGZ
                 // | D3DDEVCAPS_SORTEXACT
                 // | D3DDEVCAPS_SORTINCREASINGZ
-                   | D3DDEVCAPS_TEXTURENONLOCALVIDMEM
+                // | D3DDEVCAPS_TEXTURENONLOCALVIDMEM // Exposed though a config option
                 // | D3DDEVCAPS_TEXTURESYSTEMMEMORY
                    | D3DDEVCAPS_TEXTUREVIDEOMEMORY
                    | D3DDEVCAPS_TLVERTEXSYSTEMMEMORY
                    | D3DDEVCAPS_TLVERTEXVIDEOMEMORY;
+
+    // Powerslide uses a broken rendering path if non-local video memory is advertized
+    if (likely(options->nonLocalVideoMemory)) {
+      desc.dwDevCaps |= D3DDEVCAPS_TEXTURENONLOCALVIDMEM;
+    }
 
     if (rclsid == IID_IDirect3DHALDevice) {
       desc.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
@@ -833,11 +838,16 @@ namespace dxvk {
                 // | D3DDEVCAPS_SORTDECREASINGZ
                 // | D3DDEVCAPS_SORTEXACT
                 // | D3DDEVCAPS_SORTINCREASINGZ
-                   | D3DDEVCAPS_TEXTURENONLOCALVIDMEM
+                // | D3DDEVCAPS_TEXTURENONLOCALVIDMEM // Exposed though a config option
                 // | D3DDEVCAPS_TEXTURESYSTEMMEMORY
                    | D3DDEVCAPS_TEXTUREVIDEOMEMORY
                    | D3DDEVCAPS_TLVERTEXSYSTEMMEMORY
                    | D3DDEVCAPS_TLVERTEXVIDEOMEMORY;
+
+    // Powerslide uses a broken rendering path if non-local video memory is advertized
+    if (likely(options->nonLocalVideoMemory)) {
+      desc.dwDevCaps |= D3DDEVCAPS_TEXTURENONLOCALVIDMEM;
+    }
 
     if (rclsid == IID_IDirect3DHALDevice) {
       desc.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
@@ -1087,11 +1097,16 @@ namespace dxvk {
                  // | D3DDEVCAPS_SORTEXACT
                  // | D3DDEVCAPS_SORTINCREASINGZ
                  // | D3DDEVCAPS_STRIDEDVERTICES // Mentioned in the docs, but apparently is a ghost
-                    | D3DDEVCAPS_TEXTURENONLOCALVIDMEM
+                 // | D3DDEVCAPS_TEXTURENONLOCALVIDMEM // Exposed though a config option
                  // | D3DDEVCAPS_TEXTURESYSTEMMEMORY
                     | D3DDEVCAPS_TEXTUREVIDEOMEMORY
                     | D3DDEVCAPS_TLVERTEXSYSTEMMEMORY
                     | D3DDEVCAPS_TLVERTEXVIDEOMEMORY;
+
+    // Powerslide uses a broken rendering path if non-local video memory is advertized
+    if (likely(options->nonLocalVideoMemory)) {
+      desc7.dwDevCaps |= D3DDEVCAPS_TEXTURENONLOCALVIDMEM;
+    }
 
     if (rclsid == IID_IDirect3DTnLHalDevice) {
       desc7.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION

@@ -92,9 +92,7 @@ namespace dxvk {
       Logger::debug("D3D5Viewport::QueryInterface: Query for IDirect3DViewport");
 
       m_viewport3 = new D3D3Viewport(m_commonViewport.ptr(), nullptr);
-
-      // On native this is the same object, so no need to ref
-      *ppvObject = m_viewport3.ptr();
+      *ppvObject = m_viewport3.ref();
 
       return S_OK;
     }
@@ -107,9 +105,7 @@ namespace dxvk {
       Logger::debug("D3D5Viewport::QueryInterface: Query for IDirect3DViewport3");
 
       m_viewport6 = new D3D6Viewport(m_commonViewport.ptr(), nullptr);
-
-      // On native this is the same object, so no need to ref
-      *ppvObject = m_viewport6.ptr();
+      *ppvObject = m_viewport6.ref();
 
       return S_OK;
     }
