@@ -81,11 +81,14 @@ namespace dxvk {
     /// Uses a tolerance interval for color key inverval matching
     bool colorKeyTolerance;
 
-    /// Extends features and relaxes validations to enable apitrace debugging
-    bool apitraceMode;
-
     /// Enumerate with legacy/official implementation device names
     bool legacyDeviceNames;
+
+    /// Expose the D3DDEVCAPS_TEXTURENONLOCALVIDMEM device cap
+    bool nonLocalVideoMemory;
+
+    /// Extends features and relaxes validations to enable apitrace debugging
+    bool apitraceMode;
 
     /// By default guards against legacy presents while inside of a scene
     D3DLegacyPresentGuard legacyPresentGuard;
@@ -118,6 +121,7 @@ namespace dxvk {
       this->colorKeyMasking       = config.getOption<bool>   ("ddraw.colorKeyMasking",       false);
       this->colorKeyTolerance     = config.getOption<bool>   ("ddraw.colorKeyTolerance",     false);
       this->legacyDeviceNames     = config.getOption<bool>   ("ddraw.legacyDeviceNames",     false);
+      this->nonLocalVideoMemory   = config.getOption<bool>   ("ddraw.nonLocalVideoMemory",    true);
       this->apitraceMode          = config.getOption<bool>   ("ddraw.apitraceMode",          false);
 
       // Clamp the vertex offset in the (sensible) -1.0f/1.0f range

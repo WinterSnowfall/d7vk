@@ -599,14 +599,18 @@ namespace dxvk {
         return DDERR_NOTFLIPPABLE;
       }
 
-      DDrawSurface* rt = m_commonIntf->GetDDrawRenderTarget() != nullptr ?
-                         m_commonIntf->GetDDrawRenderTarget()->GetDDSurface() : nullptr;
+      if (m_commonSurf->IsPrimarySurface()) {
+        DDrawSurface* rt = m_commonIntf->GetDDrawRenderTarget() != nullptr ?
+                           m_commonIntf->GetDDrawRenderTarget()->GetDDSurface() : nullptr;
 
-      if (unlikely(rt != nullptr && m_commonSurf->IsPrimarySurface())) {
-        Logger::debug("DDrawSurface::Flip: Presenting from DDraw RT");
-        rt->InitializeOrUploadD3D9();
-        d3d9Device->Present(NULL, NULL, NULL, NULL);
-        return DD_OK;
+        if (unlikely(rt != nullptr)) {
+          Logger::debug("DDrawSurface::Flip: Presenting from DDraw RT");
+          if (unlikely(m_commonIntf->GetOptions()->uploadFrontBuffer))
+            InitializeOrUploadD3D9();
+          rt->InitializeOrUploadD3D9();
+          d3d9Device->Present(NULL, NULL, NULL, NULL);
+          return DD_OK;
+        }
       }
 
       if (likely(m_nextFlippable != nullptr)) {
@@ -621,6 +625,18 @@ namespace dxvk {
 
     } else {
       Logger::debug("<<< DDrawSurface::Flip: Proxy");
+
+      if (m_commonSurf->IsPrimarySurface()) {
+        DDrawSurface* rt = m_commonIntf->GetDDrawRenderTarget() != nullptr ?
+                            m_commonIntf->GetDDrawRenderTarget()->GetDDSurface() : nullptr;
+
+        if (unlikely(rt != nullptr)) {
+          Logger::debug("DDrawSurface::Flip: Blitting DDraw RT");
+          m_proxy->Blt(nullptr, rt->GetShadowOrProxied(), nullptr, DDBLT_WAIT, nullptr);
+          return DD_OK;
+        }
+      }
+
       if (!overrideIsWrappedSurface) {
         return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
       } else {

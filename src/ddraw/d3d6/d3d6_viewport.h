@@ -81,13 +81,13 @@ namespace dxvk {
 
   private:
 
-    static uint32_t        s_viewportCount;
-    uint32_t               m_viewportCount = 0;
+    static uint32_t          s_viewportCount;
+    uint32_t                 m_viewportCount = 0;
 
-    Com<D3DCommonViewport> m_commonViewport;
+    Com<D3DCommonViewport>   m_commonViewport;
 
-    Com<D3D5Viewport>      m_viewport5;
-    Com<D3D3Viewport>      m_viewport3;
+    Com<D3D5Viewport, false> m_viewport5;
+    Com<D3D3Viewport, false> m_viewport3;
 
   };
 

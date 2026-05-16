@@ -154,9 +154,7 @@ namespace dxvk {
                                  m_commonD3DDevice->GetPresentParameters(), nullptr,
                                  m_commonD3DDevice->GetD3D9CreationFlags());
       m_commonD3DDevice->SetD3D3Device(m_device3.ptr());
-
-      // On native this is the same object, so no need to ref
-      *ppvObject = m_device3.ptr();
+      *ppvObject = m_device3.ref();
 
       return S_OK;
     }
