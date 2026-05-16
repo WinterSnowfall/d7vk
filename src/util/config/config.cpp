@@ -1425,14 +1425,14 @@ namespace dxvk {
       { "ddraw.uploadFrontBuffer",          "True" },
     }} },
     /* Gothic 1 - broken physics and              *
-     * flickering during video playback           */
+     * missing loading screen backgrounds         */
     { R"(\\GOTHIC(Mod)?\.EXE$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Gothic 2 / Night of the Raven              *
-     * Broken physics and sliding speed, and      *
-     * flickering during video playback           */
+     * Broken physics, sliding speed and          *
+     * missing loading screen backgrounds         */
     { R"(\\Gothic2\.exe)", {{
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.forceLegacyPresent",         "True" },
