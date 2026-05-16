@@ -26,7 +26,7 @@ opt_nopackage=0
 opt_devbuild=0
 opt_buildid=false
 opt_64_only=0
-opt_32_only=0
+opt_32_only=1
 
 crossfile="build-win"
 
@@ -96,9 +96,9 @@ function package {
   rm -R "dxvk-$DXVK_VERSION"
 }
 
-#if [ $opt_32_only -eq 0 ]; then
-#  build_arch 64
-#fi
+if [ $opt_32_only -eq 0 ]; then
+  build_arch 64
+fi
 if [ $opt_64_only -eq 0 ]; then
   build_arch 32
 fi
