@@ -1936,9 +1936,12 @@ namespace dxvk {
     { R"(\\VF2\.exe$)", {{
       { "ddraw.emulateFSAA",                "True" },
     }} },
-    /* Warhammer: Dark Omen                       */
+    /* Warhammer: Dark Omen                       *
+     * Fixes missing pause screen background      */
     { R"(\\DarkOmen\.exe$)", {{
       { "ddraw.emulateFSAA",                "True" },
+      { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.uploadFrontBuffer",          "True" },
     }} },
     /* Tomb Raider III: Adventures of Lara Croft  *
      * Fixes missing pause screen background      */
@@ -1954,6 +1957,10 @@ namespace dxvk {
     { R"(\\(i76|nitro)\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.uploadFrontBuffer",          "True" },
+    }} },
+    /* Powerslide - Fixes broken textures         */
+    { R"(\\powerslide\.exe$)", {{
+      { "ddraw.nonLocalVideoMemory",       "False" },
     }} },
 
     /**********************************************/

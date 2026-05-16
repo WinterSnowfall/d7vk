@@ -208,7 +208,7 @@ namespace dxvk {
 
     Com<DxvkD3D8Bridge>            m_bridge;
 
-    Com<D3D3Device>                m_device3;
+    Com<D3D3Device, false>         m_device3;
 
     D3DMultithread                 m_multithread;
 
