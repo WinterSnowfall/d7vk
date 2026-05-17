@@ -303,7 +303,7 @@ namespace dxvk {
 
     DDrawSurface* attachedSurf = static_cast<DDrawSurface*>(lpDDSAttachedSurface);
 
-    // Unsupported by Wine's DDraw implementation, so we'll do our own present
+    // Unsupported by Wine's DDraw implementation, so we'll do our own handling
     if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable())) {
       Logger::debug("DDrawSurface::AddAttachedSurface: Caching surface as DDraw RT");
       m_commonIntf->SetDDrawRenderTarget(attachedSurf->GetCommonSurface());
