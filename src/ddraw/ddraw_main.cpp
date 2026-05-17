@@ -160,7 +160,7 @@ namespace dxvk {
       return hr;
     }
 
-    *lplpDDClipper = ref(new DDrawClipper(std::move(lplpDDClipperProxy), nullptr));
+    *lplpDDClipper = ref(new DDrawClipper(nullptr, std::move(lplpDDClipperProxy), nullptr));
 
     return S_OK;
   }

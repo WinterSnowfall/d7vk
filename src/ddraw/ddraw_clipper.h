@@ -3,6 +3,8 @@
 #include "ddraw_include.h"
 #include "ddraw_wrapped_object.h"
 
+#include "ddraw_common_interface.h"
+
 namespace dxvk {
 
   class DDrawClipper final : public DDrawWrappedObject<IUnknown, IDirectDrawClipper> {
@@ -10,6 +12,7 @@ namespace dxvk {
   public:
 
     DDrawClipper(
+          DDrawCommonInterface* commonIntf,
           Com<IDirectDrawClipper>&& clipperProxy,
           IUnknown* pParent);
 
@@ -31,7 +34,9 @@ namespace dxvk {
 
   private:
 
-    bool m_isInitialized       = false;
+    bool                  m_isInitialized = false;
+
+    DDrawCommonInterface* m_commonIntf    = nullptr;
 
   };
 

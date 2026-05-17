@@ -3,9 +3,11 @@
 namespace dxvk {
 
   DDrawClipper::DDrawClipper(
+        DDrawCommonInterface* commonIntf,
         Com<IDirectDrawClipper>&& clipperProxy,
         IUnknown* pParent)
-    : DDrawWrappedObject<IUnknown, IDirectDrawClipper>(pParent, std::move(clipperProxy)) {
+    : DDrawWrappedObject<IUnknown, IDirectDrawClipper>(pParent, std::move(clipperProxy))
+    , m_commonIntf ( commonIntf ) {
     Logger::debug("DDrawClipper: Created a new clipper");
   }
 
@@ -59,7 +61,20 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd) {
     Logger::debug("<<< DDrawClipper::SetHWnd: Proxy");
-    return m_proxy->SetHWnd(dwFlags, hWnd);
+
+    HRESULT hr = m_proxy->SetHWnd(dwFlags, hWnd);
+
+    // The Eschalon: Book I launcher creates a device before attaching the clipper to
+    // the primary surface, but right after it sets a HWND on the newly created clipper
+    if (likely(SUCCEEDED(hr) && m_commonIntf != nullptr)) {
+      // Only set the cached hWnd if it's absent
+      if (unlikely(m_commonIntf->GetHWND() == nullptr)) {
+        Logger::debug("DDrawClipper::SetHWnd: Caching passed hWnd");
+        m_commonIntf->SetHWND(hWnd);
+      }
+    }
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawClipper::GetHWnd(HWND *lphWnd) {

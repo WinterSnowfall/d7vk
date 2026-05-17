@@ -267,7 +267,7 @@ namespace dxvk {
 
     DDraw3Surface* attachedSurf = static_cast<DDraw3Surface*>(lpDDSAttachedSurface);
 
-    // Unsupported by Wine's DDraw implementation, so we'll do our own present
+    // Unsupported by Wine's DDraw implementation, so we'll do our own handling
     if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable())) {
       Logger::debug("DDraw3Surface::AddAttachedSurface: Caching surface as DDraw RT");
       m_commonIntf->SetDDrawRenderTarget(attachedSurf->GetCommonSurface());
@@ -339,7 +339,7 @@ namespace dxvk {
         Logger::debug("DDraw3Surface::Blt: Received an IDirectDrawSurface source surface");
         DDrawSurface* sourceSurf = reinterpret_cast<DDrawSurface*>(lpDDSrcSurface);
         hr = GetShadowOrProxied()->Blt(lpDestRect, reinterpret_cast<IDirectDrawSurface3*>(sourceSurf->GetShadowOrProxied()),
-                                      lpSrcRect, dwFlags, lpDDBltFx);
+                                       lpSrcRect, dwFlags, lpDDBltFx);
       } else {
         if (unlikely(lpDDSrcSurface != nullptr)) {
           Logger::warn("DDraw3Surface::Blt: Received an unwrapped source surface");
@@ -420,7 +420,13 @@ namespace dxvk {
     HRESULT hr;
 
     if (unlikely(!sourceIsWrappedSurface)) {
-      if (unlikely(lpDDSrcSurface != nullptr)) {
+      // Powerslide tries to blit here from a IDirectDrawSurface source
+      if (unlikely(m_commonIntf->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSrcSurface)))) {
+        Logger::debug("DDraw3Surface::BltFast: Received an IDirectDrawSurface source surface");
+        DDrawSurface* sourceSurf = reinterpret_cast<DDrawSurface*>(lpDDSrcSurface);
+        hr = GetShadowOrProxied()->BltFast(dwX, dwY, reinterpret_cast<IDirectDrawSurface3*>(sourceSurf->GetShadowOrProxied()),
+                                           lpSrcRect, dwTrans);
+      } else if (unlikely(lpDDSrcSurface != nullptr)) {
         Logger::warn("DDraw3Surface::BltFast: Received an unwrapped source surface");
         return DDERR_UNSUPPORTED;
       }
