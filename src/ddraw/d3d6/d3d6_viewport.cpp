@@ -2,11 +2,13 @@
 
 #include "d3d6_device.h"
 
+#include "../ddraw_common_interface.h"
 #include "../ddraw_common_surface.h"
 
 #include "../d3d_light.h"
 #include "../d3d_common_material.h"
 
+#include "../ddraw/ddraw_surface.h"
 #include "../ddraw4/ddraw4_surface.h"
 
 #include "../d3d5/d3d5_viewport.h"
@@ -26,7 +28,7 @@ namespace dxvk {
     , m_commonViewport ( commonViewport ) {
 
     if (m_commonViewport == nullptr)
-      m_commonViewport = new D3DCommonViewport(m_parent->GetCommonD3DInterface());
+      m_commonViewport = new D3DCommonViewport(m_parent->GetCommonD3DInterface(), m_parent->GetCommonInterface());
 
     if (m_commonViewport->GetOrigin() == nullptr)
       m_commonViewport->SetOrigin(this);
@@ -268,23 +270,30 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // One could speculate this was meant to set a z-buffer depth value
-  // to be used during clears, perhaps, similarly to SetBackground(),
-  // however it has not seen any practical use in the wild
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackgroundDepth(IDirectDrawSurface *surface) {
-    Logger::warn("!!! D3D6Viewport::SetBackgroundDepth: Stub");
+    Logger::debug(">>> D3D6Viewport::SetBackgroundDepth");
+
+    if (unlikely(!m_commonViewport->GetCommonInterface()->IsWrappedSurface(surface))) {
+      Logger::warn("D3D6Viewport::SetBackgroundDepth: Received an unwrapped surface");
+      return DDERR_UNSUPPORTED;
+    }
+
+    m_backgroundDepth = reinterpret_cast<DDrawSurface*>(surface);
+    m_isBackgroundDepthSet = true;
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetBackgroundDepth(IDirectDrawSurface **surface, BOOL *valid) {
-    Logger::warn("!!! D3D6Viewport::SetBackgroundDepth: Stub");
+    Logger::debug(">>> D3D6Viewport::GetBackgroundDepth");
 
     if (unlikely(surface == nullptr || valid == nullptr))
       return DDERR_INVALIDPARAMS;
 
     InitReturnPtr(surface);
 
-    *valid = FALSE;
+    *surface = reinterpret_cast<IDirectDrawSurface*>(m_backgroundDepth.ptr());
+    *valid = m_isBackgroundDepthSet;
 
     return D3D_OK;
   }
@@ -318,6 +327,8 @@ namespace dxvk {
     D3DCommonMaterial* commonMaterial = m_commonViewport->GetCommonD3DInterface()->GetCommonMaterialFromHandle(handle);
     D3DCOLOR clearColor = commonMaterial != nullptr ? commonMaterial->GetMaterialColor() : defaultColor;
 
+    // TODO: Account for any set background depth surface, though in practice
+    // it does not appear to matter even in the one game which uses it (Powerslide)
     HRESULT hr = d3d9Device->Clear(count, rects, flags, clearColor, 1.0f, 0u);
 
     // Restore the previously active viewport
@@ -500,23 +511,30 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // One could speculate this was meant to set a z-buffer depth value
-  // to be used during clears, perhaps, similarly to SetBackground(),
-  // however it has not seen any practical use in the wild
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackgroundDepth2(IDirectDrawSurface4 *surface) {
-    Logger::warn("!!! D3D6Viewport::SetBackgroundDepth2: Stub");
+    Logger::debug(">>> D3D6Viewport::SetBackgroundDepth2");
+
+    if (unlikely(!m_commonViewport->GetCommonInterface()->IsWrappedSurface(surface))) {
+      Logger::warn("D3D6Viewport::SetBackgroundDepth2: Received an unwrapped surface");
+      return DDERR_UNSUPPORTED;
+    }
+
+    m_backgroundDepth4 = reinterpret_cast<DDraw4Surface*>(surface);
+    m_isBackgroundDepth4Set = true;
+
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::GetBackgroundDepth2(IDirectDrawSurface4 **surface, BOOL *valid) {
-    Logger::warn("!!! D3D6Viewport::GetBackgroundDepth2: Stub");
+    Logger::debug(">>> D3D6Viewport::GetBackgroundDepth2");
 
     if (unlikely(surface == nullptr || valid == nullptr))
       return DDERR_INVALIDPARAMS;
 
     InitReturnPtr(surface);
 
-    *valid = FALSE;
+    *surface = reinterpret_cast<IDirectDrawSurface4*>(m_backgroundDepth4.ptr());
+    *valid = m_isBackgroundDepth4Set;
 
     return D3D_OK;
   }
