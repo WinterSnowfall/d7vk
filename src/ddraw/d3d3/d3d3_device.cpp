@@ -630,8 +630,7 @@ namespace dxvk {
             switch (op) {
               case D3DPROCESSVERTICES_COPY: {
                 Logger::debug("D3D3Device::Execute: D3DOP_PROCESSVERTICES COPY");
-                if (pv.wDest != pv.wStart)
-                  memcpy(&hVertexBuffer[pv.wDest], &vertexBuffer[pv.wStart], sizeof(D3DTLVERTEX) * pv.dwCount);
+                memcpy(&hVertexBuffer[pv.wDest], &vertexBuffer[pv.wStart], sizeof(D3DTLVERTEX) * pv.dwCount);
 
                 break;
               }

@@ -12,6 +12,9 @@ namespace dxvk {
 
   class D3DLight;
 
+  class DDrawSurface;
+  class DDraw4Surface;
+
   class D3D5Viewport;
   class D3D3Viewport;
 
@@ -81,10 +84,16 @@ namespace dxvk {
 
   private:
 
+    bool                     m_isBackgroundDepthSet  = false;
+    bool                     m_isBackgroundDepth4Set = false;
+
     static uint32_t          s_viewportCount;
     uint32_t                 m_viewportCount = 0;
 
     Com<D3DCommonViewport>   m_commonViewport;
+
+    Com<DDrawSurface>        m_backgroundDepth;
+    Com<DDraw4Surface>       m_backgroundDepth4;
 
     Com<D3D5Viewport, false> m_viewport5;
     Com<D3D3Viewport, false> m_viewport3;

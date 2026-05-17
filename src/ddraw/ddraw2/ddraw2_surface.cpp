@@ -304,7 +304,8 @@ namespace dxvk {
       sourceSurf->DownloadSurfaceData();
     }
     // No point in downloading the destination surface if it's going to be overwritten
-    if (m_commonSurf->IsFullSurfaceLock(lpDestRect, nullptr)) {
+    if ((lpDDBltFx == nullptr || (dwFlags & DDBLT_COLORFILL) || (dwFlags & DDBLT_DEPTHFILL)) &&
+         m_commonSurf->IsFullSurfaceLock(lpDestRect, nullptr)) {
       m_commonSurf->UnDirtyD3D9Surface();
     } else {
       DownloadSurfaceData();
@@ -381,7 +382,8 @@ namespace dxvk {
       sourceFullSurfaceRect = sourceSurf->GetCommonSurface()->GetFullSurfaceRect();
     }
     // No point in downloading the destination surface if it's going to be overwritten
-    if (dwX == 0 && dwY == 0 && m_commonSurf->IsFullSurfaceLock(lpSrcRect, sourceFullSurfaceRect)) {
+    if (dwX == 0 && dwY == 0 && (dwTrans & DDBLTFAST_NOCOLORKEY) &&
+        m_commonSurf->IsFullSurfaceLock(lpSrcRect, sourceFullSurfaceRect)) {
       m_commonSurf->UnDirtyD3D9Surface();
     } else {
       DownloadSurfaceData();
