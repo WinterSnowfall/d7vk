@@ -267,7 +267,7 @@ namespace dxvk {
 
     DDraw2Surface* attachedSurf = static_cast<DDraw2Surface*>(lpDDSAttachedSurface);
 
-    // Unsupported by Wine's DDraw implementation, so we'll do our own present
+    // Unsupported by Wine's DDraw implementation, so we'll do our own handling
     if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable())) {
       Logger::debug("DDraw2Surface::AddAttachedSurface: Caching surface as DDraw RT");
       m_commonIntf->SetDDrawRenderTarget(attachedSurf->GetCommonSurface());
@@ -334,7 +334,12 @@ namespace dxvk {
     HRESULT hr;
 
     if (unlikely(!sourceIsWrappedSurface)) {
-      if (unlikely(lpDDSrcSurface != nullptr)) {
+      if (unlikely(m_commonIntf->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSrcSurface)))) {
+        Logger::debug("DDraw2Surface::Blt: Received an IDirectDrawSurface source surface");
+        DDrawSurface* sourceSurf = reinterpret_cast<DDrawSurface*>(lpDDSrcSurface);
+        hr = GetShadowOrProxied()->Blt(lpDestRect, reinterpret_cast<IDirectDrawSurface2*>(sourceSurf->GetShadowOrProxied()),
+                                       lpSrcRect, dwFlags, lpDDBltFx);
+      } else if (unlikely(lpDDSrcSurface != nullptr)) {
         Logger::warn("DDraw2Surface::Blt: Received an unwrapped source surface");
         return DDERR_UNSUPPORTED;
       }
@@ -412,7 +417,12 @@ namespace dxvk {
     HRESULT hr;
 
     if (unlikely(!sourceIsWrappedSurface)) {
-      if (unlikely(lpDDSrcSurface != nullptr)) {
+      if (unlikely(m_commonIntf->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSrcSurface)))) {
+        Logger::debug("DDraw2Surface::BltFast: Received an IDirectDrawSurface source surface");
+        DDrawSurface* sourceSurf = reinterpret_cast<DDrawSurface*>(lpDDSrcSurface);
+        hr = GetShadowOrProxied()->BltFast(dwX, dwY, reinterpret_cast<IDirectDrawSurface2*>(sourceSurf->GetShadowOrProxied()),
+                                           lpSrcRect, dwTrans);
+      } else if (unlikely(lpDDSrcSurface != nullptr)) {
         Logger::warn("DDraw2Surface::BltFast: Received an unwrapped source surface");
         return DDERR_UNSUPPORTED;
       }
