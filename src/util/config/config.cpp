@@ -1416,7 +1416,7 @@ namespace dxvk {
     { R"(\\Monkey4\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-30" },
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.uploadFrontBuffer",          "True" },
+      { "ddraw.emulateFrontBuffer",         "True" },
     }} },
     /* Gothic 1 - broken physics and              *
      * missing loading screen backgrounds         */
@@ -1687,18 +1687,25 @@ namespace dxvk {
     /* Evolva - Fixes character camera flickers   */
     { R"(\\Evolva\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.uploadFrontBuffer",          "True" },
+      { "ddraw.emulateFrontBuffer",         "True" },
     }} },
     /* Black & White                              *
      * Fixes missing save game screenshots        */
     { R"(\\runblack\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.uploadFrontBuffer",          "True" },
+      { "ddraw.emulateFrontBuffer",         "True" },
     }} },
     /* Test Drive 6                               *
      * Fixes physics engine speed up at high FPS  */
     { R"(\\TD6\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
+    }} },
+    /* Cops 2170: The Power of Law                *
+     * Fixes flickering cutscenes and missing     *
+     * geometry without legacy discard behavior   */
+    { R"(\\(PoL|polmis)\.exe$)", {{
+      { "ddraw.ignoreExclusiveMode",        "True" },
+      { "ddraw.forceLegacyDiscard",         "True" },
     }} },
 
     /**********************************************/
@@ -1817,13 +1824,13 @@ namespace dxvk {
      * Fixes missing pause screen background      */
     { R"(\\tomb4\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.uploadFrontBuffer",          "True" },
+      { "ddraw.emulateFrontBuffer",         "True" },
     }} },
     /* Tomb Raider Chronicles                     *
      * Fixes missing pause screen background      */
     { R"(\\PCTomb5\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.uploadFrontBuffer",          "True" },
+      { "ddraw.emulateFrontBuffer",         "True" },
     }} },
     /* Prince of Persia 3D                        */
     { R"(\\POP3D(Demo)?\.exe$)", {{
@@ -1867,7 +1874,7 @@ namespace dxvk {
      * Fixes missing inventory screen background  */
     { R"(\\WMAIN\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.uploadFrontBuffer",          "True" },
+      { "ddraw.emulateFrontBuffer",         "True" },
     }} },
     /* Star Trek: TNG - Klingon Honor Guard       */
     { R"(\\Khg\.exe$)", {{
@@ -1883,18 +1890,18 @@ namespace dxvk {
      * Fixes exit screen dialogue background      */
     { R"(\\FS\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.uploadFrontBuffer",          "True" },
+      { "ddraw.emulateFrontBuffer",         "True" },
     }} },
     /* FreeSpace 2                                *
      * Fixes exit screen dialogue background      */
     { R"(\\FS2\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.uploadFrontBuffer",          "True" },
+      { "ddraw.emulateFrontBuffer",         "True" },
     }} },
     /* Empire of the Ants                         */
     { R"(\\Empire of the Ants*\\Game\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.uploadFrontBuffer",          "True" },
+      { "ddraw.emulateFrontBuffer",         "True" },
       { "ddraw.legacyPresentGuard",       "Strict" },
       { "ddraw.colorKeyTolerance",          "True" },
     }} },
@@ -1941,7 +1948,7 @@ namespace dxvk {
     { R"(\\DarkOmen\.exe$)", {{
       { "ddraw.emulateFSAA",                "True" },
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.uploadFrontBuffer",          "True" },
+      { "ddraw.emulateFrontBuffer",         "True" },
     }} },
     /* Tomb Raider III: Adventures of Lara Croft  *
      * Fixes missing pause screen background      */
@@ -1956,7 +1963,7 @@ namespace dxvk {
      * Fixes missing pause screen background      */
     { R"(\\(i76|nitro)\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.uploadFrontBuffer",          "True" },
+      { "ddraw.emulateFrontBuffer",         "True" },
     }} },
     /* Powerslide - Fixes broken textures         */
     { R"(\\powerslide\.exe$)", {{

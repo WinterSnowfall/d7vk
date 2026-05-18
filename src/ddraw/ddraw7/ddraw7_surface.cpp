@@ -554,7 +554,7 @@ namespace dxvk {
       }
 
       if (likely(m_nextFlippable != nullptr)) {
-        if (unlikely(m_commonIntf->GetOptions()->uploadFrontBuffer))
+        if (unlikely(m_commonIntf->GetOptions()->emulateFrontBuffer))
           InitializeOrUploadD3D9();
         m_nextFlippable->InitializeOrUploadD3D9();
       } else {
