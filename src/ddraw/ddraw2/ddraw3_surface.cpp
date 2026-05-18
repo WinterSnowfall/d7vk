@@ -555,7 +555,7 @@ namespace dxvk {
 
         if (unlikely(rt != nullptr)) {
           Logger::debug("DDraw3Surface::Flip: Presenting from DDraw RT");
-          if (unlikely(m_commonIntf->GetOptions()->uploadFrontBuffer))
+          if (unlikely(m_commonIntf->GetOptions()->emulateFrontBuffer))
             InitializeOrUploadD3D9();
           rt->InitializeOrUploadD3D9();
           d3d9Device->Present(NULL, NULL, NULL, NULL);
@@ -566,7 +566,7 @@ namespace dxvk {
       DDrawSurface* nextFlippable = m_parent->GetNextFlippable();
 
       if (likely(nextFlippable != nullptr)) {
-        if (unlikely(m_commonIntf->GetOptions()->uploadFrontBuffer))
+        if (unlikely(m_commonIntf->GetOptions()->emulateFrontBuffer))
           InitializeOrUploadD3D9();
         nextFlippable->InitializeOrUploadD3D9();
       } else {

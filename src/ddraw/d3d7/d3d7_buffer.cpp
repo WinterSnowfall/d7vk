@@ -84,7 +84,12 @@ namespace dxvk {
     if (data_size != nullptr)
       *data_size = m_size;
 
-    HRESULT hr = m_vb9->Lock(0, 0, data, ConvertD3D7LockFlags(flags, m_legacyDiscard, false));
+    // Cops 2170: The Power of Law relies on us not discarding on any write only lock
+    // to render geometry, and does not mark the affected buffers with D3DVBCAPS_WRITEONLY
+    const bool legacyDiscard = m_legacyDiscard | (m_commonIntf->GetOptions()->forceLegacyDiscard
+                                                  && (flags & DDLOCK_WRITEONLY));
+
+    HRESULT hr = m_vb9->Lock(0, 0, data, ConvertD3D7LockFlags(flags, legacyDiscard, false));
 
     if (likely(SUCCEEDED(hr)))
       m_locked = true;
@@ -275,11 +280,7 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* device9 = m_d3d7Device->GetCommonD3DDevice()->GetD3D9Device();
 
-    d3d9::D3DPOOL pool = d3d9::D3DPOOL_DEFAULT;
-
-    if (m_desc.dwCaps & D3DVBCAPS_SYSTEMMEMORY)
-      pool = d3d9::D3DPOOL_SYSTEMMEM;
-
+    const d3d9::D3DPOOL pool = (m_desc.dwCaps & D3DVBCAPS_SYSTEMMEMORY) ? d3d9::D3DPOOL_SYSTEMMEM : d3d9::D3DPOOL_DEFAULT;
     const char* poolPlacement = pool == d3d9::D3DPOOL_DEFAULT ? "D3DPOOL_DEFAULT" : "D3DPOOL_SYSTEMMEM";
 
     Logger::debug(str::format("D3D7VertexBuffer::InitializeD3D9: Placing in: ", poolPlacement));
