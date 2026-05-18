@@ -60,8 +60,8 @@ namespace dxvk {
     /// Blits back to the proxied flippable surface and back again for presentation
     bool forceLegacyPresent;
 
-    /// Always upload the content of the DDraw front buffer to D3D9
-    bool uploadFrontBuffer;
+    /// Emulate an explicit D3D9 front buffer by uploading its content from DDraw
+    bool emulateFrontBuffer;
 
     /// Ignore any application set gamma ramp
     bool ignoreGammaRamp;
@@ -113,7 +113,7 @@ namespace dxvk {
       this->vertexOffset          = config.getOption<float>  ("ddraw.vertexOffset",           0.0f);
       this->backBufferResize      = config.getOption<bool>   ("ddraw.backBufferResize",       true);
       this->forceLegacyPresent    = config.getOption<bool>   ("ddraw.forceLegacyPresent",    false);
-      this->uploadFrontBuffer     = config.getOption<bool>   ("ddraw.uploadFrontBuffer",     false);
+      this->emulateFrontBuffer    = config.getOption<bool>   ("ddraw.emulateFrontBuffer",    false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("ddraw.ignoreGammaRamp",       false);
       this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
       this->autoGenMipMaps        = config.getOption<bool>   ("ddraw.autoGenMipMaps",        false);
