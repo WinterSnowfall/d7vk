@@ -555,8 +555,11 @@ namespace dxvk {
 
         if (unlikely(rt != nullptr)) {
           Logger::debug("DDraw3Surface::Flip: Presenting from DDraw RT");
-          if (unlikely(m_commonIntf->GetOptions()->emulateFrontBuffer))
+          if (unlikely(m_commonIntf->GetOptions()->emulateFrontBuffer)) {
             InitializeOrUploadD3D9();
+            if (m_shadowSurf != nullptr && rt->GetCommonSurface()->IsDDrawSurfaceDirty())
+              GetShadowOrProxied()->BltFast(0, 0, rt->GetShadowOrProxied(), nullptr, DDBLTFAST_NOCOLORKEY);
+          }
           rt->InitializeOrUploadD3D9();
           d3d9Device->Present(NULL, NULL, NULL, NULL);
           return DD_OK;
@@ -566,8 +569,11 @@ namespace dxvk {
       DDrawSurface* nextFlippable = m_parent->GetNextFlippable();
 
       if (likely(nextFlippable != nullptr)) {
-        if (unlikely(m_commonIntf->GetOptions()->emulateFrontBuffer))
+        if (unlikely(m_commonIntf->GetOptions()->emulateFrontBuffer)) {
           InitializeOrUploadD3D9();
+          if (m_shadowSurf != nullptr && nextFlippable->GetCommonSurface()->IsDDrawSurfaceDirty())
+            m_parent->GetShadowOrProxied()->BltFast(0, 0, nextFlippable->GetShadowOrProxied(), nullptr, DDBLTFAST_NOCOLORKEY);
+        }
         nextFlippable->InitializeOrUploadD3D9();
       } else {
         InitializeOrUploadD3D9();
