@@ -139,7 +139,8 @@ namespace dxvk {
 
     if (unlikely(riid == __uuidof(IDirect3DDevice))) {
       if (m_commonD3DDevice->GetD3D3Device() != nullptr) {
-        Logger::debug("D3D3Device::QueryInterface: Query for existing IDirect3DDevice");
+        Logger::warn("D3D3Device::QueryInterface: Query for existing IDirect3DDevice");
+        // TODO: This doesn't work properly and will return E_NOINTERFACE
         return m_commonD3DDevice->GetD3D3Device()->QueryInterface(riid, ppvObject);
       }
 
@@ -886,7 +887,7 @@ namespace dxvk {
         if (unlikely(surface == nullptr))
           m_bridge->SetColorKeyState(false);
 
-        break;
+        return D3D_OK;
       }
 
       case D3DRENDERSTATE_ANTIALIAS: {
@@ -1570,7 +1571,7 @@ namespace dxvk {
 
     hr = surface->InitializeOrUploadD3D9();
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6Device::D3D5Device: Failed to initialize/upload D3D9 texture");
+      Logger::err("D3D5Device::SetTextureInternal: Failed to initialize/upload D3D9 texture");
       return hr;
     }
 

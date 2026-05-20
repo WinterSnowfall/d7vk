@@ -27,7 +27,14 @@ namespace dxvk {
     if (likely(commonIntf->GetDDInterface() != nullptr)) {
       m_parentIntf = commonIntf->GetDDInterface();
     } else {
-      Logger::warn("DDraw2Interface: Missing an IDirectDraw parent");
+      // Manually retrieve an IDirectDraw parent object if it doesn't otherwise exist,
+      // which can happen if this interface is created directly from an IDirectDraw4 origin
+      Com<IDirectDraw> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(__uuidof(IDirectDraw), reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        throw DxvkError("DDraw2Interface: ERROR! Failed to retrieve a parent IDirectDraw interface!");
+
+      m_parentIntf = new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject));
     }
 
     // Note: IDirectDraw2 can never be the origin interface
