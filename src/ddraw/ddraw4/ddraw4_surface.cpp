@@ -134,7 +134,9 @@ namespace dxvk {
 
         D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
         m_texture6 = new D3D6Texture(std::move(ppvProxyObject), this, nextHandle);
-        // D3D6Textures don't need handle lookups so skip storing them
+        // Grandia II uses IDirect3DTexture2 objects with handles, even on D3D6...
+        D3DCommonTexture* commonTex = m_texture6->GetCommonTexture();
+        m_commonIntf->EmplaceTexture(commonTex, nextHandle);
       }
 
       *ppvObject = m_texture6.ref();

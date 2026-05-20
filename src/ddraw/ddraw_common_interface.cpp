@@ -4,6 +4,7 @@
 #include "d3d_common_texture.h"
 
 #include "ddraw/ddraw_surface.h"
+#include "ddraw4/ddraw4_surface.h"
 
 #include <algorithm>
 
@@ -190,6 +191,17 @@ namespace dxvk {
     }
 
     return texturesIter->second->GetDDSurface();
+  }
+
+  DDraw4Surface* DDrawCommonInterface::GetSurface4FromTextureHandle(D3DTEXTUREHANDLE handle) const {
+    auto texturesIter = m_textures.find(handle);
+
+    if (unlikely(texturesIter == m_textures.end())) {
+      Logger::warn(str::format("DDrawCommonInterface::GetSurface4FromTextureHandle: Invalid handle: ", handle));
+      return nullptr;
+    }
+
+    return texturesIter->second->GetDD4Surface();
   }
 
 }

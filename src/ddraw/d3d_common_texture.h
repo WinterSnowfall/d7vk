@@ -35,6 +35,10 @@ namespace dxvk {
       return m_commonSurf->GetDDSurface();
     }
 
+    DDraw4Surface* GetDD4Surface() const {
+      return m_commonSurf->GetDD4Surface();
+    }
+
   private:
 
     DDrawCommonSurface* m_commonSurf    = nullptr;

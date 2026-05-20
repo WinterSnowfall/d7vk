@@ -1087,7 +1087,7 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        break;
+        return D3D_OK;
       }
 
       case D3DRENDERSTATE_ANTIALIAS: {
@@ -1574,7 +1574,7 @@ namespace dxvk {
 
     hr = surface->InitializeOrUploadD3D9();
     if (unlikely(FAILED(hr))) {
-      Logger::err("D3D3Device::SetTexture: Failed to initialize/upload D3D9 texture");
+      Logger::err("D3D3Device::SetTextureInternal: Failed to initialize/upload D3D9 texture");
       return hr;
     }
 

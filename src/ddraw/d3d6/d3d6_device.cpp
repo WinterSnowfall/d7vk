@@ -8,6 +8,7 @@
 #include "../d3d5/d3d5_device.h"
 #include "../d3d3/d3d3_device.h"
 
+#include "../ddraw/ddraw_surface.h"
 #include "../ddraw4/ddraw4_surface.h"
 
 #include <algorithm>
@@ -150,9 +151,10 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    if (riid == __uuidof(IDirect3DDevice)) {
+    if (unlikely(riid == __uuidof(IDirect3DDevice))) {
       if (m_commonD3DDevice->GetD3D3Device() != nullptr) {
-        Logger::debug("D3D6Device::QueryInterface: Query for existing IDirect3DDevice");
+        Logger::warn("D3D6Device::QueryInterface: Query for existing IDirect3DDevice");
+        // TODO: This doesn't work properly and will return E_NOINTERFACE
         return m_commonD3DDevice->GetD3D3Device()->QueryInterface(riid, ppvObject);
       }
 
@@ -160,12 +162,17 @@ namespace dxvk {
 
       const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
-      // TODO: Make sure the RT has an existing DDrawSurface,
-      // and QueryInterface for one if that's not the case
+      Com<DDrawSurface> rt = m_rt->GetCommonSurface()->GetDDSurface();
+      // Manually retrieve a DDrawSurface object if it doesn't otherwise exist
+      if (unlikely(rt == nullptr)) {
+        Com<IDirectDrawSurface> ppvProxyObject;
+        m_rt->QueryInterface(__uuidof(IDirectDrawSurface), reinterpret_cast<void**>(&ppvProxyObject));
+        rt = reinterpret_cast<DDrawSurface*>(ppvProxyObject.ptr());
+      }
 
       // Reuse the existing D3D9 device in situations where games want
       // to get access only to D3D3 execute buffers on a D3D6 device
-      m_device3 = new D3D3Device(m_commonD3DDevice.ptr(), m_rt->GetCommonSurface()->GetDDSurface(),
+      m_device3 = new D3D3Device(m_commonD3DDevice.ptr(), rt.ptr(),
                                  GetD3D3Caps(d3dOptions), m_commonD3DDevice->GetDeviceGUID(),
                                  m_commonD3DDevice->GetPresentParameters(),
                                  nullptr, m_commonD3DDevice->GetD3D9CreationFlags());
@@ -186,14 +193,18 @@ namespace dxvk {
 
       const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
-      // TODO: Make sure the RT has an existing DDrawSurface,
-      // and QueryInterface for one if that's not the case
+      Com<DDrawSurface> rt = m_rt->GetCommonSurface()->GetDDSurface();
+      // Manually retrieve a DDrawSurface object if it doesn't otherwise exist
+      if (unlikely(rt == nullptr)) {
+        Com<IDirectDrawSurface> ppvProxyObject;
+        m_rt->QueryInterface(__uuidof(IDirectDrawSurface), reinterpret_cast<void**>(&ppvProxyObject));
+        rt = reinterpret_cast<DDrawSurface*>(ppvProxyObject.ptr());
+      }
 
       m_device5 = new D3D5Device(m_commonD3DDevice.ptr(), m_commonD3DDevice->GetCommonD3DInterface()->GetD3D5Interface(),
                                  GetD3D5Caps(m_commonD3DDevice->GetDeviceGUID(), d3dOptions),
                                  m_commonD3DDevice->GetDeviceGUID(), m_commonD3DDevice->GetPresentParameters(),
-                                 nullptr, m_rt->GetCommonSurface()->GetDDSurface(),
-                                 m_commonD3DDevice->GetD3D9CreationFlags());
+                                 nullptr, rt.ptr(), m_commonD3DDevice->GetD3D9CreationFlags());
       m_commonD3DDevice->SetD3D5Device(m_device5.ptr());
       *ppvObject = m_device5.ref();
 
@@ -705,8 +716,9 @@ namespace dxvk {
         break;
 
       // "Texture handle for use when rendering with the IDirect3DDevice2 or earlier interfaces."
+      // Note: This is actually used by Grandia II, but with IDirectDrawSurface4 objects...
       case D3DRENDERSTATE_TEXTUREHANDLE:
-        *lpdwRenderState = 0;
+        *lpdwRenderState = m_commonD3DDevice->GetCurrentTextureHandle();
         return D3D_OK;
 
       case D3DRENDERSTATE_ANTIALIAS:
@@ -895,8 +907,25 @@ namespace dxvk {
         break;
 
       // "Texture handle for use when rendering with the IDirect3DDevice2 or earlier interfaces."
-      case D3DRENDERSTATE_TEXTUREHANDLE:
+      // Note: This is actually used by Grandia II, but with IDirectDrawSurface4 objects...
+      case D3DRENDERSTATE_TEXTUREHANDLE: {
+        DDraw4Surface* surface4 = nullptr;
+
+        if (likely(dwRenderState != 0)) {
+          surface4 = m_commonIntf->GetSurface4FromTextureHandle(dwRenderState);
+          if (unlikely(surface4 == nullptr))
+            return DDERR_INVALIDPARAMS;
+        }
+
+        HRESULT hr = SetTextureWithHandle(surface4, dwRenderState);
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        if (unlikely(surface4 == nullptr))
+          m_bridge->SetColorKeyState(false);
+
         return D3D_OK;
+      }
 
       case D3DRENDERSTATE_ANTIALIAS: {
         const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
@@ -1986,6 +2015,80 @@ namespace dxvk {
     } else {
       Logger::warn("D3D6Device::DeleteViewportInternal: Viewport not found");
     }
+  }
+
+  inline HRESULT D3D6Device::SetTextureWithHandle(DDraw4Surface* surface, DWORD textureHandle) {
+    Logger::debug(">>> D3D6Device::SetTextureWithHandle");
+
+    HRESULT hr;
+
+    d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
+
+    // Unbinding texture stages
+    if (surface == nullptr) {
+      Logger::debug("D3D6Device::SetTextureWithHandle: Unbiding D3D9 texture");
+
+      hr = device9->SetTexture(0, nullptr);
+
+      if (likely(SUCCEEDED(hr))) {
+        if (m_commonD3DDevice->GetCurrentTextureHandle() != 0) {
+          Logger::debug("D3D6Device::SetTextureWithHandle: Unbinding local texture");
+          m_commonD3DDevice->SetCurrentTextureHandle(0);
+        }
+      } else {
+        Logger::err("D3D6Device::SetTextureWithHandle: Failed to unbind D3D9 texture");
+      }
+
+      return hr;
+    }
+
+    Logger::debug("D3D6Device::SetTextureWithHandle: Binding D3D9 texture");
+
+    // If textures have been used on a different device, they
+    // will get their D3D9 object reinitialized at this point
+    if (unlikely(surface->GetCommonSurface()->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
+      surface->GetCommonSurface()->DirtyDDrawSurface();
+
+    hr = surface->InitializeOrUploadD3D9();
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D6Device::SetTextureWithHandle: Failed to initialize/upload D3D9 texture");
+      return hr;
+    }
+
+    // Don't fast skip, since color key might change
+    //if (unlikely(m_commonD3DDevice->GetCurrentTextureHandle() == textureHandle))
+      //return D3D_OK;
+
+    d3d9::IDirect3DTexture9* tex9 = surface->GetCommonSurface()->GetD3D9Texture();
+
+    if (likely(tex9 != nullptr)) {
+      hr = device9->SetTexture(0, tex9);
+      if (unlikely(FAILED(hr))) {
+        Logger::warn("D3D6Device::SetTextureWithHandle: Failed to bind D3D9 texture");
+        return hr;
+      }
+
+      // "Any alpha values in the texture replace the alpha values in the colors that would
+      //  have been used with no texturing; if the texture does not contain an alpha component,
+      //  alpha values at the vertices in the source are interpolated between vertices."
+      if (m_commonD3DDevice->GetTextureMapBlend() == D3DTBLEND_MODULATE) {
+        const DWORD textureOp = surface->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_MODULATE;
+        device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
+      }
+
+      const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
+      const bool validColorKey = surface->GetCommonSurface()->HasValidColorKey();
+      m_bridge->SetColorKeyState(colorKeyEnable && validColorKey);
+      if (colorKeyEnable && validColorKey) {
+        DDCOLORKEY normalizedColorKey = surface->GetCommonSurface()->GetColorKeyNormalized();
+        m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
+                              normalizedColorKey.dwColorSpaceHighValue);
+      }
+    }
+
+    m_commonD3DDevice->SetCurrentTextureHandle(textureHandle);
+
+    return D3D_OK;
   }
 
 }
