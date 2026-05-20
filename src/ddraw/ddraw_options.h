@@ -136,7 +136,7 @@ namespace dxvk {
         this->legacyPresentGuard = D3DLegacyPresentGuard::Auto;
       }
 
-      std::string emulateFSAAStr = Config::toLower(config.getOption<std::string>("ddraw.emulateFSAA", "auto"));
+      std::string emulateFSAAStr = Config::toLower(config.getOption<std::string>("ddraw.emulateFSAA", "false"));
       if (emulateFSAAStr == "true") {
         this->emulateFSAA = FSAAEmulation::Enabled;
       } else if (emulateFSAAStr == "forced") {
