@@ -77,7 +77,7 @@ Do NOT, I repeat, do NOT copy `ddraw.dll` in your Windows system directories, as
 
 When using Wine on Linux, there also is an alternate deployment option, required by some games such as _GTA 2_, _StarLancer_, _Midtown Madness 2_ and others, namely renaming the system path Wine `ddraw.dll` file to `ddraw_.dll` and copying `ddraw.dll` in your `system32` or `syswow64` system path directly (DO mind your prefix bitness in this case!). D7VK will prioritize loading the `ddraw_.dll` file from its current path before trying to load `ddraw.dll` from the system path, in order to accommodate both methods of use. Note that you will need to set up proper dll overrides in Wine even in this case, as described above.
 
-Verify that your application uses D7VK instead of wined3d by enabling the HUD (see notes below).
+Verify that your application uses D7VK instead of WineD3D by enabling the HUD (see notes below).
 
 #### DLL dependencies
 Listed below are the DLL requirements for using DXVK with any single API.
