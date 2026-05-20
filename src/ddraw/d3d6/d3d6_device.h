@@ -190,6 +190,8 @@ namespace dxvk {
 
     inline void DeleteViewportInternal(IDirect3DViewport3* viewport);
 
+    inline HRESULT SetTextureWithHandle(DDraw4Surface* surface, DWORD textureHandle);
+
     inline bool LogIndexBufferUsageStats() const {
       for (uint32_t m_ib9_upload : m_ib9_uploads) {
         if (m_ib9_upload > 0)
