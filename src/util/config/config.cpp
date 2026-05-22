@@ -1713,6 +1713,10 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.emulateFrontBuffer",         "True" },
     }} },
+    /* TrickStyle - fixes Z-fighting              */
+    { R"(\\TS_D3D\.exe$)", {{
+      { "ddraw.supportD16",                "False" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
