@@ -1460,10 +1460,8 @@ namespace dxvk {
       } else {
         Logger::info("D3D5Device::InitializeDS: Got depth stencil from RT");
 
-        DDSURFACEDESC descDS;
-        descDS.dwSize = sizeof(DDSURFACEDESC);
-        m_ds->GetProxied()->GetSurfaceDesc(&descDS);
-        Logger::debug(str::format("D3D5Device::InitializeDS: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
+        const RECT* dsRect = m_ds->GetCommonSurface()->GetFullSurfaceRect();
+        Logger::debug(str::format("D3D5Device::InitializeDS: DepthStencil: ", dsRect->right, "x", dsRect->bottom));
 
         HRESULT hrDS9 = device9->SetDepthStencilSurface(m_ds->GetCommonSurface()->GetD3D9Surface());
         if(unlikely(FAILED(hrDS9))) {
