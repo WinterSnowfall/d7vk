@@ -263,28 +263,15 @@ namespace dxvk {
 
     const bool sourceIsWrappedSurface = m_commonIntf->IsWrappedSurface(lpDDSrcSurface);
 
-    // Write back any dirty surface data from bound D3D9 back buffers or
-    // depth stencils, for both the source surface and the current surface
-    if (likely(lpDDSrcSurface != nullptr && sourceIsWrappedSurface)) {
-      DDraw7Surface* sourceSurface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
-      sourceSurface->DownloadSurfaceData();
-    }
-    // No point in downloading the destination surface if it's going to be overwritten
-    if ((lpDDBltFx == nullptr || (dwFlags & DDBLT_COLORFILL) || (dwFlags & DDBLT_DEPTHFILL)) &&
-         m_commonSurf->IsFullSurfaceLock(lpDestRect, nullptr)) {
-      m_commonSurf->UnDirtyD3D9Surface();
-    } else {
-      DownloadSurfaceData();
-    }
-
     d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
     if (likely(d3d9Device != nullptr)) {
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
                               && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
 
-      // Windowed mode presentation path
-      if (!exclusiveMode && lpDDSrcSurface != nullptr && m_commonSurf->IsPrimarySurface()) {
-        // TODO: Handle this properly, not by uploading the RT again
+      // Windowed mode presentation path. Detect it before synchronizing the
+      // D3D9 render target back to DDraw; this path presents directly and never
+      // needs the intermediate DDraw copy.
+      if (!exclusiveMode && lpDDSrcSurface != nullptr && sourceIsWrappedSurface && m_commonSurf->IsPrimarySurface()) {
         DDraw7Surface* sourceSurface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
         DDraw7Surface* renderTarget = m_commonSurf->GetCommonD3DDevice()->GetCurrentRenderTarget7();
 
@@ -294,6 +281,21 @@ namespace dxvk {
           return DD_OK;
         }
       }
+    }
+
+    // Write back any dirty surface data from bound D3D9 back buffers or
+    // depth stencils, for both the source surface and the current surface
+    if (likely(lpDDSrcSurface != nullptr && sourceIsWrappedSurface)) {
+      DDraw7Surface* sourceSurface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
+      if (sourceSurface->NeedsDownloadSurfaceData())
+        sourceSurface->DownloadSurfaceData();
+    }
+    // No point in downloading the destination surface if it's going to be overwritten
+    if ((lpDDBltFx == nullptr || (dwFlags & DDBLT_COLORFILL) || (dwFlags & DDBLT_DEPTHFILL)) &&
+         m_commonSurf->IsFullSurfaceLock(lpDestRect, nullptr)) {
+      m_commonSurf->UnDirtyD3D9Surface();
+    } else if (NeedsDownloadSurfaceData()) {
+      DownloadSurfaceData();
     }
 
     HRESULT hr;
@@ -338,30 +340,15 @@ namespace dxvk {
 
     const bool sourceIsWrappedSurface = m_commonIntf->IsWrappedSurface(lpDDSrcSurface);
 
-    RECT* sourceFullSurfaceRect = nullptr;
-    // Write back any dirty surface data from bound D3D9 back buffers or
-    // depth stencils, for both the source surface and the current surface
-    if (likely(lpDDSrcSurface != nullptr && sourceIsWrappedSurface)) {
-      DDraw7Surface* sourceSurface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
-      sourceSurface->DownloadSurfaceData();
-      sourceFullSurfaceRect = sourceSurface->GetCommonSurface()->GetFullSurfaceRect();
-    }
-    // No point in downloading the destination surface if it's going to be overwritten
-    if (dwX == 0 && dwY == 0 && (dwTrans & DDBLTFAST_NOCOLORKEY) &&
-        m_commonSurf->IsFullSurfaceLock(lpSrcRect, sourceFullSurfaceRect)) {
-      m_commonSurf->UnDirtyD3D9Surface();
-    } else {
-      DownloadSurfaceData();
-    }
-
     d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
     if (likely(d3d9Device != nullptr)) {
       const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
                               && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
 
-      // Windowed mode presentation path
-      if (!exclusiveMode && lpDDSrcSurface != nullptr && m_commonSurf->IsPrimarySurface()) {
-        // TODO: Handle this properly, not by uploading the RT again
+      // Windowed mode presentation path. Detect it before synchronizing the
+      // D3D9 render target back to DDraw; this path presents directly and never
+      // needs the intermediate DDraw copy.
+      if (!exclusiveMode && lpDDSrcSurface != nullptr && sourceIsWrappedSurface && m_commonSurf->IsPrimarySurface()) {
         DDraw7Surface* sourceSurface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
         DDraw7Surface* renderTarget = m_commonSurf->GetCommonD3DDevice()->GetCurrentRenderTarget7();
 
@@ -371,6 +358,23 @@ namespace dxvk {
           return DD_OK;
         }
       }
+    }
+
+    RECT* sourceFullSurfaceRect = nullptr;
+    // Write back any dirty surface data from bound D3D9 back buffers or
+    // depth stencils, for both the source surface and the current surface
+    if (likely(lpDDSrcSurface != nullptr && sourceIsWrappedSurface)) {
+      DDraw7Surface* sourceSurface = static_cast<DDraw7Surface*>(lpDDSrcSurface);
+      if (sourceSurface->NeedsDownloadSurfaceData())
+        sourceSurface->DownloadSurfaceData();
+      sourceFullSurfaceRect = sourceSurface->GetCommonSurface()->GetFullSurfaceRect();
+    }
+    // No point in downloading the destination surface if it's going to be overwritten
+    if (dwX == 0 && dwY == 0 && (dwTrans & DDBLTFAST_NOCOLORKEY) &&
+        m_commonSurf->IsFullSurfaceLock(lpSrcRect, sourceFullSurfaceRect)) {
+      m_commonSurf->UnDirtyD3D9Surface();
+    } else if (NeedsDownloadSurfaceData()) {
+      DownloadSurfaceData();
     }
 
     HRESULT hr;
@@ -772,10 +776,36 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent) {
     Logger::debug("<<< DDraw7Surface::Lock: Proxy");
 
-    // Write back any dirty surface data from bound D3D9 back buffers or depth stencils
-    DownloadSurfaceData();
+    const bool fullSurfaceLock = m_commonSurf->IsFullSurfaceLock(lpDestRect, nullptr);
+    const bool fullWriteOnlyLock = (dwFlags & DDLOCK_WRITEONLY) && fullSurfaceLock;
 
-    return GetShadowOrProxied()->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
+    const bool currentRenderTarget = m_commonSurf->GetCommonD3DDevice() != nullptr
+                                  && m_commonSurf->GetCommonD3DDevice()->IsCurrentRenderTarget(m_commonSurf.ptr());
+
+    if (currentRenderTarget && m_commonIntf->GetOptions()->directRenderTargetLock) {
+      d3d9::D3DLOCKED_RECT rect9;
+      HRESULT hr9 = m_commonSurf->GetD3D9Surface()->LockRect(&rect9, nullptr,
+        (dwFlags & DDLOCK_READONLY) ? D3DLOCK_READONLY : 0);
+      if (likely(SUCCEEDED(hr9))) {
+        *lpDDSurfaceDesc = *m_commonSurf->GetDesc2();
+        lpDDSurfaceDesc->lpSurface = rect9.pBits;
+        lpDDSurfaceDesc->lPitch = rect9.Pitch;
+        m_directD3D9Lock = true;
+        return DD_OK;
+      }
+    }
+
+    // Write-only full-surface locks overwrite the old contents, so downloading
+    // dirty D3D9 data first only creates avoidable synchronization work.
+    if (!fullWriteOnlyLock && NeedsDownloadSurfaceData())
+      DownloadSurfaceData();
+
+    HRESULT hr = GetShadowOrProxied()->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
+
+    if (likely(SUCCEEDED(hr)) && fullWriteOnlyLock)
+      m_commonSurf->UnDirtyD3D9Surface();
+
+    return hr;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::ReleaseDC(HDC hDC) {
@@ -904,6 +934,18 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Unlock(LPRECT lpSurfaceData) {
     Logger::debug("<<< DDraw7Surface::Unlock: Proxy");
+
+    if (m_directD3D9Lock) {
+      m_directD3D9Lock = false;
+      HRESULT hr = m_commonSurf->GetD3D9Surface()->UnlockRect();
+
+      if (likely(SUCCEEDED(hr))) {
+        m_commonSurf->DirtyD3D9Surface();
+        m_commonSurf->UnDirtyDDrawSurface();
+      }
+
+      return hr;
+    }
 
     HRESULT hr = GetShadowOrProxied()->Unlock(lpSurfaceData);
 
@@ -1191,6 +1233,9 @@ namespace dxvk {
       return D3D_OK;
     }
 
+    if (likely(!NeedsInitializeOrUploadD3D9()))
+      return DD_OK;
+
     if (unlikely(!m_commonSurf->IsInitialized())) {
       if (m_commonSurf->IsTextureOrCubeMap())
         UpdateMipMapCount();
@@ -1221,6 +1266,9 @@ namespace dxvk {
     // a hack, which by some miracle works well enough in some cases, though may explode in others.
     if (likely(!m_commonIntf->GetOptions()->deviceResourceSharing))
       m_commonSurf->RefreshD3D9Device();
+
+    if (likely(!NeedsDownloadSurfaceData()))
+      return;
 
     if (unlikely(m_commonSurf->IsD3D9BackBuffer())) {
       Logger::debug("DDraw7Surface::DownloadSurfaceData: Surface is a bound swapchain surface");

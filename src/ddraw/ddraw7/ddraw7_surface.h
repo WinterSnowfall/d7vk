@@ -151,6 +151,17 @@ namespace dxvk {
       return m_commonIntf;
     }
 
+    bool NeedsInitializeOrUploadD3D9() const {
+      return !m_commonSurf->IsInitialized()
+          ||  m_commonSurf->IsDDrawSurfaceDirty();
+    }
+
+    bool NeedsDownloadSurfaceData() const {
+      return (m_commonSurf->IsD3D9BackBuffer() || m_commonSurf->IsD3D9DepthStencil())
+          &&  m_commonSurf->IsInitialized()
+          &&  m_commonSurf->IsD3D9SurfaceDirty();
+    }
+
     void SetAttachedDepthStencil(Com<DDraw7Surface>&& depthStencil) {
       m_depthStencil = depthStencil;
     }
@@ -220,6 +231,8 @@ namespace dxvk {
     // Back buffers will have depth stencil surfaces as attachments (in practice
     // I have never seen more than one depth stencil being attached at a time)
     Com<DDraw7Surface>                  m_depthStencil;
+
+    bool                                m_directD3D9Lock = false;
 
     // These are attached surfaces, which are typically mips or other types of generated
     // surfaces, which need to exist for the entire lifecycle of their parent surface.

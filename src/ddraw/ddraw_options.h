@@ -81,6 +81,12 @@ namespace dxvk {
     /// Uses a tolerance interval for color key inverval matching
     bool colorKeyTolerance;
 
+    /// Route current render-target locks straight to the underlying D3D9
+    /// surface, skipping the DDraw-side upload/download round trip. Only
+    /// safe for titles that don't rely on the DDraw-side state of the RT
+    /// after a Lock/Unlock pair.
+    bool directRenderTargetLock;
+
     /// Enumerate with legacy/official implementation device names
     bool legacyDeviceNames;
 
@@ -120,6 +126,7 @@ namespace dxvk {
       this->deviceResourceSharing = config.getOption<bool>   ("ddraw.deviceResourceSharing", false);
       this->colorKeyMasking       = config.getOption<bool>   ("ddraw.colorKeyMasking",       false);
       this->colorKeyTolerance     = config.getOption<bool>   ("ddraw.colorKeyTolerance",     false);
+      this->directRenderTargetLock= config.getOption<bool>   ("ddraw.directRenderTargetLock", false);
       this->legacyDeviceNames     = config.getOption<bool>   ("ddraw.legacyDeviceNames",     false);
       this->nonLocalVideoMemory   = config.getOption<bool>   ("ddraw.nonLocalVideoMemory",    true);
       this->apitraceMode          = config.getOption<bool>   ("ddraw.apitraceMode",          false);
