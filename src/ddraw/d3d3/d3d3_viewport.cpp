@@ -4,6 +4,7 @@
 
 #include "../ddraw_common_interface.h"
 #include "../ddraw_common_surface.h"
+#include "../ddraw_util.h"
 
 #include "../d3d_light.h"
 #include "../d3d_common_material.h"
@@ -170,8 +171,17 @@ namespace dxvk {
     if (unlikely(!m_commonViewport->HasDevice()))
       return D3DERR_VIEWPORTHASNODEVICE;
 
-    // TODO: Check viewport dimensions against the currently set RT,
-    // and perform some sanity checks (positive, non-zero dimensions)
+    // These validations aren't performed at all on viewports bound to a D3D3 device
+    if (unlikely(m_commonViewport->GetD3D3Device() == nullptr)) {
+      // Use the full surface rect, since it is surface version agnostic
+      const RECT* surfRect = m_commonViewport->GetCommonRenderTarget()->GetFullSurfaceRect();
+      // D3D3 will fail when setting a viewport that's outside of the
+      // current render target, though that works in D3D9
+      HRESULT hr = ValidateViewportRT(data->dwX, data->dwY, data->dwWidth, data->dwHeight,
+                                      surfRect->right, surfRect->bottom);
+      if (unlikely(FAILED(hr)))
+        return hr;
+    }
 
     d3d9::D3DVIEWPORT9* viewport9 = m_commonViewport->GetD3D9Viewport();
 

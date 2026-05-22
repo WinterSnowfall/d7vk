@@ -1361,7 +1361,7 @@ namespace dxvk {
         break;
       }
 
-      // the swapchain will eventually return to its origin
+      // The swapchain will eventually return to its origin
       if (backBuffer == renderTarget)
         break;
 

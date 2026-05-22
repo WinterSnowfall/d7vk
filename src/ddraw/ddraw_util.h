@@ -430,6 +430,28 @@ namespace dxvk {
     return 0;
   }
 
+  inline HRESULT ValidateViewportRT(
+        DWORD dwX, DWORD dwY, DWORD dwWidth,
+        DWORD dwHeight, DWORD rtWidth, DWORD rtHeight) {
+    if (unlikely(dwX + dwWidth  > rtWidth || dwY + dwHeight > rtHeight)) {
+      // On Linux/Wine and in windowed mode, we can get in situations
+      // where the actual render target dimensions are off by one
+      // pixel to what the game sets them to. Allow this corner case
+      // to skip the validation, in order to prevent issues.
+      const bool isOnePixelWider  = dwX + dwWidth  == rtWidth  + 1;
+      const bool isOnePixelTaller = dwY + dwHeight == rtHeight + 1;
+
+      if (unlikely(isOnePixelWider || isOnePixelTaller)) {
+        Logger::debug("ValidateViewportRT: Viewport exceeds render target dimensions by one pixel");
+      } else {
+        Logger::debug("ValidateViewportRT: Viewport exceeds render target dimensions");
+        return DDERR_INVALIDPARAMS;
+      }
+    }
+
+    return D3D_OK;
+  }
+
   inline D3DDEVICEDESC3 GetD3D3Caps(const D3DOptions* options) {
     D3DDEVICEDESC3 desc;
 
