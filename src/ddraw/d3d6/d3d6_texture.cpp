@@ -109,22 +109,17 @@ namespace dxvk {
 
     Com<D3D6Texture> d3d6Texture = static_cast<D3D6Texture*>(lpD3DTexture2);
 
+    d3d6Texture->GetParent()->DownloadSurfaceData();
+
     HRESULT hr = m_proxy->Load(d3d6Texture->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
-    // Update the cached parent surface desc
-    DDSURFACEDESC2 desc2;
-    desc2.dwSize = sizeof(DDSURFACEDESC2);
-    HRESULT hrDesc = m_parent->GetProxied()->GetSurfaceDesc(&desc2);
-
-    if (unlikely(FAILED(hrDesc))) {
-      Logger::err("D3D6Texture::Load: Failed to retrieve updated surface desc");
-    } else {
-      m_parent->GetCommonSurface()->SetDesc2(desc2);
-    }
-
-    m_parent->GetCommonSurface()->DirtyDDrawSurface();
+    DDrawCommonSurface* commonSurf = m_parent->GetCommonSurface();
+    HRESULT hrDesc = commonSurf->RefreshSurfaceDescripton();
+    if (unlikely(FAILED(hrDesc)))
+      Logger::err("D3D6Texture::Load: Failed to refresh surface description");
+    commonSurf->DirtyDDrawSurface();
 
     return hr;
   }
