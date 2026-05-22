@@ -1471,10 +1471,12 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Star Trek: Armada                          *
-     * Works around in-game flickering            */
+     * Works around in-game flickering and        *
+     * drastically improves draw performance      */
     { R"(\\Armada\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.legacyPresentGuard",       "Strict" },
+      { "ddraw.forceSWVP",                  "True" },
     }} },
     /* SCP - Containment Breach                   *
      * Crashes without multithreading protection  */

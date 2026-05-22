@@ -313,7 +313,7 @@ namespace dxvk {
 
     DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
 
-    HRESULT hr = rt7->GetCommonSurface()->ValidateRTUsage();
+    HRESULT hr = rt7->GetCommonSurface()->ValidateRTUsage(m_commonD3DDevice->IsHALOrTNLHALDevice());
     if (unlikely(FAILED(hr)))
       return hr;
 
@@ -326,10 +326,6 @@ namespace dxvk {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
     hr = device9->SetRenderTarget(0, rt7->GetCommonSurface()->GetD3D9Surface());
-
-    // TODO: Test suggest that the passed surface is saved as the
-    // current RT even if the call fails, or it is an invalid surface...
-    // The current viewport values however must remain unaffected.
 
     if (likely(SUCCEEDED(hr))) {
       Logger::debug("D3D7Device::SetRenderTarget: Set a new D3D9 RT");
@@ -438,26 +434,14 @@ namespace dxvk {
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    const DDSURFACEDESC2* rtDesc2 = m_rt->GetCommonSurface()->GetDesc2();
-
+    // Use the full surface rect, since it is surface version agnostic
+    const RECT* surfRect = m_rt->GetCommonSurface()->GetFullSurfaceRect();
     // D3D7 will fail when setting a viewport that's outside of the
     // current render target, though that works in D3D9
-    if (unlikely(data->dwX + data->dwWidth  > rtDesc2->dwWidth ||
-                 data->dwY + data->dwHeight > rtDesc2->dwHeight)) {
-      // On Linux/Wine and in windowed mode, we can get in situations
-      // where the actual render target dimensions are off by one
-      // pixel to what the game sets them to. Allow this corner case
-      // to skip the validation, in order to prevent issues.
-      const bool isOnePixelWider  = data->dwX + data->dwWidth  == rtDesc2->dwWidth  + 1;
-      const bool isOnePixelTaller = data->dwY + data->dwHeight == rtDesc2->dwHeight + 1;
-
-      if (unlikely(isOnePixelWider || isOnePixelTaller)) {
-        Logger::debug("D3D7Device::SetViewport: Viewport exceeds render target dimensions by one pixel");
-      } else {
-        Logger::debug("D3D7Device::SetViewport: Viewport exceeds render target dimensions");
-        return DDERR_INVALIDPARAMS;
-      }
-    }
+    HRESULT hr = ValidateViewportRT(data->dwX, data->dwY, data->dwWidth, data->dwHeight,
+                                    surfRect->right, surfRect->bottom);
+    if (unlikely(FAILED(hr)))
+      return hr;
 
     // (The) Summoner sets both to 0.0f and expects to get
     // the behavioral equivalent of setting 0.0f/1.0f, although
@@ -1535,8 +1519,35 @@ namespace dxvk {
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::ResetD3D9Swapchain: Failed to reset the D3D9 swapchain");
     } else {
-      // TODO: Cache and reset all surfaces tied to the D3D9 backbuffers
+      Logger::debug("D3D7Device::ResetD3D9Swapchain: Resetting the render target");
+
       m_rt->GetCommonSurface()->SetD3D9Surface(nullptr);
+      m_rt->GetCommonSurface()->UnDirtyD3D9Surface();
+
+      // Reset the D3D9 objects for all the following surfaces in the swapchain
+      DDraw7Surface* nextFlippable = m_rt->GetNextFlippable();
+
+      while (nextFlippable != nullptr) {
+        Logger::debug("D3D7Device::ResetD3D9Swapchain: Resetting child surface");
+
+        nextFlippable->GetCommonSurface()->SetD3D9Surface(nullptr);
+        nextFlippable->GetCommonSurface()->UnDirtyD3D9Surface();
+
+        nextFlippable = nextFlippable->GetNextFlippable();
+      }
+
+      // Reset the D3D9 objects for all the previous surfaces in the swapchain
+      DDraw7Surface* parentSurf = m_rt->GetParentSurface();
+
+      while (parentSurf != nullptr) {
+        Logger::debug("D3D7Device::ResetD3D9Swapchain: Resetting parent surface");
+
+        parentSurf->GetCommonSurface()->SetD3D9Surface(nullptr);
+        parentSurf->GetCommonSurface()->UnDirtyD3D9Surface();
+
+        parentSurf = parentSurf->GetParentSurface();
+      }
+
       // Note that the D3D9 depth stencil survives a swapchain reset,
       // so there's no need to worry about it in this case
     }

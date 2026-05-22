@@ -535,7 +535,7 @@ namespace dxvk {
 
     DDraw4Surface* rt6 = static_cast<DDraw4Surface*>(surface);
 
-    HRESULT hr = rt6->GetCommonSurface()->ValidateRTUsage();
+    HRESULT hr = rt6->GetCommonSurface()->ValidateRTUsage(m_commonD3DDevice->IsHALOrTNLHALDevice());
     if (unlikely(FAILED(hr)))
       return hr;
 
@@ -1939,8 +1939,35 @@ namespace dxvk {
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::ResetD3D9Swapchain: Failed to reset the D3D9 swapchain");
     } else {
-      // TODO: Cache and reset all surfaces tied to the D3D9 backbuffers
+      Logger::debug("D3D6Device::ResetD3D9Swapchain: Resetting the render target");
+
       m_rt->GetCommonSurface()->SetD3D9Surface(nullptr);
+      m_rt->GetCommonSurface()->UnDirtyD3D9Surface();
+
+      // Reset the D3D9 objects for all the following surfaces in the swapchain
+      DDraw4Surface* nextFlippable = m_rt->GetNextFlippable();
+
+      while (nextFlippable != nullptr) {
+        Logger::debug("D3D6Device::ResetD3D9Swapchain: Resetting child surface");
+
+        nextFlippable->GetCommonSurface()->SetD3D9Surface(nullptr);
+        nextFlippable->GetCommonSurface()->UnDirtyD3D9Surface();
+
+        nextFlippable = nextFlippable->GetNextFlippable();
+      }
+
+      // Reset the D3D9 objects for all the previous surfaces in the swapchain
+      DDraw4Surface* parentSurf = m_rt->GetParentSurface();
+
+      while (parentSurf != nullptr) {
+        Logger::debug("D3D6Device::ResetD3D9Swapchain: Resetting parent surface");
+
+        parentSurf->GetCommonSurface()->SetD3D9Surface(nullptr);
+        parentSurf->GetCommonSurface()->UnDirtyD3D9Surface();
+
+        parentSurf = parentSurf->GetParentSurface();
+      }
+
       // Note that the D3D9 depth stencil survives a swapchain reset,
       // so there's no need to worry about it in this case
     }
