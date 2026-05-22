@@ -1385,8 +1385,11 @@ namespace dxvk {
     DDraw7Surface* ddraw7SurfaceSrc = nullptr;
     DDraw7Surface* ddraw7SurfaceDst = nullptr;
 
+    RECT* sourceFullSurfaceRect = nullptr;
     if (likely(m_commonIntf->IsWrappedSurface(src_surface))) {
       ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
+      ddraw7SurfaceSrc->DownloadSurfaceData();
+      sourceFullSurfaceRect = ddraw7SurfaceSrc->GetCommonSurface()->GetFullSurfaceRect();
     } else {
       Logger::warn("D3D7Device::Load: Unwrapped surface source");
       return DDERR_UNSUPPORTED;
@@ -1394,6 +1397,12 @@ namespace dxvk {
 
     if (likely(m_commonIntf->IsWrappedSurface(dst_surface))) {
       ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
+      if ((dst_point == nullptr || (dst_point->x == 0 && dst_point->y == 0)) &&
+          ddraw7SurfaceDst->GetCommonSurface()->IsFullSurfaceLock(src_rect, sourceFullSurfaceRect)) {
+        ddraw7SurfaceDst->GetCommonSurface()->UnDirtyD3D9Surface();
+      } else {
+        ddraw7SurfaceDst->DownloadSurfaceData();
+      }
     } else {
       Logger::warn("D3D7Device::Load: Unwrapped surface destination");
       return DDERR_UNSUPPORTED;
@@ -1406,18 +1415,11 @@ namespace dxvk {
       return hr;
     }
 
-    // Update the cached destination surface desc
-    DDSURFACEDESC2 desc2;
-    desc2.dwSize = sizeof(DDSURFACEDESC2);
-    HRESULT hrDesc = ddraw7SurfaceDst->GetProxied()->GetSurfaceDesc(&desc2);
-
-    if (unlikely(FAILED(hrDesc))) {
-      Logger::err("D3D7Device::Load: Failed to retrieve updated destination surface desc");
-    } else {
-      ddraw7SurfaceDst->GetCommonSurface()->SetDesc2(desc2);
-    }
-
-    ddraw7SurfaceDst->GetCommonSurface()->DirtyDDrawSurface();
+    DDrawCommonSurface* dstCommonSurf = ddraw7SurfaceDst->GetCommonSurface();
+    HRESULT hrDesc = dstCommonSurf->RefreshSurfaceDescripton();
+    if (unlikely(FAILED(hrDesc)))
+      Logger::err("D3D7Device::Load: Failed to refresh surface description");
+    dstCommonSurf->DirtyDDrawSurface();
 
     return hr;
   }
@@ -1475,10 +1477,8 @@ namespace dxvk {
       } else {
         Logger::info("D3D7Device::InitializeDS: Got depth stencil from RT");
 
-        DDSURFACEDESC2 descDS;
-        descDS.dwSize = sizeof(DDSURFACEDESC2);
-        m_ds->GetProxied()->GetSurfaceDesc(&descDS);
-        Logger::debug(str::format("D3D7Device::InitializeDS: DepthStencil: ", descDS.dwWidth, "x", descDS.dwHeight));
+        const RECT* dsRect = m_ds->GetCommonSurface()->GetFullSurfaceRect();
+        Logger::debug(str::format("D3D7Device::InitializeDS: DepthStencil: ", dsRect->right, "x", dsRect->bottom));
 
         HRESULT hrDS9 = device9->SetDepthStencilSurface(m_ds->GetCommonSurface()->GetD3D9Surface());
         if(unlikely(FAILED(hrDS9))) {

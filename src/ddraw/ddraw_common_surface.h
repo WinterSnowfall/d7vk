@@ -88,12 +88,7 @@ namespace dxvk {
     void SetDesc2(const DDSURFACEDESC2& desc2) {
       m_desc2 = desc2;
       m_isDesc2Set = true;
-      m_rect.right  = desc2.dwWidth;
-      m_rect.bottom = desc2.dwHeight;
-      m_format9 = ConvertFormat(m_desc2.ddpfPixelFormat);
-      // determine and cache various frequently used flag combinations
-      m_isBackBufferOrFlippable = !IsPrimarySurface() && !IsFrontBuffer() && (IsBackBuffer() || IsFlippable());
-      m_isRenderTarget          = IsFrontBuffer() || IsBackBuffer() || IsFlippable() || Is3DSurface();
+      RefreshStaticDescData();
     }
 
     const DDSURFACEDESC2* GetDesc2() const {
@@ -107,12 +102,7 @@ namespace dxvk {
     void SetDesc(const DDSURFACEDESC& desc) {
       m_desc = desc;
       m_isDescSet = true;
-      m_rect.right  = desc.dwWidth;
-      m_rect.bottom = desc.dwHeight;
-      m_format9 = ConvertFormat(m_desc.ddpfPixelFormat);
-      // determine and cache various frequently used flag combinations
-      m_isBackBufferOrFlippable = !IsPrimarySurface() && !IsFrontBuffer() && (IsBackBuffer() || IsFlippable());
-      m_isRenderTarget          = IsFrontBuffer() || IsBackBuffer() || IsFlippable() || Is3DSurface();
+      RefreshStaticDescData();
     }
 
     const DDSURFACEDESC* GetDesc() const {
@@ -157,8 +147,8 @@ namespace dxvk {
         lockRect = fullSurfaceRect;
       }
 
-      const DWORD width  = IsDesc2Set() ? m_desc2.dwWidth  : m_desc.dwWidth;
-      const DWORD height = IsDesc2Set() ? m_desc2.dwHeight : m_desc.dwHeight;
+      const DWORD width  = (m_desc2.dwFlags & DDSD_WIDTH)  ? m_desc2.dwWidth  : m_desc.dwWidth;
+      const DWORD height = (m_desc2.dwFlags & DDSD_HEIGHT) ? m_desc2.dwHeight : m_desc.dwHeight;
 
       return width  == static_cast<DWORD>(lockRect->right  - lockRect->left) &&
              height == static_cast<DWORD>(lockRect->bottom - lockRect->top);
@@ -453,10 +443,10 @@ namespace dxvk {
       else if (Is3DSurface())             type = "render target";
       else if (IsNotKnown())              type = "unknown";
 
-      const DWORD width           = IsDesc2Set() ? m_desc2.dwWidth  : m_desc.dwWidth;
-      const DWORD height          = IsDesc2Set() ? m_desc2.dwHeight : m_desc.dwHeight;
-      const DWORD mipMapCount     = IsDesc2Set() ? m_desc2.dwMipMapCount : m_desc.dwMipMapCount;
-      const DWORD backBuferCount  = IsDesc2Set() ? m_desc2.dwBackBufferCount : m_desc.dwBackBufferCount;
+      const DWORD width          = (m_desc2.dwFlags & DDSD_WIDTH)  ? m_desc2.dwWidth  : m_desc.dwWidth;
+      const DWORD height         = (m_desc2.dwFlags & DDSD_HEIGHT) ? m_desc2.dwHeight : m_desc.dwHeight;
+      const DWORD mipMapCount    = (m_desc2.dwFlags & DDSD_MIPMAPCOUNT) ? m_desc2.dwMipMapCount : m_desc.dwMipMapCount;
+      const DWORD backBuferCount = (m_desc2.dwFlags & DDSD_BACKBUFFERCOUNT) ? m_desc2.dwBackBufferCount : m_desc.dwBackBufferCount;
 
       Logger::debug(str::format("   Type:        ", type));
       Logger::debug(str::format("   Dimensions:  ", width, "x", height));
@@ -471,6 +461,15 @@ namespace dxvk {
     }
 
   private:
+
+    inline void RefreshStaticDescData() {
+      m_rect.right  = (m_desc2.dwFlags & DDSD_WIDTH)  ? m_desc2.dwWidth  : m_desc.dwWidth;
+      m_rect.bottom = (m_desc2.dwFlags & DDSD_HEIGHT) ? m_desc2.dwHeight : m_desc.dwHeight;
+      m_format9 = ConvertFormat((m_desc2.dwFlags & DDSD_PIXELFORMAT) ? m_desc2.ddpfPixelFormat : m_desc.ddpfPixelFormat);
+      // determine and cache various frequently used flag combinations
+      m_isBackBufferOrFlippable = !IsPrimarySurface() && !IsFrontBuffer() && (IsBackBuffer() || IsFlippable());
+      m_isRenderTarget          = IsFrontBuffer() || IsBackBuffer() || IsFlippable() || Is3DSurface();
+    }
 
     bool                             m_dirtyDDraw         = false;
     bool                             m_dirtyD3D9          = false;

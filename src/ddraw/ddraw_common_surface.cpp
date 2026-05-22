@@ -90,11 +90,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
       m_desc2 = desc2;
+      RefreshStaticDescData();
     } else if (m_surf4 != nullptr) {
       hr = m_surf4->GetProxied()->GetSurfaceDesc(&desc2);
       if (unlikely(FAILED(hr)))
         return hr;
       m_desc2 = desc2;
+      RefreshStaticDescData();
     }
 
     DDSURFACEDESC desc;
@@ -105,16 +107,19 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
       m_desc = desc;
+      RefreshStaticDescData();
     } else if (m_surf2 != nullptr) {
       hr = m_surf2->GetProxied()->GetSurfaceDesc(&desc);
       if (unlikely(FAILED(hr)))
         return hr;
       m_desc = desc;
+      RefreshStaticDescData();
     } else if (m_surf3 != nullptr) {
       hr = m_surf3->GetProxied()->GetSurfaceDesc(&desc);
       if (unlikely(FAILED(hr)))
         return hr;
       m_desc = desc;
+      RefreshStaticDescData();
     }
 
     return DD_OK;
@@ -143,8 +148,8 @@ namespace dxvk {
   }
 
   HRESULT DDrawCommonSurface::InitializeD3D9(const bool initRenderTarget) {
-    const DWORD dwHeight = (m_desc2.dwFlags & DDSD_HEIGHT) ? m_desc2.dwHeight : m_desc.dwHeight;
     const DWORD dwWidth  = (m_desc2.dwFlags & DDSD_WIDTH)  ? m_desc2.dwWidth  : m_desc.dwWidth;
+    const DWORD dwHeight = (m_desc2.dwFlags & DDSD_HEIGHT) ? m_desc2.dwHeight : m_desc.dwHeight;
     const DWORD dwCaps   = (m_desc2.dwFlags & DDSD_CAPS)   ? m_desc2.ddsCaps.dwCaps  : m_desc.ddsCaps.dwCaps;
     const DWORD dwCaps2  = (m_desc2.dwFlags & DDSD_CAPS)   ? m_desc2.ddsCaps.dwCaps2 : 0;
 
