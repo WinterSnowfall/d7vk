@@ -139,8 +139,7 @@ namespace dxvk {
 
     if (unlikely(riid == __uuidof(IDirect3DDevice))) {
       if (m_commonD3DDevice->GetD3D3Device() != nullptr) {
-        Logger::warn("D3D3Device::QueryInterface: Query for existing IDirect3DDevice");
-        // TODO: This doesn't work properly and will return E_NOINTERFACE
+        Logger::debug("D3D3Device::QueryInterface: Query for existing IDirect3DDevice");
         return m_commonD3DDevice->GetD3D3Device()->QueryInterface(riid, ppvObject);
       }
 
