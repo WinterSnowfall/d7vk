@@ -9,6 +9,7 @@
 #include "ddraw7_interface.h"
 
 #include <array>
+#include <memory>
 #include <unordered_map>
 
 namespace dxvk {
@@ -233,6 +234,15 @@ namespace dxvk {
     Com<DDraw7Surface>                  m_depthStencil;
 
     bool                                m_directD3D9Lock = false;
+
+    // When ddraw.assumeRenderTargetLockDiscard is set, current-RT direct
+    // locks return a scratch CPU buffer and Unlock discards the writes.
+    // Skips D3D9 LockRect's mandatory copyImageToBuffer + WaitForResource.
+    // Safe only when the title neither reads the lock pixels nor relies
+    // on its writes landing on the GPU RT.
+    std::unique_ptr<uint8_t[]>          m_scratchLockBuffer;
+    uint32_t                            m_scratchLockSize     = 0;
+    bool                                m_scratchLockActive   = false;
 
     // These are attached surfaces, which are typically mips or other types of generated
     // surfaces, which need to exist for the entire lifecycle of their parent surface.

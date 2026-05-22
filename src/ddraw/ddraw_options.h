@@ -87,6 +87,14 @@ namespace dxvk {
     /// after a Lock/Unlock pair.
     bool directRenderTargetLock;
 
+    /// When combined with directRenderTargetLock, hand the game a CPU
+    /// scratch buffer and discard its writes at Unlock instead of doing
+    /// the D3D9 LockRect / UnlockRect. Skips the mandatory GPU fence
+    /// wait that D3D9 performs on render-target locks, but breaks any
+    /// title that reads the locked pixels or relies on its writes
+    /// landing on the GPU render target.
+    bool assumeRenderTargetLockDiscard;
+
     /// Enumerate with legacy/official implementation device names
     bool legacyDeviceNames;
 
@@ -126,7 +134,8 @@ namespace dxvk {
       this->deviceResourceSharing = config.getOption<bool>   ("ddraw.deviceResourceSharing", false);
       this->colorKeyMasking       = config.getOption<bool>   ("ddraw.colorKeyMasking",       false);
       this->colorKeyTolerance     = config.getOption<bool>   ("ddraw.colorKeyTolerance",     false);
-      this->directRenderTargetLock= config.getOption<bool>   ("ddraw.directRenderTargetLock", false);
+      this->directRenderTargetLock         = config.getOption<bool>("ddraw.directRenderTargetLock",         false);
+      this->assumeRenderTargetLockDiscard  = config.getOption<bool>("ddraw.assumeRenderTargetLockDiscard",  false);
       this->legacyDeviceNames     = config.getOption<bool>   ("ddraw.legacyDeviceNames",     false);
       this->nonLocalVideoMemory   = config.getOption<bool>   ("ddraw.nonLocalVideoMemory",    true);
       this->apitraceMode          = config.getOption<bool>   ("ddraw.apitraceMode",          false);

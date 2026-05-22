@@ -783,6 +783,28 @@ namespace dxvk {
                                   && m_commonSurf->GetCommonD3DDevice()->IsCurrentRenderTarget(m_commonSurf.ptr());
 
     if (currentRenderTarget && m_commonIntf->GetOptions()->directRenderTargetLock) {
+      // Scratch-buffer path. Hand the game a CPU scratch buffer and
+      // discard its writes at Unlock. Skips D3D9 LockRect's mandatory
+      // copyImageToBuffer + WaitForResource on RT locks — the single
+      // biggest per-frame cost for titles that lock the RT every frame.
+      // Visually correct only when the title neither reads the lock's
+      // pixels nor relies on its writes landing on the GPU RT.
+      if (unlikely(m_commonIntf->GetOptions()->assumeRenderTargetLockDiscard)) {
+        const DDSURFACEDESC2* desc = m_commonSurf->GetDesc2();
+        const uint32_t pitch  = (desc->dwWidth ? desc->dwWidth : 1u) * 4u;
+        const uint32_t height = desc->dwHeight ? desc->dwHeight : 1u;
+        const uint32_t size   = pitch * height;
+        if (m_scratchLockSize < size) {
+          m_scratchLockBuffer = std::make_unique<uint8_t[]>(size);
+          m_scratchLockSize   = size;
+        }
+        *lpDDSurfaceDesc = *desc;
+        lpDDSurfaceDesc->lpSurface = m_scratchLockBuffer.get();
+        lpDDSurfaceDesc->lPitch    = pitch;
+        m_scratchLockActive = true;
+        return DD_OK;
+      }
+
       d3d9::D3DLOCKED_RECT rect9;
       HRESULT hr9 = m_commonSurf->GetD3D9Surface()->LockRect(&rect9, nullptr,
         (dwFlags & DDLOCK_READONLY) ? D3DLOCK_READONLY : 0);
@@ -934,6 +956,11 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Unlock(LPRECT lpSurfaceData) {
     Logger::debug("<<< DDraw7Surface::Unlock: Proxy");
+
+    if (unlikely(m_scratchLockActive)) {
+      m_scratchLockActive = false;
+      return DD_OK;
+    }
 
     if (m_directD3D9Lock) {
       m_directD3D9Lock = false;
