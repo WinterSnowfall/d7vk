@@ -145,6 +145,10 @@ namespace dxvk {
       return m_commonIntf;
     }
 
+    DDraw4Surface* GetNextFlippable() const {
+      return m_nextFlippable;
+    }
+
     void SetAttachedDepthStencil(Com<DDraw4Surface>&& depthStencil) {
       m_depthStencil = depthStencil;
     }
@@ -168,6 +172,10 @@ namespace dxvk {
 
     void ClearAttachedDepthStencil() {
       m_depthStencil = nullptr;
+    }
+
+    DDraw4Surface* GetParentSurface() const {
+      return m_parentSurf;
     }
 
     void SetParentSurface(DDraw4Surface* surface) {

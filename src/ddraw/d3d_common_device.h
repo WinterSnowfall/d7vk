@@ -48,6 +48,12 @@ namespace dxvk {
 
     bool IsCurrentRenderTarget(DDrawCommonSurface* commonSurface) const;
 
+    bool IsHALOrTNLHALDevice() const {
+      // This is largely implementation specific, but shouldn't change
+      return (m_creationFlags9 & D3DCREATE_HARDWARE_VERTEXPROCESSING) ||
+             (m_creationFlags9 & D3DCREATE_MIXED_VERTEXPROCESSING);
+    }
+
     void SetInScene(bool inScene) {
       m_inScene = inScene;
     }
