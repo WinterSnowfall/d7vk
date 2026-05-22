@@ -418,24 +418,22 @@ namespace dxvk {
           || m_format9 == d3d9::D3DFMT_P8;
     }
 
-    HRESULT ValidateRTUsage() const {
+    HRESULT ValidateRTUsage(bool isHALOrTNLHALDevice) const {
       // Render targets require the DDSCAPS_3DDEVICE flag
       if (unlikely(!Is3DSurface())) {
         Logger::err("DDrawCommonInterface::ValidateRTUsage: Missing DDSCAPS_3DDEVICE");
         return DDERR_INVALIDCAPS;
       }
-
       // Depth stencil surfaces can't be set as render targets
       if (unlikely(IsDepthStencil())) {
         Logger::err("DDrawCommonInterface::ValidateRTUsage: Invalid DDSCAPS_ZBUFFER");
         return DDERR_INVALIDCAPS;
       }
-
-      // TODO: Render targets must not be created in system memory on HAL/HAL T&L devices
-      /*if (unlikely(IsInSystemMemory())) {
+      // Render targets must not be created in system memory on HAL/HAL T&L devices
+      if (unlikely(IsInSystemMemory() && isHALOrTNLHALDevice)) {
         Logger::err("DDrawCommonInterface::ValidateRTUsage: Invalid DDSCAPS_SYSTEMMEMORY");
         return D3DERR_SURFACENOTINVIDMEM;
-      }*/
+      }
 
       return DD_OK;
     }
