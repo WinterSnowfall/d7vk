@@ -30,13 +30,11 @@ namespace dxvk {
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_desc ( Desc )
     , m_rt ( pParent ) {
-    if (m_parent != nullptr) {
-      m_commonIntf = m_parent->GetCommonInterface();
-    } else if (m_commonD3DDevice != nullptr) {
-      m_commonIntf = m_commonD3DDevice->GetCommonInterface();
-    } else {
-      throw DxvkError("D3D3Device: ERROR! Failed to retrieve the common interface!");
-    }
+    // This isn't technically possible, but play it safe
+    if (unlikely(m_parent == nullptr))
+      throw DxvkError("D3D3Device: ERROR! Failed to retrieve the parent surface!");
+
+    m_commonIntf = m_parent->GetCommonInterface();
 
     d3d9::IDirect3DDevice9* device9;
 
@@ -130,24 +128,6 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // Apparently all of these should return a reference to the parent surface
-    if (riid == IID_IDirect3DHALDevice  || riid == IID_IDirect3DRGBDevice  ||
-        riid == IID_IDirect3DMMXDevice  || riid == IID_IDirect3DRampDevice ||
-        riid == IID_WineD3DDevice) {
-      Logger::warn("D3D3Device::QueryInterface: Query with an IDirect3DDevice IID");
-
-      if (likely(m_parent != nullptr)) {
-        *ppvObject = ref(m_parent);
-        return S_OK;
-      } else {
-        return E_NOINTERFACE;
-      }
-    }
-    // Yes, this is indeed expected behavior...
-    if (unlikely(riid == __uuidof(IDirect3DDevice))) {
-      Logger::debug("D3D3Device::QueryInterface: Query for IDirect3DDevice");
-      return E_NOINTERFACE;
-    }
     if (unlikely(riid == __uuidof(IDirect3DDevice2))) {
       if (likely(m_commonD3DDevice->GetD3D5Device() != nullptr)) {
         Logger::debug("D3D3Device::QueryInterface: Query for existing IDirect3DDevice2");
@@ -170,11 +150,25 @@ namespace dxvk {
       Logger::debug("D3D3Device::QueryInterface: Query for IDirect3DDevice3");
       return E_NOINTERFACE;
     }
+    // None of the below work when the object originates from a higher version device
+    if (m_commonD3DDevice->GetOrigin() == this) {
+      // If the device is created from a surface, then this must return E_NOINTERFACE
+      if (unlikely(riid == __uuidof(IDirect3DDevice))) {
+        Logger::debug("D3D3Device::QueryInterface: Query for IDirect3DDevice");
+        return E_NOINTERFACE;
+      }
+      // Apparently all of these should return a reference to the parent surface
+      if (riid == IID_IDirect3DHALDevice  || riid == IID_IDirect3DRGBDevice  ||
+          riid == IID_IDirect3DMMXDevice  || riid == IID_IDirect3DRampDevice ||
+          riid == IID_WineD3DDevice) {
+        Logger::debug("D3D3Device::QueryInterface: Query with an IDirect3DDevice IID");
+        *ppvObject = ref(m_parent);
+        return S_OK;
+      }
 
-    // IDirect3DDevice is quite different than any of the later device interfaces,
-    // because it will also expose what is available on its parent surface. An easy
-    // way to handle it, since the surface is its parent, is to forward the calls.
-    if (likely(m_parent != nullptr)) {
+      // IDirect3DDevice is quite different than any of the later device interfaces,
+      // because it will also expose what is available on its parent surface. An easy
+      // way to handle it, since the surface is its parent, is to forward the calls.
       Logger::debug("D3D3Device::QueryInterface: Forwarding to parent surface");
       return m_parent->QueryInterface(riid, ppvObject);
     }
