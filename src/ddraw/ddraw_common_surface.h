@@ -433,7 +433,7 @@ namespace dxvk {
 
       if (IsPrimarySurface())             type = "primary surface";
       else if (IsFrontBuffer())           type = "front buffer";
-      else if (IsBackBuffer())            type = "back buffer";
+      else if (IsBackBufferOrFlippable()) type = "back buffer";
       else if (IsCubeMap())               type = "cube texture";
       else if (IsTextureMip())            type = "texture mipmap";
       else if (IsTexture())               type = "texture";

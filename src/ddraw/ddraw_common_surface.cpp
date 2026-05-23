@@ -244,8 +244,21 @@ namespace dxvk {
 
     HRESULT hr = DDERR_GENERIC;
 
+    // Primary Surface
+    if (IsPrimarySurface()) {
+      Logger::debug("DDrawCommonSurface::InitializeD3D9: Initializing primary surface...");
+
+      hr = d3d9Device->GetBackBuffer(0, m_backBufferIndex, d3d9::D3DBACKBUFFER_TYPE_MONO, &m_surface9);
+
+      if (unlikely(unlikely(FAILED(hr)))) {
+        Logger::err("DDrawCommonSurface::InitializeD3D9: Failed to retrieve primary surface");
+        return hr;
+      }
+
+      MarkAsD3D9BackBuffer();
+
     // Front Buffer
-    if (IsFrontBuffer()) {
+    } else if (IsFrontBuffer()) {
       Logger::debug("DDrawCommonSurface::InitializeD3D9: Initializing front buffer...");
 
       hr = d3d9Device->GetBackBuffer(0, m_backBufferIndex, d3d9::D3DBACKBUFFER_TYPE_MONO, &m_surface9);
