@@ -8,7 +8,8 @@ namespace dxvk {
 
   uint32_t D3DLight::s_lightCount = 0;
 
-  D3DLight::D3DLight() {
+  D3DLight::D3DLight(IUnknown* pParent)
+    : DDrawChildObject<IUnknown, IDirect3DLight>(pParent) {
     m_lightCount = ++s_lightCount;
 
     Logger::debug(str::format("D3DLight: Created a new light nr. [[1-", m_lightCount, "]]"));

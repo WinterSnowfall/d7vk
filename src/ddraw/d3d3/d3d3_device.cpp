@@ -25,7 +25,7 @@ namespace dxvk {
         d3d9::D3DPRESENT_PARAMETERS Params9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DWORD CreationFlags9)
-    : DDrawWrappedObject<DDrawSurface, IDirect3DDevice>(pParent, nullptr)
+    : DDrawChildObject<DDrawSurface, IDirect3DDevice>(pParent)
     , m_commonD3DDevice ( commonD3DDevice )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_desc ( Desc )
@@ -173,14 +173,15 @@ namespace dxvk {
       return m_parent->QueryInterface(riid, ppvObject);
     }
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirect3DDevice))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("D3D3Device::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::GetCaps(D3DDEVICEDESC *hal_desc, D3DDEVICEDESC *hel_desc) {
@@ -457,7 +458,7 @@ namespace dxvk {
 
     InitReturnPtr(buffer);
 
-    *buffer = ref(new D3D3ExecuteBuffer(*desc));
+    *buffer = ref(new D3D3ExecuteBuffer(this, *desc));
 
     return D3D_OK;
   }

@@ -17,7 +17,7 @@ namespace dxvk {
 
     m_state.textures.fill(nullptr);
 
-    // Automatically capture state on creation via D3D8Device::CreateStateBlock.
+    // Automatically capture state on creation via D3D7Device::CreateStateBlock.
     if (Type != D3D7StateBlockType::None)
       Capture();
   }

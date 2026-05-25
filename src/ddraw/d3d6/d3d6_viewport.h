@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../ddraw_include.h"
-#include "../ddraw_wrapped_object.h"
+#include "../ddraw_child_object.h"
 #include "../ddraw_util.h"
 
 #include "../d3d_common_viewport.h"
@@ -18,7 +18,7 @@ namespace dxvk {
   class D3D5Viewport;
   class D3D3Viewport;
 
-  class D3D6Viewport final : public DDrawWrappedObject<D3D6Interface, IDirect3DViewport3> {
+  class D3D6Viewport final : public DDrawChildObject<D3D6Interface, IDirect3DViewport3> {
 
   public:
 
