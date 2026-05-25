@@ -16,7 +16,7 @@ namespace dxvk {
   D3D7VertexBuffer::D3D7VertexBuffer(
         D3D7Interface* pParent,
         D3DVERTEXBUFFERDESC desc)
-    : DDrawWrappedObject<D3D7Interface, IDirect3DVertexBuffer7>(pParent, nullptr)
+    : DDrawChildObject<D3D7Interface, IDirect3DVertexBuffer7>(pParent)
     , m_commonIntf ( pParent->GetCommonInterface() )
     , m_desc ( desc )
     , m_stride ( GetFVFSize(desc.dwFVF) )
@@ -42,14 +42,15 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirect3DVertexBuffer7))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("D3D7VertexBuffer::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC lpVBDesc) {

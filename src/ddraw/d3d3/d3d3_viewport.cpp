@@ -24,7 +24,7 @@ namespace dxvk {
   D3D3Viewport::D3D3Viewport(
         D3DCommonViewport* commonViewport,
         D3D3Interface* pParent)
-    : DDrawWrappedObject<D3D3Interface, IDirect3DViewport>(pParent, nullptr)
+    : DDrawChildObject<D3D3Interface, IDirect3DViewport>(pParent)
     , m_commonViewport ( commonViewport ) {
 
     if (m_commonViewport == nullptr)
@@ -111,14 +111,15 @@ namespace dxvk {
       return S_OK;
     }
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirect3DViewport))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("D3D3Viewport::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   // Docs state: "The IDirect3DViewport2::Initialize method is not implemented."

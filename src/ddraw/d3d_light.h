@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ddraw_include.h"
+#include "ddraw_child_object.h"
 
 namespace dxvk {
 
@@ -8,11 +9,11 @@ namespace dxvk {
   class D3D5Viewport;
   class D3D6Viewport;
 
-  class D3DLight final : public ComObjectClamp<IDirect3DLight> {
+  class D3DLight final : public DDrawChildObject<IUnknown, IDirect3DLight> {
 
   public:
 
-    D3DLight();
+    D3DLight(IUnknown* pParent);
 
     ~D3DLight();
 

@@ -7,15 +7,17 @@
 
 namespace dxvk {
 
-  class DDrawSurface;
+  class DDrawCommonInterface;
+  class DDrawCommonSurface;
 
-  class D3D3Texture final : public DDrawWrappedObject<DDrawSurface, IDirect3DTexture> {
+  class D3D3Texture final : public DDrawWrappedObject<IUnknown, IDirect3DTexture> {
 
   public:
 
     D3D3Texture(
+          DDrawCommonSurface* commonSurf,
           Com<IDirect3DTexture>&& proxyTexture,
-          DDrawSurface* pParent,
+          IUnknown* pParent,
           D3DTEXTUREHANDLE handle);
 
     ~D3D3Texture();
@@ -43,9 +45,10 @@ namespace dxvk {
   private:
 
     static uint32_t       s_texCount;
-    uint32_t              m_texCount = 0;
+    uint32_t              m_texCount   = 0;
 
     Com<D3DCommonTexture> m_commonTex;
+    DDrawCommonInterface* m_commonIntf = nullptr;
 
   };
 

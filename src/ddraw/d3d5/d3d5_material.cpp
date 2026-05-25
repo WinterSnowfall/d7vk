@@ -14,7 +14,7 @@ namespace dxvk {
   D3D5Material::D3D5Material(
         D3D5Interface* pParent,
         D3DMATERIALHANDLE handle)
-    : DDrawWrappedObject<D3D5Interface, IDirect3DMaterial2>(pParent, nullptr) {
+    : DDrawChildObject<D3D5Interface, IDirect3DMaterial2>(pParent) {
     m_commonMaterial = new D3DCommonMaterial(handle);
 
     m_commonMaterial->SetD3D5Material(this);
@@ -40,14 +40,15 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirect3DMaterial2))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("D3D5Material::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Material::SetMaterial(D3DMATERIAL *data) {

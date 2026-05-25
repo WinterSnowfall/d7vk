@@ -83,8 +83,8 @@ namespace dxvk {
 
     Com<d3d9::IDirect3DStateBlock9> m_stateBlock;
 
-    D3D7CapturableState m_state;
-    D3D7StateCaptures   m_captures;
+    D3D7CapturableState             m_state;
+    D3D7StateCaptures               m_captures;
 
   };
 

@@ -5,7 +5,11 @@
 
 #include "../ddraw_common_surface.h"
 
+#include "../ddraw/ddraw_interface.h"
 #include "../ddraw/ddraw_surface.h"
+
+#include "../d3d3/d3d3_texture.h"
+#include "../d3d5/d3d5_texture.h"
 
 #include <unordered_map>
 
