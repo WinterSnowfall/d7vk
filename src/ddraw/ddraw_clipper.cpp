@@ -34,14 +34,15 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirectDrawClipper))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("DDrawClipper::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, LPDWORD lpdwSize) {

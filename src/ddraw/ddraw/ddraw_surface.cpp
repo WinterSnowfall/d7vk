@@ -3,15 +3,13 @@
 #include "../d3d_common_device.h"
 
 #include "../ddraw_gamma.h"
-
-#include "../d3d3/d3d3_device.h"
-#include "../d3d3/d3d3_interface.h"
-#include "../d3d3/d3d3_texture.h"
-
 #include "../ddraw2/ddraw2_surface.h"
 #include "../ddraw2/ddraw3_surface.h"
 #include "../ddraw4/ddraw4_surface.h"
 #include "../ddraw7/ddraw7_surface.h"
+
+#include "../d3d3/d3d3_device.h"
+#include "../d3d3/d3d3_interface.h"
 
 namespace dxvk {
 
@@ -122,7 +120,7 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
+    if (riid == __uuidof(IDirect3DTexture)) {
       Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture");
 
       if (unlikely(m_texture3 == nullptr)) {
@@ -132,7 +130,7 @@ namespace dxvk {
           return hr;
 
         D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
-        m_texture3 = new D3D3Texture(std::move(ppvProxyObject), this, nextHandle);
+        m_texture3 = new D3D3Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nextHandle);
         D3DCommonTexture* commonTex = m_texture3->GetCommonTexture();
         m_commonIntf->EmplaceTexture(commonTex, nextHandle);
       }
@@ -141,7 +139,7 @@ namespace dxvk {
 
       return S_OK;
     }
-    if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
+    if (riid == __uuidof(IDirect3DTexture2)) {
       Logger::debug("DDrawSurface::QueryInterface: Query for IDirect3DTexture2");
 
       if (unlikely(m_texture5 == nullptr)) {
@@ -151,7 +149,7 @@ namespace dxvk {
           return hr;
 
         D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
-        m_texture5 = new D3D5Texture(std::move(ppvProxyObject), this, nextHandle);
+        m_texture5 = new D3D5Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nextHandle);
         D3DCommonTexture* commonTex = m_texture5->GetCommonTexture();
         m_commonIntf->EmplaceTexture(commonTex, nextHandle);
       }
@@ -280,14 +278,15 @@ namespace dxvk {
       return E_NOINTERFACE;
     }
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirectDrawSurface))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("DDrawSurface::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::AddAttachedSurface(LPDIRECTDRAWSURFACE lpDDSAttachedSurface) {

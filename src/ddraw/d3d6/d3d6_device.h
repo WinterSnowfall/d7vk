@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../ddraw_include.h"
-#include "../ddraw_wrapped_object.h"
+#include "../ddraw_child_object.h"
 #include "../ddraw_options.h"
 #include "../ddraw_util.h"
 #include "../ddraw_caps.h"
@@ -11,6 +11,8 @@
 #include "../d3d_multithread.h"
 
 #include "../../d3d9/d3d9_bridge.h"
+
+#include "../d3d5/d3d5_texture.h"
 
 #include "d3d6_interface.h"
 #include "d3d6_viewport.h"
@@ -24,14 +26,13 @@ namespace dxvk {
   class DDrawCommonInterface;
   class DDraw4Surface;
   class DDraw4Interface;
-  class D3D6Texture;
   class D3D5Device;
   class D3D3Device;
 
   /**
   * \brief D3D6 device implementation
   */
-  class D3D6Device final : public DDrawWrappedObject<D3D6Interface, IDirect3DDevice3> {
+  class D3D6Device final : public DDrawChildObject<D3D6Interface, IDirect3DDevice3> {
 
   public:
     D3D6Device(
@@ -263,7 +264,8 @@ namespace dxvk {
     std::vector<D3DLVERTEX>        m_lvertexStream;
     std::vector<D3DTLVERTEX>       m_tlvertexStream;
 
-    std::array<Com<D3D6Texture, false>, ddrawCaps::TextureStageCount> m_textures;
+    // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
+    std::array<Com<D3D5Texture, false>, ddrawCaps::TextureStageCount> m_textures;
 
     D3DMATRIX        m_projectionMatrix = { };
     const D3DMATRIX* m_legacyProjection = nullptr;

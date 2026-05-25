@@ -8,9 +8,6 @@
 #include "../ddraw2/ddraw3_surface.h"
 #include "../ddraw4/ddraw4_surface.h"
 
-#include "../d3d3/d3d3_texture.h"
-#include "../d3d6/d3d6_texture.h"
-
 namespace dxvk {
 
   uint32_t DDraw7Surface::s_surfCount = 0;
@@ -123,14 +120,14 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // Black & White queries for IDirect3DTexture2 for whatever reason...
-    if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
-      Logger::debug("DDraw7Surface::QueryInterface: Query for IDirect3DTexture2");
-      return E_NOINTERFACE;
-    }
     // Shouldn't ever be called in practice
     if (unlikely(riid == __uuidof(IDirect3DTexture))) {
       Logger::debug("DDraw7Surface::QueryInterface: Query for IDirect3DTexture");
+      return E_NOINTERFACE;
+    }
+    // Black & White queries for IDirect3DTexture2 for whatever reason...
+    if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
+      Logger::debug("DDraw7Surface::QueryInterface: Query for IDirect3DTexture2");
       return E_NOINTERFACE;
     }
     // Wrap IDirectDrawGammaControl, to potentially ignore application set gamma ramps
@@ -217,14 +214,14 @@ namespace dxvk {
       return S_OK;
     }
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IDirectDrawSurface7))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("DDraw7Surface::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   // On IDirectDrawSurface7, this call will only attach DDSCAPS_ZBUFFER

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../ddraw_include.h"
-#include "../ddraw_wrapped_object.h"
+#include "../ddraw_child_object.h"
 #include "../ddraw_options.h"
 #include "../ddraw_caps.h"
 
@@ -27,7 +27,7 @@ namespace dxvk {
   /**
   * \brief D3D5 device implementation
   */
-  class D3D5Device final : public DDrawWrappedObject<D3D5Interface, IDirect3DDevice2> {
+  class D3D5Device final : public DDrawChildObject<D3D5Interface, IDirect3DDevice2> {
 
   public:
     D3D5Device(

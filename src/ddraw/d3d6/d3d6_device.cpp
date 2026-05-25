@@ -3,7 +3,6 @@
 #include "../ddraw_common_interface.h"
 
 #include "d3d6_buffer.h"
-#include "d3d6_texture.h"
 
 #include "../d3d5/d3d5_device.h"
 #include "../d3d3/d3d3_device.h"
@@ -26,7 +25,7 @@ namespace dxvk {
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DDraw4Surface* pSurface,
         DWORD CreationFlags9)
-    : DDrawWrappedObject<D3D6Interface, IDirect3DDevice3>(pParent, nullptr)
+    : DDrawChildObject<D3D6Interface, IDirect3DDevice3>(pParent)
     , m_commonD3DDevice ( commonD3DDevice )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_desc ( Desc )
@@ -210,14 +209,15 @@ namespace dxvk {
       return S_OK;
     }
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirect3DDevice3))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("D3D6Device::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetCaps(D3DDEVICEDESC *hal_desc, D3DDEVICEDESC *hel_desc) {
@@ -1161,10 +1161,12 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYENABLE: {
         m_commonD3DDevice->SetColorKeyEnable(dwRenderState);
 
-        const bool validColorKey = m_textures[0] != nullptr ? m_textures[0]->GetParent()->GetCommonSurface()->HasValidColorKey() : false;
+        DDrawCommonSurface* commonSurf = m_textures[0] != nullptr ?
+                                         m_textures[0]->GetCommonTexture()->GetCommonSurface() : nullptr;
+        const bool validColorKey = commonSurf != nullptr ? commonSurf->HasValidColorKey() : false;
         m_bridge->SetColorKeyState(dwRenderState && validColorKey);
         if (dwRenderState && validColorKey) {
-          DDCOLORKEY normalizedColorKey = m_textures[0]->GetParent()->GetCommonSurface()->GetColorKeyNormalized();
+          DDCOLORKEY normalizedColorKey = commonSurf->GetColorKeyNormalized();
           m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
                                 normalizedColorKey.dwColorSpaceHighValue);
         }
@@ -1750,8 +1752,15 @@ namespace dxvk {
       return hr;
     }
 
-    D3D6Texture* texture6 = static_cast<D3D6Texture*>(texture);
-    DDraw4Surface* surface6 = texture6->GetParent();
+    // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
+    D3D5Texture* texture6 = static_cast<D3D5Texture*>(texture);
+    DDraw4Surface* surface6 = texture6->GetCommonTexture()->GetDD4Surface();
+
+    // Shouldn't ever happen, but play it safe
+    if (unlikely(surface6 == nullptr)) {
+      Logger::err("D3D6Device::SetTexture: Failed to retrieve parent surface");
+      return DDERR_UNSUPPORTED;
+    }
 
     Logger::debug("D3D6Device::SetTexture: Binding D3D9 texture");
 
@@ -2011,9 +2020,13 @@ namespace dxvk {
     if (likely(m_ds != nullptr))
       m_ds->InitializeOrUploadD3D9();
     // Bound texture(s)
+    DDraw4Surface* surf4 = nullptr;
     for (auto& tex : m_textures) {
-      if (tex.ptr() != nullptr)
-        tex->GetParent()->InitializeOrUploadD3D9();
+      if (tex.ptr() != nullptr) {
+        surf4 = tex->GetCommonTexture()->GetDD4Surface();
+        if (likely(surf4 != nullptr))
+          surf4->InitializeOrUploadD3D9();
+      }
     }
   }
 

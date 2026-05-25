@@ -128,14 +128,15 @@ namespace dxvk {
       return E_NOINTERFACE;
     }
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirect3DDevice7))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("D3D7Device::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetCaps(D3DDEVICEDESC7 *desc) {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../ddraw_include.h"
-#include "../ddraw_wrapped_object.h"
+#include "../ddraw_child_object.h"
 
 #include "../ddraw_common_interface.h"
 
@@ -10,7 +10,7 @@
 
 namespace dxvk {
 
-  class D3D6VertexBuffer final : public DDrawWrappedObject<D3D6Interface, IDirect3DVertexBuffer> {
+  class D3D6VertexBuffer final : public DDrawChildObject<D3D6Interface, IDirect3DVertexBuffer> {
 
   public:
 
