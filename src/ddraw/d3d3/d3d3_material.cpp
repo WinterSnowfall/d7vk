@@ -14,7 +14,7 @@ namespace dxvk {
   D3D3Material::D3D3Material(
         D3D3Interface* pParent,
         D3DMATERIALHANDLE handle)
-    : DDrawWrappedObject<D3D3Interface, IDirect3DMaterial>(pParent, nullptr) {
+    : DDrawChildObject<D3D3Interface, IDirect3DMaterial>(pParent) {
     m_commonMaterial = new D3DCommonMaterial(handle);
 
     m_commonMaterial->SetD3D3Material(this);
@@ -40,14 +40,15 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirect3DMaterial))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("D3D3Material::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   // Docs state: "Returns DDERR_ALREADYINITIALIZED because the

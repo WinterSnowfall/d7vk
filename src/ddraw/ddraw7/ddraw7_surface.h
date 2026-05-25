@@ -8,6 +8,9 @@
 
 #include "ddraw7_interface.h"
 
+#include "../d3d3/d3d3_texture.h"
+#include "../d3d5/d3d5_texture.h"
+
 #include <array>
 #include <unordered_map>
 

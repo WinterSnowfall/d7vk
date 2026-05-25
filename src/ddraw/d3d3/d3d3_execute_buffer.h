@@ -1,16 +1,17 @@
 #pragma once
 
 #include "../ddraw_include.h"
+#include "../ddraw_child_object.h"
 
 #include <vector>
 
 namespace dxvk {
 
-  class D3D3ExecuteBuffer final : public ComObjectClamp<IDirect3DExecuteBuffer> {
+  class D3D3ExecuteBuffer final : public DDrawChildObject<IDirect3DDevice, IDirect3DExecuteBuffer> {
 
   public:
 
-    D3D3ExecuteBuffer(D3DEXECUTEBUFFERDESC desc);
+    D3D3ExecuteBuffer(IDirect3DDevice* pParent, D3DEXECUTEBUFFERDESC desc);
 
     ~D3D3ExecuteBuffer();
 

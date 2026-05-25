@@ -21,7 +21,7 @@ namespace dxvk {
         DDrawCommonInterface* m_commonIntf,
         D3DCommonInterface* commonD3DIntf,
         IUnknown* pParent)
-    : DDrawWrappedObject<IUnknown, IDirect3D2>(pParent, nullptr)
+    : DDrawChildObject<IUnknown, IDirect3D2>(pParent)
     , m_commonIntf ( m_commonIntf )
     , m_commonD3DIntf ( commonD3DIntf ) {
     if (m_commonD3DIntf == nullptr) {
@@ -112,14 +112,15 @@ namespace dxvk {
       return S_OK;
     }
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirect3D2))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("D3D5Interface::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg) {
@@ -245,7 +246,7 @@ namespace dxvk {
 
     InitReturnPtr(lplpDirect3DLight);
 
-    *lplpDirect3DLight = ref(new D3DLight());
+    *lplpDirect3DLight = ref(new D3DLight(this));
 
     return D3D_OK;
   }

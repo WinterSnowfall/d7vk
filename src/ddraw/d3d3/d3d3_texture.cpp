@@ -1,6 +1,7 @@
 #include "d3d3_texture.h"
 
-#include "d3d3_device.h"
+#include "../ddraw_common_interface.h"
+#include "../ddraw_common_surface.h"
 
 #include "../ddraw/ddraw_surface.h"
 
@@ -9,11 +10,13 @@ namespace dxvk {
   uint32_t D3D3Texture::s_texCount = 0;
 
   D3D3Texture::D3D3Texture(
+        DDrawCommonSurface* commonSurf,
         Com<IDirect3DTexture>&& proxyTexture,
-        DDrawSurface* pParent,
+        IUnknown* pParent,
         D3DTEXTUREHANDLE handle)
-    : DDrawWrappedObject<DDrawSurface, IDirect3DTexture>(pParent, std::move(proxyTexture)) {
-    m_commonTex = new D3DCommonTexture(m_parent->GetCommonSurface(), handle);
+    : DDrawWrappedObject<IUnknown, IDirect3DTexture>(pParent, std::move(proxyTexture))
+    , m_commonIntf ( commonSurf->GetCommonInterface() ) {
+    m_commonTex = new D3DCommonTexture(commonSurf, handle);
 
     m_texCount = ++s_texCount;
 
@@ -21,7 +24,7 @@ namespace dxvk {
   }
 
   D3D3Texture::~D3D3Texture() {
-    m_parent->GetCommonInterface()->ReleaseTextureHandle(m_commonTex->GetTextureHandle());
+    m_commonIntf->ReleaseTextureHandle(m_commonTex->GetTextureHandle());
 
     Logger::debug(str::format("D3D3Texture: Texture nr. [[1-", m_texCount, "]] bites the dust"));
   }
@@ -78,14 +81,14 @@ namespace dxvk {
       return m_parent->QueryInterface(riid, ppvObject);
     }
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IDirect3DTexture))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("D3D3Texture::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   // Frogger gets texture handles from IDirect3DTexture objects and uses them in calls on a IDirect3DDevice2
@@ -112,13 +115,18 @@ namespace dxvk {
 
     Com<D3D3Texture> d3d3Texture = static_cast<D3D3Texture*>(lpD3DTexture);
 
-    d3d3Texture->GetParent()->DownloadSurfaceData();
+    DDrawSurface* parentSurf = d3d3Texture->GetCommonTexture()->GetDDSurface();
+    if (likely(parentSurf != nullptr)) {
+      parentSurf->DownloadSurfaceData();
+    } else {
+      Logger::warn("D3D3Texture::Load: Failed to download parent surface");
+    }
 
     HRESULT hr = m_proxy->Load(d3d3Texture->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
-    DDrawCommonSurface* commonSurf = m_parent->GetCommonSurface();
+    DDrawCommonSurface* commonSurf = m_commonTex->GetCommonSurface();
     HRESULT hrDesc = commonSurf->RefreshSurfaceDescripton();
     if (unlikely(FAILED(hrDesc)))
       Logger::err("D3D3Texture::Load: Failed to refresh surface description");

@@ -2,16 +2,11 @@
 
 #include "../d3d_common_device.h"
 
-#include "ddraw4_interface.h"
-
 #include "../ddraw_gamma.h"
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw2/ddraw2_surface.h"
 #include "../ddraw2/ddraw3_surface.h"
 #include "../ddraw7/ddraw7_surface.h"
-
-#include "../d3d3/d3d3_texture.h"
-#include "../d3d6/d3d6_texture.h"
 
 namespace dxvk {
 
@@ -122,7 +117,26 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // Standard way of retrieving a texture for d3d6 SetTexture calls
+    // Shouldn't ever be called in practice
+    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
+      Logger::debug("DDraw4Surface::QueryInterface: Query for IDirect3DTexture");
+
+      if (unlikely(m_texture3 == nullptr)) {
+        Com<IDirect3DTexture> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
+        m_texture3 = new D3D3Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nextHandle);
+        D3DCommonTexture* commonTex = m_texture3->GetCommonTexture();
+        m_commonIntf->EmplaceTexture(commonTex, nextHandle);
+      }
+
+      *ppvObject = m_texture3.ref();
+
+      return S_OK;
+    }
     if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
       Logger::debug("DDraw4Surface::QueryInterface: Query for IDirect3DTexture2");
 
@@ -133,7 +147,8 @@ namespace dxvk {
           return hr;
 
         D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
-        m_texture6 = new D3D6Texture(std::move(ppvProxyObject), this, nextHandle);
+        // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
+        m_texture6 = new D3D5Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nextHandle);
         // Grandia II uses IDirect3DTexture2 objects with handles, even on D3D6...
         D3DCommonTexture* commonTex = m_texture6->GetCommonTexture();
         m_commonIntf->EmplaceTexture(commonTex, nextHandle);
@@ -142,11 +157,6 @@ namespace dxvk {
       *ppvObject = m_texture6.ref();
 
       return S_OK;
-    }
-    // Shouldn't ever be called in practice
-    if (unlikely(riid == __uuidof(IDirect3DTexture))) {
-      Logger::warn("DDraw4Surface::QueryInterface: Query for IDirect3DTexture");
-      return E_NOINTERFACE;
     }
     // Wrap IDirectDrawGammaControl, to potentially ignore application set gamma ramps
     if (riid == __uuidof(IDirectDrawGammaControl)) {
@@ -232,14 +242,14 @@ namespace dxvk {
       return S_OK;
     }
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IDirectDrawSurface4))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("DDraw4Surface::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::AddAttachedSurface(LPDIRECTDRAWSURFACE4 lpDDSAttachedSurface) {

@@ -17,7 +17,7 @@ namespace dxvk {
         D3D6Interface* pParent,
         DWORD creationFlags,
         D3DVERTEXBUFFERDESC desc)
-    : DDrawWrappedObject<D3D6Interface, IDirect3DVertexBuffer>(pParent, nullptr)
+    : DDrawChildObject<D3D6Interface, IDirect3DVertexBuffer>(pParent)
     , m_commonIntf ( pParent->GetCommonInterface() )
     , m_creationFlags ( creationFlags )
     , m_desc ( desc )
@@ -40,14 +40,15 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    try {
-      *ppvObject = ref(this->GetInterface(riid));
+    if (likely(riid == __uuidof(IUnknown) ||
+               riid == __uuidof(IDirect3DVertexBuffer))) {
+      *ppvObject = ref(this);
       return S_OK;
-    } catch (const DxvkError& e) {
-      Logger::warn(e.message());
-      Logger::warn(str::format(riid));
-      return E_NOINTERFACE;
     }
+
+    Logger::warn("D3D6VertexBuffer::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
+    return E_NOINTERFACE;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6VertexBuffer::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC lpVBDesc) {

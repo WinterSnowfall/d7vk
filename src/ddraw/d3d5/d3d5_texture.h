@@ -7,15 +7,19 @@
 
 namespace dxvk {
 
-  class DDrawSurface;
+  class DDrawCommonInterface;
+  class DDrawCommonSurface;
 
-  class D3D5Texture final : public DDrawWrappedObject<DDrawSurface, IDirect3DTexture2> {
+  class D3D5Texture final : public DDrawWrappedObject<IUnknown, IDirect3DTexture2> {
 
   public:
 
+    // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
     D3D5Texture(
+          DDrawCommonSurface* commonSurf,
           Com<IDirect3DTexture2>&& proxyTexture,
-          DDrawSurface* pParent,
+          // This can be either an IDirectDrawSurface or an IDirectDrawSurface4
+          IUnknown* pParent,
           D3DTEXTUREHANDLE handle);
 
     ~D3D5Texture();
@@ -39,9 +43,12 @@ namespace dxvk {
   private:
 
     static uint32_t       s_texCount;
-    uint32_t              m_texCount = 0;
+    uint32_t              m_texCount   = 0;
 
     Com<D3DCommonTexture> m_commonTex;
+    DDrawCommonInterface* m_commonIntf = nullptr;
+
+    const char*           m_objectType = "D3D5Texture";
 
   };
 
