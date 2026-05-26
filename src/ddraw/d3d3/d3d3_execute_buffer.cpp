@@ -4,9 +4,9 @@ namespace dxvk {
 
   uint32_t D3D3ExecuteBuffer::s_buffCount = 0;
 
-  D3D3ExecuteBuffer::D3D3ExecuteBuffer(IDirect3DDevice* pParent, D3DEXECUTEBUFFERDESC desc)
+  D3D3ExecuteBuffer::D3D3ExecuteBuffer(IDirect3DDevice* pParent, D3DEXECUTEBUFFERDESC* pDesc)
     : DDrawChildObject<IDirect3DDevice, IDirect3DExecuteBuffer>(pParent)
-    , m_desc (desc) {
+    , m_desc ( *pDesc ) {
     if (likely(m_buffer.size() == 0 && (m_desc.dwFlags & D3DDEB_BUFSIZE))) {
       m_buffer.resize(m_desc.dwBufferSize);
       Logger::debug(str::format("D3D3ExecuteBuffer: Buffer is initialized with size ", m_desc.dwBufferSize));

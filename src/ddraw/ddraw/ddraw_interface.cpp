@@ -652,7 +652,7 @@ namespace dxvk {
     if (unlikely(commonDevice != nullptr && !m_commonIntf->GetWaitForVBlank())) {
       Logger::info("DDrawInterface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
 
-      d3d9::D3DPRESENT_PARAMETERS resetParams = commonDevice->GetPresentParameters();
+      d3d9::D3DPRESENT_PARAMETERS resetParams = *commonDevice->GetPresentParameters();
       resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
       HRESULT hrReset = commonDevice->ResetD3D9Swapchain(&resetParams);
       if (likely(SUCCEEDED(hrReset)))

@@ -11,7 +11,7 @@ namespace dxvk {
 
   public:
 
-    D3D3ExecuteBuffer(IDirect3DDevice* pParent, D3DEXECUTEBUFFERDESC desc);
+    D3D3ExecuteBuffer(IDirect3DDevice* pParent, D3DEXECUTEBUFFERDESC* pDesc);
 
     ~D3D3ExecuteBuffer();
 
