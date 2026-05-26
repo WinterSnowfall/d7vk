@@ -1278,9 +1278,9 @@ namespace dxvk {
     Com<d3d9::IDirect3D9> d3d9Intf;
     // D3D3 is "special", so we might not have a valid D3D3 interface to work with
     // at this point. Create a temporary D3D9 interface should that ever happen.
-    D3D3Interface* d3d3Intf = m_commonIntf->GetD3D3Interface();
+    D3D3Interface* d3d3Intf = m_commonIntf->GetOrCreateD3D3Interface();
     if (unlikely(d3d3Intf == nullptr)) {
-      Logger::debug("DDrawSurface::CreateDeviceInternal: Creating a temporary D3D9 interface");
+      Logger::warn("DDrawSurface::CreateDeviceInternal: Creating a temporary D3D9 interface");
       d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
 
       Com<IDxvkD3D8InterfaceBridge> d3d9Bridge;

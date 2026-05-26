@@ -7421,18 +7421,6 @@ namespace dxvk {
     if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::Fog)))
       UpdateFog();
 
-    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFTextureWrap)))
-      UpdateTextureWrap();
-
-    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFColorKeyState)))
-      UpdateColorKeyState();
-
-    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFColorKey)))
-      UpdateColorKey();
-
-    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFLegacyLightsState)))
-      UpdateLegacyLightState();
-
     if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::Framebuffer)))
       BindFramebuffer();
 
@@ -7472,6 +7460,18 @@ namespace dxvk {
 
     if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFGlobalSpecular)))
       UpdateGlobalSpecular();
+
+    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFTextureWrap)))
+      UpdateTextureWrap();
+
+    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFColorKeyState)))
+      UpdateColorKeyState();
+
+    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFColorKey)))
+      UpdateColorKey();
+
+    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFLegacyLightsState)))
+      UpdateLegacyLightState();
 
     if (likely(UseProgrammableVS())) {
       UpdateShaderConstants<D3D9ShaderType::VertexShader>();
