@@ -960,14 +960,6 @@ namespace dxvk {
 
     void UpdateFog();
 
-    void UpdateTextureWrap();
-
-    void UpdateColorKeyState();
-
-    void UpdateColorKey();
-
-    void UpdateLegacyLightState();
-
     void BindFramebuffer();
 
     void BindViewportAndScissor();
@@ -1006,6 +998,14 @@ namespace dxvk {
     void UpdateClipPlanes();
 
     void UpdateGlobalSpecular();
+
+    void UpdateTextureWrap();
+
+    void UpdateColorKeyState();
+
+    void UpdateColorKey();
+
+    void UpdateLegacyLightState();
 
     /**
      * \brief Updates the push constant data at the given offset with data from the specified pointer.
@@ -1683,12 +1683,13 @@ namespace dxvk {
     bool                            m_isD3D6Compatible;
     bool                            m_isD3D7Compatible;
     bool                            m_isD3D8Compatible;
-    bool                            m_ffZTest          = false;
 
     // D3D7 and earlier color key transparency state
     bool                            m_colorKeyEnable   = false;
     // D3D6 and earlier legacy light model state
     bool                            m_useLegacyLights  = false;
+
+    bool                            m_ffZTest          = false;
 
     // the enablement of below features is tracked independently
     // of render states both due to complexity and to avoid

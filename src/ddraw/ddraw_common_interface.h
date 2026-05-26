@@ -36,6 +36,8 @@ namespace dxvk {
       return S_OK;
     }
 
+    D3D3Interface* GetOrCreateD3D3Interface();
+
     bool IsWrappedSurface(IDirectDrawSurface* surface) const;
 
     void AddWrappedSurface(IDirectDrawSurface* surface);

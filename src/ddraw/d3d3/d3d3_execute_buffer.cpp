@@ -1,15 +1,18 @@
 #include "d3d3_execute_buffer.h"
 
+#include "../d3d_multithread.h"
+
 namespace dxvk {
 
   uint32_t D3D3ExecuteBuffer::s_buffCount = 0;
 
-  D3D3ExecuteBuffer::D3D3ExecuteBuffer(IDirect3DDevice* pParent, D3DEXECUTEBUFFERDESC* pDesc)
-    : DDrawChildObject<IDirect3DDevice, IDirect3DExecuteBuffer>(pParent)
-    , m_desc ( *pDesc ) {
-    if (likely(m_buffer.size() == 0 && (m_desc.dwFlags & D3DDEB_BUFSIZE))) {
-      m_buffer.resize(m_desc.dwBufferSize);
-      Logger::debug(str::format("D3D3ExecuteBuffer: Buffer is initialized with size ", m_desc.dwBufferSize));
+  D3D3ExecuteBuffer::D3D3ExecuteBuffer(D3D3Device* pParent, D3DEXECUTEBUFFERDESC* pDesc)
+    : DDrawChildObject<D3D3Device, IDirect3DExecuteBuffer>(pParent) {
+    if (likely(pDesc->dwFlags & D3DDEB_BUFSIZE)) {
+      m_buffer.resize(pDesc->dwBufferSize);
+      Logger::debug(str::format("D3D3ExecuteBuffer: Buffer is initialized with size ", pDesc->dwBufferSize));
+    } else {
+      Logger::warn("D3D3ExecuteBuffer: No buffer size specified during initialization");
     }
 
     m_buffCount = ++s_buffCount;
@@ -41,6 +44,9 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpData) {
+    if (unlikely(m_executed))
+      D3DDeviceLock lock = m_parent->LockDevice();
+
     Logger::debug(">>> D3D3ExecuteBuffer::GetExecuteData");
 
     if (unlikely(lpData == nullptr))
@@ -49,7 +55,7 @@ namespace dxvk {
     if (unlikely(m_buffer.size() == 0))
       return DDERR_INVALIDPARAMS;
 
-    *lpData = m_data;
+    *lpData = m_executeData;
 
     return D3D_OK;
   }
@@ -62,6 +68,9 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc) {
+    if (unlikely(m_executed))
+      D3DDeviceLock lock = m_parent->LockDevice();
+
     Logger::debug(">>> D3D3ExecuteBuffer::Lock");
 
     if (unlikely(lpDesc == nullptr))
@@ -70,10 +79,14 @@ namespace dxvk {
     if (unlikely(m_locked))
       return D3DERR_EXECUTE_LOCKED;
 
-    m_locked = true;
-    lpDesc->dwFlags = D3DDEB_BUFSIZE|D3DDEB_LPDATA;
+    if (unlikely(lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC)))
+      return DDERR_INVALIDPARAMS;
+
+    lpDesc->dwFlags = D3DDEB_BUFSIZE | D3DDEB_LPDATA;
     lpDesc->dwBufferSize = m_buffer.size();
     lpDesc->lpData = m_buffer.data();
+
+    m_locked = true;
 
     return D3D_OK;
   }
@@ -85,6 +98,9 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpData) {
+    if (unlikely(m_executed))
+      D3DDeviceLock lock = m_parent->LockDevice();
+
     Logger::debug(">>> D3D3ExecuteBuffer::SetExecuteData");
 
     if (unlikely(lpData == nullptr || m_buffer.size() == 0))
@@ -96,12 +112,15 @@ namespace dxvk {
     if (unlikely(lpData->dwVertexOffset + lpData->dwVertexCount > m_buffer.size()))
       return DDERR_INVALIDPARAMS;
 
-    m_data = *lpData;
+    m_executeData = *lpData;
 
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::Unlock() {
+    if (unlikely(m_executed))
+      D3DDeviceLock lock = m_parent->LockDevice();
+
     Logger::debug(">>> D3D3ExecuteBuffer::Unlock");
 
     if (unlikely(!m_locked))
