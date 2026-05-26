@@ -6127,6 +6127,48 @@ namespace dxvk {
   }
 
 
+  void D3D9DeviceEx::UpdateTextureWrap() {
+    m_dirty.clr(D3D9DeviceDirtyFlag::FFTextureWrap);
+
+    auto sampler = m_state.samplerStates[RemapSamplerState(0)];
+
+    DWORD addressU = sampler[D3DSAMP_ADDRESSU] == D3DTADDRESS_CLAMP ? 1
+                   : sampler[D3DSAMP_ADDRESSU] == D3DTADDRESS_MIRROR ? 2 : 0;
+    DWORD addressV = sampler[D3DSAMP_ADDRESSV] == D3DTADDRESS_CLAMP ? 1
+                   : sampler[D3DSAMP_ADDRESSV] == D3DTADDRESS_MIRROR ? 2 : 0;
+
+    if (m_specInfo.set<SpecFFTextureWrapU>(addressU) || m_specInfo.set<SpecFFTextureWrapV>(addressV))
+      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
+  }
+
+
+  void D3D9DeviceEx::UpdateColorKeyState() {
+    m_dirty.clr(D3D9DeviceDirtyFlag::FFColorKeyState);
+
+    if (m_specInfo.set<SpecFFColorKeyEnable>(m_colorKeyEnable))
+      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
+  }
+
+
+  void D3D9DeviceEx::UpdateColorKey() {
+    m_dirty.clr(D3D9DeviceDirtyFlag::FFColorKey);
+
+    bool dirty = m_specInfo.set<SpecFFColorKeyLow>(m_state.colorKeyLow);
+         dirty|= m_specInfo.set<SpecFFColorKeyHigh>(m_state.colorKeyHigh);
+
+    if (dirty)
+      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
+  }
+
+
+  void D3D9DeviceEx::UpdateLegacyLightState() {
+    m_dirty.clr(D3D9DeviceDirtyFlag::FFLegacyLightsState);
+
+    if (m_specInfo.set<SpecFFUseLegacyLights>(m_useLegacyLights))
+      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
+  }
+
+
   template <uint32_t Offset, uint32_t Length>
   void D3D9DeviceEx::UpdatePushConstant(const void* pData) {
     struct ConstantData { uint8_t Data[Length]; };
@@ -6751,48 +6793,6 @@ namespace dxvk {
     bool specularEnabled = m_state.renderStates[D3DRS_SPECULARENABLE];
 
     if (m_specInfo.set<D3D9SpecConstantId::SpecFFGlobalSpecularEnabled>(specularEnabled))
-      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
-  }
-
-
-  void D3D9DeviceEx::UpdateTextureWrap() {
-    m_dirty.clr(D3D9DeviceDirtyFlag::FFTextureWrap);
-
-    auto sampler = m_state.samplerStates[RemapSamplerState(0)];
-
-    DWORD addressU = sampler[D3DSAMP_ADDRESSU] == D3DTADDRESS_CLAMP ? 1
-                   : sampler[D3DSAMP_ADDRESSU] == D3DTADDRESS_MIRROR ? 2 : 0;
-    DWORD addressV = sampler[D3DSAMP_ADDRESSV] == D3DTADDRESS_CLAMP ? 1
-                   : sampler[D3DSAMP_ADDRESSV] == D3DTADDRESS_MIRROR ? 2 : 0;
-
-    if (m_specInfo.set<SpecFFTextureWrapU>(addressU) || m_specInfo.set<SpecFFTextureWrapV>(addressV))
-      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
-  }
-
-
-  void D3D9DeviceEx::UpdateColorKeyState() {
-    m_dirty.clr(D3D9DeviceDirtyFlag::FFColorKeyState);
-
-    if (m_specInfo.set<SpecFFColorKeyEnable>(m_colorKeyEnable))
-      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
-  }
-
-
-  void D3D9DeviceEx::UpdateColorKey() {
-    m_dirty.clr(D3D9DeviceDirtyFlag::FFColorKey);
-
-    bool dirty = m_specInfo.set<SpecFFColorKeyLow>(m_state.colorKeyLow);
-         dirty|= m_specInfo.set<SpecFFColorKeyHigh>(m_state.colorKeyHigh);
-
-    if (dirty)
-      m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
-  }
-
-
-  void D3D9DeviceEx::UpdateLegacyLightState() {
-    m_dirty.clr(D3D9DeviceDirtyFlag::FFLegacyLightsState);
-
-    if (m_specInfo.set<SpecFFUseLegacyLights>(m_useLegacyLights))
       m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
   }
 
@@ -7502,18 +7502,6 @@ namespace dxvk {
 
     UpdateFog();
 
-    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFTextureWrap)))
-      UpdateTextureWrap();
-
-    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFColorKeyState)))
-      UpdateColorKeyState();
-
-    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFColorKey)))
-      UpdateColorKey();
-
-    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFLegacyLightsState)))
-      UpdateLegacyLightState();
-
     if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::Framebuffer)))
       BindFramebuffer();
 
@@ -7553,6 +7541,18 @@ namespace dxvk {
 
     if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFGlobalSpecular)))
       UpdateGlobalSpecular();
+
+    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFTextureWrap)))
+      UpdateTextureWrap();
+
+    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFColorKeyState)))
+      UpdateColorKeyState();
+
+    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFColorKey)))
+      UpdateColorKey();
+
+    if (unlikely(m_dirty.test(D3D9DeviceDirtyFlag::FFLegacyLightsState)))
+      UpdateLegacyLightState();
 
     if (likely(UseProgrammableVS())) {
       UpdateShaderConstants<D3D9ShaderType::VertexShader>();

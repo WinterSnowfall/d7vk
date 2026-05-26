@@ -3,15 +3,17 @@
 #include "../ddraw_include.h"
 #include "../ddraw_child_object.h"
 
+#include "d3d3_device.h"
+
 #include <vector>
 
 namespace dxvk {
 
-  class D3D3ExecuteBuffer final : public DDrawChildObject<IDirect3DDevice, IDirect3DExecuteBuffer> {
+  class D3D3ExecuteBuffer final : public DDrawChildObject<D3D3Device, IDirect3DExecuteBuffer> {
 
   public:
 
-    D3D3ExecuteBuffer(IDirect3DDevice* pParent, D3DEXECUTEBUFFERDESC* pDesc);
+    D3D3ExecuteBuffer(D3D3Device* pParent, D3DEXECUTEBUFFERDESC* pDesc);
 
     ~D3D3ExecuteBuffer();
 
@@ -31,27 +33,31 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALLBACK lpFunc, LPVOID lpUserArg, DWORD dwReserved);
 
+    bool IsLocked() const {
+      return m_locked;
+    }
+
+    void SetExecutedState(bool executed) {
+      m_executed = executed;
+    }
+
+    D3DEXECUTEDATA* GetExecuteDataInternal() {
+      return &m_executeData;
+    }
+
     std::vector<uint8_t> GetBuffer() const {
       return m_buffer;
     }
 
-    D3DEXECUTEDATA GetExecuteData() const {
-      return m_data;
-    }
-
-    void SetExecuteData(D3DEXECUTEDATA data) {
-      m_data = data;
-    }
-
   private:
 
-    bool                  m_locked = false;
+    bool                  m_locked     = false;
+    bool                  m_executed   = false;
 
     static uint32_t       s_buffCount;
     uint32_t              m_buffCount  = 0;
 
-    D3DEXECUTEBUFFERDESC  m_desc;
-    D3DEXECUTEDATA        m_data;
+    D3DEXECUTEDATA        m_executeData;
 
     std::vector<uint8_t>  m_buffer;
 

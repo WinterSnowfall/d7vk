@@ -292,6 +292,8 @@ namespace dxvk {
     if (unlikely(d3d == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    InitReturnPtr(d3d);
+
     *d3d = ref(m_parent);
 
     return D3D_OK;
