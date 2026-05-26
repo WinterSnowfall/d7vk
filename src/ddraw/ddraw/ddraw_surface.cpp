@@ -1331,15 +1331,20 @@ namespace dxvk {
       return hr;
     }
 
-    Com<D3D3Device> device3 = new D3D3Device(nullptr, this, GetD3D3Caps(d3dOptions), rclsidOverride,
-                                             params, std::move(device9), deviceCreationFlags9);
+    try{
+      Com<D3D3Device> device3 = new D3D3Device(nullptr, this, rclsidOverride, &params,
+                                               std::move(device9), deviceCreationFlags9);
 
-    // Set the common device on the common interface
-    m_commonIntf->SetCommonD3DDevice(device3->GetCommonD3DDevice());
-    // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
-    device3->InitializeDS();
+      // Set the common device on the common interface
+      m_commonIntf->SetCommonD3DDevice(device3->GetCommonD3DDevice());
+      // Now that we have a valid D3D9 device pointer, we can initialize the depth stencil (if any)
+      device3->InitializeDS();
 
-    *ppvObject = device3.ref();
+      *ppvObject = device3.ref();
+    } catch (const DxvkError& e) {
+      Logger::err(e.message());
+      return DDERR_GENERIC;
+    }
 
     return DD_OK;
   }

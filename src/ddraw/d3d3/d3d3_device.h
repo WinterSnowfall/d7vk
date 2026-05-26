@@ -31,9 +31,8 @@ namespace dxvk {
     D3D3Device(
           D3DCommonDevice* commonD3DDevice,
           DDrawSurface* pParent,
-          D3DDEVICEDESC3 Desc,
           GUID deviceGUID,
-          d3d9::D3DPRESENT_PARAMETERS Params9,
+          const d3d9::D3DPRESENT_PARAMETERS* pParams9,
           Com<d3d9::IDirect3DDevice9>&& pDevice9,
           DWORD CreationFlags9);
 
