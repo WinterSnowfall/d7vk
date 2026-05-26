@@ -15,12 +15,12 @@ namespace dxvk {
 
   D3D7VertexBuffer::D3D7VertexBuffer(
         D3D7Interface* pParent,
-        D3DVERTEXBUFFERDESC desc)
+        D3DVERTEXBUFFERDESC* pDesc)
     : DDrawChildObject<D3D7Interface, IDirect3DVertexBuffer7>(pParent)
     , m_commonIntf ( pParent->GetCommonInterface() )
-    , m_desc ( desc )
-    , m_stride ( GetFVFSize(desc.dwFVF) )
-    , m_size ( m_stride * desc.dwNumVertices ) {
+    , m_desc ( *pDesc )
+    , m_stride ( GetFVFSize(pDesc->dwFVF) )
+    , m_size ( m_stride * pDesc->dwNumVertices ) {
     m_parent->AddRef();
 
     m_buffCount = ++s_buffCount;

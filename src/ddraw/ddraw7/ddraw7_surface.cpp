@@ -525,7 +525,7 @@ namespace dxvk {
 
         D3DCommonDevice* commonD3DDevice = m_commonSurf->GetCommonD3DDevice();
 
-        d3d9::D3DPRESENT_PARAMETERS resetParams = commonD3DDevice->GetPresentParameters();
+        d3d9::D3DPRESENT_PARAMETERS resetParams = *commonD3DDevice->GetPresentParameters();
         resetParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
         HRESULT hrReset = commonD3DDevice->ResetD3D9Swapchain(&resetParams);
         if (unlikely(FAILED(hrReset))) {
@@ -540,7 +540,7 @@ namespace dxvk {
 
         D3DCommonDevice* commonD3DDevice = m_commonSurf->GetCommonD3DDevice();
 
-        d3d9::D3DPRESENT_PARAMETERS resetParams = commonD3DDevice->GetPresentParameters();
+        d3d9::D3DPRESENT_PARAMETERS resetParams = *commonD3DDevice->GetPresentParameters();
         resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
         HRESULT hrReset = commonD3DDevice->ResetD3D9Swapchain(&resetParams);
         if (unlikely(FAILED(hrReset))) {

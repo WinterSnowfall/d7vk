@@ -20,15 +20,13 @@ namespace dxvk {
   D3D3Device::D3D3Device(
         D3DCommonDevice* commonD3DDevice,
         DDrawSurface* pParent,
-        D3DDEVICEDESC3 Desc,
         GUID deviceGUID,
-        d3d9::D3DPRESENT_PARAMETERS Params9,
+        const d3d9::D3DPRESENT_PARAMETERS* pParams9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DWORD CreationFlags9)
     : DDrawChildObject<DDrawSurface, IDirect3DDevice>(pParent)
     , m_commonD3DDevice ( commonD3DDevice )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
-    , m_desc ( Desc )
     , m_rt ( pParent ) {
     // This isn't technically possible, but play it safe
     if (unlikely(m_parent == nullptr))
@@ -36,15 +34,17 @@ namespace dxvk {
 
     m_commonIntf = m_parent->GetCommonInterface();
 
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+    // Retrieve and cache the device capabilities
+    m_desc = GetD3D3Caps(d3dOptions);
+
     d3d9::IDirect3DDevice9* device9;
 
     if (likely(m_commonD3DDevice == nullptr)) {
-      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, deviceGUID, Params9, CreationFlags9);
+      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, deviceGUID, pParams9, CreationFlags9);
 
       m_commonD3DDevice->SetD3D9Device(std::move(pDevice9));
       device9 = m_commonD3DDevice->GetD3D9Device();
-
-      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
       if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
         Logger::warn("D3D3Device: Force enabling AA");
@@ -458,7 +458,7 @@ namespace dxvk {
 
     InitReturnPtr(buffer);
 
-    *buffer = ref(new D3D3ExecuteBuffer(this, *desc));
+    *buffer = ref(new D3D3ExecuteBuffer(this, desc));
 
     return D3D_OK;
   }

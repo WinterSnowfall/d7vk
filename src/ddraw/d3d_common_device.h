@@ -26,7 +26,7 @@ namespace dxvk {
     D3DCommonDevice(
           DDrawCommonInterface* commonIntf,
           GUID deviceGUID,
-          d3d9::D3DPRESENT_PARAMETERS params9,
+          const d3d9::D3DPRESENT_PARAMETERS* pParams9,
           DWORD creationFlags9);
 
     ~D3DCommonDevice();
@@ -78,8 +78,8 @@ namespace dxvk {
       return m_deviceGUID;
     }
 
-    d3d9::D3DPRESENT_PARAMETERS GetPresentParameters() const {
-      return m_params9;
+    const d3d9::D3DPRESENT_PARAMETERS* GetPresentParameters() const {
+      return &m_params9;
     }
 
     d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType() const {

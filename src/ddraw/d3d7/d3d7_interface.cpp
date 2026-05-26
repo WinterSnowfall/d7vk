@@ -312,11 +312,9 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC7 desc7 = GetD3D7Caps(rclsidOverride, d3dOptions);
-
     try{
-      Com<D3D7Device> device7 = new D3D7Device(nullptr, std::move(d3d7DeviceProxy), this, desc7,
-                                               rclsidOverride, params, std::move(device9),
+      Com<D3D7Device> device7 = new D3D7Device(nullptr, std::move(d3d7DeviceProxy), this,
+                                               rclsidOverride, &params, std::move(device9),
                                                rt7.ptr(), deviceCreationFlags9);
 
       // Set the common device on the common interface
@@ -341,7 +339,7 @@ namespace dxvk {
 
     InitReturnPtr(ppVertexBuffer);
 
-    *ppVertexBuffer = ref(new D3D7VertexBuffer(this, *desc));
+    *ppVertexBuffer = ref(new D3D7VertexBuffer(this, desc));
 
     return D3D_OK;
   }

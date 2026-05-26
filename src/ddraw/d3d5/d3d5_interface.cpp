@@ -538,11 +538,9 @@ namespace dxvk {
       return hr;
     }
 
-    D3DDEVICEDESC2 desc5 = GetD3D5Caps(rclsidOverride, d3dOptions);
-
     try{
-      Com<D3D5Device> device5 = new D3D5Device(nullptr, this, desc5, rclsidOverride,
-                                               params, std::move(device9), rt.ptr(), deviceCreationFlags9);
+      Com<D3D5Device> device5 = new D3D5Device(nullptr, this, rclsidOverride, &params,
+                                               std::move(device9), rt.ptr(), deviceCreationFlags9);
 
       // Set the common device on the common interface
       m_commonIntf->SetCommonD3DDevice(device5->GetCommonD3DDevice());
