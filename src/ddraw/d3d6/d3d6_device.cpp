@@ -19,16 +19,14 @@ namespace dxvk {
   D3D6Device::D3D6Device(
         D3DCommonDevice* commonD3DDevice,
         D3D6Interface* pParent,
-        D3DDEVICEDESC Desc,
         GUID deviceGUID,
-        d3d9::D3DPRESENT_PARAMETERS Params9,
+        const d3d9::D3DPRESENT_PARAMETERS* pParams9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DDraw4Surface* pSurface,
         DWORD CreationFlags9)
     : DDrawChildObject<D3D6Interface, IDirect3DDevice3>(pParent)
     , m_commonD3DDevice ( commonD3DDevice )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
-    , m_desc ( Desc )
     , m_rt ( pSurface ) {
     if (m_parent != nullptr) {
       m_commonIntf = m_parent->GetCommonInterface();
@@ -38,15 +36,17 @@ namespace dxvk {
       throw DxvkError("D3D6Device: ERROR! Failed to retrieve the common interface!");
     }
 
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+    // Retrieve and cache the device capabilities
+    m_desc = GetD3D6Caps(deviceGUID, d3dOptions);
+
     d3d9::IDirect3DDevice9* device9;
 
     if (likely(m_commonD3DDevice == nullptr)) {
-      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, deviceGUID, Params9, CreationFlags9);
+      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, deviceGUID, pParams9, CreationFlags9);
 
       m_commonD3DDevice->SetD3D9Device(std::move(pDevice9));
       device9 = m_commonD3DDevice->GetD3D9Device();
-
-      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
       if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
         Logger::warn("D3D6Device: Force enabling AA");
@@ -158,8 +158,6 @@ namespace dxvk {
 
       Logger::debug("D3D6Device::QueryInterface: Query for IDirect3DDevice");
 
-      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
-
       Com<DDrawSurface> rt = m_rt->GetCommonSurface()->GetDDSurface();
       // Manually retrieve a DDrawSurface object if it doesn't otherwise exist
       if (unlikely(rt == nullptr)) {
@@ -170,8 +168,7 @@ namespace dxvk {
 
       // Reuse the existing D3D9 device in situations where games want
       // to get access only to D3D3 execute buffers on a D3D6 device
-      m_device3 = new D3D3Device(m_commonD3DDevice.ptr(), rt.ptr(),
-                                 GetD3D3Caps(d3dOptions), m_commonD3DDevice->GetDeviceGUID(),
+      m_device3 = new D3D3Device(m_commonD3DDevice.ptr(), rt.ptr(), m_commonD3DDevice->GetDeviceGUID(),
                                  m_commonD3DDevice->GetPresentParameters(),
                                  nullptr, m_commonD3DDevice->GetD3D9CreationFlags());
       m_commonD3DDevice->SetD3D3Device(m_device3.ptr());
@@ -189,8 +186,6 @@ namespace dxvk {
 
       Logger::debug("D3D6Device::QueryInterface: Query for IDirect3DDevice2");
 
-      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
-
       Com<DDrawSurface> rt = m_rt->GetCommonSurface()->GetDDSurface();
       // Manually retrieve a DDrawSurface object if it doesn't otherwise exist
       if (unlikely(rt == nullptr)) {
@@ -200,7 +195,6 @@ namespace dxvk {
       }
 
       m_device5 = new D3D5Device(m_commonD3DDevice.ptr(), m_commonD3DDevice->GetCommonD3DInterface()->GetD3D5Interface(),
-                                 GetD3D5Caps(m_commonD3DDevice->GetDeviceGUID(), d3dOptions),
                                  m_commonD3DDevice->GetDeviceGUID(), m_commonD3DDevice->GetPresentParameters(),
                                  nullptr, rt.ptr(), m_commonD3DDevice->GetD3D9CreationFlags());
       m_commonD3DDevice->SetD3D5Device(m_device5.ptr());

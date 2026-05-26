@@ -16,13 +16,13 @@ namespace dxvk {
   D3D6VertexBuffer::D3D6VertexBuffer(
         D3D6Interface* pParent,
         DWORD creationFlags,
-        D3DVERTEXBUFFERDESC desc)
+        D3DVERTEXBUFFERDESC* pDesc)
     : DDrawChildObject<D3D6Interface, IDirect3DVertexBuffer>(pParent)
     , m_commonIntf ( pParent->GetCommonInterface() )
     , m_creationFlags ( creationFlags )
-    , m_desc ( desc )
-    , m_stride ( GetFVFSize(desc.dwFVF) )
-    , m_size ( m_stride * desc.dwNumVertices ) {
+    , m_desc ( *pDesc )
+    , m_stride ( GetFVFSize(pDesc->dwFVF) )
+    , m_size ( m_stride * pDesc->dwNumVertices ) {
     m_buffCount = ++s_buffCount;
 
     ListBufferDetails();

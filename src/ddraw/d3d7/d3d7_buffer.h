@@ -16,7 +16,7 @@ namespace dxvk {
 
     D3D7VertexBuffer(
           D3D7Interface* pParent,
-          D3DVERTEXBUFFERDESC desc);
+          D3DVERTEXBUFFERDESC* pDesc);
 
     ~D3D7VertexBuffer();
 
