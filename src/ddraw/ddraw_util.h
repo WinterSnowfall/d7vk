@@ -275,7 +275,7 @@ namespace dxvk {
     pvb.stride = GetFVFSize(dwFVF);
     pvb.vertexData.resize(pvb.stride * dwNumVertices);
 
-    DWORD dwNumTextures = (dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+    const DWORD dwNumTextures = (dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 
     for (DWORD i = 0; i < dwNumVertices; i++) {
       uint8_t* ptr = pvb.vertexData.data() + i * pvb.stride;
@@ -1692,11 +1692,9 @@ namespace dxvk {
         || rs == D3DRENDERSTATE_CLIPPLANEENABLE;
   }
 
-  inline Matrix4 MatrixD3DTo4(const D3DMATRIX *m) {
-    if (m == nullptr)
-      return nullptr;
-
+  inline Matrix4 MatrixD3DTo4(const D3DMATRIX* m) {
     Matrix4 r;
+
     r.data[0] = Vector4(m->_11, m->_12, m->_13, m->_14);
     r.data[1] = Vector4(m->_21, m->_22, m->_23, m->_24);
     r.data[2] = Vector4(m->_31, m->_32, m->_33, m->_34);
@@ -1705,7 +1703,7 @@ namespace dxvk {
     return r;
   }
 
-  inline D3DMATRIX Matrix4ToD3D(const Matrix4 *m) {
+  inline D3DMATRIX Matrix4ToD3D(const Matrix4* m) {
     D3DMATRIX r;
 
     r._11 = m->data[0][0]; r._12 = m->data[0][1]; r._13 = m->data[0][2]; r._14 = m->data[0][3];

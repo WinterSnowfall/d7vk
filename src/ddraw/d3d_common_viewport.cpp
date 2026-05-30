@@ -105,26 +105,30 @@ namespace dxvk {
   }
 
   HRESULT D3DCommonViewport::TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen) {
-    if (data == nullptr || data->dwSize != sizeof(D3DTRANSFORMDATA) || offscreen == nullptr)
+    if (unlikely(data == nullptr || offscreen == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if ((flags & (D3DTRANSFORM_CLIPPED | D3DTRANSFORM_UNCLIPPED)) == 0)
+    if (unlikely(data->dwSize != sizeof(D3DTRANSFORMDATA)))
       return DDERR_INVALIDPARAMS;
 
-    bool clipped = (flags & D3DTRANSFORM_CLIPPED) && !(flags & D3DTRANSFORM_UNCLIPPED);
+    if (unlikely((flags & (D3DTRANSFORM_CLIPPED | D3DTRANSFORM_UNCLIPPED)) == 0))
+      return DDERR_INVALIDPARAMS;
+
+    const bool clipped = (flags & D3DTRANSFORM_CLIPPED) && !(flags & D3DTRANSFORM_UNCLIPPED);
+
     if (clipped)
       *offscreen = UINT_MAX;
     else
       *offscreen = 0;
 
     // When vertex_count = 0 native apparently returns success even when data->lpIn/data->lpOut are null, otherwise crash
-    if (vertex_count == 0)
+    if (unlikely(vertex_count == 0))
       return D3D_OK;
 
-    if (data->dwInSize < sizeof(D3DLVERTEX) || data->dwOutSize < sizeof(D3DTLVERTEX))
+    if (unlikely(data->dwInSize < sizeof(D3DLVERTEX) || data->dwOutSize < sizeof(D3DTLVERTEX)))
       return DDERR_INVALIDPARAMS;
 
-    if (data->lpIn == nullptr || data->lpOut == nullptr)
+    if (unlikely(data->lpIn == nullptr || data->lpOut == nullptr))
       return DDERR_INVALIDPARAMS;
 
     // Ensure transform states aren't modified in flight
@@ -137,29 +141,29 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* m_device9 = GetD3D9Device();
 
-    D3DMATRIX world{}, view{}, projection{};
+    D3DMATRIX world9, view9, projection9;
     HRESULT hr;
-    hr = m_device9->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_WORLD), &world);
+    hr = m_device9->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_WORLD), &world9);
     if (FAILED(hr)) {
       Logger::err("D3DCommonViewport::TransformVertices: failed to get world transform");
       return DDERR_GENERIC;
     }
-    hr = m_device9->GetTransform(d3d9::D3DTS_VIEW, &view);
+    hr = m_device9->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_VIEW), &view9);
     if (FAILED(hr)) {
       Logger::err("D3DCommonViewport::TransformVertices: failed to get view transform");
       return DDERR_GENERIC;
     }
-    hr = m_device9->GetTransform(d3d9::D3DTS_PROJECTION, &projection);
+    hr = m_device9->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_PROJECTION), &projection9);
     if (FAILED(hr)) {
       Logger::err("D3DCommonViewport::TransformVertices: failed to get projection transform");
       return DDERR_GENERIC;
     }
 
-    Matrix4 wv = MatrixD3DTo4(&view) * MatrixD3DTo4(&world);
-    Matrix4 wvp = MatrixD3DTo4(&projection) * wv;
     const D3DMATRIX* correction = GetLegacyProjectionMatrix(0);
-    if (correction != nullptr)
-      wvp = MatrixD3DTo4(correction) * wvp;
+
+    const Matrix4 wv = MatrixD3DTo4(&view9) * MatrixD3DTo4(&world9);
+    const Matrix4 wvp = correction == nullptr ? MatrixD3DTo4(&projection9) * wv
+                                              : MatrixD3DTo4(correction) * MatrixD3DTo4(&projection9) * wv;
 
     for (DWORD t = 0; t < vertex_count; t++) {
       // Docs says input is always D3DLVERTEX and output D3DTLVERTEX.
