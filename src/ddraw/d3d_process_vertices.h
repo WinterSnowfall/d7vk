@@ -41,7 +41,7 @@ namespace dxvk {
     );
   }
 
-  inline D3DCOLORVALUE ColorToColorV(D3DCOLOR c) {
+  inline D3DCOLORVALUE ColorToColorV(const D3DCOLOR& c) {
     D3DCOLORVALUE result;
 
     result.a = ((c >> 24) & 0xFF) / 255.0f;
@@ -52,7 +52,7 @@ namespace dxvk {
     return result;
   }
 
-  inline D3DCOLORVALUE ColorVClamp(D3DCOLORVALUE color, float min, float max) {
+  inline D3DCOLORVALUE ColorVClamp(const D3DCOLORVALUE& color, float min, float max) {
     D3DCOLORVALUE result;
 
     result.r = std::clamp(color.r, min, max);
@@ -63,15 +63,15 @@ namespace dxvk {
     return result;
   }
 
-  inline void ColorVMultiplyAdd(D3DCOLORVALUE &out, D3DCOLORVALUE color, float value, bool alpha = false) {
+  inline void ColorVMultiplyAdd(D3DCOLORVALUE& out, const D3DCOLORVALUE& color, float value, bool alpha = false) {
     out.r += color.r * value;
     out.g += color.g * value;
     out.b += color.b * value;
-    if (alpha)
+    if (unlikely(alpha))
       out.a += color.r * value;
   }
 
-  inline Vector4 NormalizeVec3(Vector4 v) {
+  inline Vector4 NormalizeVec3(const Vector4& v) {
     Vector4 result = normalize(Vector4(v.x, v.y, v.z, 0.0f));
     result.w = 0.0;
 
@@ -124,7 +124,8 @@ namespace dxvk {
 
   inline void ApplyLight(
         const d3d9::D3DLIGHT9* light9, bool localViewer, D3DCOLORVALUE& diffuse, D3DCOLORVALUE& specular,
-        Vector4 normals, Vector4 hitDirection, Vector4 position, float attenuation, float materialPower, bool isLegacy) {
+        const Vector4& normals, const Vector4& hitDirection, const Vector4& position,
+        float attenuation, float materialPower, bool isLegacy) {
     const float direction_dot = dot(hitDirection, normals);
     const float direction_clamped_dot = std::clamp(direction_dot, 0.0f, 1.0f);
     ColorVMultiplyAdd(diffuse, light9->Diffuse, direction_clamped_dot * attenuation);
@@ -146,8 +147,8 @@ namespace dxvk {
   }
 
   inline void ApplyFog(
-        float *specularAlpha, D3DFOGMODE vertexMode, float density,
-        float start, float end, bool range, Vector4 position) {
+        float* specularAlpha, D3DFOGMODE vertexMode, float density,
+        float start, float end, bool range, const Vector4& position) {
     if (vertexMode == D3DFOG_NONE)
       return;
 
@@ -169,9 +170,8 @@ namespace dxvk {
   }
 
   inline void ProcessVerticesInput(
-        DWORD dwFVF, uint8_t *ptr, Vector4& position, Vector4& normals,
+        bool doNotCopyData, DWORD dwFVF, uint8_t *ptr, Vector4& position, Vector4& normals,
         Vector4& texCoords, D3DCOLOR& diffuse, D3DCOLOR& specular) {
-    const DWORD dwNumTextures = (dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
     if (uint8_t type = (dwFVF & D3DFVF_POSITION_MASK)) {
       switch (type) {
         case D3DFVF_XYZ:
@@ -270,35 +270,47 @@ namespace dxvk {
       ptr += sizeof(D3DCOLOR);
     }
 
+    const DWORD dwNumTextures = (dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+
     for (DWORD tex = 0; tex < dwNumTextures; tex++) {
       const DWORD texCoordSize = (dwFVF >> (tex * 2 + 16)) & 0x3;
       switch (texCoordSize) {
         case D3DFVF_TEXTUREFORMAT1:
-          texCoords.x = *reinterpret_cast<FLOAT*>(ptr);
+          if (!doNotCopyData)
+            texCoords.x = *reinterpret_cast<FLOAT*>(ptr);
           ptr += sizeof(FLOAT);
           break;
         case D3DFVF_TEXTUREFORMAT2:
-          texCoords.x = *reinterpret_cast<FLOAT*>(ptr);
+          if (!doNotCopyData)
+            texCoords.x = *reinterpret_cast<FLOAT*>(ptr);
           ptr += sizeof(FLOAT);
-          texCoords.y = *reinterpret_cast<FLOAT*>(ptr);
+          if (!doNotCopyData)
+            texCoords.y = *reinterpret_cast<FLOAT*>(ptr);
           ptr += sizeof(FLOAT);
           break;
         case D3DFVF_TEXTUREFORMAT3:
-          texCoords.x = *reinterpret_cast<FLOAT*>(ptr);
+          if (!doNotCopyData)
+            texCoords.x = *reinterpret_cast<FLOAT*>(ptr);
           ptr += sizeof(FLOAT);
-          texCoords.y = *reinterpret_cast<FLOAT*>(ptr);
+          if (!doNotCopyData)
+            texCoords.y = *reinterpret_cast<FLOAT*>(ptr);
           ptr += sizeof(FLOAT);
-          texCoords.z = *reinterpret_cast<FLOAT*>(ptr);
+          if (!doNotCopyData)
+            texCoords.z = *reinterpret_cast<FLOAT*>(ptr);
           ptr += sizeof(FLOAT);
           break;
         case D3DFVF_TEXTUREFORMAT4:
-          texCoords.x = *reinterpret_cast<FLOAT*>(ptr);
+          if (!doNotCopyData)
+            texCoords.x = *reinterpret_cast<FLOAT*>(ptr);
           ptr += sizeof(FLOAT);
-          texCoords.y = *reinterpret_cast<FLOAT*>(ptr);
+          if (!doNotCopyData)
+            texCoords.y = *reinterpret_cast<FLOAT*>(ptr);
           ptr += sizeof(FLOAT);
-          texCoords.z = *reinterpret_cast<FLOAT*>(ptr);
+          if (!doNotCopyData)
+            texCoords.z = *reinterpret_cast<FLOAT*>(ptr);
           ptr += sizeof(FLOAT);
-          texCoords.w = *reinterpret_cast<FLOAT*>(ptr);
+          if (!doNotCopyData)
+            texCoords.w = *reinterpret_cast<FLOAT*>(ptr);
           ptr += sizeof(FLOAT);
           break;
       }
@@ -308,7 +320,6 @@ namespace dxvk {
   inline void ProcessVerticesOutput(
         DWORD dwFVF, uint8_t *ptr, Vector4* position, Vector4* normals,
         Vector4* texCoords, D3DCOLOR* diffuse, D3DCOLOR* specular) {
-    const DWORD dwNumTextures = (dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
     if (uint8_t type = (dwFVF & D3DFVF_POSITION_MASK)) {
       switch (type) {
         case D3DFVF_XYZ:
@@ -407,6 +418,8 @@ namespace dxvk {
       ptr += sizeof(D3DCOLOR);
     }
 
+    const DWORD dwNumTextures = (dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+
     for (DWORD tex = 0; tex < dwNumTextures; tex++) {
       const DWORD texCoordSize = (dwFVF >> (tex * 2 + 16)) & 0x3;
       switch (texCoordSize) {
@@ -453,31 +466,31 @@ namespace dxvk {
   }
 
   inline void ProcessVerticesSW(
-        d3d9::IDirect3DDevice9* d3d9Device, const D3DOptions* options, ProcessVerticesData *pvData) {
+        d3d9::IDirect3DDevice9* d3d9Device, const D3DOptions* options, ProcessVerticesData* pvData) {
     Logger::debug(">>> ProcessVerticesSW");
     if (unlikely(pvData == nullptr)) {
       Logger::err("ProcessVerticesSW: Missing processing data");
       return;
     }
 
-    D3DMATRIX world{}, view{}, projection{};
+    D3DMATRIX world9, view9, projection9;
     d3d9::D3DVIEWPORT9 viewport9;
     HRESULT hr = d3d9Device->GetViewport(&viewport9);
     if (unlikely(FAILED(hr))) {
       Logger::err("ProcessVerticesSW: Failed to get viewport");
       return;
     }
-    hr = d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_WORLD), &world);
+    hr = d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_WORLD), &world9);
     if (unlikely(FAILED(hr))) {
       Logger::err("ProcessVerticesSW: Failed to get world transform");
       return;
     }
-    hr = d3d9Device->GetTransform(d3d9::D3DTS_VIEW, &view);
+    hr = d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_VIEW), &view9);
     if (unlikely(FAILED(hr))) {
       Logger::err("ProcessVerticesSW: Failed to get view transform");
       return;
     }
-    hr = d3d9Device->GetTransform(d3d9::D3DTS_PROJECTION, &projection);
+    hr = d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_PROJECTION), &projection9);
     if (unlikely(FAILED(hr))) {
       Logger::err("ProcessVerticesSW: Failed to get projection transform");
       return;
@@ -486,13 +499,14 @@ namespace dxvk {
     d3d9::D3DMATERIAL9 material{};
     d3d9Device->GetMaterial(&material);
 
-    Matrix4 wv = MatrixD3DTo4(&view) * MatrixD3DTo4(&world);
-    Matrix4 wvp = MatrixD3DTo4(&projection) * wv;
-    if (pvData->isLegacy && pvData->correction != nullptr)
-      wvp = MatrixD3DTo4(pvData->correction) * wvp;
+    const bool needsCorrection = pvData->isLegacy && pvData->correction != nullptr;
+    const Matrix4 view = MatrixD3DTo4(&view9);
+    const Matrix4 wv   = view * MatrixD3DTo4(&world9);
+    const Matrix4 wvp  = !needsCorrection ? MatrixD3DTo4(&projection9) * wv
+                                          : MatrixD3DTo4(pvData->correction) * MatrixD3DTo4(&projection9) * wv;
 
     BOOL isEnabledLighting, isEnabledFogRange, isEnabledNormalizeNormals, isEnabledSpecular, isEnabledLocalViewer;
-    D3DCOLOR stateAmbient;
+    D3DCOLOR ambientStateColor;
     D3DFOGMODE fogVertexMode;
     float fogStart, fogEnd, fogDensity;
 
@@ -503,11 +517,14 @@ namespace dxvk {
     d3d9Device->GetRenderState(d3d9::D3DRS_RANGEFOGENABLE, reinterpret_cast<DWORD*>(&isEnabledFogRange));
     d3d9Device->GetRenderState(d3d9::D3DRS_LIGHTING, reinterpret_cast<DWORD*>(&isEnabledLighting));
     if (isEnabledLighting) {
-      d3d9Device->GetRenderState(d3d9::D3DRS_AMBIENT, reinterpret_cast<DWORD*>(&stateAmbient));
+      d3d9Device->GetRenderState(d3d9::D3DRS_AMBIENT, reinterpret_cast<DWORD*>(&ambientStateColor));
       d3d9Device->GetRenderState(d3d9::D3DRS_SPECULARENABLE, reinterpret_cast<DWORD*>(&isEnabledSpecular));
       d3d9Device->GetRenderState(d3d9::D3DRS_NORMALIZENORMALS, reinterpret_cast<DWORD*>(&isEnabledNormalizeNormals));
       d3d9Device->GetRenderState(d3d9::D3DRS_LOCALVIEWER, reinterpret_cast<DWORD*>(&isEnabledLocalViewer));
     }
+
+    const D3DCOLORVALUE ambientStateColorValue = isEnabledLighting ? ColorToColorV(ambientStateColor) :
+                                                                     D3DCOLORVALUE{0.0, 0.0, 0.0, 0.0};
 
     DWORD sourceDiffuse, sourceSpecular, sourceAmbient, sourceEmissive;
     MaterialColorSource(d3d9Device, &sourceDiffuse, &sourceSpecular, &sourceAmbient, &sourceEmissive);
@@ -521,7 +538,8 @@ namespace dxvk {
       Vector4 inTexCoords{};
       const bool hasDiffUse  = pvData->inFVF & D3DFVF_DIFFUSE;
       const bool hasSpecular = pvData->inFVF & D3DFVF_SPECULAR;
-      ProcessVerticesInput(pvData->inFVF, inPtr, inPosition, inNormals, inTexCoords, inDiffuse, inSpecular);
+      ProcessVerticesInput(pvData->doNotCopyData, pvData->inFVF, inPtr, inPosition,
+                           inNormals, inTexCoords, inDiffuse, inSpecular);
 
       // Transform vertices
       Vector4 h = wvp * inPosition;
@@ -570,7 +588,7 @@ namespace dxvk {
         if (isEnabledNormalizeNormals)
           normals = NormalizeVec3(normals);
 
-        D3DCOLORVALUE ambient = ColorToColorV(stateAmbient);
+        D3DCOLORVALUE ambient = ambientStateColorValue;
 
         for (d3d9::D3DLIGHT9 light : *pvData->lights) {
           Vector4 hitDirection;
@@ -578,16 +596,16 @@ namespace dxvk {
           D3DLIGHTTYPE lightType = D3DLIGHTTYPE(light.Type);
           switch (lightType) {
             case D3DLIGHT_DIRECTIONAL: {
-              Vector4 lightDirection = NormalizeVec3(MatrixD3DTo4(&view) * Vector4(-light.Direction.x, -light.Direction.y,
-                                                                                   -light.Direction.z, 0.0f));
+              Vector4 lightDirection = NormalizeVec3(view * Vector4(-light.Direction.x, -light.Direction.y,
+                                                                    -light.Direction.z, 0.0f));
               hitDirection = Vector4(lightDirection.x, lightDirection.y, lightDirection.z, 0.0f);
               attenuation = 1.0f;
               break;
             }
             case D3DLIGHT_POINT:
             case D3DLIGHT_SPOT: {
-              Vector4 light_position = MatrixD3DTo4(&view) * Vector4(light.Position.x, light.Position.y,
-                                                                     light.Position.z, 1.0f);
+              Vector4 light_position = view * Vector4(light.Position.x, light.Position.y,
+                                                      light.Position.z, 1.0f);
 
               hitDirection = Vector4(light_position.x - VWPosition.x, light_position.y - VWPosition.y,
                                      light_position.z - VWPosition.z, 0.0f);
@@ -610,8 +628,8 @@ namespace dxvk {
                 attenuation = 1.0f / attenuation;
 
               if (lightType == D3DLIGHT_SPOT) {
-                Vector4 lightDirection = NormalizeVec3(MatrixD3DTo4(&view) * Vector4(light.Direction.x, light.Direction.y,
-                                                                                     light.Direction.z, 0.0f));
+                Vector4 lightDirection = NormalizeVec3(view * Vector4(light.Direction.x, light.Direction.y,
+                                                                      light.Direction.z, 0.0f));
                 const float rho = dot(-hitDirection, lightDirection);
                 const float cosHalfPhi = cosf(light.Phi / 2.0f);
                 const float cosHalfTheta = cosf(light.Theta / 2.0f);
@@ -668,8 +686,9 @@ namespace dxvk {
       diffuse = ColorVClamp(diffuse, 0.0f, 1.0f);
       specular = ColorVClamp(specular, 0.0f, 1.0f);
 
-      D3DCOLOR outDiffuse = ColorVToColor(diffuse);
-      D3DCOLOR outSpecular = ColorVToColor(specular);
+      static constexpr D3DCOLOR defaultColor = D3DCOLOR_RGBA(0, 0, 0, 0);
+      D3DCOLOR outDiffuse  = pvData->doNotCopyData ? defaultColor : ColorVToColor(diffuse);
+      D3DCOLOR outSpecular = pvData->doNotCopyData ? defaultColor : ColorVToColor(specular);
 
       ProcessVerticesOutput(pvData->outFVF, outPtr, &outPosition, &inNormals,
          pvData->doNotCopyData ? nullptr : &inTexCoords,
