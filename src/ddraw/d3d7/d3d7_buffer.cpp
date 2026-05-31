@@ -9,6 +9,8 @@
 
 #include "../ddraw7/ddraw7_interface.h"
 
+#include <vector>
+
 namespace dxvk {
 
   uint32_t D3D7VertexBuffer::s_buffCount = 0;
@@ -180,6 +182,8 @@ namespace dxvk {
         return D3DERR_VERTEXBUFFERLOCKED;
       }
 
+      const bool doLighting = dwVertexOp & D3DVOP_LIGHT;
+
       ProcessVerticesData pvData;
       pvData.inData = inData;
       pvData.inFVF = vb->GetFVF();
@@ -190,14 +194,19 @@ namespace dxvk {
       pvData.vertexCount = dwCount;
       pvData.correction = nullptr;
       pvData.dsStatus = nullptr;
-      pvData.doLighting = dwVertexOp & D3DVOP_LIGHT;
+      pvData.doLighting = doLighting;
       pvData.doClipping = dwVertexOp & D3DVOP_CLIP;
       pvData.doNotCopyData = dwFlags & D3DPV_DONOTCOPYDATA;
       pvData.doExtents = true;
       pvData.isLegacy = false;
 
-      std::vector<d3d9::D3DLIGHT9> lights9 = device7->GetLights();
-      pvData.lights = &lights9;
+      if (doLighting) {
+        std::vector<d3d9::D3DLIGHT9> lights9;
+        device7->GetD3D9Lights(&lights9);
+        pvData.lights = &lights9;
+      } else {
+        pvData.lights = nullptr;
+      }
 
       ProcessVerticesSW(device9, m_commonIntf->GetOptions(), &pvData);
 

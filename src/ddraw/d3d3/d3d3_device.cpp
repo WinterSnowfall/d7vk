@@ -491,15 +491,17 @@ namespace dxvk {
 
     if (m_currentViewport != d3d3Viewport) {
       if (likely(m_currentViewport != nullptr)) {
+        // Shouldn't be necessary, but play it safe, as there is some potential
+        // for improper behavior if we skip deactivation during D3D5/6 interop
         m_currentViewport->DeactivateLights();
         m_currentViewport->GetCommonViewport()->SetIsCurrentViewport(false);
       }
 
       m_currentViewport = d3d3Viewport;
-    }
 
-    m_currentViewport->GetCommonViewport()->SetIsCurrentViewport(true);
-    m_currentViewport->ApplyViewport();
+      m_currentViewport->GetCommonViewport()->SetIsCurrentViewport(true);
+      m_currentViewport->ApplyViewport();
+    }
 
     D3DEXECUTEDATA* executeData = d3d3ExecuteBuffer->GetExecuteDataInternal();
 
@@ -663,19 +665,13 @@ namespace dxvk {
                 pvData.doExtents = pv.dwFlags & D3DPROCESSVERTICES_UPDATEEXTENTS;
                 pvData.isLegacy = true;
 
-                std::vector<Com<D3DLight>> lights = commonViewport->GetLights();
-                std::vector<d3d9::D3DLIGHT9> lights9;
-
-                for (auto light: lights) {
-                  if (!light->IsActive())
-                    continue;
-
-                  const d3d9::D3DLIGHT9* light9 = light->GetD3D9Light();
-                  if (light9 != nullptr)
-                    lights9.push_back(*light9);
+                if (doLighting) {
+                  std::vector<d3d9::D3DLIGHT9> lights9;
+                  commonViewport->GetD3D9Lights(&lights9);
+                  pvData.lights = &lights9;
+                } else {
+                  pvData.lights = nullptr;
                 }
-
-                pvData.lights = &lights9;
 
                 ProcessVerticesSW(device9, m_commonIntf->GetOptions(), &pvData);
 
