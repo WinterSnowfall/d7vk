@@ -79,24 +79,24 @@ namespace dxvk {
       Logger::debug(str::format("   Vertices: ", m_size / m_stride));
     }
 
-    bool                              m_locked  = false;
+    bool                              m_locked        = false;
     bool                              m_legacyDiscard = false;
 
     static uint32_t                   s_buffCount;
-    uint32_t                          m_buffCount  = 0;
+    uint32_t                          m_buffCount     = 0;
 
-    DDrawCommonInterface*             m_commonIntf = nullptr;
+    DDrawCommonInterface*             m_commonIntf    = nullptr;
 
-    D3D7Device*                       m_d3d7Device = nullptr;
-
-    Com<d3d9::IDirect3DVertexBuffer9> m_vb9;
-
-    DWORD                             m_lighting   = FALSE;
+    DWORD                             m_lighting      = FALSE;
 
     D3DVERTEXBUFFERDESC               m_desc;
 
-    UINT                              m_stride = 0;
-    UINT                              m_size   = 0;
+    UINT                              m_stride        = 0;
+    UINT                              m_size          = 0;
+
+    D3D7Device*                       m_d3d7Device    = nullptr;
+
+    Com<d3d9::IDirect3DVertexBuffer9> m_vb9;
 
   };
 

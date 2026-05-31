@@ -62,6 +62,13 @@ namespace dxvk {
       return &m_viewport9;
     }
 
+    void GetD3D9Lights(std::vector<d3d9::D3DLIGHT9>* lights9) {
+      for (auto light: m_lights) {
+        if (light->IsActive())
+          lights9->push_back(*light->GetD3D9Light());
+      }
+    }
+
     std::vector<Com<D3DLight>>& GetLights() {
       return m_lights;
     }

@@ -511,11 +511,12 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     d3d9::D3DLIGHT9* light9 = reinterpret_cast<d3d9::D3DLIGHT9*>(data);
-    m_lights[idx] = *light9;
 
     HRESULT hr = m_commonD3DDevice->GetD3D9Device()->SetLight(idx, light9);
     if (unlikely(FAILED(hr)))
       return DDERR_INVALIDPARAMS;
+
+    m_lights[idx] = *light9;
 
     return D3D_OK;
   }
@@ -1430,9 +1431,13 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::LightEnable(DWORD dwLightIndex, BOOL bEnable) {
     Logger::debug(">>> D3D7Device::LightEnable");
 
+    HRESULT hr = m_commonD3DDevice->GetD3D9Device()->LightEnable(dwLightIndex, bEnable);
+    if (unlikely(FAILED(hr)))
+      return DDERR_INVALIDPARAMS;
+
     m_lightsStates[dwLightIndex] = bEnable;
 
-    return m_commonD3DDevice->GetD3D9Device()->LightEnable(dwLightIndex, bEnable);
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::GetLightEnable(DWORD dwLightIndex, BOOL *pbEnable) {
