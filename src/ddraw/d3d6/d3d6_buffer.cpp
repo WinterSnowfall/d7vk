@@ -9,6 +9,8 @@
 
 #include "../ddraw4/ddraw4_interface.h"
 
+#include <vector>
+
 namespace dxvk {
 
   uint32_t D3D6VertexBuffer::s_buffCount = 0;
@@ -173,6 +175,7 @@ namespace dxvk {
         return D3DERR_VERTEXBUFFERLOCKED;
       }
 
+      const bool doLighting = dwVertexOp & D3DVOP_LIGHT;
       D3DCommonViewport* commonViewport = device6->GetCurrentViewportInternal()->GetCommonViewport();
 
       ProcessVerticesData pvData;
@@ -185,25 +188,19 @@ namespace dxvk {
       pvData.vertexCount = dwCount;
       pvData.correction = commonViewport->GetLegacyProjectionMatrix(0);
       pvData.dsStatus = nullptr;
-      pvData.doLighting = dwVertexOp & D3DVOP_LIGHT;
+      pvData.doLighting = doLighting;
       pvData.doClipping = dwVertexOp & D3DVOP_CLIP;
       pvData.doNotCopyData = dwFlags & D3DPV_DONOTCOPYDATA;
       pvData.doExtents = true;
       pvData.isLegacy = true;
 
-      std::vector<Com<D3DLight>> lights = commonViewport->GetLights();
-      std::vector<d3d9::D3DLIGHT9> lights9;
-
-      for (auto light: lights) {
-        if (!light->IsActive())
-          continue;
-
-        const d3d9::D3DLIGHT9* light9 = light->GetD3D9Light();
-        if (light9 != nullptr)
-          lights9.push_back(*light9);
+      if (doLighting) {
+        std::vector<d3d9::D3DLIGHT9> lights9;
+        commonViewport->GetD3D9Lights(&lights9);
+        pvData.lights = &lights9;
+      } else {
+        pvData.lights = nullptr;
       }
-
-      pvData.lights = &lights9;
 
       ProcessVerticesSW(device9, m_commonIntf->GetOptions(), &pvData);
 
