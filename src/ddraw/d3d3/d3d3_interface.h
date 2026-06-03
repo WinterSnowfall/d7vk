@@ -63,6 +63,9 @@ namespace dxvk {
 
     Com<D3DCommonInterface>       m_commonD3DIntf;
 
+    Com<D3D6Interface, false>     m_d3d6Intf;
+    Com<D3D5Interface, false>     m_d3d5Intf;
+
   };
 
 }
