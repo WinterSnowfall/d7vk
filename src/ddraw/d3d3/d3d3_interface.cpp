@@ -6,6 +6,7 @@
 #include "../d3d_light.h"
 
 #include "../d3d5/d3d5_interface.h"
+#include "../d3d6/d3d6_interface.h"
 
 #include "../ddraw/ddraw_interface.h"
 
@@ -96,15 +97,37 @@ namespace dxvk {
       Logger::debug("D3D3Interface::QueryInterface: Query for IDirectDraw");
       return m_parent->QueryInterface(riid, ppvObject);
     }
-    // Deathtrap Dungeon queries for IDirect3D2... not sure if this ever worked
+    // Deathtrap Dungeon queries for IDirect3D2...
     if (unlikely(riid == __uuidof(IDirect3D2))) {
       if (likely(m_commonD3DIntf->GetD3D5Interface() != nullptr)) {
         Logger::debug("D3D3Interface::QueryInterface: Query for existing IDirect3D2");
         return m_commonD3DIntf->GetD3D5Interface()->QueryInterface(riid, ppvObject);
       }
 
-      Logger::warn("D3D3Interface::QueryInterface: Query for IDirect3D2");
-      return m_parent->QueryInterface(riid, ppvObject);
+      Logger::debug("D3D3Interface::QueryInterface: Query for IDirect3D2");
+      m_d3d5Intf = new D3D5Interface(m_commonIntf, m_commonD3DIntf.ptr(), m_parent);
+      *ppvObject = m_d3d5Intf.ref();
+      return S_OK;
+    }
+    // ... and Final Fantasy VIII queries for IDirect3D3, because why not...
+    if (unlikely(riid == __uuidof(IDirect3D3))) {
+      if (likely(m_commonD3DIntf->GetD3D6Interface() != nullptr)) {
+        Logger::debug("D3D3Interface::QueryInterface: Query for existing IDirect3D3");
+        return m_commonD3DIntf->GetD3D6Interface()->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("D3D3Interface::QueryInterface: Query for IDirect3D3");
+
+      // We don't have a proxied object on D3D3Interface, so use the parent
+      // DDraw interface to get a proxied object for the queried D3D6Interface
+      Com<IDirect3D3> ppvProxyObject;
+      HRESULT hr = m_parent->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      m_d3d6Intf = new D3D6Interface(m_commonIntf, m_commonD3DIntf.ptr(), std::move(ppvProxyObject), m_parent);
+      *ppvObject = m_d3d6Intf.ref();
+      return S_OK;
     }
 
     if (likely(riid == __uuidof(IUnknown) ||

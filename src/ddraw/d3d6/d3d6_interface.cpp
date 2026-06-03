@@ -9,6 +9,7 @@
 #include "../d3d_multithread.h"
 
 #include "../d3d3/d3d3_interface.h"
+#include "../d3d5/d3d5_interface.h"
 
 #include "../ddraw4/ddraw4_interface.h"
 #include "../ddraw4/ddraw4_surface.h"
@@ -89,17 +90,19 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
+    if (unlikely(riid == __uuidof(IDirectDraw))) {
+      Logger::debug("D3D6Interface::QueryInterface: Query for IDirectDraw");
+      return m_parent->QueryInterface(riid, ppvObject);
+    }
+    if (unlikely(riid == __uuidof(IDirectDraw2))) {
+      Logger::debug("D3D6Interface::QueryInterface: Query for IDirectDraw2");
+      return m_parent->QueryInterface(riid, ppvObject);
+    }
     if (riid == __uuidof(IDirectDraw4)) {
       Logger::debug("D3D6Interface::QueryInterface: Query for IDirectDraw4");
       return m_parent->QueryInterface(riid, ppvObject);
     }
-    // Some games query for ddraw interfaces
-    if (unlikely(riid == __uuidof(IDirectDraw)
-              || riid == __uuidof(IDirectDraw2))) {
-      Logger::debug("D3D6Interface::QueryInterface: Query for legacy IDirectDraw");
-      return m_parent->QueryInterface(riid, ppvObject);
-    }
-    // Some games query for legacy d3d interfaces
+    // Some games query for legacy D3D interfaces
     if (unlikely(riid == __uuidof(IDirect3D))) {
       if (m_commonD3DIntf->GetD3D3Interface() != nullptr) {
         Logger::debug("D3D6Interface::QueryInterface: Query for existing IDirect3D");
@@ -108,9 +111,22 @@ namespace dxvk {
 
       Logger::debug("D3D6Interface::QueryInterface: Query for IDirect3D");
 
-      Com<D3D3Interface> d3d3Intf = new D3D3Interface(m_commonIntf, m_commonD3DIntf.ptr(), m_parent);
-      m_commonIntf->SetD3D3Interface(d3d3Intf.ptr());
-      *ppvObject = d3d3Intf.ref();
+      m_d3d3Intf = new D3D3Interface(m_commonIntf, m_commonD3DIntf.ptr(), m_parent);
+      m_commonIntf->SetD3D3Interface(m_d3d3Intf.ptr());
+      *ppvObject = m_d3d3Intf.ref();
+
+      return S_OK;
+    }
+    if (unlikely(riid == __uuidof(IDirect3D2))) {
+      if (m_commonD3DIntf->GetD3D5Interface() != nullptr) {
+        Logger::debug("D3D6Interface::QueryInterface: Query for existing IDirect3D2");
+        return m_commonD3DIntf->GetD3D5Interface()->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("D3D6Interface::QueryInterface: Query for IDirect3D2");
+
+      m_d3d5Intf = new D3D5Interface(m_commonIntf, m_commonD3DIntf.ptr(), m_parent);
+      *ppvObject = m_d3d5Intf.ref();
 
       return S_OK;
     }
