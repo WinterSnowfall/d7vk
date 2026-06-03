@@ -7,6 +7,7 @@
 #include "../d3d_light.h"
 
 #include "../d3d3/d3d3_interface.h"
+#include "../d3d6/d3d6_interface.h"
 
 #include "../ddraw/ddraw_interface.h"
 #include "../ddraw/ddraw_surface.h"
@@ -96,7 +97,7 @@ namespace dxvk {
       Logger::debug("D3D5Interface::QueryInterface: Query for IDirectDraw2");
       return m_parent->QueryInterface(riid, ppvObject);
     }
-    // Some games query for legacy d3d interfaces
+    // Some games query for legacy D3D interfaces
     if (unlikely(riid == __uuidof(IDirect3D))) {
       if (m_commonD3DIntf->GetD3D3Interface() != nullptr) {
         Logger::debug("D3D5Interface::QueryInterface: Query for existing IDirect3D");
@@ -105,9 +106,29 @@ namespace dxvk {
 
       Logger::debug("D3D5Interface::QueryInterface: Query for IDirect3D");
 
-      Com<D3D3Interface> d3d3Intf = new D3D3Interface(m_commonIntf, m_commonD3DIntf.ptr(), m_parent);
-      m_commonIntf->SetD3D3Interface(d3d3Intf.ptr());
-      *ppvObject = d3d3Intf.ref();
+      m_d3d3Intf = new D3D3Interface(m_commonIntf, m_commonD3DIntf.ptr(), m_parent);
+      m_commonIntf->SetD3D3Interface(m_d3d3Intf.ptr());
+      *ppvObject = m_d3d3Intf.ref();
+
+      return S_OK;
+    }
+    if (unlikely(riid == __uuidof(IDirect3D3))) {
+      if (m_commonD3DIntf->GetD3D3Interface() != nullptr) {
+        Logger::debug("D3D5Interface::QueryInterface: Query for existing IDirect3D3");
+        return m_commonD3DIntf->GetD3D6Interface()->QueryInterface(riid, ppvObject);
+      }
+
+      Logger::debug("D3D5Interface::QueryInterface: Query for IDirect3D3");
+
+      // We don't have a proxied object on D3D5Interface, so use the parent
+      // DDraw interface to get a proxied object for the queried D3D6Interface
+      Com<IDirect3D3> ppvProxyObject;
+      HRESULT hr = m_parent->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      m_d3d6Intf = new D3D6Interface(m_commonIntf, m_commonD3DIntf.ptr(), std::move(ppvProxyObject), m_parent);
+      *ppvObject = m_d3d6Intf.ref();
 
       return S_OK;
     }
