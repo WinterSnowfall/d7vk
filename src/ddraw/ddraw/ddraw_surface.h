@@ -8,15 +8,14 @@
 
 #include "ddraw_interface.h"
 
+#include "../ddraw4/ddraw4_surface.h"
+
 #include "../d3d3/d3d3_texture.h"
 #include "../d3d5/d3d5_texture.h"
 
 #include <unordered_map>
 
 namespace dxvk {
-
-  class DDrawInterface;
-  class DDraw7Surface;
 
   /**
   * \brief IDirectDrawSurface interface implementation
@@ -185,6 +184,10 @@ namespace dxvk {
       m_commonSurf->SetIsAttached(false);
     }
 
+    void SetParentSurface4(DDraw4Surface* surface4) {
+      m_surface4 = surface4;
+    }
+
   private:
 
     inline HRESULT UploadSurfaceData();
@@ -198,23 +201,25 @@ namespace dxvk {
     static uint32_t  s_surfCount;
     uint32_t         m_surfCount     = 0;
 
-    Com<DDrawCommonSurface> m_commonSurf;
-    DDrawCommonInterface*   m_commonIntf    = nullptr;
+    Com<DDrawCommonSurface>   m_commonSurf;
+    DDrawCommonInterface*     m_commonIntf    = nullptr;
 
-    DDrawSurface*           m_parentSurf    = nullptr;
+    DDrawSurface*             m_parentSurf    = nullptr;
 
-    Com<D3D3Texture, false> m_texture3;
-    Com<D3D5Texture, false> m_texture5;
+    Com<D3D3Texture, false>   m_texture3;
+    Com<D3D5Texture, false>   m_texture5;
 
-    DDrawSurface*           m_nextFlippable = nullptr;
+    Com<DDraw4Surface, false> m_surface4;
+
+    DDrawSurface*             m_nextFlippable = nullptr;
 
     // Offscreen plain surface we use to mask unwanted DDraw interactions, such
     // as forced swapchain presents caused by blits/locks on primary surfaces
-    Com<DDrawSurface>       m_shadowSurf;
+    Com<DDrawSurface>         m_shadowSurf;
 
     // Back buffers will have depth stencil surfaces as attachments (in practice
     // I have never seen more than one depth stencil being attached at a time)
-    Com<DDrawSurface>       m_depthStencil;
+    Com<DDrawSurface>         m_depthStencil;
 
     // These are attached surfaces, which are typically mips or other types of generated
     // surfaces, which need to exist for the entire lifecycle of their parent surface.

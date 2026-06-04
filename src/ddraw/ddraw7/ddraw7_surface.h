@@ -16,8 +16,6 @@
 
 namespace dxvk {
 
-  class D3DCommonDevice;
-
   /**
   * \brief IDirectDrawSurface7 interface implementation
   */
