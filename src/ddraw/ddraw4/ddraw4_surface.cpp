@@ -310,8 +310,7 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
     if (likely(d3d9Device != nullptr)) {
-      const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
-                              && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
+      const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Windowed mode presentation path
       if (!exclusiveMode && lpDDSrcSurface != nullptr && m_commonSurf->IsPrimarySurface()) {
@@ -387,8 +386,7 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
     if (likely(d3d9Device != nullptr)) {
-      const bool exclusiveMode = (m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE)
-                              && !m_commonIntf->GetOptions()->ignoreExclusiveMode;
+      const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Windowed mode presentation path
       if (!exclusiveMode && lpDDSrcSurface != nullptr && m_commonSurf->IsPrimarySurface()) {
