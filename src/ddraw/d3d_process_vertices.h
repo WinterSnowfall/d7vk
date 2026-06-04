@@ -30,6 +30,8 @@ namespace dxvk {
     std::vector<d3d9::D3DLIGHT9>* lights;
   };
 
+  using TexCoordArray = std::array<std::array<FLOAT, 4>, ddrawCaps::MaxSimultaneousTextures>;
+
   // D3DCOLOR is DWORD packed ARGB, uint8_t per component
   // D3DCOLORVALUE is struct with float per component normalized to 0.0f - 1.0f
   inline D3DCOLOR ColorVToColor(const D3DCOLORVALUE& c) {
@@ -123,7 +125,7 @@ namespace dxvk {
 
   inline void ProcessVerticesInput(
         bool doNotCopyData, DWORD dwFVF, uint8_t *ptr, Vector4& position, Vector4& normals,
-        Vector4& texCoords, D3DCOLOR& diffuse, D3DCOLOR& specular) {
+        TexCoordArray& texCoords, D3DCOLOR& diffuse, D3DCOLOR& specular) {
     if (uint8_t type = (dwFVF & D3DFVF_POSITION_MASK)) {
       switch (type) {
         case D3DFVF_XYZ:
@@ -229,41 +231,23 @@ namespace dxvk {
       switch (texCoordSize) {
         case D3DFVF_TEXTUREFORMAT1:
           if (likely(!doNotCopyData))
-            texCoords.x = *reinterpret_cast<FLOAT*>(ptr);
+            memcpy(texCoords[tex].data(), ptr, sizeof(FLOAT));
           ptr += sizeof(FLOAT);
           break;
         case D3DFVF_TEXTUREFORMAT2:
           if (likely(!doNotCopyData))
-            texCoords.x = *reinterpret_cast<FLOAT*>(ptr);
-          ptr += sizeof(FLOAT);
-          if (likely(!doNotCopyData))
-            texCoords.y = *reinterpret_cast<FLOAT*>(ptr);
-          ptr += sizeof(FLOAT);
+            memcpy(texCoords[tex].data(), ptr, sizeof(FLOAT) * 2);
+          ptr += sizeof(FLOAT) * 2;
           break;
         case D3DFVF_TEXTUREFORMAT3:
           if (likely(!doNotCopyData))
-            texCoords.x = *reinterpret_cast<FLOAT*>(ptr);
-          ptr += sizeof(FLOAT);
-          if (likely(!doNotCopyData))
-            texCoords.y = *reinterpret_cast<FLOAT*>(ptr);
-          ptr += sizeof(FLOAT);
-          if (likely(!doNotCopyData))
-            texCoords.z = *reinterpret_cast<FLOAT*>(ptr);
-          ptr += sizeof(FLOAT);
+            memcpy(texCoords[tex].data(), ptr, sizeof(FLOAT) * 3);
+          ptr += sizeof(FLOAT) * 3;
           break;
         case D3DFVF_TEXTUREFORMAT4:
           if (likely(!doNotCopyData))
-            texCoords.x = *reinterpret_cast<FLOAT*>(ptr);
-          ptr += sizeof(FLOAT);
-          if (likely(!doNotCopyData))
-            texCoords.y = *reinterpret_cast<FLOAT*>(ptr);
-          ptr += sizeof(FLOAT);
-          if (likely(!doNotCopyData))
-            texCoords.z = *reinterpret_cast<FLOAT*>(ptr);
-          ptr += sizeof(FLOAT);
-          if (likely(!doNotCopyData))
-            texCoords.w = *reinterpret_cast<FLOAT*>(ptr);
-          ptr += sizeof(FLOAT);
+            memcpy(texCoords[tex].data(), ptr, sizeof(FLOAT) * 4);
+          ptr += sizeof(FLOAT) * 4;
           break;
       }
     }
@@ -271,7 +255,7 @@ namespace dxvk {
 
   inline void ProcessVerticesOutput(
         bool doNotCopyData, DWORD dwFVF, uint8_t* ptr, const Vector4& position, const Vector4& normals,
-        const Vector4& texCoords, const D3DCOLOR& diffuse, const D3DCOLOR& specular) {
+        const TexCoordArray& texCoords, const D3DCOLOR& diffuse, const D3DCOLOR& specular) {
     if (uint8_t type = (dwFVF & D3DFVF_POSITION_MASK)) {
       switch (type) {
         case D3DFVF_XYZ:
@@ -377,41 +361,23 @@ namespace dxvk {
       switch (texCoordSize) {
         case D3DFVF_TEXTUREFORMAT1:
           if (likely(!doNotCopyData))
-            memcpy(ptr, &texCoords.x, sizeof(FLOAT));
+            memcpy(ptr, texCoords[tex].data(), sizeof(FLOAT));
           ptr += sizeof(FLOAT);
           break;
         case D3DFVF_TEXTUREFORMAT2:
           if (likely(!doNotCopyData))
-            memcpy(ptr, &texCoords.x, sizeof(FLOAT));
-          ptr += sizeof(FLOAT);
-          if (likely(!doNotCopyData))
-            memcpy(ptr, &texCoords.y, sizeof(FLOAT));
-          ptr += sizeof(FLOAT);
+            memcpy(ptr, texCoords[tex].data(), sizeof(FLOAT) * 2);
+          ptr += sizeof(FLOAT) * 2;
           break;
         case D3DFVF_TEXTUREFORMAT3:
           if (likely(!doNotCopyData))
-            memcpy(ptr, &texCoords.x, sizeof(FLOAT));
-          ptr += sizeof(FLOAT);
-          if (likely(!doNotCopyData))
-            memcpy(ptr, &texCoords.y, sizeof(FLOAT));
-          ptr += sizeof(FLOAT);
-          if (likely(!doNotCopyData))
-            memcpy(ptr, &texCoords.z, sizeof(FLOAT));
-          ptr += sizeof(FLOAT);
+            memcpy(ptr, texCoords[tex].data(), sizeof(FLOAT) * 3);
+          ptr += sizeof(FLOAT) * 3;
           break;
         case D3DFVF_TEXTUREFORMAT4:
           if (likely(!doNotCopyData))
-            memcpy(ptr, &texCoords.x, sizeof(FLOAT));
-          ptr += sizeof(FLOAT);
-          if (likely(!doNotCopyData))
-            memcpy(ptr, &texCoords.y, sizeof(FLOAT));
-          ptr += sizeof(FLOAT);
-          if (likely(!doNotCopyData))
-            memcpy(ptr, &texCoords.z, sizeof(FLOAT));
-          ptr += sizeof(FLOAT);
-          if (likely(!doNotCopyData))
-            memcpy(ptr, &texCoords.w, sizeof(FLOAT));
-          ptr += sizeof(FLOAT);
+            memcpy(ptr, texCoords[tex].data(), sizeof(FLOAT) * 4);
+          ptr += sizeof(FLOAT) * 4;
           break;
       }
     }
@@ -498,7 +464,7 @@ namespace dxvk {
       Vector4 inNormals   = { };
       D3DCOLOR inDiffuse  = 0;
       D3DCOLOR inSpecular = 0;
-      Vector4 inTexCoords = { };
+      TexCoordArray inTexCoords = { };
 
       const bool hasDiffUse  = pvData->inFVF & D3DFVF_DIFFUSE;
       const bool hasSpecular = pvData->inFVF & D3DFVF_SPECULAR;
