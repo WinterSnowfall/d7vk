@@ -1904,6 +1904,12 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.forceSWVP",                  "True" },
     }} },
+    /* The Sims (& DLCs/Expansion Packs)          */
+    { R"(\\Sims\.(exe|icd)$)", {{
+      { "ddraw.legacyDeviceNames",          "True" },
+      { "ddraw.robustTextureLifeCycle",     "True" },
+      { "ddraw.forceRTFlip",                "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */

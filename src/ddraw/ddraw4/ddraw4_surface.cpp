@@ -186,7 +186,14 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawSurface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDDInterface(), nullptr, false));
+      Com<DDrawSurface> surf = new DDrawSurface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDDInterface(), nullptr, false);
+      // The Sims is an absolute joke of a game that goes out of its way to
+      // release the parent IDirectDrawSurface4 object, after querying
+      // for a IDirect3DTexture2 object on IDirectDrawSurface. Just because.
+      // Make sure we keep a private reference to prevent UAF in this case.
+      if (unlikely(m_commonIntf->GetOptions()->robustTextureLifeCycle))
+        surf->SetParentSurface4(this);
+      *ppvObject = surf.ref();
 
       return S_OK;
     }
@@ -590,7 +597,12 @@ namespace dxvk {
       }
 
       if (m_commonSurf->IsPrimarySurface()) {
-        DDraw4Surface* rt = m_commonIntf->GetDDrawRenderTarget() != nullptr ?
+        // TODO: Handle such odd cases more elegantly; The Sims uploads data to an
+        // offscreen surface RT, and then flips the primary surface, however that
+        // offsceen surface isn't part of the same swapchain...
+        DDraw4Surface* rt = m_commonIntf->GetOptions()->forceRTFlip ?
+                            m_commonSurf->GetCommonD3DDevice()->GetCurrentRenderTarget4() :
+                            m_commonIntf->GetDDrawRenderTarget() != nullptr ?
                             m_commonIntf->GetDDrawRenderTarget()->GetDD4Surface() : nullptr;
 
         if (unlikely(rt != nullptr)) {
