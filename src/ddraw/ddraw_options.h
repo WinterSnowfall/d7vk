@@ -66,9 +66,6 @@ namespace dxvk {
     /// Ignore any application set gamma ramp
     bool ignoreGammaRamp;
 
-    /// Forces windowed mode presentation in EXCLUSIVE/FULLSCREEN mode
-    bool ignoreExclusiveMode;
-
     /// Automatically generate all texture mip maps on the GPU
     bool autoGenMipMaps;
 
@@ -115,7 +112,6 @@ namespace dxvk {
       this->forceLegacyPresent    = config.getOption<bool>   ("ddraw.forceLegacyPresent",    false);
       this->emulateFrontBuffer    = config.getOption<bool>   ("ddraw.emulateFrontBuffer",    false);
       this->ignoreGammaRamp       = config.getOption<bool>   ("ddraw.ignoreGammaRamp",       false);
-      this->ignoreExclusiveMode   = config.getOption<bool>   ("ddraw.ignoreExclusiveMode",   false);
       this->autoGenMipMaps        = config.getOption<bool>   ("ddraw.autoGenMipMaps",        false);
       this->deviceResourceSharing = config.getOption<bool>   ("ddraw.deviceResourceSharing", false);
       this->colorKeyMasking       = config.getOption<bool>   ("ddraw.colorKeyMasking",       false);
