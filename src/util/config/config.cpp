@@ -1669,7 +1669,7 @@ namespace dxvk {
     }} },
     /* Tribes 2 - Fix odd buffer access patterns  */
     { R"(\\Tribes2\.exe$)", {{
-      { "ddraw.ignoreExclusiveMode",        "True" },
+      { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.forceSWVP",                  "True" },
     }} },
     /* Will Rock                                  */
@@ -1690,7 +1690,7 @@ namespace dxvk {
     }} },
     /* Space Pirates and Zombies                  */
     { R"(\\SpazGame\.exe$)", {{
-      { "ddraw.ignoreExclusiveMode",        "True" },
+      { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Evolva - Fixes character camera flickers   */
     { R"(\\Evolva\.exe$)", {{
@@ -1712,7 +1712,7 @@ namespace dxvk {
      * Fixes flickering cutscenes and missing     *
      * geometry without legacy discard behavior   */
     { R"(\\(PoL|polmis)\.exe$)", {{
-      { "ddraw.ignoreExclusiveMode",        "True" },
+      { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.forceLegacyDiscard",         "True" },
     }} },
     /* Praetorians                                *
@@ -1737,7 +1737,7 @@ namespace dxvk {
     }} },
     /* O.R.B: Off-World Resource Base             */
     { R"(\\orb\.exe$)", {{
-      { "ddraw.ignoreExclusiveMode",        "True" },
+      { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Omikron: The Nomad Soul                    *
      * Lights and other effects break over 30 FPS */
@@ -1746,7 +1746,7 @@ namespace dxvk {
     }} },
     /* Urban Chaos                                */
     { R"(\\fallen\.exe$)", {{
-      { "ddraw.ignoreExclusiveMode",        "True" },
+      { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Redline - Fixes missing weapon mip maps    */
     { R"(\\Redline\.exe$)", {{
@@ -1896,8 +1896,13 @@ namespace dxvk {
     }} },
     /* Star Trek: TNG - Klingon Honor Guard       */
     { R"(\\Khg\.exe$)", {{
-      { "ddraw.ignoreExclusiveMode",        "True" },
+      { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.ignoreGammaRamp",            "True" },
+    }} },
+    /* Half-Life (: Opposing Force/: Blue Shift)  */
+    { R"(\\hl\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.forceSWVP",                  "True" },
     }} },
 
     /**********************************************/
@@ -1937,7 +1942,7 @@ namespace dxvk {
      * tied to framerate in various situations    */
     { R"(\\NC(_V12)?\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-30" },
-      { "ddraw.ignoreExclusiveMode",        "True" },
+      { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Deathtrap Dungeon                          *
      * Accelerated menu animations above 30 FPS   */
