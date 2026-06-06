@@ -364,20 +364,24 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     std::vector<AttachedSurface> attachedSurfaces;
-    // Enumerate all surfaces from the underlying DDraw implementation
     HRESULT hr = m_proxy->EnumSurfaces(dwFlags, lpDDSD, reinterpret_cast<void*>(&attachedSurfaces), EnumAttachedSurfacesCallback);
     if (unlikely(FAILED(hr)))
       return hr;
 
-    HRESULT hrCB = DDENUMRET_OK;
+    hr = DDENUMRET_OK;
 
-    // Wrap surfaces as needed and perform the actual callback the application is requesting
     auto surfaceIt = attachedSurfaces.begin();
-    while (surfaceIt != attachedSurfaces.end() && hrCB == DDENUMRET_OK) {
+    while (surfaceIt != attachedSurfaces.end() && hr == DDENUMRET_OK) {
       Com<IDirectDrawSurface> surface = surfaceIt->surface;
 
-      Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), this, nullptr, false);
-      hrCB = lpEnumSurfacesCallback(ddrawSurface.ref(), &surfaceIt->desc, lpContext);
+      Com<DDrawSurface> ddrawSurface;
+      try {
+        ddrawSurface = new DDrawSurface(nullptr, std::move(surface), this, nullptr, false);
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+      hr = lpEnumSurfacesCallback(ddrawSurface.ref(), &surfaceIt->desc, lpContext);
 
       ++surfaceIt;
     }
@@ -408,7 +412,6 @@ namespace dxvk {
 
     // Interstate '76 sends invalid dwSizes part of the structs,
     // and that explodes in Wine, so validate it before proxying
-
     if (unlikely(lpDDDriverCaps != nullptr && !IsValidDDrawCapsSize(lpDDDriverCaps->dwSize)))
       return DDERR_INVALIDPARAMS;
 

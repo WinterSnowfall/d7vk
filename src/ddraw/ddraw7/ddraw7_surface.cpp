@@ -53,8 +53,11 @@ namespace dxvk {
       IDirectDrawSurface7* nextFlippable = nullptr;
       EnumAttachedSurfaces(&nextFlippable, ListBackBufferSurfaces7Callback);
       m_nextFlippable = reinterpret_cast<DDraw7Surface*>(nextFlippable);
-      if (likely(m_nextFlippable != nullptr))
+      if (likely(m_nextFlippable != nullptr)) {
+        // The call to EnumAttachedSurfaces has incremented the public ref
+        m_nextFlippable->Release();
         Logger::debug("DDraw7Surface: Retrieved the next swapchain surface");
+      }
     }
 
     m_commonIntf->AddWrappedSurface(this);
@@ -159,7 +162,14 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawSurface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDDInterface(), nullptr, false));
+      try {
+        *ppvObject = ref(new DDrawSurface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                          m_commonIntf->GetDDInterface(), nullptr, false));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
+
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
@@ -175,7 +185,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), nullptr));
+      try {
+        *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                           m_commonSurf->GetDDSurface(), nullptr));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       return S_OK;
     }
@@ -192,7 +208,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), nullptr));
+      try {
+        *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                           m_commonSurf->GetDDSurface(), nullptr));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       return S_OK;
     }
@@ -209,7 +231,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD4Interface(), nullptr, false));
+      try {
+        *ppvObject = ref(new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                           m_commonIntf->GetDD4Interface(), nullptr, false));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       return S_OK;
     }
@@ -440,29 +468,36 @@ namespace dxvk {
 
     std::vector<AttachedSurface7> attachedSurfaces;
     // Enumerate all attached surfaces from the underlying DDraw implementation
-    m_proxy->EnumAttachedSurfaces(reinterpret_cast<void*>(&attachedSurfaces), EnumAttachedSurfaces7Callback);
+    HRESULT hr = m_proxy->EnumAttachedSurfaces(reinterpret_cast<void*>(&attachedSurfaces), EnumAttachedSurfaces7Callback);
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    HRESULT hr = DDENUMRET_OK;
+    hr = DDENUMRET_OK;
 
     // Wrap surfaces as needed and perform the actual callback the application is requesting
     auto surfaceIt = attachedSurfaces.begin();
     while (surfaceIt != attachedSurfaces.end() && hr == DDENUMRET_OK) {
       Com<IDirectDrawSurface7> surface7 = surfaceIt->surface7;
 
-      auto attachedSurfaceIter = m_attachedSurfaces.find(surface7.ptr());
-      if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
-        // Return the already attached depth surface if it exists
-        if (unlikely(m_depthStencil != nullptr && surface7.ptr() == m_depthStencil->GetProxied())) {
-          hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->desc2, lpContext);
+      try {
+        auto attachedSurfaceIter = m_attachedSurfaces.find(surface7.ptr());
+        if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
+          // Return the already attached depth surface if it exists
+          if (unlikely(m_depthStencil != nullptr && surface7.ptr() == m_depthStencil->GetProxied())) {
+            hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->desc2, lpContext);
+          } else {
+            Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7), m_parent, this, false);
+            m_attachedSurfaces.emplace(std::piecewise_construct,
+                                       std::forward_as_tuple(ddraw7Surface->GetProxied()),
+                                       std::forward_as_tuple(ddraw7Surface.ref()));
+            hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &surfaceIt->desc2, lpContext);
+          }
         } else {
-          Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7), m_parent, this, false);
-          m_attachedSurfaces.emplace(std::piecewise_construct,
-                                    std::forward_as_tuple(ddraw7Surface->GetProxied()),
-                                    std::forward_as_tuple(ddraw7Surface.ref()));
-          hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &surfaceIt->desc2, lpContext);
+          hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->desc2, lpContext);
         }
-      } else {
-        hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->desc2, lpContext);
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
       }
 
       ++surfaceIt;
@@ -607,7 +642,6 @@ namespace dxvk {
 
     Com<IDirectDrawSurface7> surface;
     HRESULT hr = m_proxy->GetAttachedSurface(lpDDSCaps, &surface);
-
     // These are rather common, as some games query expecting to get nothing in return, for
     // example it's a common use case to query the mip attach chain until nothing is returned
     if (FAILED(hr)) {
@@ -1292,8 +1326,8 @@ namespace dxvk {
       try {
         face7 = new DDraw7Surface(nullptr, std::move(wrappedFace), m_parent, this, false);
       } catch (const DxvkError& e) {
-        Logger::err("InitializeAndAttachCubeFace: Failed to create wrapped cube face surface");
         Logger::err(e.message());
+        Logger::err("InitializeAndAttachCubeFace: Failed to create wrapped cube face surface");
       }
     } else {
       face7 = static_cast<DDraw7Surface*>(surf);

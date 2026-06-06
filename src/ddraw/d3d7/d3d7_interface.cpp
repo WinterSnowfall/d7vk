@@ -185,15 +185,18 @@ namespace dxvk {
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+    bool  isHALOrTNLHALDevice  = false;
     bool  rgbFallback          = false;
 
     if (likely(!d3dOptions->forceSWVP)) {
       if (rclsid == IID_IDirect3DTnLHalDevice) {
         Logger::info("D3D7Interface::CreateDevice: Creating an IID_IDirect3DTnLHalDevice device");
         deviceCreationFlags9 = D3DCREATE_HARDWARE_VERTEXPROCESSING;
+        isHALOrTNLHALDevice = true;
       } else if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
         Logger::info("D3D7Interface::CreateDevice: Creating an IID_IDirect3DHALDevice device");
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+        isHALOrTNLHALDevice = true;
       } else if (rclsid == IID_IDirect3DRGBDevice) {
         Logger::info("D3D7Interface::CreateDevice: Creating an IID_IDirect3DRGBDevice device");
       } else {
@@ -218,6 +221,10 @@ namespace dxvk {
     } else {
       rt7 = static_cast<DDraw7Surface*>(surface);
     }
+
+    HRESULT hrRT = rt7->GetCommonSurface()->ValidateRTUsage(isHALOrTNLHALDevice, true);
+    if (unlikely(FAILED(hrRT)))
+      return hrRT;
 
     Com<IDirect3DDevice7> d3d7DeviceProxy;
     HRESULT hr = m_proxy->CreateDevice(rclsidOverride, rt7->GetShadowOrProxied(), &d3d7DeviceProxy);

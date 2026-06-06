@@ -239,12 +239,12 @@ namespace dxvk {
 
     void SetPalette(DDrawPalette* palette) {
       if (likely(m_palette != palette)) {
-        if (palette == nullptr)
+        if (unlikely(m_palette != nullptr))
           m_palette->SetCommonSurface(nullptr);
 
         m_palette = palette;
 
-        if (m_palette != nullptr)
+        if (likely(m_palette != nullptr))
           m_palette->SetCommonSurface(this);
       }
     }
@@ -408,7 +408,7 @@ namespace dxvk {
           || m_format9 == d3d9::D3DFMT_P8;
     }
 
-    HRESULT ValidateRTUsage(bool isHALOrTNLHALDevice) const {
+    HRESULT ValidateRTUsage(bool isHALOrTNLHALDevice, bool isDeviceCreation) const {
       // Render targets require the DDSCAPS_3DDEVICE flag
       if (unlikely(!Is3DSurface())) {
         Logger::err("DDrawCommonInterface::ValidateRTUsage: Missing DDSCAPS_3DDEVICE");
@@ -417,12 +417,17 @@ namespace dxvk {
       // Depth stencil surfaces can't be set as render targets
       if (unlikely(IsDepthStencil())) {
         Logger::err("DDrawCommonInterface::ValidateRTUsage: Invalid DDSCAPS_ZBUFFER");
-        return DDERR_INVALIDCAPS;
+        return isDeviceCreation ? DDERR_INVALIDCAPS : DDERR_INVALIDPIXELFORMAT;
       }
-      // Render targets must not be created in system memory on HAL/HAL T&L devices
+      // DXVK doesn't support P8 render targets, so pretend these are always invalid
+      if (unlikely(m_format9 == d3d9::D3DFMT_P8)) {
+        Logger::err("DDrawCommonInterface::ValidateRTUsage: Invalid P8 render target");
+        return isDeviceCreation ? DDERR_NOPALETTEATTACHED : DDERR_INVALIDPARAMS;
+      }
+      // Render targets can't be created in system memory on HAL/HAL T&L devices
       if (unlikely(IsInSystemMemory() && isHALOrTNLHALDevice)) {
         Logger::err("DDrawCommonInterface::ValidateRTUsage: Invalid DDSCAPS_SYSTEMMEMORY");
-        return D3DERR_SURFACENOTINVIDMEM;
+        return isDeviceCreation ? D3DERR_SURFACENOTINVIDMEM : DDERR_INVALIDPARAMS;
       }
 
       return DD_OK;

@@ -316,7 +316,7 @@ namespace dxvk {
 
     DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
 
-    HRESULT hr = rt7->GetCommonSurface()->ValidateRTUsage(m_commonD3DDevice->IsHALOrTNLHALDevice());
+    HRESULT hr = rt7->GetCommonSurface()->ValidateRTUsage(m_commonD3DDevice->IsHALOrTNLHALDevice(), false);
     if (unlikely(FAILED(hr)))
       return hr;
 
@@ -1271,7 +1271,8 @@ namespace dxvk {
     //if (unlikely(m_textures[stage] == surface7))
       //return D3D_OK;
 
-    d3d9::IDirect3DTexture9* tex9 = surface7->GetCommonSurface()->GetD3D9Texture();
+    d3d9::IDirect3DTexture9*     tex9  = surface7->GetCommonSurface()->GetD3D9Texture();
+    d3d9::IDirect3DCubeTexture9* cube9 = surface7->GetCommonSurface()->GetD3D9CubeTexture();
 
     if (likely(tex9 != nullptr)) {
       hr = device9->SetTexture(stage, tex9);
@@ -1290,14 +1291,21 @@ namespace dxvk {
                                 normalizedColorKey.dwColorSpaceHighValue);
         }
       }
-    } else {
-      d3d9::IDirect3DCubeTexture9* cube9 = surface7->GetCommonSurface()->GetD3D9CubeTexture();
-
+    } else if (likely(cube9 != nullptr)) {
       hr = device9->SetTexture(stage, cube9);
       if (unlikely(FAILED(hr))) {
         Logger::warn("D3D7Device::SetTexture: Failed to bind D3D9 cube texture");
         return hr;
       }
+
+      if (likely(stage == 0)) {
+        const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
+        const bool validColorKey = surface7->GetCommonSurface()->HasValidColorKey();
+        if (unlikely(colorKeyEnable && validColorKey))
+          Logger::warn("D3D7Device::SetTexture: Unsupported use of cube texture color key");
+      }
+    } else {
+      Logger::warn("D3D7Device::SetTexture: Found no valid D3D9 texture");
     }
 
     m_textures[stage] = surface7;
