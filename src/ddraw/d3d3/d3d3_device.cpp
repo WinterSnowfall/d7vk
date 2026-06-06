@@ -1607,6 +1607,8 @@ namespace dxvk {
         m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
                               normalizedColorKey.dwColorSpaceHighValue);
       }
+    } else {
+      Logger::warn("D3D3Device::SetTextureInternal: Found no valid D3D9 texture");
     }
 
     m_commonD3DDevice->SetCurrentTextureHandle(textureHandle);

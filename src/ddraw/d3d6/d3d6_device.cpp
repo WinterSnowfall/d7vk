@@ -531,7 +531,7 @@ namespace dxvk {
 
     DDraw4Surface* rt6 = static_cast<DDraw4Surface*>(surface);
 
-    HRESULT hr = rt6->GetCommonSurface()->ValidateRTUsage(m_commonD3DDevice->IsHALOrTNLHALDevice());
+    HRESULT hr = rt6->GetCommonSurface()->ValidateRTUsage(m_commonD3DDevice->IsHALOrTNLHALDevice(), false);
     if (unlikely(FAILED(hr)))
       return hr;
 
@@ -1802,6 +1802,8 @@ namespace dxvk {
                                 normalizedColorKey.dwColorSpaceHighValue);
         }
       }
+    } else {
+      Logger::warn("D3D6Device::SetTexture: Found no valid D3D9 texture");
     }
 
     m_textures[stage] = texture6;
@@ -2117,6 +2119,8 @@ namespace dxvk {
         m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
                               normalizedColorKey.dwColorSpaceHighValue);
       }
+    } else {
+      Logger::warn("D3D6Device::SetTextureWithHandle: Found no valid D3D9 texture");
     }
 
     m_commonD3DDevice->SetCurrentTextureHandle(textureHandle);

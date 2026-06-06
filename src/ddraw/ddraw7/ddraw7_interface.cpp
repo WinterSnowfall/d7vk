@@ -344,20 +344,24 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     std::vector<AttachedSurface7> attachedSurfaces;
-    // Enumerate all surfaces from the underlying DDraw implementation
     HRESULT hr = m_proxy->EnumSurfaces(dwFlags, lpDDSD, reinterpret_cast<void*>(&attachedSurfaces), EnumAttachedSurfaces7Callback);
     if (unlikely(FAILED(hr)))
       return hr;
 
-    HRESULT hrCB = DDENUMRET_OK;
+    hr = DDENUMRET_OK;
 
-    // Wrap surfaces as needed and perform the actual callback the application is requesting
     auto surfaceIt = attachedSurfaces.begin();
-    while (surfaceIt != attachedSurfaces.end() && hrCB == DDENUMRET_OK) {
+    while (surfaceIt != attachedSurfaces.end() && hr == DDENUMRET_OK) {
       Com<IDirectDrawSurface7> surface7 = surfaceIt->surface7;
 
-      Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7), this, nullptr, false);
-      hrCB = lpEnumSurfacesCallback(ddraw7Surface.ref(), &surfaceIt->desc2, lpContext);
+      Com<DDraw7Surface> ddraw7Surface;
+      try {
+        ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7), this, nullptr, false);
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+      hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &surfaceIt->desc2, lpContext);
 
       ++surfaceIt;
     }
@@ -388,7 +392,6 @@ namespace dxvk {
 
     // Interstate '76 sends invalid dwSizes part of the structs,
     // and that explodes in Wine, so validate it before proxying
-
     if (unlikely(lpDDDriverCaps != nullptr && !IsValidDDrawCapsSize(lpDDDriverCaps->dwSize)))
       return DDERR_INVALIDPARAMS;
 
@@ -522,7 +525,8 @@ namespace dxvk {
     } else {
       Logger::debug("DDraw7Interface::GetGDISurface: Received a non-wrapped GDI surface");
       try {
-        *lplpGDIDDSurface = ref(new DDraw7Surface(nullptr, std::move(gdiSurface), this, nullptr, false));
+        *lplpGDIDDSurface = ref(new DDraw7Surface(nullptr, std::move(gdiSurface),
+                                                  this, nullptr, false));
       } catch (const DxvkError& e) {
         Logger::err(e.message());
         return DDERR_GENERIC;
@@ -732,7 +736,6 @@ namespace dxvk {
 
     Com<IDirectDrawSurface7> surface;
     HRESULT hr = m_proxy->GetSurfaceFromDC(hdc, &surface);
-
     if (unlikely(FAILED(hr))) {
       Logger::warn("DDraw7Interface::GetSurfaceFromDC: Failed to get surface from DC");
       return hr;
@@ -745,7 +748,7 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
-    return hr;
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::RestoreAllSurfaces() {

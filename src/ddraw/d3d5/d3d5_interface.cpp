@@ -422,12 +422,14 @@ namespace dxvk {
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+    bool  isHALOrTNLHALDevice  = false;
     bool  rgbFallback          = false;
 
     if (likely(!d3dOptions->forceSWVP)) {
       if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
         Logger::info("D3D5Interface::CreateDevice: Creating an IID_IDirect3DHALDevice device");
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+        isHALOrTNLHALDevice = true;
       } else if (rclsid == IID_IDirect3DRGBDevice) {
         Logger::info("D3D5Interface::CreateDevice: Creating an IID_IDirect3DRGBDevice device");
       } else if (rclsid == IID_IDirect3DMMXDevice) {
@@ -464,8 +466,13 @@ namespace dxvk {
         if (unlikely(rt == nullptr)) {
           Com<IDirectDrawSurface> surface;
           ddraw3Surface->GetProxied()->QueryInterface(__uuidof(IDirectDrawSurface), reinterpret_cast<void**>(&surface));
-          rt = new DDrawSurface(ddraw3Surface->GetCommonSurface(), std::move(surface),
-                                ddraw3Surface->GetCommonInterface()->GetDDInterface(), nullptr, false);
+          try {
+            rt = new DDrawSurface(ddraw3Surface->GetCommonSurface(), std::move(surface),
+                                  ddraw3Surface->GetCommonInterface()->GetDDInterface(), nullptr, false);
+          } catch (const DxvkError& e) {
+            Logger::err(e.message());
+            return DDERR_UNSUPPORTED;
+          }
           // Treat the new surface as the previously non-existent parent for our DDraw3Surface
           ddraw3Surface->UpdateParent(rt.ptr());
         }
@@ -476,6 +483,10 @@ namespace dxvk {
     } else {
       rt = static_cast<DDrawSurface*>(lpDDS);
     }
+
+    HRESULT hrRT = rt->GetCommonSurface()->ValidateRTUsage(isHALOrTNLHALDevice, true);
+    if (unlikely(FAILED(hrRT)))
+      return hrRT;
 
     DDSURFACEDESC desc;
     desc.dwSize = sizeof(DDSURFACEDESC);

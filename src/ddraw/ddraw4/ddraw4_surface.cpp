@@ -53,8 +53,11 @@ namespace dxvk {
       IDirectDrawSurface4* nextFlippable = nullptr;
       EnumAttachedSurfaces(&nextFlippable, ListBackBufferSurfaces4Callback);
       m_nextFlippable = reinterpret_cast<DDraw4Surface*>(nextFlippable);
-      if (likely(m_nextFlippable != nullptr))
+      if (likely(m_nextFlippable != nullptr)) {
+        // The call to EnumAttachedSurfaces has incremented the public ref
+        m_nextFlippable->Release();
         Logger::debug("DDraw4Surface: Retrieved the next swapchain surface");
+      }
     }
 
     m_commonIntf->AddWrappedSurface(this);
@@ -186,13 +189,22 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      Com<DDrawSurface> surf = new DDrawSurface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDDInterface(), nullptr, false);
+      Com<DDrawSurface> surf;
+      try {
+        surf = new DDrawSurface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                m_commonIntf->GetDDInterface(), nullptr, false);
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
+
       // The Sims is an absolute joke of a game that goes out of its way to
       // release the parent IDirectDrawSurface4 object, after querying
       // for a IDirect3DTexture2 object on IDirectDrawSurface. Just because.
       // Make sure we keep a private reference to prevent UAF in this case.
       if (unlikely(m_commonIntf->GetOptions()->robustTextureLifeCycle))
         surf->SetParentSurface4(this);
+
       *ppvObject = surf.ref();
 
       return S_OK;
@@ -210,7 +222,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), nullptr));
+      try {
+        *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                           m_commonSurf->GetDDSurface(), nullptr));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       return S_OK;
     }
@@ -227,7 +245,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), nullptr));
+      try {
+        *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                           m_commonSurf->GetDDSurface(), nullptr));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       return S_OK;
     }
@@ -244,7 +268,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw7Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD7Interface(), nullptr, false));
+      try {
+        *ppvObject = ref(new DDraw7Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                           m_commonIntf->GetDD7Interface(), nullptr, false));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       return S_OK;
     }
@@ -488,29 +518,36 @@ namespace dxvk {
 
     std::vector<AttachedSurface4> attachedSurfaces;
     // Enumerate all attached surfaces from the underlying DDraw implementation
-    m_proxy->EnumAttachedSurfaces(reinterpret_cast<void*>(&attachedSurfaces), EnumAttachedSurfaces4Callback);
+    HRESULT hr = m_proxy->EnumAttachedSurfaces(reinterpret_cast<void*>(&attachedSurfaces), EnumAttachedSurfaces4Callback);
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    HRESULT hr = DDENUMRET_OK;
+    hr = DDENUMRET_OK;
 
     // Wrap surfaces as needed and perform the actual callback the application is requesting
     auto surfaceIt = attachedSurfaces.begin();
     while (surfaceIt != attachedSurfaces.end() && hr == DDENUMRET_OK) {
       Com<IDirectDrawSurface4> surface4 = surfaceIt->surface4;
 
-      auto attachedSurfaceIter = m_attachedSurfaces.find(surface4.ptr());
-      if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
-        // Return the already attached depth surface if it exists
-        if (unlikely(m_depthStencil != nullptr && surface4.ptr() == m_depthStencil->GetProxied())) {
-          hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->desc2, lpContext);
+      try {
+        auto attachedSurfaceIter = m_attachedSurfaces.find(surface4.ptr());
+        if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
+          // Return the already attached depth surface if it exists
+          if (unlikely(m_depthStencil != nullptr && surface4.ptr() == m_depthStencil->GetProxied())) {
+            hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->desc2, lpContext);
+          } else {
+            Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface4), m_commonIntf->GetDD4Interface(), this, false);
+            m_attachedSurfaces.emplace(std::piecewise_construct,
+                                       std::forward_as_tuple(ddraw4Surface->GetProxied()),
+                                       std::forward_as_tuple(ddraw4Surface.ref()));
+            hr = lpEnumSurfacesCallback(ddraw4Surface.ref(), &surfaceIt->desc2, lpContext);
+          }
         } else {
-          Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface4), m_commonIntf->GetDD4Interface(), this, false);
-          m_attachedSurfaces.emplace(std::piecewise_construct,
-                                    std::forward_as_tuple(ddraw4Surface->GetProxied()),
-                                    std::forward_as_tuple(ddraw4Surface.ref()));
-          hr = lpEnumSurfacesCallback(ddraw4Surface.ref(), &surfaceIt->desc2, lpContext);
+          hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->desc2, lpContext);
         }
-      } else {
-        hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->desc2, lpContext);
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
       }
 
       ++surfaceIt;
@@ -686,7 +723,6 @@ namespace dxvk {
 
     Com<IDirectDrawSurface4> surface;
     HRESULT hr = m_proxy->GetAttachedSurface(lpDDSCaps, &surface);
-
     // These are rather common, as some games query expecting to get nothing in return, for
     // example it's a common use case to query the mip attach chain until nothing is returned
     if (FAILED(hr)) {
@@ -704,8 +740,8 @@ namespace dxvk {
         } else {
           Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface), m_commonIntf->GetDD4Interface(), this, false);
           m_attachedSurfaces.emplace(std::piecewise_construct,
-                                      std::forward_as_tuple(ddraw4Surface->GetProxied()),
-                                      std::forward_as_tuple(ddraw4Surface.ref()));
+                                     std::forward_as_tuple(ddraw4Surface->GetProxied()),
+                                     std::forward_as_tuple(ddraw4Surface.ref()));
           *lplpDDAttachedSurface = ddraw4Surface.ref();
         }
       } else {

@@ -56,8 +56,11 @@ namespace dxvk {
       IDirectDrawSurface* nextFlippable = nullptr;
       EnumAttachedSurfaces(&nextFlippable, ListBackBufferSurfacesCallback);
       m_nextFlippable = reinterpret_cast<DDrawSurface*>(nextFlippable);
-      if (likely(m_nextFlippable != nullptr))
+      if (likely(m_nextFlippable != nullptr)) {
+        // The call to EnumAttachedSurfaces has incremented the public ref
+        m_nextFlippable->Release();
         Logger::debug("DDrawSurface: Retrieved the next swapchain surface");
+      }
     }
 
     m_commonIntf->AddWrappedSurface(this);
@@ -179,6 +182,11 @@ namespace dxvk {
         riid == IID_WineD3DDevice) {
       Logger::debug("DDrawSurface::QueryInterface: Query with an IDirect3DDevice IID");
 
+      // Surfaces which have been queried from an IDirectDrawSurface7
+      // object are unable to create a D3D3 device on this legacy path
+      if (unlikely(m_commonSurf->GetDD7Surface() == m_commonSurf->GetOrigin()))
+        return E_NOINTERFACE;
+
       HRESULT hr = CreateDeviceInternal(riid, ppvObject);
       if (unlikely(FAILED(hr)))
         return E_NOINTERFACE;
@@ -199,7 +207,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nullptr));
+      try {
+        *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                           this, nullptr));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       return S_OK;
     }
@@ -216,7 +230,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nullptr));
+      try {
+        *ppvObject = ref(new DDraw3Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                           this, nullptr));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       return S_OK;
     }
@@ -233,8 +253,14 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      Com<DDraw4Surface> surface4 = new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
-                                                      m_commonIntf->GetDD4Interface(), nullptr, false);
+      Com<DDraw4Surface> surface4;
+      try {
+        surface4 = new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                     m_commonIntf->GetDD4Interface(), nullptr, false);
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       // Dungeon Keeper 2 creates and attaches a IDirectDrawSurface4 depth stencil,
       // but then keeps using clears from the IDirectDrawSurface object...
@@ -244,8 +270,14 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        Com<DDraw4Surface> depthStencil4 = new DDraw4Surface(m_depthStencil->GetCommonSurface(), std::move(dsProxyObject),
-                                                             m_commonIntf->GetDD4Interface(), nullptr, false);
+        Com<DDraw4Surface> depthStencil4;
+        try {
+          depthStencil4 = new DDraw4Surface(m_depthStencil->GetCommonSurface(), std::move(dsProxyObject),
+                                            m_commonIntf->GetDD4Interface(), nullptr, false);
+        } catch (const DxvkError& e) {
+          Logger::err(e.message());
+          return E_NOINTERFACE;
+        }
 
         surface4->SetAttachedDepthStencil(std::move(depthStencil4));
       }
@@ -267,7 +299,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw7Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD7Interface(), nullptr, false));
+      try {
+        *ppvObject = ref(new DDraw7Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                           m_commonIntf->GetDD7Interface(), nullptr, false));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       return S_OK;
     }
@@ -522,29 +560,36 @@ namespace dxvk {
 
     std::vector<AttachedSurface> attachedSurfaces;
     // Enumerate all attached surfaces from the underlying DDraw implementation
-    m_proxy->EnumAttachedSurfaces(reinterpret_cast<void*>(&attachedSurfaces), EnumAttachedSurfacesCallback);
+    HRESULT hr = m_proxy->EnumAttachedSurfaces(reinterpret_cast<void*>(&attachedSurfaces), EnumAttachedSurfacesCallback);
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    HRESULT hr = DDENUMRET_OK;
+    hr = DDENUMRET_OK;
 
     // Wrap surfaces as needed and perform the actual callback the application is requesting
     auto surfaceIt = attachedSurfaces.begin();
     while (surfaceIt != attachedSurfaces.end() && hr == DDENUMRET_OK) {
       Com<IDirectDrawSurface> surface = surfaceIt->surface;
 
-      auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
-      if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
-        // Return the already attached depth surface if it exists
-        if (unlikely(m_depthStencil != nullptr && surface.ptr() == m_depthStencil->GetProxied())) {
-          hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->desc, lpContext);
+      try {
+        auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
+        if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
+          // Return the already attached depth surface if it exists
+          if (unlikely(m_depthStencil != nullptr && surface.ptr() == m_depthStencil->GetProxied())) {
+            hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->desc, lpContext);
+          } else {
+            Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), m_parent, this, false);
+            m_attachedSurfaces.emplace(std::piecewise_construct,
+                                       std::forward_as_tuple(ddrawSurface->GetProxied()),
+                                       std::forward_as_tuple(ddrawSurface.ref()));
+            hr = lpEnumSurfacesCallback(ddrawSurface.ref(), &surfaceIt->desc, lpContext);
+          }
         } else {
-          Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), m_parent, this, false);
-          m_attachedSurfaces.emplace(std::piecewise_construct,
-                                     std::forward_as_tuple(ddrawSurface->GetProxied()),
-                                     std::forward_as_tuple(ddrawSurface.ref()));
-          hr = lpEnumSurfacesCallback(ddrawSurface.ref(), &surfaceIt->desc, lpContext);
+          hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->desc, lpContext);
         }
-      } else {
-        hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->desc, lpContext);
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
       }
 
       ++surfaceIt;
@@ -679,7 +724,6 @@ namespace dxvk {
 
     Com<IDirectDrawSurface> surface;
     HRESULT hr = m_proxy->GetAttachedSurface(lpDDSCaps, &surface);
-
     // These are rather common, as some games query expecting to get nothing in return, for
     // example it's a common use case to query the mip attach chain until nothing is returned
     if (FAILED(hr)) {
@@ -697,8 +741,8 @@ namespace dxvk {
         } else {
           Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), m_parent, this, false);
           m_attachedSurfaces.emplace(std::piecewise_construct,
-                                      std::forward_as_tuple(ddrawSurface->GetProxied()),
-                                      std::forward_as_tuple(ddrawSurface.ref()));
+                                     std::forward_as_tuple(ddrawSurface->GetProxied()),
+                                     std::forward_as_tuple(ddrawSurface.ref()));
           *lplpDDAttachedSurface = ddrawSurface.ref();
         }
       } else {
@@ -1204,12 +1248,14 @@ namespace dxvk {
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+    bool  isHALOrTNLHALDevice  = false;
     bool  rgbFallback          = false;
 
     if (likely(!d3dOptions->forceSWVP)) {
       if (riid == IID_IDirect3DHALDevice || riid == IID_WineD3DDevice) {
         Logger::info("DDrawSurface::CreateDeviceInternal: Creating an IID_IDirect3DHALDevice device");
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+        isHALOrTNLHALDevice = true;
       } else if (riid == IID_IDirect3DRGBDevice) {
         Logger::info("DDrawSurface::CreateDeviceInternal: Creating an IID_IDirect3DRGBDevice device");
       } else if (riid == IID_IDirect3DMMXDevice) {
@@ -1232,6 +1278,10 @@ namespace dxvk {
     if (unlikely(hWnd == nullptr)) {
       Logger::debug("DDrawSurface::CreateDeviceInternal: HWND is NULL");
     }
+
+    HRESULT hrRT = m_commonSurf->ValidateRTUsage(isHALOrTNLHALDevice, true);
+    if (unlikely(FAILED(hrRT)))
+      return hrRT;
 
     DWORD backBufferWidth  = m_commonSurf->GetDesc()->dwWidth;
     DWORD BackBufferHeight = m_commonSurf->GetDesc()->dwHeight;

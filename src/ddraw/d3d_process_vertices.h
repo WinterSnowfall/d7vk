@@ -70,12 +70,12 @@ namespace dxvk {
     out.g += color.g * value;
     out.b += color.b * value;
     if (unlikely(alpha))
-      out.a += color.r * value;
+      out.a += color.a * value;
   }
 
   inline Vector4 NormalizeVec3(const Vector4& v) {
     Vector4 result = normalize(Vector4(v.x, v.y, v.z, 0.0f));
-    result.w = 0.0;
+    result.w = 0.0f;
 
     return result;
   }
@@ -105,19 +105,28 @@ namespace dxvk {
 
   inline void ApplyFog(
         float* specularAlpha, D3DFOGMODE vertexMode, float density,
-        float start, float end, bool range, const Vector4& position) {
-    const float coord = range ? sqrt(dot(position, position)) : fabsf(position.z);
+        float start, float end, bool useRange, const Vector4& position) {
+    const float coord = useRange ? sqrtf(dot(position, position)) : fabsf(position.z);
 
     switch (vertexMode) {
-      case D3DFOG_EXP:
-        *specularAlpha = expf(-1.0f * coord * density);
+      // (end - coord) / (end - start)
+      case D3DFOG_LINEAR: {
+        const float fogFactor = end - coord;
+        *specularAlpha = fogFactor / (end - start);
         break;
-      case D3DFOG_EXP2:
-        *specularAlpha = expf(-1.0f * coord * density * coord * density);
+      }
+      // 1 / (e^[coord * density])
+      case D3DFOG_EXP: {
+        const float fogFactor = coord * density;
+        *specularAlpha = expf(-1.0f * fogFactor);
         break;
-      case D3DFOG_LINEAR:
-        *specularAlpha = (end - coord) / (end - start);
+      }
+      // 1 / (e^[coord * density])^2
+      case D3DFOG_EXP2: {
+        const float fogFactor = coord * density;
+        *specularAlpha = expf(-1.0f * fogFactor * fogFactor);
         break;
+      }
       default:
         break;
     }
@@ -416,8 +425,8 @@ namespace dxvk {
     }
 
     // Precalculate a few static viewport factors, to save on per-vertex cycles
-    const float viewport9HalfWidth  = static_cast<float>(viewport9.Width)  * 0.5;
-    const float viewport9HalfHeight = static_cast<float>(viewport9.Height) * 0.5;
+    const float viewport9HalfWidth  = static_cast<float>(viewport9.Width)  * 0.5f;
+    const float viewport9HalfHeight = static_cast<float>(viewport9.Height) * 0.5f;
     const float viewport9ZDelta     = viewport9.MaxZ - viewport9.MinZ;
     const DWORD viewport9Right      = viewport9.X + viewport9.Width;
     const DWORD viewport9Bottom     = viewport9.Y + viewport9.Height;
@@ -452,9 +461,12 @@ namespace dxvk {
       d3d9Device->GetMaterial(&material9);
     }
 
+    static constexpr D3DCOLORVALUE defaultAmbientColorV  = {0.0f, 0.0f, 0.0f, 0.0f};
+    static constexpr D3DCOLORVALUE defaultDiffuseColorV  = {1.0f, 1.0f, 1.0f, 1.0f};
+    static constexpr D3DCOLORVALUE defaultSpecularColorV = {0.0f, 0.0f, 0.0f, 0.0f};
+
     const float materialPower = isEnabledLighting && isEnabledSpecular ? material9.Power : 0.0f;
-    const D3DCOLORVALUE ambientStateColorValue = isEnabledLighting ? ColorToColorV(ambientStateColor) :
-                                                                     D3DCOLORVALUE{0.0, 0.0, 0.0, 0.0};
+    const D3DCOLORVALUE ambientStateColorV = isEnabledLighting ? ColorToColorV(ambientStateColor) : defaultAmbientColorV;
 
     for (uint16_t t = 0; t < pvData->vertexCount; t++) {
       uint8_t* inPtr = pvData->inData + t * pvData->inStride;
@@ -515,7 +527,7 @@ namespace dxvk {
         const Vector4 NVWPosition = NormalizeVec3(VWPosition);
         const Vector4 normals = !isEnabledNormalizeNormals ? wv * inNormals : NormalizeVec3(wv * inNormals);
 
-        D3DCOLORVALUE ambient = ambientStateColorValue;
+        D3DCOLORVALUE ambient = ambientStateColorV;
 
         for (const d3d9::D3DLIGHT9& light : *pvData->lights) {
           Vector4 hitDirection;
@@ -583,8 +595,8 @@ namespace dxvk {
                      hitDirection, NVWPosition, attenuation, materialPower, pvData->isLegacy);
         }
 
-        const D3DCOLORVALUE materialDiffuse  = hasDiffUse  ? ColorToColorV(inDiffuse)  : D3DCOLORVALUE{1.0, 1.0, 1.0, 1.0};
-        const D3DCOLORVALUE materialSpecular = hasSpecular ? ColorToColorV(inSpecular) : D3DCOLORVALUE{0.0, 0.0, 0.0, 0.0};
+        const D3DCOLORVALUE materialDiffuse  = hasDiffUse  ? ColorToColorV(inDiffuse)  : defaultDiffuseColorV;
+        const D3DCOLORVALUE materialSpecular = hasSpecular ? ColorToColorV(inSpecular) : defaultSpecularColorV;
 
         diffuse.r = ambient.r * material9.Ambient.r + diffuse.r * materialDiffuse.r + material9.Emissive.r;
         diffuse.g = ambient.g * material9.Ambient.g + diffuse.g * materialDiffuse.g + material9.Emissive.g;
@@ -596,8 +608,8 @@ namespace dxvk {
         specular.b *= materialSpecular.b;
         specular.a *= pvData->isLegacy ? 0.0f : materialSpecular.a;
       } else {
-        diffuse  = hasDiffUse  ? ColorToColorV(inDiffuse)  : D3DCOLORVALUE{1.0, 1.0, 1.0, 1.0};
-        specular = hasSpecular ? ColorToColorV(inSpecular) : D3DCOLORVALUE{0.0, 0.0, 0.0, 0.0};
+        diffuse  = hasDiffUse  ? ColorToColorV(inDiffuse)  : defaultDiffuseColorV;
+        specular = hasSpecular ? ColorToColorV(inSpecular) : defaultSpecularColorV;
       }
 
       if (isEnabledFog)
@@ -606,7 +618,7 @@ namespace dxvk {
       diffuse  = ColorVClamp(diffuse,  0.0f, 1.0f);
       specular = ColorVClamp(specular, 0.0f, 1.0f);
 
-      static constexpr D3DCOLOR defaultColor = D3DCOLOR_RGBA(0, 0, 0, 0);
+      static constexpr D3DCOLOR defaultColor = D3DCOLOR_ARGB(0, 0, 0, 0);
       const D3DCOLOR outDiffuse  = !pvData->doNotCopyData ? ColorVToColor(diffuse)  : defaultColor;
       const D3DCOLOR outSpecular = !pvData->doNotCopyData ? ColorVToColor(specular) : defaultColor;
 
