@@ -376,12 +376,14 @@ namespace dxvk {
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+    bool  isHALOrTNLHALDevice  = false;
     bool  rgbFallback          = false;
 
     if (likely(!d3dOptions->forceSWVP)) {
       if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
         Logger::info("D3D6Interface::CreateDevice: Creating an IID_IDirect3DHALDevice device");
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
+        isHALOrTNLHALDevice = true;
       } else if (rclsid == IID_IDirect3DRGBDevice) {
         Logger::info("D3D6Interface::CreateDevice: Creating an IID_IDirect3DRGBDevice device");
       } else if (rclsid == IID_IDirect3DMMXDevice) {
@@ -410,6 +412,10 @@ namespace dxvk {
     } else {
       rt4 = static_cast<DDraw4Surface*>(lpDDS);
     }
+
+    HRESULT hrRT = rt4->GetCommonSurface()->ValidateRTUsage(isHALOrTNLHALDevice, true);
+    if (unlikely(FAILED(hrRT)))
+      return hrRT;
 
     DDSURFACEDESC2 desc;
     desc.dwSize = sizeof(DDSURFACEDESC2);

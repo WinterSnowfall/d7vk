@@ -396,7 +396,6 @@ namespace dxvk {
 
     // Interstate '76 sends invalid dwSizes part of the structs,
     // and that explodes in Wine, so validate it before proxying
-
     if (unlikely(lpDDDriverCaps != nullptr && !IsValidDDrawCapsSize(lpDDDriverCaps->dwSize)))
       return DDERR_INVALIDPARAMS;
 
@@ -526,7 +525,8 @@ namespace dxvk {
     } else {
       Logger::debug("DDraw2Interface::GetGDISurface: Received a non-wrapped GDI surface");
       try {
-        *lplpGDIDDSurface = ref(new DDrawSurface(nullptr, std::move(gdiSurface), m_commonIntf->GetDDInterface(), nullptr, false));
+        *lplpGDIDDSurface = ref(new DDrawSurface(nullptr, std::move(gdiSurface),
+                                                 m_commonIntf->GetDDInterface(), nullptr, false));
       } catch (const DxvkError& e) {
         Logger::err(e.message());
         return DDERR_GENERIC;

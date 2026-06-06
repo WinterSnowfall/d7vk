@@ -503,7 +503,7 @@ namespace dxvk {
 
     DDrawSurface* rt5 = static_cast<DDrawSurface*>(surface);
 
-    HRESULT hr = rt5->GetCommonSurface()->ValidateRTUsage(m_commonD3DDevice->IsHALOrTNLHALDevice());
+    HRESULT hr = rt5->GetCommonSurface()->ValidateRTUsage(m_commonD3DDevice->IsHALOrTNLHALDevice(), false);
     if (unlikely(FAILED(hr)))
       return hr;
 
@@ -1601,6 +1601,8 @@ namespace dxvk {
         m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
                               normalizedColorKey.dwColorSpaceHighValue);
       }
+    } else {
+      Logger::warn("D3D5Device::SetTextureInternal: Found no valid D3D9 texture");
     }
 
     m_commonD3DDevice->SetCurrentTextureHandle(textureHandle);

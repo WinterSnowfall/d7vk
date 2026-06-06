@@ -1725,6 +1725,10 @@ namespace dxvk {
     { R"(\\TS_D3D\.exe$)", {{
       { "ddraw.supportD16",                "False" },
     }} },
+    /* Frogger 2: Swampy's Revenge                */
+    { R"(\\Frogger2\.exe$)", {{
+      { "ddraw.colorKeyTolerance",          "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */

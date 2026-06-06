@@ -330,7 +330,7 @@ namespace dxvk {
       d3d9Device->SetViewport(m_commonViewport->GetD3D9Viewport());
     }
 
-    static constexpr D3DCOLOR defaultColor = D3DCOLOR_RGBA(0, 0, 0, 0);
+    static constexpr D3DCOLOR defaultColor = D3DCOLOR_ARGB(0, 0, 0, 0);
     D3DMATERIALHANDLE handle = m_commonViewport->GetMaterialHandle();
     D3DCommonMaterial* commonMaterial = m_commonViewport->GetCommonD3DInterface()->GetCommonMaterialFromHandle(handle);
     D3DCOLOR clearColor = commonMaterial != nullptr ? commonMaterial->GetMaterialColor() : defaultColor;

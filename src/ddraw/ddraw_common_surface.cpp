@@ -17,6 +17,9 @@ namespace dxvk {
   DDrawCommonSurface::~DDrawCommonSurface() {
     if (unlikely(IsPrimarySurface() && m_commonIntf->GetPrimarySurface() == this))
       m_commonIntf->SetPrimarySurface(nullptr);
+
+    if (unlikely(m_palette != nullptr))
+      m_palette->SetCommonSurface(nullptr);
   }
 
   IUnknown* DDrawCommonSurface::GetShadowSurfaceProxied() {

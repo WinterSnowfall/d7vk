@@ -53,7 +53,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         throw DxvkError("DDraw3Surface: ERROR! Failed to retrieve an IDirectDrawSurface interface!");
 
-      m_originSurf = new DDrawSurface(m_commonSurf.ptr(), std::move(originSurf), m_commonIntf->GetDDInterface(), nullptr, false);
+      try {
+        m_originSurf = new DDrawSurface(m_commonSurf.ptr(), std::move(originSurf),
+                                        m_commonIntf->GetDDInterface(), nullptr, false);
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        throw DxvkError("DDraw2Surface: ERROR! Failed to create a DDrawSurface origin!");
+      }
       m_parent = m_originSurf.ptr();
     } else {
       m_originSurf = m_parent;
@@ -72,8 +78,13 @@ namespace dxvk {
           throw DxvkError("DDraw3Surface: ERROR! Failed to retrieve the shadow surface!");
         } else {
           if (shadowSurfProxy != nullptr) {
-            m_shadowSurf = new DDraw3Surface(m_commonSurf->GetShadowCommonSurface(), std::move(shadowSurfProxy),
-                                             m_commonSurf->GetDDSurface(), nullptr);
+            try {
+              m_shadowSurf = new DDraw3Surface(m_commonSurf->GetShadowCommonSurface(), std::move(shadowSurfProxy),
+                                               m_commonSurf->GetDDSurface(), nullptr);
+            } catch (const DxvkError& e) {
+              Logger::err(e.message());
+              throw DxvkError("DDraw3Surface: ERROR! Failed to create the shadow surface!");
+            }
           }
         }
       }
@@ -179,7 +190,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawSurface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDDInterface(), nullptr, false));
+      try {
+        *ppvObject = ref(new DDrawSurface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                          m_commonIntf->GetDDInterface(), nullptr, false));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       return S_OK;
     }
@@ -196,7 +213,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonSurf->GetDDSurface(), nullptr));
+      try {
+        *ppvObject = ref(new DDraw2Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                           m_commonSurf->GetDDSurface(), nullptr));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       return S_OK;
     }
@@ -213,7 +236,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD4Interface(), nullptr, false));
+      try {
+        *ppvObject = ref(new DDraw4Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                           m_commonIntf->GetDD4Interface(), nullptr, false));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       return S_OK;
     }
@@ -230,7 +259,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw7Surface(m_commonSurf.ptr(), std::move(ppvProxyObject), m_commonIntf->GetDD7Interface(), nullptr, false));
+      try {
+        *ppvObject = ref(new DDraw7Surface(m_commonSurf.ptr(), std::move(ppvProxyObject),
+                                           m_commonIntf->GetDD7Interface(), nullptr, false));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_NOINTERFACE;
+      }
 
       return S_OK;
     }
@@ -624,7 +659,6 @@ namespace dxvk {
 
     Com<IDirectDrawSurface3> surface;
     HRESULT hr = m_proxy->GetAttachedSurface(lpDDSCaps, &surface);
-
     // These are rather common, as some games query expecting to get nothing in return, for
     // example it's a common use case to query the mip attach chain until nothing is returned
     if (FAILED(hr)) {
