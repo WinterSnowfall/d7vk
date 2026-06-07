@@ -449,6 +449,11 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     Com<D3D5Viewport> d3d5Viewport = static_cast<D3D5Viewport*>(viewport);
+
+    auto viewportIt = std::find(m_viewports.begin(), m_viewports.end(), d3d5Viewport);
+    if (unlikely(viewportIt == m_viewports.end()))
+      return DDERR_INVALIDPARAMS;
+
     if (unlikely(m_currentViewport == d3d5Viewport))
       return D3D_OK;
 
@@ -1020,6 +1025,10 @@ namespace dxvk {
       }
 
       case D3DRENDERSTATE_TEXTUREMAPBLEND:
+        // Setting the same blend state won't reset the texture state
+        if (m_commonD3DDevice->GetTextureMapBlend() == dwRenderState)
+          return D3D_OK;
+
         m_commonD3DDevice->SetTextureMapBlend(dwRenderState);
 
         switch (dwRenderState) {
@@ -1343,10 +1352,14 @@ namespace dxvk {
 
     DDrawDirtySurfaceUpload();
 
-    DWORD vertex_type5 = ConvertVertexType(vertex_type);
+    const DWORD vertex_type5 = ConvertVertexType(vertex_type);
+    const bool useLighting = !(flags & D3DDP_DONOTLIGHT) &&
+                              (vertex_type & D3DFVF_NORMAL) &&
+                              m_commonD3DDevice->GetCurrentMaterialHandle() != 0;
 
-    HandlePreDrawFlags(flags, vertex_type5);
-    HandlePreDrawLegacyProjection(flags);
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+    HandlePreDrawLegacyProjection(device9, flags);
 
     device9->SetFVF(vertex_type5);
     HRESULT hr = device9->DrawPrimitiveUP(
@@ -1355,8 +1368,9 @@ namespace dxvk {
                      vertices,
                      GetFVFSize(vertex_type5));
 
-    HandlePostDrawLegacyProjection();
-    HandlePostDrawFlags(flags, vertex_type5);
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
+    HandlePostDrawLegacyProjection(device9);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D5Device::DrawPrimitive: Failed D3D9 call to DrawPrimitiveUP");
@@ -1365,7 +1379,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE primitive_type, D3DVERTEXTYPE fvf, void *vertices, DWORD vertex_count, WORD *indices, DWORD index_count, DWORD flags) {
@@ -1386,9 +1400,13 @@ namespace dxvk {
     DDrawDirtySurfaceUpload();
 
     const DWORD fvf5 = ConvertVertexType(fvf);
+    const bool useLighting = !(flags & D3DDP_DONOTLIGHT) &&
+                              (fvf & D3DFVF_NORMAL) &&
+                              m_commonD3DDevice->GetCurrentMaterialHandle() != 0;
 
-    HandlePreDrawFlags(flags, fvf5);
-    HandlePreDrawLegacyProjection(flags);
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+    HandlePreDrawLegacyProjection(device9, flags);
 
     device9->SetFVF(fvf5);
     HRESULT hr = device9->DrawIndexedPrimitiveUP(
@@ -1401,8 +1419,9 @@ namespace dxvk {
                       vertices,
                       GetFVFSize(fvf5));
 
-    HandlePostDrawLegacyProjection();
-    HandlePostDrawFlags(flags, fvf5);
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
+    HandlePostDrawLegacyProjection(device9);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D5Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
@@ -1411,7 +1430,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::SetClipStatus(D3DCLIPSTATUS *clip_status) {
@@ -1502,7 +1521,7 @@ namespace dxvk {
     if (likely(m_ds != nullptr))
       m_ds->InitializeOrUploadD3D9();
     // Bound texture(s)
-    D3DTEXTUREHANDLE texHandle = m_commonD3DDevice->GetCurrentTextureHandle();
+    const D3DTEXTUREHANDLE texHandle = m_commonD3DDevice->GetCurrentTextureHandle();
     if (likely(texHandle != 0)) {
       DDrawSurface* tex = m_commonIntf->GetSurfaceFromTextureHandle(texHandle);
       if (likely(tex != nullptr))
@@ -1589,7 +1608,7 @@ namespace dxvk {
       //  have been used with no texturing; if the texture does not contain an alpha component,
       //  alpha values at the vertices in the source are interpolated between vertices."
       if (m_commonD3DDevice->GetTextureMapBlend() == D3DTBLEND_MODULATE) {
-        const DWORD textureOp = surface->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_MODULATE;
+        const DWORD textureOp = surface->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_SELECTARG2;
         device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
       }
 

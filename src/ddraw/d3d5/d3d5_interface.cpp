@@ -422,14 +422,14 @@ namespace dxvk {
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
-    bool  isHALOrTNLHALDevice  = false;
+    bool  isHALDevice          = false;
     bool  rgbFallback          = false;
 
     if (likely(!d3dOptions->forceSWVP)) {
       if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
         Logger::info("D3D5Interface::CreateDevice: Creating an IID_IDirect3DHALDevice device");
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
-        isHALOrTNLHALDevice = true;
+        isHALDevice = true;
       } else if (rclsid == IID_IDirect3DRGBDevice) {
         Logger::info("D3D5Interface::CreateDevice: Creating an IID_IDirect3DRGBDevice device");
       } else if (rclsid == IID_IDirect3DMMXDevice) {
@@ -484,7 +484,7 @@ namespace dxvk {
       rt = static_cast<DDrawSurface*>(lpDDS);
     }
 
-    HRESULT hrRT = rt->GetCommonSurface()->ValidateRTUsage(isHALOrTNLHALDevice, true);
+    HRESULT hrRT = rt->GetCommonSurface()->ValidateRTUsage(isHALDevice, true);
     if (unlikely(FAILED(hrRT)))
       return hrRT;
 

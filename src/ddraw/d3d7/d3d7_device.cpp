@@ -84,16 +84,17 @@ namespace dxvk {
 
   D3D7Device::~D3D7Device() {
     if (LogIndexBufferUsageStats()) {
-      Logger::debug("D3D7Device: Index buffer upload statistics:");
-      Logger::debug(str::format("   0.5 kb : ", m_ib9_uploads[0]));
-      Logger::debug(str::format("   1   kb : ", m_ib9_uploads[1]));
-      Logger::debug(str::format("   2   kb : ", m_ib9_uploads[2]));
-      Logger::debug(str::format("   4   kb : ", m_ib9_uploads[3]));
-      Logger::debug(str::format("   8   kb : ", m_ib9_uploads[4]));
-      Logger::debug(str::format("   16  kb : ", m_ib9_uploads[5]));
-      Logger::debug(str::format("   32  kb : ", m_ib9_uploads[6]));
-      Logger::debug(str::format("   64  kb : ", m_ib9_uploads[7]));
-      Logger::debug(str::format("   128 kb : ", m_ib9_uploads[8]));
+      Logger::info("D3D7Device: Index buffer upload statistics:");
+      Logger::info(str::format("  0.25 kb : ", m_ib9_uploads[0]));
+      Logger::info(str::format("  0.5  kb : ", m_ib9_uploads[1]));
+      Logger::info(str::format("  1    kb : ", m_ib9_uploads[2]));
+      Logger::info(str::format("  2    kb : ", m_ib9_uploads[3]));
+      Logger::info(str::format("  4    kb : ", m_ib9_uploads[4]));
+      Logger::info(str::format("  8    kb : ", m_ib9_uploads[5]));
+      Logger::info(str::format("  16   kb : ", m_ib9_uploads[6]));
+      Logger::info(str::format("  32   kb : ", m_ib9_uploads[7]));
+      Logger::info(str::format("  64   kb : ", m_ib9_uploads[8]));
+      Logger::info(str::format("  128  kb : ", m_ib9_uploads[9]));
     }
 
     if (m_commonD3DDevice->GetD3D7Device() == this)
@@ -316,7 +317,7 @@ namespace dxvk {
 
     DDraw7Surface* rt7 = static_cast<DDraw7Surface*>(surface);
 
-    HRESULT hr = rt7->GetCommonSurface()->ValidateRTUsage(m_commonD3DDevice->IsHALOrTNLHALDevice(), false);
+    HRESULT hr = rt7->GetCommonSurface()->ValidateRTUsage7(m_commonD3DDevice->IsHALOrTNLHALDevice(), false);
     if (unlikely(FAILED(hr)))
       return hr;
 
@@ -391,7 +392,7 @@ namespace dxvk {
 
     Logger::debug(">>> D3D7Device::Clear");
 
-    // Fast skip
+    // D3D7 and later fast skip
     if (unlikely(!count && rects))
       return D3D_OK;
 
@@ -921,7 +922,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
@@ -959,7 +960,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::SetClipStatus(D3DCLIPSTATUS *clip_status) {
@@ -1026,7 +1027,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
@@ -1067,7 +1068,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, DWORD dwFlags) {
@@ -1108,7 +1109,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags) {
@@ -1167,7 +1168,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::ComputeSphereVisibility(D3DVECTOR *lpCenters, D3DVALUE *lpRadii, DWORD dwNumSpheres, DWORD dwFlags, DWORD *lpdwReturnValues) {

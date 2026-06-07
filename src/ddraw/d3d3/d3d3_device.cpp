@@ -489,7 +489,11 @@ namespace dxvk {
 
     D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
 
-    if (m_currentViewport != d3d3Viewport) {
+    if (unlikely(m_currentViewport != d3d3Viewport)) {
+      auto viewportIt = std::find(m_viewports.begin(), m_viewports.end(), d3d3Viewport);
+      if (unlikely(viewportIt == m_viewports.end()))
+        return DDERR_INVALIDPARAMS;
+
       if (likely(m_currentViewport != nullptr)) {
         // Shouldn't be necessary, but play it safe, as there is some potential
         // for improper behavior if we skip deactivation during D3D5/6 interop
@@ -969,7 +973,7 @@ namespace dxvk {
     if (likely(m_ds != nullptr))
       m_ds->InitializeOrUploadD3D9();
     // Bound texture(s)
-    D3DTEXTUREHANDLE texHandle = m_commonD3DDevice->GetCurrentTextureHandle();
+    const D3DTEXTUREHANDLE texHandle = m_commonD3DDevice->GetCurrentTextureHandle();
     if (likely(texHandle != 0)) {
       DDrawSurface* tex = m_commonIntf->GetSurfaceFromTextureHandle(texHandle);
       if (likely(tex != nullptr))
@@ -1214,6 +1218,10 @@ namespace dxvk {
       }
 
       case D3DRENDERSTATE_TEXTUREMAPBLEND:
+        // Setting the same blend state won't reset the texture state
+        if (m_commonD3DDevice->GetTextureMapBlend() == dwRenderState)
+          return D3D_OK;
+
         m_commonD3DDevice->SetTextureMapBlend(dwRenderState);
 
         switch (dwRenderState) {
@@ -1594,7 +1602,7 @@ namespace dxvk {
       //  have been used with no texturing; if the texture does not contain an alpha component,
       //  alpha values at the vertices in the source are interpolated between vertices."
       if (m_commonD3DDevice->GetTextureMapBlend() == D3DTBLEND_MODULATE) {
-        const DWORD textureOp = surface->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_MODULATE;
+        const DWORD textureOp = surface->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_SELECTARG2;
         device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
       }
 

@@ -96,16 +96,17 @@ namespace dxvk {
 
   D3D6Device::~D3D6Device() {
     if (LogIndexBufferUsageStats()) {
-      Logger::debug("D3D6Device: Index buffer upload statistics:");
-      Logger::debug(str::format("   0.5 kb : ", m_ib9_uploads[0]));
-      Logger::debug(str::format("   1   kb : ", m_ib9_uploads[1]));
-      Logger::debug(str::format("   2   kb : ", m_ib9_uploads[2]));
-      Logger::debug(str::format("   4   kb : ", m_ib9_uploads[3]));
-      Logger::debug(str::format("   8   kb : ", m_ib9_uploads[4]));
-      Logger::debug(str::format("   16  kb : ", m_ib9_uploads[5]));
-      Logger::debug(str::format("   32  kb : ", m_ib9_uploads[6]));
-      Logger::debug(str::format("   64  kb : ", m_ib9_uploads[7]));
-      Logger::debug(str::format("   128 kb : ", m_ib9_uploads[8]));
+      Logger::info("D3D6Device: Index buffer upload statistics:");
+      Logger::info(str::format("  0.25 kb : ", m_ib9_uploads[0]));
+      Logger::info(str::format("  0.5  kb : ", m_ib9_uploads[1]));
+      Logger::info(str::format("  1    kb : ", m_ib9_uploads[2]));
+      Logger::info(str::format("  2    kb : ", m_ib9_uploads[3]));
+      Logger::info(str::format("  4    kb : ", m_ib9_uploads[4]));
+      Logger::info(str::format("  8    kb : ", m_ib9_uploads[5]));
+      Logger::info(str::format("  16   kb : ", m_ib9_uploads[6]));
+      Logger::info(str::format("  32   kb : ", m_ib9_uploads[7]));
+      Logger::info(str::format("  64   kb : ", m_ib9_uploads[8]));
+      Logger::info(str::format("  128  kb : ", m_ib9_uploads[9]));
     }
 
     // Dissasociate every bound viewport from this device
@@ -476,6 +477,10 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
+
+    auto viewportIt = std::find(m_viewports.begin(), m_viewports.end(), d3d6Viewport);
+    if (unlikely(viewportIt == m_viewports.end()))
+      return DDERR_INVALIDPARAMS;
 
     if (unlikely(m_currentViewport == d3d6Viewport))
       return D3D_OK;
@@ -1054,7 +1059,13 @@ namespace dxvk {
       }
 
       case D3DRENDERSTATE_TEXTUREMAPBLEND:
+        // Setting the same blend state won't reset the texture state
+        if (m_commonD3DDevice->GetTextureMapBlend() == dwRenderState)
+          return D3D_OK;
+
         m_commonD3DDevice->SetTextureMapBlend(dwRenderState);
+        // Any explicitly set D3DTSS_ALPHAOP value will get overwritten at this point
+        m_alphaOpSet = false;
 
         switch (dwRenderState) {
           // "In this mode, the RGB and alpha values of the texture replace
@@ -1375,8 +1386,13 @@ namespace dxvk {
 
     DDrawDirtySurfaceUpload();
 
-    HandlePreDrawFlags(flags, vertex_type);
-    HandlePreDrawLegacyProjection(flags);
+    const bool useLighting = !(flags & D3DDP_DONOTLIGHT) &&
+                              (vertex_type & D3DFVF_NORMAL) &&
+                              m_commonD3DDevice->GetCurrentMaterialHandle() != 0;
+
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+    HandlePreDrawLegacyProjection(device9, flags);
 
     device9->SetFVF(vertex_type);
     HRESULT hr = device9->DrawPrimitiveUP(
@@ -1385,8 +1401,9 @@ namespace dxvk {
                      vertices,
                      GetFVFSize(vertex_type));
 
-    HandlePostDrawLegacyProjection();
-    HandlePostDrawFlags(flags, vertex_type);
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
+    HandlePostDrawLegacyProjection(device9);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawPrimitive: Failed D3D9 call to DrawPrimitiveUP");
@@ -1395,7 +1412,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE primitive_type, DWORD fvf, void *vertices, DWORD vertex_count, WORD *indices, DWORD index_count, DWORD flags) {
@@ -1415,8 +1432,13 @@ namespace dxvk {
 
     DDrawDirtySurfaceUpload();
 
-    HandlePreDrawFlags(flags, fvf);
-    HandlePreDrawLegacyProjection(flags);
+    const bool useLighting = !(flags & D3DDP_DONOTLIGHT) &&
+                              (fvf & D3DFVF_NORMAL) &&
+                              m_commonD3DDevice->GetCurrentMaterialHandle() != 0;
+
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+    HandlePreDrawLegacyProjection(device9, flags);
 
     device9->SetFVF(fvf);
     HRESULT hr = device9->DrawIndexedPrimitiveUP(
@@ -1429,8 +1451,9 @@ namespace dxvk {
                       vertices,
                       GetFVFSize(fvf));
 
-    HandlePostDrawLegacyProjection();
-    HandlePostDrawFlags(flags, fvf);
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
+    HandlePostDrawLegacyProjection(device9);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawIndexedPrimitive: Failed D3D9 call to DrawIndexedPrimitiveUP");
@@ -1439,7 +1462,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::SetClipStatus(D3DCLIPSTATUS *clip_status) {
@@ -1492,8 +1515,13 @@ namespace dxvk {
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(fvf, strided_data, vertex_count);
 
-    HandlePreDrawFlags(flags, fvf);
-    HandlePreDrawLegacyProjection(flags);
+    const bool useLighting = !(flags & D3DDP_DONOTLIGHT) &&
+                              (fvf & D3DFVF_NORMAL) &&
+                              m_commonD3DDevice->GetCurrentMaterialHandle() != 0;
+
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+    HandlePreDrawLegacyProjection(device9, flags);
 
     device9->SetFVF(fvf);
     HRESULT hr = device9->DrawPrimitiveUP(
@@ -1502,8 +1530,9 @@ namespace dxvk {
                      pvb.vertexData.data(),
                      pvb.stride);
 
-    HandlePostDrawLegacyProjection();
-    HandlePostDrawFlags(flags, fvf);
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
+    HandlePostDrawLegacyProjection(device9);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawPrimitiveStrided: Failed D3D9 call to DrawPrimitiveUP");
@@ -1512,7 +1541,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE primitive_type, DWORD fvf, D3DDRAWPRIMITIVESTRIDEDDATA *strided_data, DWORD vertex_count, WORD *indices, DWORD index_count, DWORD flags) {
@@ -1535,8 +1564,13 @@ namespace dxvk {
     // Transform strided vertex data to a standard vertex buffer stream
     PackedVertexBuffer pvb = TransformStridedtoUP(fvf, strided_data, vertex_count);
 
-    HandlePreDrawFlags(flags, fvf);
-    HandlePreDrawLegacyProjection(flags);
+    const bool useLighting = !(flags & D3DDP_DONOTLIGHT) &&
+                              (fvf & D3DFVF_NORMAL) &&
+                              m_commonD3DDevice->GetCurrentMaterialHandle() != 0;
+
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+    HandlePreDrawLegacyProjection(device9, flags);
 
     device9->SetFVF(fvf);
     HRESULT hr = device9->DrawIndexedPrimitiveUP(
@@ -1549,8 +1583,9 @@ namespace dxvk {
                       pvb.vertexData.data(),
                       pvb.stride);
 
-    HandlePostDrawLegacyProjection();
-    HandlePostDrawFlags(flags, fvf);
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
+    HandlePostDrawLegacyProjection(device9);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawIndexedPrimitiveStrided: Failed D3D9 call to DrawIndexedPrimitiveUP");
@@ -1559,7 +1594,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DrawPrimitiveVB(D3DPRIMITIVETYPE primitive_type, IDirect3DVertexBuffer *vb, DWORD start_vertex, DWORD vertex_count, DWORD flags) {
@@ -1586,8 +1621,13 @@ namespace dxvk {
 
     DDrawDirtySurfaceUpload();
 
-    HandlePreDrawFlags(flags, vb6->GetFVF());
-    HandlePreDrawLegacyProjection(flags);
+    const bool useLighting = !(flags & D3DDP_DONOTLIGHT) &&
+                              (vb6->GetFVF() & D3DFVF_NORMAL) &&
+                              m_commonD3DDevice->GetCurrentMaterialHandle() != 0;
+
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+    HandlePreDrawLegacyProjection(device9, flags);
 
     device9->SetFVF(vb6->GetFVF());
     device9->SetStreamSource(0, vb6->GetD3D9VertexBuffer(), 0, vb6->GetStride());
@@ -1596,8 +1636,9 @@ namespace dxvk {
                            start_vertex,
                            GetPrimitiveCount(primitive_type, vertex_count));
 
-    HandlePostDrawLegacyProjection();
-    HandlePostDrawFlags(flags, vb6->GetFVF());
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
+    HandlePostDrawLegacyProjection(device9);
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawPrimitiveVB: Failed D3D9 call to DrawPrimitive");
@@ -1606,7 +1647,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE primitive_type, IDirect3DVertexBuffer *vb, WORD *indices, DWORD index_count, DWORD flags) {
@@ -1644,8 +1685,13 @@ namespace dxvk {
 
     DDrawDirtySurfaceUpload();
 
-    HandlePreDrawFlags(flags, vb6->GetFVF());
-    HandlePreDrawLegacyProjection(flags);
+    const bool useLighting = !(flags & D3DDP_DONOTLIGHT) &&
+                              (vb6->GetFVF() & D3DFVF_NORMAL) &&
+                              m_commonD3DDevice->GetCurrentMaterialHandle() != 0;
+
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+    HandlePreDrawLegacyProjection(device9, flags);
 
     d3d9::IDirect3DIndexBuffer9* ib9 = m_ib9[ibIndex].ptr();
 
@@ -1662,8 +1708,9 @@ namespace dxvk {
                     0,
                     GetPrimitiveCount(primitive_type, index_count));
 
-    HandlePostDrawLegacyProjection();
-    HandlePostDrawFlags(flags, vb6->GetFVF());
+    if (!useLighting)
+      device9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
+    HandlePostDrawLegacyProjection(device9);
 
     if(unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Failed D3D9 call to DrawIndexedPrimitive");
@@ -1672,7 +1719,7 @@ namespace dxvk {
 
     UpdateSurfaceDirtyTracking(true, true, true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::ComputeSphereVisibility(D3DVECTOR *lpCenters, D3DVALUE *lpRadii, DWORD dwNumSpheres, DWORD dwFlags, DWORD *lpdwReturnValues) {
@@ -1789,7 +1836,7 @@ namespace dxvk {
         //  have been used with no texturing; if the texture does not contain an alpha component,
         //  alpha values at the vertices in the source are interpolated between vertices."
         if (m_commonD3DDevice->GetTextureMapBlend() == D3DTBLEND_MODULATE && !m_alphaOpSet) {
-          const DWORD textureOp = surface6->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_MODULATE;
+          const DWORD textureOp = surface6->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_SELECTARG2;
           device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
         }
 
@@ -1856,7 +1903,8 @@ namespace dxvk {
       return device9->SetSamplerState(dwStage, d3d9::D3DSAMP_ADDRESSV, dwState);
     }
 
-    if (!m_alphaOpSet && d3dTexStageStateType == D3DTSS_ALPHAOP)
+    // Prioritize what the application sets over texture map blend modes
+    if (d3dTexStageStateType == D3DTSS_ALPHAOP)
       m_alphaOpSet = true;
 
     d3d9::D3DSAMPLERSTATETYPE stateType = ConvertSamplerStateType(d3dTexStageStateType);
@@ -2106,8 +2154,8 @@ namespace dxvk {
       // "Any alpha values in the texture replace the alpha values in the colors that would
       //  have been used with no texturing; if the texture does not contain an alpha component,
       //  alpha values at the vertices in the source are interpolated between vertices."
-      if (m_commonD3DDevice->GetTextureMapBlend() == D3DTBLEND_MODULATE) {
-        const DWORD textureOp = surface->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_MODULATE;
+      if (m_commonD3DDevice->GetTextureMapBlend() == D3DTBLEND_MODULATE && !m_alphaOpSet) {
+        const DWORD textureOp = surface->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_SELECTARG2;
         device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
       }
 

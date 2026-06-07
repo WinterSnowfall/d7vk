@@ -222,7 +222,7 @@ namespace dxvk {
       rt7 = static_cast<DDraw7Surface*>(surface);
     }
 
-    HRESULT hrRT = rt7->GetCommonSurface()->ValidateRTUsage(isHALOrTNLHALDevice, true);
+    HRESULT hrRT = rt7->GetCommonSurface()->ValidateRTUsage7(isHALOrTNLHALDevice, true);
     if (unlikely(FAILED(hrRT)))
       return hrRT;
 
