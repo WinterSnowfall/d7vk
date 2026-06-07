@@ -309,12 +309,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Viewport::Clear(DWORD count, D3DRECT *rects, DWORD flags) {
     Logger::debug("<<< D3D6Viewport::Clear: Proxy");
 
-    // Fast skip
-    if (unlikely(!count && rects))
-      return D3D_OK;
-
     if (unlikely(!m_commonViewport->HasDevice()))
       return D3DERR_VIEWPORTHASNODEVICE;
+
+    // Early D3D viewport fast skip
+    if (unlikely(!count || (count && rects == nullptr)))
+      return D3D_OK;
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetD3D9Device();
 
@@ -556,12 +556,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D6Viewport::Clear2(DWORD count, D3DRECT *rects, DWORD flags, DWORD color, D3DVALUE z, DWORD stencil) {
     Logger::debug("<<< D3D6Viewport::Clear2: Proxy");
 
-    // Fast skip
-    if (unlikely(!count && rects))
-      return D3D_OK;
-
     if (unlikely(!m_commonViewport->HasDevice()))
       return D3DERR_VIEWPORTHASNODEVICE;
+
+    // Early D3D viewport fast skip
+    if (unlikely(!count || (count && rects == nullptr)))
+      return D3D_OK;
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetD3D9Device();
 
@@ -584,10 +584,10 @@ namespace dxvk {
       d3d9Device->SetViewport(&currentViewport9);
     }
 
+    // Unlike Clear(), Clear2() is supposed to error out on
+    // z/stencil clears and no z/stencil attachments
     if (unlikely(FAILED(hr))) {
       Logger::debug("D3D6Viewport::Clear2: Failed D3D9 Clear call");
-      // Unlike Clear(), Clear2() is supposed to error out on
-      // z/stencil clears and no z/stencil attachments
       return hr;
     }
 

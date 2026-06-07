@@ -49,9 +49,10 @@ namespace dxvk {
     bool IsCurrentRenderTarget(DDrawCommonSurface* commonSurface) const;
 
     bool IsHALOrTNLHALDevice() const {
-      // This is largely implementation specific, but shouldn't change
-      return (m_creationFlags9 & D3DCREATE_HARDWARE_VERTEXPROCESSING) ||
-             (m_creationFlags9 & D3DCREATE_MIXED_VERTEXPROCESSING);
+      return m_deviceGUID == IID_IDirect3DHALDevice ||
+             // Functionally identical to a HAL device
+             m_deviceGUID == IID_WineD3DDevice ||
+             m_deviceGUID == IID_IDirect3DTnLHalDevice;
     }
 
     void SetInScene(bool inScene) {

@@ -67,10 +67,6 @@ namespace dxvk {
 
   private:
 
-    inline void HandlePreProcessVerticesFlags(DWORD pvFlags);
-
-    inline void HandlePostProcessVerticesFlags(DWORD pvFlags);
-
     inline bool IsOptimized() const {
       return m_desc.dwCaps & D3DVBCAPS_OPTIMIZED;
     }
@@ -88,8 +84,6 @@ namespace dxvk {
     uint32_t                          m_buffCount     = 0;
 
     DDrawCommonInterface*             m_commonIntf    = nullptr;
-
-    DWORD                             m_lighting      = FALSE;
 
     DWORD                             m_creationFlags = 0;
     D3DVERTEXBUFFERDESC               m_desc;

@@ -156,28 +156,6 @@ namespace dxvk {
       return m_currentViewport.ptr();
     }
 
-    void HandlePreDrawLegacyProjection(DWORD drawFlags) {
-      if (likely(m_currentViewport != nullptr)) {
-        m_legacyProjection = m_currentViewport->GetCommonViewport()->GetLegacyProjectionMatrix(drawFlags);
-
-        if (m_legacyProjection != nullptr) {
-          d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
-          //Logger::debug("D3D6Device: Applying legacy projection");
-          device9->GetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
-          device9->MultiplyTransform(d3d9::D3DTS_PROJECTION, m_legacyProjection);
-        }
-      }
-    }
-
-    void HandlePostDrawLegacyProjection() {
-      if (m_legacyProjection != nullptr) {
-        d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
-
-        //Logger::debug("D3D6Device: Reverting legacy projection");
-        device9->SetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
-      }
-    }
-
   private:
 
     inline HRESULT InitializeIndexBuffers();
@@ -205,30 +183,22 @@ namespace dxvk {
         m_commonIntf->SetCommonD3DDevice(m_commonD3DDevice.ptr());
     }
 
-    inline void HandlePreDrawFlags(DWORD drawFlags, DWORD vertexTypeDesc) {
-      // Docs: "Direct3D normally performs lighting calculations
-      // on any vertices that contain a vertex normal."
-      if (m_commonD3DDevice->GetCurrentMaterialHandle() == 0 ||
-          (drawFlags & D3DDP_DONOTLIGHT) ||
-         !(vertexTypeDesc & D3DFVF_NORMAL)) {
-        d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
+    inline void HandlePreDrawLegacyProjection(d3d9::IDirect3DDevice9* device9, DWORD drawFlags) {
+      if (likely(m_currentViewport != nullptr)) {
+        m_legacyProjection = m_currentViewport->GetCommonViewport()->GetLegacyProjectionMatrix(drawFlags);
 
-        device9->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
-        if (m_lighting) {
-          //Logger::debug("D3D6Device: Disabling lighting");
-          device9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
+        if (m_legacyProjection != nullptr) {
+          //Logger::debug("D3D6Device: Applying legacy projection");
+          device9->GetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
+          device9->MultiplyTransform(d3d9::D3DTS_PROJECTION, m_legacyProjection);
         }
       }
     }
 
-    inline void HandlePostDrawFlags(DWORD drawFlags, DWORD vertexTypeDesc) {
-      if ((m_commonD3DDevice->GetCurrentMaterialHandle() == 0 ||
-          (drawFlags & D3DDP_DONOTLIGHT) ||
-         !(vertexTypeDesc & D3DFVF_NORMAL)) && m_lighting) {
-        d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
-
-        //Logger::debug("D3D6Device: Enabling lighting");
-        device9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
+    inline void HandlePostDrawLegacyProjection(d3d9::IDirect3DDevice9* device9) {
+      if (m_legacyProjection != nullptr) {
+        //Logger::debug("D3D6Device: Reverting legacy projection");
+        device9->SetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
       }
     }
 
@@ -236,8 +206,6 @@ namespace dxvk {
 
     static uint32_t                s_deviceCount;
     uint32_t                       m_deviceCount = 0;
-
-    DWORD                          m_lighting    = FALSE;
 
     DDrawCommonInterface*          m_commonIntf  = nullptr;
 
@@ -269,8 +237,6 @@ namespace dxvk {
     D3DMATRIX        m_projectionMatrix = { };
     const D3DMATRIX* m_legacyProjection = nullptr;
 
-    // Common index buffers used for indexed draws, split up into five sizes:
-    // XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb
     std::array<Com<d3d9::IDirect3DIndexBuffer9>, ddrawCaps::IndexBufferCount> m_ib9;
     uint32_t m_ib9_uploads[ddrawCaps::IndexBufferCount] = { };
 

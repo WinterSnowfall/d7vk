@@ -408,7 +408,8 @@ namespace dxvk {
           || m_format9 == d3d9::D3DFMT_P8;
     }
 
-    HRESULT ValidateRTUsage(bool isHALOrTNLHALDevice, bool isDeviceCreation) const {
+    // D3D7 is a bit more sane here, as always, so handle it separately
+    HRESULT ValidateRTUsage7(bool isHALOrTNLHALDevice, bool isDeviceCreation) const {
       // Render targets require the DDSCAPS_3DDEVICE flag
       if (unlikely(!Is3DSurface())) {
         Logger::err("DDrawCommonInterface::ValidateRTUsage: Missing DDSCAPS_3DDEVICE");
@@ -428,6 +429,33 @@ namespace dxvk {
       if (unlikely(IsInSystemMemory() && isHALOrTNLHALDevice)) {
         Logger::err("DDrawCommonInterface::ValidateRTUsage: Invalid DDSCAPS_SYSTEMMEMORY");
         return isDeviceCreation ? D3DERR_SURFACENOTINVIDMEM : DDERR_INVALIDPARAMS;
+      }
+
+      return DD_OK;
+    }
+
+    // D3D6 and earlier RT usage validations
+    HRESULT ValidateRTUsage(bool isHALDevice, bool isDeviceCreation) const {
+      // Render targets require the DDSCAPS_3DDEVICE flag
+      if (unlikely(!Is3DSurface())) {
+        Logger::err("DDrawCommonInterface::ValidateRTUsage: Missing DDSCAPS_3DDEVICE");
+        return DDERR_INVALIDCAPS;
+      }
+      // Depth stencil surfaces can't be set as render targets
+      if (unlikely(IsDepthStencil())) {
+        Logger::err("DDrawCommonInterface::ValidateRTUsage: Invalid DDSCAPS_ZBUFFER");
+        return isDeviceCreation ? DDERR_INVALIDCAPS : DDERR_INVALIDPIXELFORMAT;
+      }
+      // DXVK doesn't support P8 render targets, so pretend these are always invalid
+      if (unlikely(m_format9 == d3d9::D3DFMT_P8)) {
+        Logger::err("DDrawCommonInterface::ValidateRTUsage: Invalid P8 render target");
+        return isDeviceCreation ? DDERR_NOPALETTEATTACHED : DDERR_INVALIDPARAMS;
+      }
+      // Render targets can't be created in system memory on HAL devices,
+      // however system memory surfaces can later be set as render targets... yeah...
+      if (unlikely(isDeviceCreation && IsInSystemMemory() && isHALDevice)) {
+        Logger::err("DDrawCommonInterface::ValidateRTUsage: Invalid DDSCAPS_SYSTEMMEMORY");
+        return D3DERR_SURFACENOTINVIDMEM;
       }
 
       return DD_OK;

@@ -153,8 +153,6 @@ namespace dxvk {
 
     D3DDeviceLock lock = device6->LockDevice();
 
-    HRESULT hr = D3D_OK;
-
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     if (likely(d3dOptions->cpuProcessVertices)) {
@@ -208,19 +206,38 @@ namespace dxvk {
       vb->Unlock();
 
     } else {
-      HandlePreProcessVerticesFlags(dwVertexOp);
+      // D3D9 ProcessVertices doesn't handle lighting, only transforms
+      if (unlikely(dwVertexOp & D3DVOP_LIGHT))
+        Logger::warn("D3D6VertexBuffer::ProcessVertices: Unsupported operation D3DVOP_LIGHT");
+
+      D3DMATRIX projectionMatrix;
+      const D3DMATRIX* legacyProjection = nullptr;
+
+      D3DCommonViewport* commonViewport = device6->GetCurrentViewportInternal()->GetCommonViewport();
+      if (likely(commonViewport != nullptr)) {
+        legacyProjection = commonViewport->GetLegacyProjectionMatrix(0);
+
+        if (legacyProjection != nullptr) {
+          //Logger::debug("D3D6Device: Applying legacy projection");
+          device9->GetTransform(d3d9::D3DTS_PROJECTION, &projectionMatrix);
+          device9->MultiplyTransform(d3d9::D3DTS_PROJECTION, legacyProjection);
+        }
+      }
 
       device9->SetFVF(vb->GetFVF());
       device9->SetStreamSource(0, vb->GetD3D9VertexBuffer(), 0, vb->GetStride());
-      hr = device9->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_vb9.ptr(), nullptr, dwFlags);
+      HRESULT hr = device9->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_vb9.ptr(), nullptr, dwFlags);
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D6VertexBuffer::ProcessVertices: Failed call to D3D9 ProcessVertices");
       }
 
-      HandlePostProcessVerticesFlags(dwVertexOp);
+      if (legacyProjection != nullptr) {
+        //Logger::debug("D3D6Device: Reverting legacy projection");
+        device9->SetTransform(d3d9::D3DTS_PROJECTION, &projectionMatrix);
+      }
     }
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6VertexBuffer::Optimize(LPDIRECT3DDEVICE3 lpD3DDevice, DWORD dwFlags) {
@@ -264,7 +281,7 @@ namespace dxvk {
 
     Logger::debug("D3D6VertexBuffer::InitializeD3D9: Created D3D9 vertex buffer");
 
-    return DD_OK;
+    return D3D_OK;
   }
 
   d3d9::IDirect3DDevice9* D3D6VertexBuffer::RefreshD3DDevice() {
@@ -281,30 +298,6 @@ namespace dxvk {
     }
 
     return commonD3DDevice != nullptr ? commonD3DDevice->GetD3D9Device() : nullptr;
-  }
-
-  inline void D3D6VertexBuffer::HandlePreProcessVerticesFlags(DWORD pvFlags) {
-    // Disable lighting if the D3DVOP_LIGHT isn't specified
-    if (!(pvFlags & D3DVOP_LIGHT)) {
-      d3d9::IDirect3DDevice9* device9 = m_d3d6Device->GetCommonD3DDevice()->GetD3D9Device();
-
-      device9->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
-      if (m_lighting) {
-        //Logger::debug("D3D6VertexBuffer: Disabling lighting");
-        device9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
-      }
-    }
-    m_d3d6Device->HandlePreDrawLegacyProjection(0);
-  }
-
-  inline void D3D6VertexBuffer::HandlePostProcessVerticesFlags(DWORD pvFlags) {
-    if (!(pvFlags & D3DVOP_LIGHT) && m_lighting) {
-      d3d9::IDirect3DDevice9* device9 = m_d3d6Device->GetCommonD3DDevice()->GetD3D9Device();
-
-      //Logger::debug("D3D6VertexBuffer: Enabling lighting");
-      device9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
-    }
-    m_d3d6Device->HandlePostDrawLegacyProjection();
   }
 
 }

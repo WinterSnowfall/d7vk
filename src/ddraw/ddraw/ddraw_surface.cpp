@@ -1248,14 +1248,14 @@ namespace dxvk {
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
-    bool  isHALOrTNLHALDevice  = false;
+    bool  isHALDevice          = false;
     bool  rgbFallback          = false;
 
     if (likely(!d3dOptions->forceSWVP)) {
       if (riid == IID_IDirect3DHALDevice || riid == IID_WineD3DDevice) {
         Logger::info("DDrawSurface::CreateDeviceInternal: Creating an IID_IDirect3DHALDevice device");
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
-        isHALOrTNLHALDevice = true;
+        isHALDevice = true;
       } else if (riid == IID_IDirect3DRGBDevice) {
         Logger::info("DDrawSurface::CreateDeviceInternal: Creating an IID_IDirect3DRGBDevice device");
       } else if (riid == IID_IDirect3DMMXDevice) {
@@ -1279,7 +1279,7 @@ namespace dxvk {
       Logger::debug("DDrawSurface::CreateDeviceInternal: HWND is NULL");
     }
 
-    HRESULT hrRT = m_commonSurf->ValidateRTUsage(isHALOrTNLHALDevice, true);
+    HRESULT hrRT = m_commonSurf->ValidateRTUsage(isHALDevice, true);
     if (unlikely(FAILED(hrRT)))
       return hrRT;
 

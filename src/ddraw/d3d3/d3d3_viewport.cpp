@@ -317,12 +317,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D3Viewport::Clear(DWORD count, D3DRECT *rects, DWORD flags) {
     Logger::debug("<<< D3D3Viewport::Clear: Proxy");
 
-    // Fast skip
-    if (unlikely(!count && rects))
-      return D3D_OK;
-
     if (unlikely(!m_commonViewport->HasDevice()))
       return D3DERR_VIEWPORTHASNODEVICE;
+
+    // Early D3D viewport fast skip
+    if (unlikely(!count || (count && rects == nullptr)))
+      return D3D_OK;
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetD3D9Device();
 

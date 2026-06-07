@@ -160,16 +160,14 @@ namespace dxvk {
 
     D3DDeviceLock lock = device7->LockDevice();
 
-    HRESULT hr = D3D_OK;
-
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     if (likely(d3dOptions->cpuProcessVertices)) {
       uint8_t *inData = nullptr;
       uint8_t *outData = nullptr;
 
-      hr = vb->GetD3D9VertexBuffer()->Lock(dwSrcIndex * vb->GetStride(), dwCount * vb->GetStride(),
-                                           reinterpret_cast<void**>(&inData), D3DLOCK_READONLY|D3DLOCK_NOSYSLOCK);
+      HRESULT hr = vb->GetD3D9VertexBuffer()->Lock(dwSrcIndex * vb->GetStride(), dwCount * vb->GetStride(),
+                                                   reinterpret_cast<void**>(&inData), D3DLOCK_READONLY|D3DLOCK_NOSYSLOCK);
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7VertexBuffer::ProcessVertices: Failed to lock source buffer");
         return D3DERR_VERTEXBUFFERLOCKED;
@@ -214,19 +212,19 @@ namespace dxvk {
       vb->Unlock();
 
     } else {
-      HandlePreProcessVerticesFlags(dwVertexOp);
+      // D3D9 ProcessVertices doesn't handle lighting, only transforms
+      if (unlikely(dwVertexOp & D3DVOP_LIGHT))
+        Logger::warn("D3D7VertexBuffer::ProcessVertices: Unsupported operation D3DVOP_LIGHT");
 
       device9->SetFVF(vb->GetFVF());
       device9->SetStreamSource(0, vb->GetD3D9VertexBuffer(), 0, vb->GetStride());
-      hr = device9->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_vb9.ptr(), nullptr, dwFlags);
+      HRESULT hr = device9->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_vb9.ptr(), nullptr, dwFlags);
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7VertexBuffer::ProcessVertices: Failed call to D3D9 ProcessVertices");
       }
-
-      HandlePostProcessVerticesFlags(dwVertexOp);
     }
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::ProcessVerticesStrided(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags) {
@@ -246,6 +244,7 @@ namespace dxvk {
       return DDERR_GENERIC;
     }
 
+    //d3d9::IDirect3DDevice9* device9 = RefreshD3DDevice();
     // Check and initialize the destination buffer (this buffer)
     if (unlikely(!IsInitialized())) {
       HRESULT hrInit = InitializeD3D9();
@@ -255,11 +254,7 @@ namespace dxvk {
 
     D3DDeviceLock lock = device->LockDevice();
 
-    HandlePreProcessVerticesFlags(dwVertexOp);
-
     // TODO: lpVertexArray needs to be transformed into a non-strided vertex buffer stream
-
-    HandlePostProcessVerticesFlags(dwVertexOp);
 
     return D3D_OK;
   }
@@ -307,7 +302,7 @@ namespace dxvk {
 
     Logger::debug("D3D7VertexBuffer::InitializeD3D9: Created D3D9 vertex buffer");
 
-    return DD_OK;
+    return D3D_OK;
   }
 
   d3d9::IDirect3DDevice9* D3D7VertexBuffer::RefreshD3DDevice() {
@@ -324,25 +319,6 @@ namespace dxvk {
     }
 
     return commonD3DDevice != nullptr ? commonD3DDevice->GetD3D9Device() : nullptr;
-  }
-
-  inline void D3D7VertexBuffer::HandlePreProcessVerticesFlags(DWORD pvFlags) {
-    // Disable lighting if the D3DVOP_LIGHT isn't specified
-    if (!(pvFlags & D3DVOP_LIGHT)) {
-      d3d9::IDirect3DDevice9* device9 = m_d3d7Device->GetCommonD3DDevice()->GetD3D9Device();
-
-      device9->GetRenderState(d3d9::D3DRS_LIGHTING, &m_lighting);
-      if (m_lighting)
-        device9->SetRenderState(d3d9::D3DRS_LIGHTING, FALSE);
-    }
-  }
-
-  inline void D3D7VertexBuffer::HandlePostProcessVerticesFlags(DWORD pvFlags) {
-    if (!(pvFlags & D3DVOP_LIGHT) && m_lighting) {
-      d3d9::IDirect3DDevice9* device9 = m_d3d7Device->GetCommonD3DDevice()->GetD3D9Device();
-
-      device9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
-    }
   }
 
 }
