@@ -217,8 +217,6 @@ namespace dxvk {
     DWORD           m_handle         = 0;
     std::unordered_map<DWORD, D3D7StateBlock> m_stateBlocks;
 
-    // Common index buffers used for indexed draws, split up into five sizes:
-    // XS, S, M, L and XL, corresponding to 0.5 kb, 2 kb, 8 kb, 32 kb and 128 kb
     std::array<Com<d3d9::IDirect3DIndexBuffer9>, ddrawCaps::IndexBufferCount> m_ib9;
     uint32_t m_ib9_uploads[ddrawCaps::IndexBufferCount] = { };
 

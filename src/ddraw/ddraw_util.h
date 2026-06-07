@@ -55,7 +55,7 @@ namespace dxvk {
             (flag & DDFLIP_INTERVAL4);
   }
 
-  // D3D5 D3DVERTEXTYPE to >D3D6 DWORD vertex codes
+  // D3D5 D3DVERTEXTYPE to D3D6 and above DWORD vertex codes
   inline DWORD ConvertVertexType(D3DVERTEXTYPE vertexType) {
     switch (vertexType) {
       default:
@@ -65,7 +65,7 @@ namespace dxvk {
     }
   }
 
-  // >D3D6 DWORD vertex codes to D3D5 D3DVERTEXTYPE
+  // D3D6 and above DWORD vertex codes to D3D5 D3DVERTEXTYPE
   inline D3DVERTEXTYPE ConvertFVFType(DWORD fvfType) {
     switch (fvfType) {
       default:
@@ -88,9 +88,9 @@ namespace dxvk {
   inline DWORD ConvertD3D6LockFlags(DWORD lockFlags, bool isSurface) {
     DWORD lockFlagsD3D9 = 0;
 
-    // DDLOCK_WAIT is default for ddraw7 surfaces, so ignore it
+    // DDLOCK_WAIT is default for DDraw surfaces, so ignore it
     // and only factor in DDLOCK_DONOTWAIT. Buffers locks have
-    // a flipped logic compared to d3d9.
+    // a flipped logic compared to D3D9.
     if ((!isSurface && !(lockFlags & DDLOCK_WAIT))
      || (isSurface  &&  (lockFlags & DDLOCK_DONOTWAIT))) {
       lockFlagsD3D9 |= (DWORD)D3DLOCK_DONOTWAIT;
@@ -102,9 +102,6 @@ namespace dxvk {
     if ((lockFlags & DDLOCK_READONLY) && !(lockFlags & DDLOCK_WRITEONLY)) {
       lockFlagsD3D9 |= (DWORD)D3DLOCK_READONLY;
     }
-    if (lockFlags & DDLOCK_NOOVERWRITE) {
-      lockFlagsD3D9 |= (DWORD)D3DLOCK_NOOVERWRITE;
-    }
 
     return lockFlagsD3D9;
   }
@@ -112,9 +109,9 @@ namespace dxvk {
   inline DWORD ConvertD3D7LockFlags(DWORD lockFlags, bool legacyDiscard, bool isSurface) {
     DWORD lockFlagsD3D9 = 0;
 
-    // DDLOCK_WAIT is default for ddraw7 surfaces, so ignore it
+    // DDLOCK_WAIT is default for DDraw7 surfaces, so ignore it
     // and only factor in DDLOCK_DONOTWAIT. Buffers locks have
-    // a flipped logic compared to d3d9.
+    // a flipped logic compared to D3D9.
     if ((!isSurface && !(lockFlags & DDLOCK_WAIT))
      || (isSurface  &&  (lockFlags & DDLOCK_DONOTWAIT))) {
       lockFlagsD3D9 |= (DWORD)D3DLOCK_DONOTWAIT;
@@ -127,8 +124,8 @@ namespace dxvk {
       lockFlagsD3D9 |= (DWORD)D3DLOCK_READONLY;
     }
     // This is called "legacy DISCARD" in D8VK, which apparently
-    // is expected to be enforced implicitly in D3D7. Earlier
-    // versions of D3D do not feature a DISCARD lock flag.
+    // is expected to be enforced implicitly in D3D7. Earlier versions
+    // of D3D do not feature a DISCARD (or NOOVERWRITE) lock flag.
     if ((lockFlags & DDLOCK_DISCARDCONTENTS) && !legacyDiscard) {
       lockFlagsD3D9 |= (DWORD)D3DLOCK_DISCARD;
     }
@@ -144,7 +141,7 @@ namespace dxvk {
 
     // The D3D6 docs do not mention the presence of a D3DVBCAPS_DONOTCLIP flag,
     // and only the creation flag D3DDP_DONOTCLIP is touted as being usable
-    if ((usageFlags & D3DVBCAPS_DONOTCLIP) || (creationFlags & D3DDP_DONOTCLIP)) {
+    if ((creationFlags & D3DDP_DONOTCLIP) || (usageFlags & D3DVBCAPS_DONOTCLIP)) {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_DONOTCLIP;
     }
     if (usageFlags & D3DVBCAPS_WRITEONLY) {
@@ -206,7 +203,7 @@ namespace dxvk {
   inline size_t GetFVFTexCoordSize(DWORD fvf, DWORD coord) {
     size_t size = 0;
 
-    DWORD texCoordSize = (fvf >> (coord * 2 + 16)) & 0x3;
+    const DWORD texCoordSize = (fvf >> (coord * 2 + 16)) & 0x3;
     switch (texCoordSize) {
       // D3DFVF_TEXTUREFORMAT2 0
       case D3DFVF_TEXTUREFORMAT2:
@@ -214,7 +211,7 @@ namespace dxvk {
         break;
       // D3DFVF_TEXTUREFORMAT3 1
       case D3DFVF_TEXTUREFORMAT3:
-         size += 3 * sizeof(FLOAT);
+        size += 3 * sizeof(FLOAT);
         break;
       // D3DFVF_TEXTUREFORMAT4 2
       case D3DFVF_TEXTUREFORMAT4:
@@ -247,10 +244,9 @@ namespace dxvk {
       size += sizeof(D3DCOLOR);
     }
 
-    DWORD textureCount = (fvf & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
-    for (DWORD coord = 0; coord < textureCount; ++coord) {
+    const DWORD textureCount = (fvf & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+    for (DWORD coord = 0; coord < textureCount; coord++)
       size += GetFVFTexCoordSize(fvf, coord);
-    }
 
     return size;
   }
@@ -281,15 +277,14 @@ namespace dxvk {
       uint8_t* ptr = pvb.vertexData.data() + i * pvb.stride;
 
       if ((dwFVF & D3DFVF_POSITION_MASK) && lpVBStrided->position.lpvData) {
-        size_t size = GetFVFPositionSize(dwFVF);
+        const size_t size = GetFVFPositionSize(dwFVF);
         memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->position.lpvData) + i * lpVBStrided->position.dwStride, size);
         ptr += size;
       }
 
       if ((dwFVF & D3DFVF_NORMAL) && lpVBStrided->normal.lpvData) {
-        size_t size = 3 * sizeof(FLOAT);
-        memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->normal.lpvData) + i * lpVBStrided->normal.dwStride, size);
-        ptr += size;
+        memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->normal.lpvData) + i * lpVBStrided->normal.dwStride, 3 * sizeof(FLOAT));
+        ptr += 3 * sizeof(FLOAT);
       }
 
       if (dwFVF & D3DFVF_RESERVED1) {
@@ -298,20 +293,18 @@ namespace dxvk {
       }
 
       if ((dwFVF & D3DFVF_DIFFUSE) && lpVBStrided->diffuse.lpvData) {
-        size_t size = sizeof(D3DCOLOR);
-        memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->diffuse.lpvData) + i * lpVBStrided->diffuse.dwStride, size);
-        ptr += size;
+        memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->diffuse.lpvData) + i * lpVBStrided->diffuse.dwStride, sizeof(D3DCOLOR));
+        ptr += sizeof(D3DCOLOR);
       }
 
       if ((dwFVF & D3DFVF_SPECULAR) && lpVBStrided->specular.lpvData) {
-        size_t size = sizeof(D3DCOLOR);
-        memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->specular.lpvData) + i * lpVBStrided->specular.dwStride, size);
-        ptr += size;
+        memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->specular.lpvData) + i * lpVBStrided->specular.dwStride, sizeof(D3DCOLOR));
+        ptr += sizeof(D3DCOLOR);
       }
 
       for (DWORD t = 0; t < dwNumTextures; t++) {
         if (lpVBStrided->textureCoords[t].lpvData) {
-          size_t size = GetFVFTexCoordSize(dwFVF, t);
+          const size_t size = GetFVFTexCoordSize(dwFVF, t);
           memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->textureCoords[t].lpvData) + i * lpVBStrided->textureCoords[t].dwStride, size);
           ptr += size;
         }
@@ -608,10 +601,10 @@ namespace dxvk {
     desc.dpcLineCaps          = prim;
     desc.dpcTriCaps           = prim;
 
-    desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
-    desc.dwDeviceZBufferBitDepth  = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
-    desc.dwMaxBufferSize          = 0;
-    desc.dwMaxVertexCount         = D3DMAXNUMVERTICES;
+    desc.dwDeviceRenderBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
+    desc.dwDeviceZBufferBitDepth = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
+    desc.dwMaxBufferSize         = 0;
+    desc.dwMaxVertexCount        = D3DMAXNUMVERTICES;
 
     return desc;
   }
@@ -812,18 +805,18 @@ namespace dxvk {
     desc.dpcLineCaps          = prim;
     desc.dpcTriCaps           = prim;
 
-    desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
-    desc.dwDeviceZBufferBitDepth  = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
-    desc.dwMaxBufferSize          = 0;
-    desc.dwMaxVertexCount         = D3DMAXNUMVERTICES;
-    desc.dwMinTextureWidth        = 1;
-    desc.dwMinTextureHeight       = 1;
-    desc.dwMaxTextureWidth        = ddrawCaps::MaxTextureDimension;
-    desc.dwMaxTextureHeight       = ddrawCaps::MaxTextureDimension;
-    desc.dwMinStippleWidth        = 1;
-    desc.dwMinStippleHeight       = 1;
-    desc.dwMaxStippleWidth        = 32;
-    desc.dwMaxStippleHeight       = 32;
+    desc.dwDeviceRenderBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
+    desc.dwDeviceZBufferBitDepth = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
+    desc.dwMaxBufferSize         = 0;
+    desc.dwMaxVertexCount        = D3DMAXNUMVERTICES;
+    desc.dwMinTextureWidth       = 1;
+    desc.dwMinTextureHeight      = 1;
+    desc.dwMaxTextureWidth       = ddrawCaps::MaxTextureDimension;
+    desc.dwMaxTextureHeight      = ddrawCaps::MaxTextureDimension;
+    desc.dwMinStippleWidth       = 1;
+    desc.dwMinStippleHeight      = 1;
+    desc.dwMaxStippleWidth       = 32;
+    desc.dwMaxStippleHeight      = 32;
 
     return desc;
   }
@@ -1037,26 +1030,26 @@ namespace dxvk {
     desc.dpcLineCaps          = prim;
     desc.dpcTriCaps           = prim;
 
-    desc.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
-    desc.dwDeviceZBufferBitDepth  = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
-    desc.dwMaxBufferSize          = 0;
-    desc.dwMaxVertexCount         = D3DMAXNUMVERTICES;
-    desc.dwMinTextureWidth        = 1;
-    desc.dwMinTextureHeight       = 1;
-    desc.dwMaxTextureWidth        = ddrawCaps::MaxTextureDimension;
-    desc.dwMaxTextureHeight       = ddrawCaps::MaxTextureDimension;
-    desc.dwMinStippleWidth        = 1;
-    desc.dwMinStippleHeight       = 1;
-    desc.dwMaxStippleWidth        = 32;
-    desc.dwMaxStippleHeight       = 32;
-    desc.dwMaxTextureRepeat       = 8192;
-    desc.dwMaxTextureAspectRatio  = ddrawCaps::MaxTextureDimension;
-    desc.dwMaxAnisotropy          = 16;
-    desc.dvGuardBandLeft          = -32768.0f;
-    desc.dvGuardBandTop           = -32768.0f;
-    desc.dvGuardBandRight         = 32768.0f;
-    desc.dvGuardBandBottom        = 32768.0f;
-    desc.dvExtentsAdjust          = 0.0f;
+    desc.dwDeviceRenderBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
+    desc.dwDeviceZBufferBitDepth = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
+    desc.dwMaxBufferSize         = 0;
+    desc.dwMaxVertexCount        = D3DMAXNUMVERTICES;
+    desc.dwMinTextureWidth       = 1;
+    desc.dwMinTextureHeight      = 1;
+    desc.dwMaxTextureWidth       = ddrawCaps::MaxTextureDimension;
+    desc.dwMaxTextureHeight      = ddrawCaps::MaxTextureDimension;
+    desc.dwMinStippleWidth       = 1;
+    desc.dwMinStippleHeight      = 1;
+    desc.dwMaxStippleWidth       = 32;
+    desc.dwMaxStippleHeight      = 32;
+    desc.dwMaxTextureRepeat      = 8192;
+    desc.dwMaxTextureAspectRatio = ddrawCaps::MaxTextureDimension;
+    desc.dwMaxAnisotropy         = 16;
+    desc.dvGuardBandLeft         = -32768.0f;
+    desc.dvGuardBandTop          = -32768.0f;
+    desc.dvGuardBandRight        = 32768.0f;
+    desc.dvGuardBandBottom       = 32768.0f;
+    desc.dvExtentsAdjust         = 0.0f;
 
     desc.dwStencilCaps        = D3DSTENCILCAPS_DECR
                               | D3DSTENCILCAPS_DECRSAT
@@ -1286,20 +1279,20 @@ namespace dxvk {
     desc7.dpcLineCaps         = prim;
     desc7.dpcTriCaps          = prim;
 
-    desc7.dwDeviceRenderBitDepth   = DDBD_16 | DDBD_24 | DDBD_32;
-    desc7.dwDeviceZBufferBitDepth  = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
-    desc7.dwMinTextureWidth        = 1;
-    desc7.dwMinTextureHeight       = 1;
-    desc7.dwMaxTextureWidth        = ddrawCaps::MaxTextureDimension;
-    desc7.dwMaxTextureHeight       = ddrawCaps::MaxTextureDimension;
-    desc7.dwMaxTextureRepeat       = 8192;
-    desc7.dwMaxTextureAspectRatio  = 8192;
-    desc7.dwMaxAnisotropy          = 16;
-    desc7.dvGuardBandLeft          = -32768.0f;
-    desc7.dvGuardBandTop           = -32768.0f;
-    desc7.dvGuardBandRight         = 32768.0f;
-    desc7.dvGuardBandBottom        = 32768.0f;
-    desc7.dvExtentsAdjust          = 0.0f;
+    desc7.dwDeviceRenderBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
+    desc7.dwDeviceZBufferBitDepth = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
+    desc7.dwMinTextureWidth       = 1;
+    desc7.dwMinTextureHeight      = 1;
+    desc7.dwMaxTextureWidth       = ddrawCaps::MaxTextureDimension;
+    desc7.dwMaxTextureHeight      = ddrawCaps::MaxTextureDimension;
+    desc7.dwMaxTextureRepeat      = 8192;
+    desc7.dwMaxTextureAspectRatio = 8192;
+    desc7.dwMaxAnisotropy         = 16;
+    desc7.dvGuardBandLeft         = -32768.0f;
+    desc7.dvGuardBandTop          = -32768.0f;
+    desc7.dvGuardBandRight        = 32768.0f;
+    desc7.dvGuardBandBottom       = 32768.0f;
+    desc7.dvExtentsAdjust         = 0.0f;
 
     desc7.dwStencilCaps        = D3DSTENCILCAPS_DECR
                                | D3DSTENCILCAPS_DECRSAT
