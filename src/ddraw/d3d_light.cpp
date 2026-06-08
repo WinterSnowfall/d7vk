@@ -63,7 +63,7 @@ namespace dxvk {
       if (!std::exchange(s_parallelPointErrorShown, true))
         Logger::warn("D3DLight::SetLight: Unsupported light type D3DLIGHT_PARALLELPOINT");
 
-      return DDERR_INVALIDPARAMS;
+      return DDERR_UNSUPPORTED;
     }
     // Specific to D3D3
     if (unlikely(data->dltType == D3DLIGHT_GLSPOT)) {
@@ -72,7 +72,7 @@ namespace dxvk {
       if (!std::exchange(s_glSpotErrorShown, true))
         Logger::warn("D3DLight::SetLight: Unsupported light type D3DLIGHT_GLSPOT");
 
-      return DDERR_INVALIDPARAMS;
+      return DDERR_UNSUPPORTED;
     }
 
     const bool isD3DLight2 = data->dwSize == sizeof(D3DLIGHT2);

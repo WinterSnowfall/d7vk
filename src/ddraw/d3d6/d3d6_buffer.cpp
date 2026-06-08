@@ -172,8 +172,14 @@ namespace dxvk {
         vb->Unlock();
         return D3DERR_VERTEXBUFFERLOCKED;
       }
+      // "Direct3D normally performs lighting calculations on any vertices that contain a vertex normal."
+      // "If your application uses vertex buffers, include or omit the D3DVOP_LIGHT flag when calling the
+      //  IDirect3DVertexBuffer::ProcessVertices method to enable or disable lighting for that vertex buffer."
+      // "If the rendering device does not have a material assigned to it, the Direct3D lighting engine is disabled."
+      const bool doLighting = (dwVertexOp & D3DVOP_LIGHT) &&
+                              (vb->GetFVF() & D3DFVF_NORMAL) &&
+                              device6->GetCommonD3DDevice()->GetCurrentMaterialHandle() != 0;
 
-      const bool doLighting = dwVertexOp & D3DVOP_LIGHT;
       D3DCommonViewport* commonViewport = device6->GetCurrentViewportInternal()->GetCommonViewport();
 
       ProcessVerticesData pvData;
