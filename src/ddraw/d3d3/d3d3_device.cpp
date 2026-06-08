@@ -1017,18 +1017,13 @@ namespace dxvk {
           return D3D_OK;
         }
 
-        D3DCommonInterface* commonD3DIntf = m_commonD3DDevice->GetCommonD3DInterface();
-        if (likely(commonD3DIntf != nullptr)) {
-          d3d9::D3DMATERIAL9* material9 = commonD3DIntf->GetD3D9MaterialFromHandle(dwLightState);
-          if (unlikely(material9 == nullptr))
-            return DDERR_INVALIDPARAMS;
+        d3d9::D3DMATERIAL9* material9 = D3DCommonInterface::GetD3D9MaterialFromHandle(dwLightState);
+        if (unlikely(material9 == nullptr))
+          return DDERR_INVALIDPARAMS;
 
-          m_commonD3DDevice->SetCurrentMaterialHandle(dwLightState);
-          Logger::debug(str::format("D3D3Device::SetLightStateInternal: Applying material nr. ", dwLightState, " to D3D9"));
-          device9->SetMaterial(material9);
-        } else {
-          Logger::warn("D3D3Device::SetLightStateInternal: Unable to set D3D9 material");
-        }
+        m_commonD3DDevice->SetCurrentMaterialHandle(dwLightState);
+        Logger::debug(str::format("D3D3Device::SetLightStateInternal: Applying material nr. ", dwLightState, " to D3D9"));
+        device9->SetMaterial(material9);
 
         break;
       }
