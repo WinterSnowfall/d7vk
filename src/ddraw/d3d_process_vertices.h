@@ -584,14 +584,11 @@ namespace dxvk {
               }
               break;
             }
-            // TODO: parallel point lights
-            case D3DLIGHT_PARALLELPOINT:
-            default: {
-              static bool s_warnShown;
-              if (!std::exchange(s_warnShown, true))
-                Logger::warn("ProcessVerticesSW: Unsupported light type: D3DLIGHT_PARALLELPOINT");
+            // D3DLIGHT_PARALLELPOINT ligts are emulated with maximum range
+            // and no attentuation regular point lights, so this shouldn't be hit
+            default:
+              Logger::warn(str::format("ProcessVerticesSW: Invalid light type: ", lightType));
               continue;
-            }
           }
 
           ColorVMultiplyAdd(ambient, light.Ambient, attenuation);

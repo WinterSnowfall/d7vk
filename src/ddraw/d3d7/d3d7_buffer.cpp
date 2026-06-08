@@ -198,8 +198,8 @@ namespace dxvk {
       pvData.doExtents = true;
       pvData.isLegacy = false;
 
+      std::vector<d3d9::D3DLIGHT9> lights9;
       if (doLighting) {
-        std::vector<d3d9::D3DLIGHT9> lights9;
         device7->GetD3D9Lights(&lights9);
         pvData.lights = &lights9;
       } else {

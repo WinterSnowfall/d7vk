@@ -497,9 +497,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // D3DLIGHT_PARALLELPOINT can not be used in D3D7
-    if (unlikely(data->dltType != D3DLIGHT_POINT
-              && data->dltType != D3DLIGHT_SPOT
-              && data->dltType != D3DLIGHT_DIRECTIONAL))
+    if (unlikely(data->dltType == 0 || data->dltType > D3DLIGHT_DIRECTIONAL))
       return DDERR_INVALIDPARAMS;
 
     // For POINT/SPOT lights, attenuation should be positive, as per docs:
@@ -1444,7 +1442,24 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return DDERR_INVALIDPARAMS;
 
+    static constexpr d3d9::D3DLIGHT9 DefaultLight = {
+      d3d9::D3DLIGHT_DIRECTIONAL, // Type
+      {1.0f, 1.0f, 1.0f, 0.0f},   // Diffuse
+      {0.0f, 0.0f, 0.0f, 0.0f},   // Specular
+      {0.0f, 0.0f, 0.0f, 0.0f},   // Ambient
+      {0.0f, 0.0f, 0.0f},         // Position
+      {0.0f, 0.0f, 1.0f},         // Direction
+      0.0f,                       // Range
+      0.0f,                       // Falloff
+      0.0f, 0.0f, 0.0f,           // Attenuations [constant, linear, quadratic]
+      0.0f,                       // Theta
+      0.0f                        // Phi
+    };
+
     m_lightsStates[dwLightIndex] = bEnable;
+    // Store a default light if the light cache doesn't contain one
+    if (unlikely(m_lights.find(dwLightIndex) == m_lights.end()))
+      m_lights[dwLightIndex] = DefaultLight;
 
     return D3D_OK;
   }
