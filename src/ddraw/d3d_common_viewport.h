@@ -10,7 +10,6 @@
 namespace dxvk {
 
   class DDrawCommonSurface;
-  class DDrawCommonInterface;
 
   class D3D6Viewport;
   class D3D5Viewport;
@@ -24,7 +23,7 @@ namespace dxvk {
 
   public:
 
-    D3DCommonViewport(DDrawCommonInterface* commonIntf);
+    D3DCommonViewport();
 
     ~D3DCommonViewport();
 
@@ -48,10 +47,6 @@ namespace dxvk {
     void UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface);
 
     HRESULT TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen);
-
-    DDrawCommonInterface* GetCommonInterface() const {
-      return m_commonIntf;
-    }
 
     d3d9::D3DVIEWPORT9* GetD3D9Viewport() {
       return &m_viewport9;
@@ -210,8 +205,6 @@ namespace dxvk {
     bool                  m_isIdentityMatrix  = false;
     bool                  m_needsClipping     = false;
     bool                  m_dirtyProjection   = false;
-
-    DDrawCommonInterface* m_commonIntf        = nullptr;
 
     D3DMATERIALHANDLE     m_materialHandle    = 0;
 

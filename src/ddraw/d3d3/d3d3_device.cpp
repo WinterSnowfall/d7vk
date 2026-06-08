@@ -235,14 +235,14 @@ namespace dxvk {
     const D3DTEXTUREHANDLE handle1 = commonTex1->GetTextureHandle();
     const D3DTEXTUREHANDLE handle2 = commonTex2->GetTextureHandle();
 
-    m_commonIntf->ReleaseTextureHandle(handle1);
-    m_commonIntf->ReleaseTextureHandle(handle2);
+    DDrawCommonInterface::ReleaseTextureHandle(handle1);
+    DDrawCommonInterface::ReleaseTextureHandle(handle2);
 
     commonTex1->SetTextureHandle(handle2);
     commonTex2->SetTextureHandle(handle1);
 
-    m_commonIntf->EmplaceTexture(commonTex1, handle2);
-    m_commonIntf->EmplaceTexture(commonTex2, handle1);
+    DDrawCommonInterface::EmplaceTexture(commonTex1, handle2);
+    DDrawCommonInterface::EmplaceTexture(commonTex2, handle1);
 
     return D3D_OK;
   }
@@ -975,7 +975,7 @@ namespace dxvk {
     // Bound texture(s)
     const D3DTEXTUREHANDLE texHandle = m_commonD3DDevice->GetCurrentTextureHandle();
     if (likely(texHandle != 0)) {
-      DDrawSurface* tex = m_commonIntf->GetSurfaceFromTextureHandle(texHandle);
+      DDrawSurface* tex = DDrawCommonInterface::GetSurfaceFromTextureHandle(texHandle);
       if (likely(tex != nullptr))
         tex->InitializeOrUploadD3D9();
     }
@@ -1076,7 +1076,7 @@ namespace dxvk {
         DDrawSurface* surface = nullptr;
 
         if (likely(dwRenderState != 0)) {
-          surface = m_commonIntf->GetSurfaceFromTextureHandle(dwRenderState);
+          surface = DDrawCommonInterface::GetSurfaceFromTextureHandle(dwRenderState);
           if (unlikely(surface == nullptr))
             return DDERR_INVALIDPARAMS;
         }
@@ -1532,8 +1532,8 @@ namespace dxvk {
     for (uint16_t i = 0; i < count; i++) {
       const D3DTEXTURELOAD& tl = textureLoad[i];
 
-      DDrawSurface* destSurf = m_commonIntf->GetSurfaceFromTextureHandle(tl.hDestTexture);
-      DDrawSurface* srcSurf = m_commonIntf->GetSurfaceFromTextureHandle(tl.hSrcTexture);
+      DDrawSurface* destSurf = DDrawCommonInterface::GetSurfaceFromTextureHandle(tl.hDestTexture);
+      DDrawSurface* srcSurf = DDrawCommonInterface::GetSurfaceFromTextureHandle(tl.hSrcTexture);
       if (destSurf != nullptr && srcSurf != nullptr) {
         destSurf->GetD3D3Texture()->Load(srcSurf->GetD3D3Texture());
       } else {

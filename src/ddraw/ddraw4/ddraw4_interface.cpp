@@ -323,7 +323,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw4Interface::DuplicateSurface(LPDIRECTDRAWSURFACE4 lpDDSurface, LPDIRECTDRAWSURFACE4 *lplpDupDDSurface) {
     Logger::debug("<<< DDraw4Interface::DuplicateSurface: Proxy");
 
-    if (m_commonIntf->IsWrappedSurface(lpDDSurface)) {
+    if (DDrawCommonInterface::IsWrappedSurface(lpDDSurface)) {
       InitReturnPtr(lplpDupDDSurface);
 
       DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSurface);
@@ -535,7 +535,7 @@ namespace dxvk {
       return hr;
     }
 
-    if (unlikely(m_commonIntf->IsWrappedSurface(gdiSurface.ptr()))) {
+    if (unlikely(DDrawCommonInterface::IsWrappedSurface(gdiSurface.ptr()))) {
       *lplpGDIDDSurface = gdiSurface.ref();
     } else {
       Logger::debug("DDraw4Interface::GetGDISurface: Received a non-wrapped GDI surface");

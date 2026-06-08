@@ -2,6 +2,8 @@
 
 #include "ddraw_include.h"
 
+#include "d3d_common_interface.h"
+
 namespace dxvk {
 
   class D3D6Material;

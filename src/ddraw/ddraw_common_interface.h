@@ -25,6 +25,20 @@ namespace dxvk {
 
   class DDrawCommonInterface : public ComObjectClamp<IUnknown> {
 
+  // Tests have indicated that once created, texture handles are shared across
+  // all devices and DDraw interfaces, regardless of their relation
+  static std::atomic<D3DTEXTUREHANDLE> s_textureHandle;
+  static inline std::unordered_map<D3DTEXTUREHANDLE, D3DCommonTexture*> s_textures;
+
+  // Keep wrapped surface tracking shared between all DDraw interfaces as tests
+  // as well as some games (e.g. GTA 2) depend on wrapped surface lookups across
+  // unrelated DDraw interface objects... yes, really...
+  static inline std::vector<IDirectDrawSurface7*> s_surfaces7;
+  static inline std::vector<IDirectDrawSurface4*> s_surfaces4;
+  static inline std::vector<IDirectDrawSurface3*> s_surfaces3;
+  static inline std::vector<IDirectDrawSurface2*> s_surfaces2;
+  static inline std::vector<IDirectDrawSurface*>  s_surfaces;
+
   public:
 
     DDrawCommonInterface(const D3DOptions& options);
@@ -38,39 +52,56 @@ namespace dxvk {
 
     D3D3Interface* GetOrCreateD3D3Interface();
 
-    bool IsWrappedSurface(IDirectDrawSurface* surface) const;
+    static bool IsWrappedSurface(IDirectDrawSurface* surface);
 
-    void AddWrappedSurface(IDirectDrawSurface* surface);
+    static void AddWrappedSurface(IDirectDrawSurface* surface);
 
-    void RemoveWrappedSurface(IDirectDrawSurface* surface);
+    static void RemoveWrappedSurface(IDirectDrawSurface* surface);
 
-    bool IsWrappedSurface(IDirectDrawSurface2* surface) const;
+    static bool IsWrappedSurface(IDirectDrawSurface2* surface);
 
-    void AddWrappedSurface(IDirectDrawSurface2* surface);
+    static void AddWrappedSurface(IDirectDrawSurface2* surface);
 
-    void RemoveWrappedSurface(IDirectDrawSurface2* surface);
+    static void RemoveWrappedSurface(IDirectDrawSurface2* surface);
 
-    bool IsWrappedSurface(IDirectDrawSurface3* surface) const;
+    static bool IsWrappedSurface(IDirectDrawSurface3* surface);
 
-    void AddWrappedSurface(IDirectDrawSurface3* surface);
+    static void AddWrappedSurface(IDirectDrawSurface3* surface);
 
-    void RemoveWrappedSurface(IDirectDrawSurface3* surface);
+    static void RemoveWrappedSurface(IDirectDrawSurface3* surface);
 
-    bool IsWrappedSurface(IDirectDrawSurface4* surface) const;
+    static bool IsWrappedSurface(IDirectDrawSurface4* surface);
 
-    void AddWrappedSurface(IDirectDrawSurface4* surface);
+    static void AddWrappedSurface(IDirectDrawSurface4* surface);
 
-    void RemoveWrappedSurface(IDirectDrawSurface4* surface);
+    static void RemoveWrappedSurface(IDirectDrawSurface4* surface);
 
-    bool IsWrappedSurface(IDirectDrawSurface7* surface) const;
+    static bool IsWrappedSurface(IDirectDrawSurface7* surface);
 
-    void AddWrappedSurface(IDirectDrawSurface7* surface);
+    static void AddWrappedSurface(IDirectDrawSurface7* surface);
 
-    void RemoveWrappedSurface(IDirectDrawSurface7* surface);
+    static void RemoveWrappedSurface(IDirectDrawSurface7* surface);
 
-    DDrawSurface* GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle) const;
+    static DDrawSurface* GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle);
 
-    DDraw4Surface* GetSurface4FromTextureHandle(D3DTEXTUREHANDLE handle) const;
+    static DDraw4Surface* GetSurface4FromTextureHandle(D3DTEXTUREHANDLE handle);
+
+    static D3DTEXTUREHANDLE GetNextTextureHandle() {
+      return ++s_textureHandle;
+    }
+
+    static void EmplaceTexture(D3DCommonTexture* commonTex, D3DTEXTUREHANDLE handle) {
+      s_textures.emplace(std::piecewise_construct,
+                         std::forward_as_tuple(handle),
+                         std::forward_as_tuple(commonTex));
+    }
+
+    static void ReleaseTextureHandle(D3DTEXTUREHANDLE handle) {
+      auto textureIter = s_textures.find(handle);
+
+      if (likely(textureIter != s_textures.end()))
+        s_textures.erase(textureIter);
+    }
 
     void MarkAsInitialized() {
       m_isInitialized = true;
@@ -202,23 +233,6 @@ namespace dxvk {
       return m_commonD3DDevice;
     }
 
-    D3DTEXTUREHANDLE GetNextTextureHandle() {
-      return ++m_textureHandle;
-    }
-
-    void EmplaceTexture(D3DCommonTexture* commonTex, D3DTEXTUREHANDLE handle) {
-      m_textures.emplace(std::piecewise_construct,
-                         std::forward_as_tuple(handle),
-                         std::forward_as_tuple(commonTex));
-    }
-
-    void ReleaseTextureHandle(D3DTEXTUREHANDLE handle) {
-      auto textureIter = m_textures.find(handle);
-
-      if (likely(textureIter != m_textures.end()))
-        m_textures.erase(textureIter);
-    }
-
   private:
 
     bool                              m_isInitialized      = false;
@@ -248,15 +262,6 @@ namespace dxvk {
     IUnknown*                         m_origin             = nullptr;
 
     D3DCommonDevice*                  m_commonD3DDevice    = nullptr;
-
-    std::vector<IDirectDrawSurface7*> m_surfaces7;
-    std::vector<IDirectDrawSurface4*> m_surfaces4;
-    std::vector<IDirectDrawSurface3*> m_surfaces3;
-    std::vector<IDirectDrawSurface2*> m_surfaces2;
-    std::vector<IDirectDrawSurface*>  m_surfaces;
-
-    std::atomic<D3DTEXTUREHANDLE>     m_textureHandle = 0;
-    std::unordered_map<D3DTEXTUREHANDLE, D3DCommonTexture*> m_textures;
 
   };
 
