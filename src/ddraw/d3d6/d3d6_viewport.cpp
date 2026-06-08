@@ -29,7 +29,7 @@ namespace dxvk {
     , m_commonViewport ( commonViewport ) {
 
     if (m_commonViewport == nullptr)
-      m_commonViewport = new D3DCommonViewport(m_parent->GetCommonD3DInterface(), m_parent->GetCommonInterface());
+      m_commonViewport = new D3DCommonViewport(m_parent->GetCommonInterface());
 
     if (m_commonViewport->GetOrigin() == nullptr)
       m_commonViewport->SetOrigin(this);
@@ -254,7 +254,7 @@ namespace dxvk {
     if (unlikely(m_commonViewport->GetMaterialHandle() == hMat))
       return D3D_OK;
 
-    D3DCommonMaterial* commonMaterial = m_commonViewport->GetCommonD3DInterface()->GetCommonMaterialFromHandle(hMat);
+    D3DCommonMaterial* commonMaterial = D3DCommonInterface::GetCommonMaterialFromHandle(hMat);
 
     if (unlikely(commonMaterial == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -332,7 +332,7 @@ namespace dxvk {
 
     static constexpr D3DCOLOR defaultColor = D3DCOLOR_ARGB(0, 0, 0, 0);
     D3DMATERIALHANDLE handle = m_commonViewport->GetMaterialHandle();
-    D3DCommonMaterial* commonMaterial = m_commonViewport->GetCommonD3DInterface()->GetCommonMaterialFromHandle(handle);
+    D3DCommonMaterial* commonMaterial = D3DCommonInterface::GetCommonMaterialFromHandle(handle);
     D3DCOLOR clearColor = commonMaterial != nullptr ? commonMaterial->GetMaterialColor() : defaultColor;
 
     // TODO: Account for any set background depth surface, though in practice

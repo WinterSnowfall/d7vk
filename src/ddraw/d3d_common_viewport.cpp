@@ -2,8 +2,6 @@
 
 #include "ddraw_common_surface.h"
 
-#include "d3d_common_interface.h"
-
 #include "ddraw4/ddraw4_surface.h"
 #include "ddraw/ddraw_surface.h"
 
@@ -13,9 +11,8 @@
 
 namespace dxvk {
 
-  D3DCommonViewport::D3DCommonViewport(D3DCommonInterface* commonD3DIntf, DDrawCommonInterface* commonIntf)
-    : m_commonD3DIntf ( commonD3DIntf )
-    , m_commonIntf ( commonIntf ) {
+  D3DCommonViewport::D3DCommonViewport(DDrawCommonInterface* commonIntf)
+    : m_commonIntf ( commonIntf ) {
   }
 
   D3DCommonViewport::~D3DCommonViewport() {
@@ -145,19 +142,24 @@ namespace dxvk {
     HRESULT hr;
     hr = m_device9->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_WORLD), &world9);
     if (FAILED(hr)) {
-      Logger::err("D3DCommonViewport::TransformVertices: failed to get world transform");
+      Logger::err("D3DCommonViewport::TransformVertices: failed to get D3D9 world transform");
       return DDERR_GENERIC;
     }
     hr = m_device9->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_VIEW), &view9);
     if (FAILED(hr)) {
-      Logger::err("D3DCommonViewport::TransformVertices: failed to get view transform");
+      Logger::err("D3DCommonViewport::TransformVertices: failed to get D3D9 view transform");
       return DDERR_GENERIC;
     }
     hr = m_device9->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_PROJECTION), &projection9);
     if (FAILED(hr)) {
-      Logger::err("D3DCommonViewport::TransformVertices: failed to get projection transform");
+      Logger::err("D3DCommonViewport::TransformVertices: failed to get D3D9 projection transform");
       return DDERR_GENERIC;
     }
+
+    // Precalculate a few static viewport factors, to save on per-vertex cycles
+    const float viewport9HalfWidth  = static_cast<float>(m_viewport9.Width)  * 0.5f;
+    const float viewport9HalfHeight = static_cast<float>(m_viewport9.Height) * 0.5f;
+    const float viewport9ZDelta     = m_viewport9.MaxZ - m_viewport9.MinZ;
 
     const D3DMATRIX* correction = GetLegacyProjectionMatrix(0);
 
@@ -171,7 +173,7 @@ namespace dxvk {
       D3DLVERTEX& in = *(reinterpret_cast<D3DLVERTEX*>(reinterpret_cast<uint8_t*>(data->lpIn) + data->dwInSize * t));
       D3DTLVERTEX& out = *(reinterpret_cast<D3DTLVERTEX*>(reinterpret_cast<uint8_t*>(data->lpOut) + data->dwOutSize * t));
 
-      Vector4 h = wvp * Vector4({in.x, in.y, in.z, 1.0f});
+      const Vector4 h = wvp * Vector4({in.x, in.y, in.z, 1.0f});
 
       auto outH = data->lpHOut;
       if (clipped) {
@@ -207,9 +209,9 @@ namespace dxvk {
       // Hidden & Dangerous (D3D6) relies on NAN/INF output
       // in ProcessVertices, so do the same here just in case
       out.rhw = 1.0f / h.w;
-      out.sx = m_viewport9.X + static_cast<float>(m_viewport9.Width) * 0.5 * (h.x * out.rhw + 1.0f);
-      out.sy = m_viewport9.Y + static_cast<float>(m_viewport9.Height) * 0.5 * (1.0f - h.y * out.rhw);
-      out.sz = m_viewport9.MinZ + h.z * out.rhw * (m_viewport9.MaxZ - m_viewport9.MinZ);
+      out.sx = m_viewport9.X + viewport9HalfWidth * (h.x * out.rhw + 1.0f);
+      out.sy = m_viewport9.Y + viewport9HalfHeight * (1.0f - h.y * out.rhw);
+      out.sz = m_viewport9.MinZ + h.z * out.rhw * viewport9ZDelta;
 
       out.color = in.color;
       out.specular = in.specular;

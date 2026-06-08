@@ -1284,7 +1284,7 @@ namespace dxvk {
           return D3D_OK;
         }
 
-        d3d9::D3DMATERIAL9* material9 = m_parent->GetCommonD3DInterface()->GetD3D9MaterialFromHandle(dwLightState);
+        d3d9::D3DMATERIAL9* material9 = D3DCommonInterface::GetD3D9MaterialFromHandle(dwLightState);
         if (unlikely(material9 == nullptr))
           return DDERR_INVALIDPARAMS;
 

@@ -25,7 +25,7 @@ namespace dxvk {
   }
 
   D3D6Material::~D3D6Material() {
-    m_parent->GetCommonD3DInterface()->ReleaseMaterialHandle(m_commonMaterial->GetMaterialHandle());
+    D3DCommonInterface::ReleaseMaterialHandle(m_commonMaterial->GetMaterialHandle());
 
     m_commonMaterial->SetD3D6Material(nullptr);
 
