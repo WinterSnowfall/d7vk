@@ -22,7 +22,7 @@ namespace dxvk {
     // D3D5Texture is shared between D3D5/6, however textures used in a D3D6 context
     // typically come from an IDirectDrawSurface4 parent. This isn't a hard requirement,
     // but is true in the vast majority of cases, so use the distinction for logging purposes.
-    if (m_commonIntf->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface4*>(pParent)))
+    if (DDrawCommonInterface::IsWrappedSurface(reinterpret_cast<IDirectDrawSurface4*>(pParent)))
       m_objectType = "D3D6Texture";
 
     m_texCount = ++s_texCount;
@@ -31,8 +31,6 @@ namespace dxvk {
   }
 
   D3D5Texture::~D3D5Texture() {
-    m_commonIntf->ReleaseTextureHandle(m_commonTex->GetTextureHandle());
-
     Logger::debug(str::format(m_objectType, ": Texture nr. [[2-", m_texCount, "]] bites the dust"));
   }
 

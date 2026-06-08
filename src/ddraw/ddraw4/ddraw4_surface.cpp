@@ -60,7 +60,7 @@ namespace dxvk {
       }
     }
 
-    m_commonIntf->AddWrappedSurface(this);
+    DDrawCommonInterface::AddWrappedSurface(this);
 
     m_commonSurf->SetDD4Surface(this);
 
@@ -94,7 +94,7 @@ namespace dxvk {
       m_parentSurf->ClearAttachedDepthStencil();
     }
 
-    m_commonIntf->RemoveWrappedSurface(this);
+    DDrawCommonInterface::RemoveWrappedSurface(this);
 
     // Release all public references on all attached surfaces
     for (auto & attachedSurface : m_attachedSurfaces) {
@@ -130,10 +130,10 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
+        D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
         m_texture3 = new D3D3Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nextHandle);
         D3DCommonTexture* commonTex = m_texture3->GetCommonTexture();
-        m_commonIntf->EmplaceTexture(commonTex, nextHandle);
+        DDrawCommonInterface::EmplaceTexture(commonTex, nextHandle);
       }
 
       *ppvObject = m_texture3.ref();
@@ -149,12 +149,12 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
+        D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
         // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
         m_texture6 = new D3D5Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nextHandle);
         // Grandia II uses IDirect3DTexture2 objects with handles, even on D3D6...
         D3DCommonTexture* commonTex = m_texture6->GetCommonTexture();
-        m_commonIntf->EmplaceTexture(commonTex, nextHandle);
+        DDrawCommonInterface::EmplaceTexture(commonTex, nextHandle);
       }
 
       *ppvObject = m_texture6.ref();
@@ -295,7 +295,7 @@ namespace dxvk {
     if (unlikely(lpDDSAttachedSurface == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDSAttachedSurface))) {
       Logger::warn("DDraw4Surface::AddAttachedSurface: Received an unwrapped surface");
       return DDERR_CANNOTATTACHSURFACE;
     }
@@ -329,7 +329,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw4Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE4 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
     Logger::debug("<<< DDraw4Surface::Blt: Proxy");
 
-    const bool sourceIsWrappedSurface = m_commonIntf->IsWrappedSurface(lpDDSrcSurface);
+    const bool sourceIsWrappedSurface = DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface);
 
     // Write back any dirty surface data from bound D3D9 back buffers or
     // depth stencils, for both the source surface and the current surface
@@ -403,7 +403,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw4Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE4 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDraw4Surface::BltFast: Proxy");
 
-    const bool sourceIsWrappedSurface = m_commonIntf->IsWrappedSurface(lpDDSrcSurface);
+    const bool sourceIsWrappedSurface = DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface);
 
     RECT* sourceFullSurfaceRect = nullptr;
     // Write back any dirty surface data from bound D3D9 back buffers or
@@ -474,7 +474,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw4Surface::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE4 lpDDSAttachedSurface) {
     Logger::debug("<<< DDraw4Surface::DeleteAttachedSurface: Proxy");
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDSAttachedSurface))) {
       if (unlikely(lpDDSAttachedSurface != nullptr)) {
         Logger::warn("DDraw4Surface::DeleteAttachedSurface: Received an unwrapped surface");
         return DDERR_UNSUPPORTED;
@@ -562,7 +562,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::Flip(LPDIRECTDRAWSURFACE4 lpDDSurfaceTargetOverride, DWORD dwFlags) {
-    const bool overrideIsWrappedSurface = m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride);
+    const bool overrideIsWrappedSurface = DDrawCommonInterface::IsWrappedSurface(lpDDSurfaceTargetOverride);
 
     Com<DDraw4Surface> overrideSurf = static_cast<DDraw4Surface*>(lpDDSurfaceTargetOverride);
 
@@ -1042,7 +1042,7 @@ namespace dxvk {
     if (unlikely(lpDDDestSurface == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDDestSurface))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDDestSurface))) {
       Logger::warn("DDraw4Surface::UpdateOverlay: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }
@@ -1060,7 +1060,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw4Surface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE4 lpDDSReference) {
     Logger::debug("<<< DDraw4Surface::UpdateOverlayZOrder: Proxy");
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSReference))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDSReference))) {
       Logger::warn("DDraw4Surface::UpdateOverlayZOrder: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }

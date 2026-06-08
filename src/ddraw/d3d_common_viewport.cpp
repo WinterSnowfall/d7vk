@@ -11,8 +11,7 @@
 
 namespace dxvk {
 
-  D3DCommonViewport::D3DCommonViewport(DDrawCommonInterface* commonIntf)
-    : m_commonIntf ( commonIntf ) {
+  D3DCommonViewport::D3DCommonViewport() {
   }
 
   D3DCommonViewport::~D3DCommonViewport() {

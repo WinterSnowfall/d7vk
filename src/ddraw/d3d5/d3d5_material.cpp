@@ -25,8 +25,6 @@ namespace dxvk {
   }
 
   D3D5Material::~D3D5Material() {
-    D3DCommonInterface::ReleaseMaterialHandle(m_commonMaterial->GetMaterialHandle());
-
     m_commonMaterial->SetD3D5Material(nullptr);
 
     Logger::debug(str::format("D3D5Material: Material nr. [[2-", m_materialCount, "]] bites the dust"));

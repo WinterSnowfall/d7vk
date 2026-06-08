@@ -8,6 +8,7 @@ namespace dxvk {
   }
 
   D3DCommonTexture::~D3DCommonTexture() {
+    DDrawCommonInterface::ReleaseTextureHandle(m_textureHandle);
   }
 
 }

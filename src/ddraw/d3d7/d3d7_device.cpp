@@ -310,7 +310,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::SetRenderTarget: Received an unwrapped RT");
       return DDERR_UNSUPPORTED;
     }
@@ -868,7 +868,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::PreLoad(IDirectDrawSurface7 *surface) {
     Logger::debug(">>> D3D7Device::PreLoad");
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::PreLoad: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }
@@ -1248,7 +1248,7 @@ namespace dxvk {
     }
 
     // Binding texture stages
-    if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::SetTexture: Received an unwrapped texture");
       return DDERR_UNSUPPORTED;
     }
@@ -1399,7 +1399,7 @@ namespace dxvk {
     DDraw7Surface* ddraw7SurfaceDst = nullptr;
 
     RECT* sourceFullSurfaceRect = nullptr;
-    if (likely(m_commonIntf->IsWrappedSurface(src_surface))) {
+    if (likely(DDrawCommonInterface::IsWrappedSurface(src_surface))) {
       ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
       ddraw7SurfaceSrc->DownloadSurfaceData();
       sourceFullSurfaceRect = ddraw7SurfaceSrc->GetCommonSurface()->GetFullSurfaceRect();
@@ -1408,7 +1408,7 @@ namespace dxvk {
       return DDERR_UNSUPPORTED;
     }
 
-    if (likely(m_commonIntf->IsWrappedSurface(dst_surface))) {
+    if (likely(DDrawCommonInterface::IsWrappedSurface(dst_surface))) {
       ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
       if ((dst_point == nullptr || (dst_point->x == 0 && dst_point->y == 0)) &&
           ddraw7SurfaceDst->GetCommonSurface()->IsFullSurfaceLock(src_rect, sourceFullSurfaceRect)) {

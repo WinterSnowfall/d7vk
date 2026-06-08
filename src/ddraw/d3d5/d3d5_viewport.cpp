@@ -28,7 +28,7 @@ namespace dxvk {
     , m_commonViewport ( commonViewport ) {
 
     if (m_commonViewport == nullptr)
-      m_commonViewport = new D3DCommonViewport(m_parent->GetCommonInterface());
+      m_commonViewport = new D3DCommonViewport();
 
     if (m_commonViewport->GetOrigin() == nullptr)
       m_commonViewport->SetOrigin(this);
@@ -281,7 +281,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D5Viewport::SetBackgroundDepth(IDirectDrawSurface *surface) {
     Logger::debug(">>> D3D5Viewport::SetBackgroundDepth");
 
-    if (unlikely(!m_commonViewport->GetCommonInterface()->IsWrappedSurface(surface))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
       Logger::warn("D3D5Viewport::SetBackgroundDepth: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }

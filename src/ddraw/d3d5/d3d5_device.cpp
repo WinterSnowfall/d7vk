@@ -232,14 +232,14 @@ namespace dxvk {
     const D3DTEXTUREHANDLE handle1 = commonTex1->GetTextureHandle();
     const D3DTEXTUREHANDLE handle2 = commonTex2->GetTextureHandle();
 
-    m_commonIntf->ReleaseTextureHandle(handle1);
-    m_commonIntf->ReleaseTextureHandle(handle2);
+    DDrawCommonInterface::ReleaseTextureHandle(handle1);
+    DDrawCommonInterface::ReleaseTextureHandle(handle2);
 
     commonTex1->SetTextureHandle(handle2);
     commonTex2->SetTextureHandle(handle1);
 
-    m_commonIntf->EmplaceTexture(commonTex1, handle2);
-    m_commonIntf->EmplaceTexture(commonTex2, handle1);
+    DDrawCommonInterface::EmplaceTexture(commonTex1, handle2);
+    DDrawCommonInterface::EmplaceTexture(commonTex2, handle1);
 
     return D3D_OK;
   }
@@ -501,7 +501,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
       Logger::err("D3D5Device::SetRenderTarget: Received an unwrapped RT");
       return DDERR_UNSUPPORTED;
     }
@@ -879,7 +879,7 @@ namespace dxvk {
         DDrawSurface* surface = nullptr;
 
         if (likely(dwRenderState != 0)) {
-          surface = m_commonIntf->GetSurfaceFromTextureHandle(dwRenderState);
+          surface = DDrawCommonInterface::GetSurfaceFromTextureHandle(dwRenderState);
           if (unlikely(surface == nullptr))
             return DDERR_INVALIDPARAMS;
         }
@@ -1141,7 +1141,7 @@ namespace dxvk {
 
         const D3DTEXTUREHANDLE currentTextureHandle = m_commonD3DDevice->GetCurrentTextureHandle();
         DDrawSurface* surface = currentTextureHandle != 0 ?
-                                m_commonIntf->GetSurfaceFromTextureHandle(currentTextureHandle) : nullptr;
+                                DDrawCommonInterface::GetSurfaceFromTextureHandle(currentTextureHandle) : nullptr;
         const bool validColorKey = surface != nullptr ? surface->GetCommonSurface()->HasValidColorKey() : false;
         m_bridge->SetColorKeyState(dwRenderState && validColorKey);
         if (dwRenderState && validColorKey) {
@@ -1523,7 +1523,7 @@ namespace dxvk {
     // Bound texture(s)
     const D3DTEXTUREHANDLE texHandle = m_commonD3DDevice->GetCurrentTextureHandle();
     if (likely(texHandle != 0)) {
-      DDrawSurface* tex = m_commonIntf->GetSurfaceFromTextureHandle(texHandle);
+      DDrawSurface* tex = DDrawCommonInterface::GetSurfaceFromTextureHandle(texHandle);
       if (likely(tex != nullptr))
         tex->InitializeOrUploadD3D9();
     }

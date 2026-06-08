@@ -7,6 +7,7 @@ namespace dxvk {
   }
 
   D3DCommonMaterial::~D3DCommonMaterial() {
+    D3DCommonInterface::ReleaseMaterialHandle(m_materialHandle);
   }
 
 }
