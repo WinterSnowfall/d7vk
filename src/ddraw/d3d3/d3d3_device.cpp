@@ -647,7 +647,9 @@ namespace dxvk {
               }
               case D3DPROCESSVERTICES_TRANSFORM:
               case D3DPROCESSVERTICES_TRANSFORMLIGHT: {
-                const bool doLighting = op == D3DPROCESSVERTICES_TRANSFORMLIGHT;
+                // "If the rendering device does not have a material assigned to it, the Direct3D lighting engine is disabled."
+                const bool doLighting = op == D3DPROCESSVERTICES_TRANSFORMLIGHT &&
+                                        m_commonD3DDevice->GetCurrentMaterialHandle() != 0;
 
                 Logger::debug(str::format("D3D3Device::Execute: D3DOP_PROCESSVERTICES ", doLighting ? "TRANSFORMLIGHT" : "TRANSFORM"));
 

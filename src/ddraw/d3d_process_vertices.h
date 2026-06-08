@@ -452,8 +452,12 @@ namespace dxvk {
       d3d9Device->GetRenderState(d3d9::D3DRS_FOGDENSITY, reinterpret_cast<DWORD*>(&fogDensity));
       d3d9Device->GetRenderState(d3d9::D3DRS_RANGEFOGENABLE, reinterpret_cast<DWORD*>(&isEnabledFogRange));
     }
-    d3d9Device->GetRenderState(d3d9::D3DRS_LIGHTING, reinterpret_cast<DWORD*>(&isEnabledLighting));
-    if (isEnabledLighting) {
+    if (!pvData->isLegacy)
+      d3d9Device->GetRenderState(d3d9::D3DRS_LIGHTING, reinterpret_cast<DWORD*>(&isEnabledLighting));
+    // We factor in global lighting state into pvData->doLighting for D3D6 and
+    // earlier, since D3DRENDERSTATE_/D3DRS_LIGHTING doesn't exist before D3D7
+    const bool useLighting = pvData->isLegacy ? pvData->doLighting : pvData->doLighting && isEnabledLighting;
+    if (useLighting) {
       d3d9Device->GetRenderState(d3d9::D3DRS_AMBIENT, reinterpret_cast<DWORD*>(&ambientStateColor));
       d3d9Device->GetRenderState(d3d9::D3DRS_SPECULARENABLE, reinterpret_cast<DWORD*>(&isEnabledSpecular));
       d3d9Device->GetRenderState(d3d9::D3DRS_NORMALIZENORMALS, reinterpret_cast<DWORD*>(&isEnabledNormalizeNormals));
@@ -465,8 +469,8 @@ namespace dxvk {
     static constexpr D3DCOLORVALUE defaultDiffuseColorV  = {1.0f, 1.0f, 1.0f, 1.0f};
     static constexpr D3DCOLORVALUE defaultSpecularColorV = {0.0f, 0.0f, 0.0f, 0.0f};
 
-    const float materialPower = isEnabledLighting && isEnabledSpecular ? material9.Power : 0.0f;
-    const D3DCOLORVALUE ambientStateColorV = isEnabledLighting ? ColorToColorV(ambientStateColor) : defaultAmbientColorV;
+    const float materialPower = useLighting && isEnabledSpecular ? material9.Power : 0.0f;
+    const D3DCOLORVALUE ambientStateColorV = useLighting ? ColorToColorV(ambientStateColor) : defaultAmbientColorV;
 
     for (uint16_t t = 0; t < pvData->vertexCount; t++) {
       uint8_t* inPtr = pvData->inData + t * pvData->inStride;
@@ -523,7 +527,7 @@ namespace dxvk {
       VWPosition.y *= positionScale;
       VWPosition.z *= positionScale;
 
-      if (pvData->doLighting && isEnabledLighting && (pvData->outFVF & (D3DFVF_DIFFUSE | D3DFVF_SPECULAR))) {
+      if (useLighting && (pvData->outFVF & (D3DFVF_DIFFUSE | D3DFVF_SPECULAR))) {
         const Vector4 NVWPosition = NormalizeVec3(VWPosition);
         const Vector4 normals = !isEnabledNormalizeNormals ? wv * inNormals : NormalizeVec3(wv * inNormals);
 
