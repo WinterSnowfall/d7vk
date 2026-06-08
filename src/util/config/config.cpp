@@ -1914,6 +1914,11 @@ namespace dxvk {
       { "ddraw.robustTextureLifeCycle",     "True" },
       { "ddraw.forceRTFlip",                "True" },
     }} },
+    /* Midtown Madness                            *
+     * Prevents hangs on race/drive start         */
+    { R"(\\midtown\.(exe|icd)$)", {{
+      { "ddraw.legacyDeviceNames",          "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */

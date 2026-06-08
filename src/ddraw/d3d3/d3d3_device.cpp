@@ -671,8 +671,8 @@ namespace dxvk {
                 pvData.doExtents = pv.dwFlags & D3DPROCESSVERTICES_UPDATEEXTENTS;
                 pvData.isLegacy = true;
 
+                std::vector<d3d9::D3DLIGHT9> lights9;
                 if (doLighting) {
-                  std::vector<d3d9::D3DLIGHT9> lights9;
                   commonViewport->GetD3D9Lights(&lights9);
                   pvData.lights = &lights9;
                 } else {
