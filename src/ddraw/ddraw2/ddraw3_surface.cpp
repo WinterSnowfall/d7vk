@@ -90,7 +90,7 @@ namespace dxvk {
       }
     }
 
-    m_commonIntf->AddWrappedSurface(this);
+    DDrawCommonInterface::AddWrappedSurface(this);
 
     m_commonSurf->SetDD3Surface(this);
 
@@ -108,7 +108,7 @@ namespace dxvk {
       m_parentSurf->ClearAttachedDepthStencil();
     }
 
-    m_commonIntf->RemoveWrappedSurface(this);
+    DDrawCommonInterface::RemoveWrappedSurface(this);
 
     m_commonSurf->SetDD3Surface(nullptr);
 
@@ -132,11 +132,11 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
+        D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
         Com<D3D3Texture> texture3 = new D3D3Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), m_parent, nextHandle);
         D3DCommonTexture* commonTex = texture3->GetCommonTexture();
         m_parent->SetD3D3Texture(texture3.ptr());
-        m_commonIntf->EmplaceTexture(commonTex, nextHandle);
+        DDrawCommonInterface::EmplaceTexture(commonTex, nextHandle);
       }
 
       *ppvObject = ref(m_parent->GetD3D3Texture());
@@ -152,11 +152,11 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        D3DTEXTUREHANDLE nextHandle = m_commonIntf->GetNextTextureHandle();
+        D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
         Com<D3D5Texture> texture5 = new D3D5Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), m_parent, nextHandle);
         D3DCommonTexture* commonTex = texture5->GetCommonTexture();
         m_parent->SetD3D5Texture(texture5.ptr());
-        m_commonIntf->EmplaceTexture(commonTex, nextHandle);
+        DDrawCommonInterface::EmplaceTexture(commonTex, nextHandle);
       }
 
       *ppvObject = ref(m_parent->GetD3D5Texture());
@@ -284,12 +284,12 @@ namespace dxvk {
     Logger::debug("<<< DDraw3Surface::AddAttachedSurface: Proxy");
 
     // Some games, like Nightmare Creatures, try to attach an IDirectDrawSurface depth stencil directly...
-    if (unlikely(m_commonIntf->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSAttachedSurface)))) {
+    if (unlikely(DDrawCommonInterface::IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSAttachedSurface)))) {
       Logger::debug("DDraw3Surface::AddAttachedSurface: Attaching IDirectDrawSurface surface");
       return m_parent->AddAttachedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSAttachedSurface));
     }
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDSAttachedSurface))) {
       Logger::warn("DDraw3Surface::AddAttachedSurface: Received an unwrapped surface");
       return DDERR_CANNOTATTACHSURFACE;
     }
@@ -324,7 +324,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE3 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
     Logger::debug("<<< DDraw3Surface::Blt: Proxy");
 
-    const bool sourceIsWrappedSurface = m_commonIntf->IsWrappedSurface(lpDDSrcSurface);
+    const bool sourceIsWrappedSurface = DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface);
 
     // Write back any dirty surface data from bound D3D9 back buffers or
     // depth stencils, for both the source surface and the current surface
@@ -363,7 +363,7 @@ namespace dxvk {
 
     if (unlikely(!sourceIsWrappedSurface)) {
       // Powerslide tries to blit here from a IDirectDrawSurface source
-      if (unlikely(m_commonIntf->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSrcSurface)))) {
+      if (unlikely(DDrawCommonInterface::IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSrcSurface)))) {
         Logger::debug("DDraw3Surface::Blt: Received an IDirectDrawSurface source surface");
         DDrawSurface* sourceSurf = reinterpret_cast<DDrawSurface*>(lpDDSrcSurface);
         hr = GetShadowOrProxied()->Blt(lpDestRect, reinterpret_cast<IDirectDrawSurface3*>(sourceSurf->GetShadowOrProxied()),
@@ -407,7 +407,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw3Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE3 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
     Logger::debug("<<< DDraw3Surface::BltFast: Proxy");
 
-    const bool sourceIsWrappedSurface = m_commonIntf->IsWrappedSurface(lpDDSrcSurface);
+    const bool sourceIsWrappedSurface = DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface);
 
     RECT* sourceFullSurfaceRect = nullptr;
     // Write back any dirty surface data from bound D3D9 back buffers or
@@ -448,7 +448,7 @@ namespace dxvk {
 
     if (unlikely(!sourceIsWrappedSurface)) {
       // Powerslide tries to blit here from a IDirectDrawSurface source
-      if (unlikely(m_commonIntf->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSrcSurface)))) {
+      if (unlikely(DDrawCommonInterface::IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSrcSurface)))) {
         Logger::debug("DDraw3Surface::BltFast: Received an IDirectDrawSurface source surface");
         DDrawSurface* sourceSurf = reinterpret_cast<DDrawSurface*>(lpDDSrcSurface);
         hr = GetShadowOrProxied()->BltFast(dwX, dwY, reinterpret_cast<IDirectDrawSurface3*>(sourceSurf->GetShadowOrProxied()),
@@ -485,12 +485,12 @@ namespace dxvk {
     Logger::debug("<<< DDraw3Surface::DeleteAttachedSurface: Proxy");
 
     // Some games, like Nightmare Creatures, try to attach an IDirectDrawSurface depth stencil directly...
-    if (unlikely(m_commonIntf->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSAttachedSurface)))) {
+    if (unlikely(DDrawCommonInterface::IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSAttachedSurface)))) {
       Logger::debug("DDraw3Surface::DeleteAttachedSurface: Detaching IDirectDrawSurface surface");
       return m_parent->DeleteAttachedSurface(dwFlags, reinterpret_cast<IDirectDrawSurface*>(lpDDSAttachedSurface));
     }
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSAttachedSurface))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDSAttachedSurface))) {
       if (unlikely(lpDDSAttachedSurface != nullptr)) {
         Logger::warn("DDraw3Surface::DeleteAttachedSurface: Received an unwrapped surface");
         return DDERR_UNSUPPORTED;
@@ -537,7 +537,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Flip(LPDIRECTDRAWSURFACE3 lpDDSurfaceTargetOverride, DWORD dwFlags) {
-    const bool overrideIsWrappedSurface = m_commonIntf->IsWrappedSurface(lpDDSurfaceTargetOverride);
+    const bool overrideIsWrappedSurface = DDrawCommonInterface::IsWrappedSurface(lpDDSurfaceTargetOverride);
 
     Com<DDraw3Surface> overrideSurf = static_cast<DDraw3Surface*>(lpDDSurfaceTargetOverride);
 
@@ -978,7 +978,7 @@ namespace dxvk {
     if (unlikely(lpDDDestSurface == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDDestSurface))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDDestSurface))) {
       Logger::warn("DDraw3Surface::UpdateOverlay: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }
@@ -996,7 +996,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw3Surface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE3 lpDDSReference) {
     Logger::debug("<<< DDraw3Surface::UpdateOverlayZOrder: Proxy");
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDSReference))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDSReference))) {
       Logger::warn("DDraw3Surface::UpdateOverlayZOrder: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }

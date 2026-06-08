@@ -454,9 +454,9 @@ namespace dxvk {
     }
 
     Com<DDrawSurface> rt;
-    if (unlikely(!m_commonIntf->IsWrappedSurface(lpDDS))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDS))) {
       // Nightmare Creatures passes an IDirectDrawSurface3 surface as RT
-      if (unlikely(m_commonIntf->IsWrappedSurface(reinterpret_cast<IDirectDrawSurface3*>(lpDDS)))) {
+      if (unlikely(DDrawCommonInterface::IsWrappedSurface(reinterpret_cast<IDirectDrawSurface3*>(lpDDS)))) {
         Logger::debug("D3D5Interface::CreateDevice: IDirectDrawSurface3 surface passed as RT");
         DDraw3Surface* ddraw3Surface = reinterpret_cast<DDraw3Surface*>(lpDDS);
         // A DDrawSurface usually exists, because a DDraw3Surface is obtained from it via

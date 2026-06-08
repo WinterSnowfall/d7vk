@@ -3,6 +3,7 @@
 #include "ddraw_include.h"
 #include "ddraw_format.h"
 
+#include "ddraw_common_interface.h"
 #include "ddraw_common_surface.h"
 
 namespace dxvk {

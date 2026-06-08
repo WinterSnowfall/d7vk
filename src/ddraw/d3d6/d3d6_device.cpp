@@ -529,7 +529,7 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
     }
 
-    if (unlikely(!m_commonIntf->IsWrappedSurface(surface))) {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
       Logger::err("D3D6Device::SetRenderTarget: Received an unwrapped RT");
       return DDERR_UNSUPPORTED;
     }
@@ -912,7 +912,7 @@ namespace dxvk {
         DDraw4Surface* surface4 = nullptr;
 
         if (likely(dwRenderState != 0)) {
-          surface4 = m_commonIntf->GetSurface4FromTextureHandle(dwRenderState);
+          surface4 = DDrawCommonInterface::GetSurface4FromTextureHandle(dwRenderState);
           if (unlikely(surface4 == nullptr))
             return DDERR_INVALIDPARAMS;
         }
