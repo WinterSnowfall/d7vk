@@ -445,7 +445,7 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  inline D3DDEVICEDESC3 GetD3D3Caps(const D3DOptions* options) {
+  inline D3DDEVICEDESC3 GetD3D3Caps(const IID rclsid, const D3DOptions* options) {
     D3DDEVICEDESC3 desc;
 
     desc.dwSize    = sizeof(D3DDEVICEDESC3);
@@ -474,6 +474,14 @@ namespace dxvk {
                    | D3DDEVCAPS_TEXTUREVIDEOMEMORY
                    | D3DDEVCAPS_TLVERTEXSYSTEMMEMORY
                    | D3DDEVCAPS_TLVERTEXVIDEOMEMORY;
+
+    // Also advertised in D3D3
+    if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
+      desc.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
+                      | D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                      | D3DDEVCAPS_DRAWPRIMITIVES2
+                      | D3DDEVCAPS_DRAWPRIMITIVES2EX;
+    }
 
     D3DTRANSFORMCAPS transformCaps;
     transformCaps.dwSize = sizeof(D3DTRANSFORMCAPS);
@@ -633,11 +641,7 @@ namespace dxvk {
                    | D3DDEVCAPS_EXECUTESYSTEMMEMORY
                    | D3DDEVCAPS_EXECUTEVIDEOMEMORY
                    | D3DDEVCAPS_FLOATTLVERTEX
-                // | D3DDEVCAPS_HWRASTERIZATION
-                // | D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                // | D3DDEVCAPS_DRAWPRIMITIVES2
                 // | D3DDEVCAPS_SEPARATETEXTUREMEMORIES
-                // | D3DDEVCAPS_DRAWPRIMITIVES2EX
                 // | D3DDEVCAPS_SORTDECREASINGZ
                 // | D3DDEVCAPS_SORTEXACT
                 // | D3DDEVCAPS_SORTINCREASINGZ
@@ -652,9 +656,10 @@ namespace dxvk {
       desc.dwDevCaps |= D3DDEVCAPS_TEXTURENONLOCALVIDMEM;
     }
 
-    if (rclsid == IID_IDirect3DHALDevice) {
+    // Also advertised in D3D5
+    if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
       desc.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
-                      | D3DDEVCAPS_HWTRANSFORMANDLIGHT // Also advertised in D3D5
+                      | D3DDEVCAPS_HWTRANSFORMANDLIGHT
                       | D3DDEVCAPS_DRAWPRIMITIVES2
                       | D3DDEVCAPS_DRAWPRIMITIVES2EX;
     }
@@ -845,11 +850,7 @@ namespace dxvk {
                    | D3DDEVCAPS_EXECUTESYSTEMMEMORY
                    | D3DDEVCAPS_EXECUTEVIDEOMEMORY
                    | D3DDEVCAPS_FLOATTLVERTEX
-                // | D3DDEVCAPS_HWRASTERIZATION
-                // | D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                // | D3DDEVCAPS_DRAWPRIMITIVES2
                 // | D3DDEVCAPS_SEPARATETEXTUREMEMORIES
-                // | D3DDEVCAPS_DRAWPRIMITIVES2EX
                 // | D3DDEVCAPS_SORTDECREASINGZ
                 // | D3DDEVCAPS_SORTEXACT
                 // | D3DDEVCAPS_SORTINCREASINGZ
@@ -864,9 +865,10 @@ namespace dxvk {
       desc.dwDevCaps |= D3DDEVCAPS_TEXTURENONLOCALVIDMEM;
     }
 
-    if (rclsid == IID_IDirect3DHALDevice) {
+    // Also advertised in D3D6
+    if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
       desc.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
-                      | D3DDEVCAPS_HWTRANSFORMANDLIGHT // Also advertised in D3D6
+                      | D3DDEVCAPS_HWTRANSFORMANDLIGHT
                       | D3DDEVCAPS_DRAWPRIMITIVES2
                       | D3DDEVCAPS_DRAWPRIMITIVES2EX;
     }
@@ -1129,7 +1131,7 @@ namespace dxvk {
                        | D3DDEVCAPS_DRAWPRIMITIVES2
                        | D3DDEVCAPS_DRAWPRIMITIVES2EX;
     }
-    else if (rclsid == IID_IDirect3DHALDevice) {
+    else if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
       desc7.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
                        | D3DDEVCAPS_DRAWPRIMITIVES2
                        | D3DDEVCAPS_DRAWPRIMITIVES2EX;
