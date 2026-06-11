@@ -78,9 +78,6 @@ namespace dxvk {
     /// Masks the color key values based on surface format color depth
     bool colorKeyMasking;
 
-    /// Uses a tolerance interval for color key inverval matching
-    bool colorKeyTolerance;
-
     /// Enumerate with legacy/official implementation device names
     bool legacyDeviceNames;
 
@@ -122,7 +119,6 @@ namespace dxvk {
       this->autoGenMipMaps         = config.getOption<bool>   ("ddraw.autoGenMipMaps",         false);
       this->deviceResourceSharing  = config.getOption<bool>   ("ddraw.deviceResourceSharing",  false);
       this->colorKeyMasking        = config.getOption<bool>   ("ddraw.colorKeyMasking",        false);
-      this->colorKeyTolerance      = config.getOption<bool>   ("ddraw.colorKeyTolerance",      false);
       this->legacyDeviceNames      = config.getOption<bool>   ("ddraw.legacyDeviceNames",      false);
       this->nonLocalVideoMemory    = config.getOption<bool>   ("ddraw.nonLocalVideoMemory",     true);
       this->robustTextureLifeCycle = config.getOption<bool>   ("ddraw.robustTextureLifeCycle", false);

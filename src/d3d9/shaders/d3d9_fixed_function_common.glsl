@@ -386,3 +386,12 @@ bool specBool(uint specConstIdx) {
 vec4 decodeD3DColor(uint color) {
     return unpackUnorm4x8(color).bgra;
 }
+
+ivec4 decodeColorKey(uint color) {
+    ivec4 decoded;
+    decoded.a = int((color & 0xff000000) >> 24);
+    decoded.r = int((color & 0x00ff0000) >> 16);
+    decoded.g = int((color & 0x0000ff00) >> 8);
+    decoded.b = int((color & 0x000000ff));
+    return decoded;
+}

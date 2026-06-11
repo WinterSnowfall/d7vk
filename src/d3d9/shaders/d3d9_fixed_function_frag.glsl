@@ -257,17 +257,10 @@ vec4 sampleTexture(uint stage, vec4 texcoord, vec4 previousStageTextureVal) {
                     }
 
                     texVal = texelFetch(sampler2D(t2d[stage], sampler_heap[loadSamplerHeapIndex(stage)]), pixelCoord, 0);
-                    const float ckrl = bitfieldExtract(specUint(SpecFFColorKeyLow),  0,  8);
-                    const float ckgl = bitfieldExtract(specUint(SpecFFColorKeyLow),  8,  8);
-                    const float ckbl = bitfieldExtract(specUint(SpecFFColorKeyLow),  16, 8);
-                    const float ckal = bitfieldExtract(specUint(SpecFFColorKeyLow),  24, 8);
-                    const float ckrh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 0,  8);
-                    const float ckgh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 8,  8);
-                    const float ckbh = bitfieldExtract(specUint(SpecFFColorKeyHigh), 16, 8);
-                    const float ckah = bitfieldExtract(specUint(SpecFFColorKeyHigh), 24, 8);
+                    const ivec4 ckl = decodeColorKey(specUint(SpecFFColorKeyLow));
+                    const ivec4 ckh = decodeColorKey(specUint(SpecFFColorKeyHigh));
                     const ivec4 src = ivec4(texVal.rgba * 255.0);
-                    if (src.r >= ckrl && src.g >= ckgl && src.b >= ckbl && src.a >= ckal &&
-                        src.r <= ckrh && src.g <= ckgh && src.b <= ckbh && src.a <= ckah) {
+                    if (all(greaterThanEqual(src, ckl)) && all(lessThanEqual(src, ckh))) {
                         discard;
                     }
                 }

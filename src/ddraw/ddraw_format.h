@@ -843,7 +843,7 @@ namespace dxvk {
     }
   }
 
-  inline DDCOLORKEY GetColorChannel(DWORD pixel, DWORD mask, bool withTolerance) {
+  inline DDCOLORKEY GetColorChannel(DWORD pixel, DWORD mask) {
     uint32_t shift = 0;
     DWORD cmask = mask;
     while ((cmask & 1) == 0) {
@@ -861,42 +861,34 @@ namespace dxvk {
 
     const DWORD value = (pixel & mask) >> shift;
     const DWORD max = (1 << bits) - 1;
-    const float cvalue = static_cast<float>(value) * 255.0 / static_cast<float>(max);
+    const float cvalue = static_cast<float>(value) * 255.0f / static_cast<float>(max);
 
     DDCOLORKEY colorKey = { };
-    if (unlikely(withTolerance)) {
-      const float half = 255.0 / (2.0 * static_cast<float>(max));
-      const float minRange = cvalue - half;
-      const float maxRange = cvalue + half;
-      colorKey.dwColorSpaceLowValue  = std::floor(std::max(0.0f, floorf(minRange - 0.5)));
-      colorKey.dwColorSpaceHighValue = std::ceil(std::min(255.0f, floorf(maxRange + 0.5)));
-    } else {
-      colorKey.dwColorSpaceLowValue  = cvalue;
-      colorKey.dwColorSpaceHighValue = cvalue;
-    }
+    colorKey.dwColorSpaceLowValue  = static_cast<DWORD>(std::max(0.0f, floorf(cvalue - 0.5f)));
+    colorKey.dwColorSpaceHighValue = static_cast<DWORD>(std::min(255.0f, floorf(cvalue + 0.5f)));
 
     return colorKey;
   }
 
-  inline DDCOLORKEY ColorKeyToRGB(const DDPIXELFORMAT* fmt, DWORD colorKey, bool withTolerance) {
+  inline DDCOLORKEY ColorKeyToARGB(const DDPIXELFORMAT* fmt, DWORD colorKey) {
     DDCOLORKEY rgbColorKey = { };
 
     if (unlikely(!(fmt->dwFlags & DDPF_RGB)))
       return rgbColorKey;
 
-    DDCOLORKEY r = GetColorChannel(colorKey, fmt->dwRBitMask, withTolerance);
-    DDCOLORKEY g = GetColorChannel(colorKey, fmt->dwGBitMask, withTolerance);
-    DDCOLORKEY b = GetColorChannel(colorKey, fmt->dwBBitMask, withTolerance);
-    DDCOLORKEY a = (fmt->dwFlags & DDPF_ALPHAPIXELS) ? GetColorChannel(colorKey, fmt->dwRGBAlphaBitMask,
-                                                                       withTolerance) : DDCOLORKEY{255,255};
+    DDCOLORKEY b = GetColorChannel(colorKey, fmt->dwBBitMask);
+    DDCOLORKEY g = GetColorChannel(colorKey, fmt->dwGBitMask);
+    DDCOLORKEY r = GetColorChannel(colorKey, fmt->dwRBitMask);
+    DDCOLORKEY a = (fmt->dwFlags & DDPF_ALPHAPIXELS) ? GetColorChannel(colorKey, fmt->dwRGBAlphaBitMask)
+                                                     : DDCOLORKEY{255,255};
 
-    rgbColorKey.dwColorSpaceLowValue  = r.dwColorSpaceLowValue |
+    rgbColorKey.dwColorSpaceLowValue  = b.dwColorSpaceLowValue |
                                        (g.dwColorSpaceLowValue << 8) |
-                                       (b.dwColorSpaceLowValue << 16)|
+                                       (r.dwColorSpaceLowValue << 16)|
                                        (a.dwColorSpaceLowValue << 24);
-    rgbColorKey.dwColorSpaceHighValue = r.dwColorSpaceHighValue |
+    rgbColorKey.dwColorSpaceHighValue = b.dwColorSpaceHighValue |
                                        (g.dwColorSpaceHighValue << 8) |
-                                       (b.dwColorSpaceHighValue << 16)|
+                                       (r.dwColorSpaceHighValue << 16)|
                                        (a.dwColorSpaceHighValue << 24);
 
     return rgbColorKey;
