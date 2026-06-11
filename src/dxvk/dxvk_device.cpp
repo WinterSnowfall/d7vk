@@ -37,8 +37,9 @@ namespace dxvk {
 
     determineShaderOptions();
 
-    if (env::getEnvVar("DXVK_SHADER_CACHE") != "0" && DxvkShader::getShaderDumpPath().empty())
-      m_shaderCache = DxvkShaderCache::getInstance();
+    // Prevent the invalidation of DXVK shader caches by D7VK, which has no use for them anyway
+    //if (env::getEnvVar("DXVK_SHADER_CACHE") != "0" && DxvkShader::getShaderDumpPath().empty())
+      //m_shaderCache = DxvkShaderCache::getInstance();
 
     logBindingModel();
   }

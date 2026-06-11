@@ -1747,10 +1747,6 @@ namespace dxvk {
     { R"(\\TS_D3D\.exe$)", {{
       { "ddraw.supportD16",                "False" },
     }} },
-    /* Frogger 2: Swampy's Revenge                */
-    { R"(\\Frogger2\.exe$)", {{
-      { "ddraw.colorKeyTolerance",          "True" },
-    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
@@ -1959,11 +1955,10 @@ namespace dxvk {
       { "ddraw.emulateFrontBuffer",         "True" },
     }} },
     /* Empire of the Ants                         */
-    { R"(\\Empire of the Ants*\\Game\.exe$)", {{
+    { R"(\\Empire of the Ants.*\\Game\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.emulateFrontBuffer",         "True" },
       { "ddraw.legacyPresentGuard",       "Strict" },
-      { "ddraw.colorKeyTolerance",          "True" },
     }} },
     /* N.I.C.E 2                                  */
     { R"(\\n2_(std|arc)\.exe$)", {{
@@ -1994,10 +1989,6 @@ namespace dxvk {
     /* The Longest Journey                        */
     { R"(\\The Longest Journey\\game\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-    }} },
-    /* Tom Clancy's Rainbow Six                   */
-    { R"(\\RainbowSix\.exe$)", {{
-      { "ddraw.colorKeyTolerance",          "True" },
     }} },
     /* Virtua Fighter 2                           */
     { R"(\\VF2\.exe$)", {{

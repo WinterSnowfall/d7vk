@@ -819,7 +819,8 @@ namespace dxvk {
       Logger::debug("DDraw4Interface::GetDeviceIdentifier: Retrieving primary adapter info");
       memcpy(&pDDDI->szDriver,      &adapterIdentifier9->Driver,      sizeof(adapterIdentifier9->Driver));
       memcpy(&pDDDI->szDescription, &adapterIdentifier9->Description, sizeof(adapterIdentifier9->Description));
-      pDDDI->liDriverVersion.QuadPart = adapterIdentifier9->DriverVersion.QuadPart;
+      // Neither ATI, nor Nvidia (Windows XP) native drivers at the time reported a version
+      pDDDI->liDriverVersion.QuadPart = 0;
       pDDDI->dwVendorId               = adapterIdentifier9->VendorId;
       pDDDI->dwDeviceId               = adapterIdentifier9->DeviceId;
       pDDDI->dwSubSysId               = adapterIdentifier9->SubSysId;
