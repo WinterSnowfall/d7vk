@@ -211,6 +211,7 @@ namespace dxvk {
     desc2RGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
     memcpy(&descRGB_HAL, &desc2RGB_HAL, sizeof(D3DDEVICEDESC2));
     memcpy(&descRGB_HEL, &desc2RGB_HEL, sizeof(D3DDEVICEDESC2));
+
     if (likely(!d3dOptions->legacyDeviceNames)) {
       static char deviceDescRGB[100] = "D5VK RGB";
       static char deviceNameRGB[100] = "D5VK RGB";
@@ -242,6 +243,7 @@ namespace dxvk {
                             & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
     memcpy(&descHAL_HAL, &desc2HAL_HAL, sizeof(D3DDEVICEDESC2));
     memcpy(&descHAL_HEL, &desc2HAL_HEL, sizeof(D3DDEVICEDESC2));
+
     if (likely(!d3dOptions->legacyDeviceNames)) {
       static char deviceDescHAL[100] = "D5VK HAL";
       static char deviceNameHAL[100] = "D5VK HAL";

@@ -166,7 +166,8 @@ namespace dxvk {
 
     // RAMP device (monochrome), this is expected to be exposed
     GUID guidRAMP = IID_IDirect3DRampDevice;
-    D3DDEVICEDESC3 desc3RAMP_HAL = GetD3D3Caps(d3dOptions);
+    // The caps of a RAMP device are mostly identical to an RGB device
+    D3DDEVICEDESC3 desc3RAMP_HAL = GetD3D3Caps(IID_IDirect3DRGBDevice, d3dOptions);
     D3DDEVICEDESC3 desc3RAMP_HEL = desc3RAMP_HAL;
     D3DDEVICEDESC descRAMP_HAL = { };
     D3DDEVICEDESC descRAMP_HEL = { };
@@ -199,7 +200,7 @@ namespace dxvk {
 
     // Software emulation, this is expected to be exposed
     GUID guidRGB = IID_IDirect3DRGBDevice;
-    D3DDEVICEDESC3 desc3RGB_HAL = GetD3D3Caps(d3dOptions);
+    D3DDEVICEDESC3 desc3RGB_HAL = GetD3D3Caps(IID_IDirect3DRGBDevice, d3dOptions);
     D3DDEVICEDESC3 desc3RGB_HEL = desc3RGB_HAL;
     D3DDEVICEDESC descRGB_HAL = { };
     D3DDEVICEDESC descRGB_HEL = { };
@@ -214,6 +215,7 @@ namespace dxvk {
     desc3RGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
     memcpy(&descRGB_HAL, &desc3RGB_HAL, sizeof(D3DDEVICEDESC3));
     memcpy(&descRGB_HEL, &desc3RGB_HEL, sizeof(D3DDEVICEDESC3));
+
     if (likely(!d3dOptions->legacyDeviceNames)) {
       static char deviceDescRGB[100] = "D3VK RGB";
       static char deviceNameRGB[100] = "D3VK RGB";
@@ -230,7 +232,7 @@ namespace dxvk {
 
     // Hardware acceleration
     GUID guidHAL = IID_IDirect3DHALDevice;
-    D3DDEVICEDESC3 desc3HAL_HAL = GetD3D3Caps(d3dOptions);
+    D3DDEVICEDESC3 desc3HAL_HAL = GetD3D3Caps(IID_IDirect3DHALDevice, d3dOptions);
     D3DDEVICEDESC3 desc3HAL_HEL = desc3HAL_HAL;
     D3DDEVICEDESC descHAL_HAL = { };
     D3DDEVICEDESC descHAL_HEL = { };
@@ -240,8 +242,12 @@ namespace dxvk {
                                             & ~D3DPTEXTURECAPS_POW2;
     desc3HAL_HEL.dpcTriCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
                                            & ~D3DPTEXTURECAPS_POW2;
+    desc3HAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                            & ~D3DDEVCAPS_DRAWPRIMITIVES2
+                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
     memcpy(&descHAL_HAL, &desc3HAL_HAL, sizeof(D3DDEVICEDESC3));
     memcpy(&descHAL_HEL, &desc3HAL_HEL, sizeof(D3DDEVICEDESC3));
+
     if (likely(!d3dOptions->legacyDeviceNames)) {
       static char deviceDescHAL[100] = "D3VK HAL";
       static char deviceNameHAL[100] = "D3VK HAL";
@@ -314,7 +320,7 @@ namespace dxvk {
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     // Software emulation, this is expected to be exposed
-    D3DDEVICEDESC3 descRGB_HAL = GetD3D3Caps(d3dOptions);
+    D3DDEVICEDESC3 descRGB_HAL = GetD3D3Caps(IID_IDirect3DRGBDevice, d3dOptions);
     D3DDEVICEDESC3 descRGB_HEL = descRGB_HAL;
     descRGB_HAL.dwFlags = 0;
     descRGB_HAL.dcmColorModel = 0;
@@ -327,7 +333,7 @@ namespace dxvk {
     descRGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
 
     // Hardware acceleration
-    D3DDEVICEDESC3 descHAL_HAL = GetD3D3Caps(d3dOptions);
+    D3DDEVICEDESC3 descHAL_HAL = GetD3D3Caps(IID_IDirect3DHALDevice, d3dOptions);
     D3DDEVICEDESC3 descHAL_HEL = descHAL_HAL;
     descHAL_HEL.dcmColorModel = 0;
     // Some applications apparently care about RGB texture caps
