@@ -866,6 +866,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::PreLoad(IDirectDrawSurface7 *surface) {
     Logger::debug(">>> D3D7Device::PreLoad");
 
+    if (unlikely(surface == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
       Logger::err("D3D7Device::PreLoad: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
@@ -1402,7 +1405,7 @@ namespace dxvk {
       ddraw7SurfaceSrc->DownloadSurfaceData();
       sourceFullSurfaceRect = ddraw7SurfaceSrc->GetCommonSurface()->GetFullSurfaceRect();
     } else {
-      Logger::warn("D3D7Device::Load: Unwrapped surface source");
+      Logger::err("D3D7Device::Load: Unwrapped surface source");
       return DDERR_UNSUPPORTED;
     }
 
@@ -1415,7 +1418,7 @@ namespace dxvk {
         ddraw7SurfaceDst->DownloadSurfaceData();
       }
     } else {
-      Logger::warn("D3D7Device::Load: Unwrapped surface destination");
+      Logger::err("D3D7Device::Load: Unwrapped surface destination");
       return DDERR_UNSUPPORTED;
     }
 

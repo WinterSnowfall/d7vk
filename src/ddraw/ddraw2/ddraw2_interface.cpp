@@ -331,28 +331,29 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw2Interface::DuplicateSurface(LPDIRECTDRAWSURFACE lpDDSurface, LPDIRECTDRAWSURFACE *lplpDupDDSurface) {
     Logger::debug("<<< DDraw2Interface::DuplicateSurface: Proxy");
 
-    if (DDrawCommonInterface::IsWrappedSurface(lpDDSurface)) {
-      InitReturnPtr(lplpDupDDSurface);
+    if (unlikely(lpDDSurface == nullptr))
+      return DDERR_CANTDUPLICATE;
 
-      DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSurface);
-      Com<IDirectDrawSurface> dupSurface;
-      HRESULT hr = m_proxy->DuplicateSurface(ddrawSurface->GetProxied(), &dupSurface);
-      if (likely(SUCCEEDED(hr))) {
-        try {
-          *lplpDupDDSurface = ref(new DDrawSurface(nullptr, std::move(dupSurface),
-                                                   m_commonIntf->GetDDInterface(), nullptr, false));
-        } catch (const DxvkError& e) {
-          Logger::err(e.message());
-          return DDERR_GENERIC;
-        }
-      }
+    InitReturnPtr(lplpDupDDSurface);
+
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDSurface))) {
+      Logger::err("DDraw2Interface::DuplicateSurface: Received an unwrapped surface");
+      return DDERR_CANTDUPLICATE;
+    }
+
+    DDrawSurface* ddrawSurface = static_cast<DDrawSurface*>(lpDDSurface);
+
+    Com<IDirectDrawSurface> dupSurface;
+    HRESULT hr = m_proxy->DuplicateSurface(ddrawSurface->GetProxied(), &dupSurface);
+    if (unlikely(FAILED(hr)))
       return hr;
-    } else {
-      if (unlikely(lpDDSurface != nullptr)) {
-        Logger::warn("DDraw2Interface::DuplicateSurface: Received an unwrapped source surface");
-        return DDERR_UNSUPPORTED;
-      }
-      return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
+
+    try {
+      *lplpDupDDSurface = ref(new DDrawSurface(nullptr, std::move(dupSurface),
+                                               m_commonIntf->GetDDInterface(), nullptr, false));
+    } catch (const DxvkError& e) {
+      Logger::err(e.message());
+      return DDERR_GENERIC;
     }
 
     return DD_OK;

@@ -20,7 +20,8 @@ namespace dxvk {
           Com<IDirect3DTexture2>&& proxyTexture,
           // This can be either an IDirectDrawSurface or an IDirectDrawSurface4
           IUnknown* pParent,
-          D3DTEXTUREHANDLE handle);
+          D3DTEXTUREHANDLE handle,
+          bool isD3D6Texture);
 
     ~D3D5Texture();
 

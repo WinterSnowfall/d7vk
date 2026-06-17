@@ -323,28 +323,31 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw4Interface::DuplicateSurface(LPDIRECTDRAWSURFACE4 lpDDSurface, LPDIRECTDRAWSURFACE4 *lplpDupDDSurface) {
     Logger::debug("<<< DDraw4Interface::DuplicateSurface: Proxy");
 
-    if (DDrawCommonInterface::IsWrappedSurface(lpDDSurface)) {
-      InitReturnPtr(lplpDupDDSurface);
+    if (unlikely(lpDDSurface == nullptr))
+      return DDERR_CANTDUPLICATE;
 
-      DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSurface);
-      Com<IDirectDrawSurface4> dupSurface4;
-      HRESULT hr = m_proxy->DuplicateSurface(ddraw4Surface->GetProxied(), &dupSurface4);
-      if (likely(SUCCEEDED(hr))) {
-        try {
-          *lplpDupDDSurface = ref(new DDraw4Surface(nullptr, std::move(dupSurface4), this, nullptr, false));
-        } catch (const DxvkError& e) {
-          Logger::err(e.message());
-          return DDERR_GENERIC;
-        }
-      }
-      return hr;
-    } else {
-      if (unlikely(lpDDSurface != nullptr)) {
-        Logger::warn("DDraw7Interface::DuplicateSurface: Received an unwrapped source surface");
-        return DDERR_UNSUPPORTED;
-      }
-      return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
+    InitReturnPtr(lplpDupDDSurface);
+
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDSurface))) {
+      Logger::err("DDraw4Interface::DDraw4Interface: Received an unwrapped surface");
+      return DDERR_CANTDUPLICATE;
     }
+
+    DDraw4Surface* ddraw4Surface = static_cast<DDraw4Surface*>(lpDDSurface);
+
+    Com<IDirectDrawSurface4> dupSurface4;
+    HRESULT hr = m_proxy->DuplicateSurface(ddraw4Surface->GetProxied(), &dupSurface4);
+    if (unlikely(FAILED(hr)))
+      return hr;
+
+    try {
+      *lplpDupDDSurface = ref(new DDraw4Surface(nullptr, std::move(dupSurface4), this, nullptr, false));
+    } catch (const DxvkError& e) {
+      Logger::err(e.message());
+      return DDERR_GENERIC;
+    }
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback) {
