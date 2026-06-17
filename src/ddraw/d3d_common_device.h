@@ -2,8 +2,6 @@
 
 #include "ddraw_include.h"
 
-#include <unordered_map>
-
 namespace dxvk {
 
   class DDrawCommonSurface;
