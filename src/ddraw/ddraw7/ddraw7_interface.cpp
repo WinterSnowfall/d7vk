@@ -306,27 +306,28 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIRECTDRAWSURFACE7 *lplpDupDDSurface) {
     Logger::debug("<<< DDraw7Interface::DuplicateSurface: Proxy");
 
-    if (DDrawCommonInterface::IsWrappedSurface(lpDDSurface)) {
-      InitReturnPtr(lplpDupDDSurface);
+    if (unlikely(lpDDSurface == nullptr))
+      return DDERR_CANTDUPLICATE;
 
-      DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSurface);
-      Com<IDirectDrawSurface7> dupSurface7;
-      HRESULT hr = m_proxy->DuplicateSurface(ddraw7Surface->GetProxied(), &dupSurface7);
-      if (likely(SUCCEEDED(hr))) {
-        try {
-          *lplpDupDDSurface = ref(new DDraw7Surface(nullptr, std::move(dupSurface7), this, nullptr, false));
-        } catch (const DxvkError& e) {
-          Logger::err(e.message());
-          return DDERR_GENERIC;
-        }
-      }
+    InitReturnPtr(lplpDupDDSurface);
+
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDSurface))) {
+      Logger::err("DDraw7Interface::DDraw4Interface: Received an unwrapped surface");
+      return DDERR_CANTDUPLICATE;
+    }
+
+    DDraw7Surface* ddraw7Surface = static_cast<DDraw7Surface*>(lpDDSurface);
+
+    Com<IDirectDrawSurface7> dupSurface7;
+    HRESULT hr = m_proxy->DuplicateSurface(ddraw7Surface->GetProxied(), &dupSurface7);
+    if (unlikely(FAILED(hr)))
       return hr;
-    } else {
-      if (unlikely(lpDDSurface != nullptr)) {
-        Logger::warn("DDraw7Interface::DuplicateSurface: Received an unwrapped source surface");
-        return DDERR_UNSUPPORTED;
-      }
-      return m_proxy->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
+
+    try {
+      *lplpDupDDSurface = ref(new DDraw7Surface(nullptr, std::move(dupSurface7), this, nullptr, false));
+    } catch (const DxvkError& e) {
+      Logger::err(e.message());
+      return DDERR_GENERIC;
     }
 
     return DD_OK;

@@ -14,7 +14,8 @@ namespace dxvk {
         DDrawCommonSurface* commonSurf,
         Com<IDirect3DTexture2>&& proxyTexture,
         IUnknown* pParent,
-        D3DTEXTUREHANDLE handle)
+        D3DTEXTUREHANDLE handle,
+        bool isD3D6Texture)
     : DDrawWrappedObject<IUnknown, IDirect3DTexture2>(pParent, std::move(proxyTexture))
     , m_commonIntf ( commonSurf->GetCommonInterface() ) {
     m_commonTex = new D3DCommonTexture(commonSurf, handle);
@@ -22,7 +23,7 @@ namespace dxvk {
     // D3D5Texture is shared between D3D5/6, however textures used in a D3D6 context
     // typically come from an IDirectDrawSurface4 parent. This isn't a hard requirement,
     // but is true in the vast majority of cases, so use the distinction for logging purposes.
-    if (DDrawCommonInterface::IsWrappedSurface(reinterpret_cast<IDirectDrawSurface4*>(pParent)))
+    if (isD3D6Texture)
       m_objectType = "D3D6Texture";
 
     m_texCount = ++s_texCount;

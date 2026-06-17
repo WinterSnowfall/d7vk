@@ -37,10 +37,7 @@ namespace dxvk {
   }
 
   bool DDrawCommonInterface::IsWrappedSurface(IDirectDrawSurface* surface) {
-    if (unlikely(surface == nullptr))
-      return false;
-
-    auto it = std::find(s_surfaces.begin(), s_surfaces.end(), surface);
+    auto it = s_surfaces.find(surface);
     if (likely(it != s_surfaces.end()))
       return true;
 
@@ -48,32 +45,20 @@ namespace dxvk {
   }
 
   void DDrawCommonInterface::AddWrappedSurface(IDirectDrawSurface* surface) {
-    if (likely(surface != nullptr)) {
-      auto it = std::find(s_surfaces.begin(), s_surfaces.end(), surface);
-      if (unlikely(it != s_surfaces.end())) {
-        Logger::warn("DDrawCommonInterface::AddWrappedSurface: Pre-existing wrapped surface found");
-      } else {
-        s_surfaces.push_back(surface);
-      }
-    }
+    s_surfaces.insert(surface);
   }
 
   void DDrawCommonInterface::RemoveWrappedSurface(IDirectDrawSurface* surface) {
-    if (likely(surface != nullptr)) {
-      auto it = std::find(s_surfaces.begin(), s_surfaces.end(), surface);
-      if (likely(it != s_surfaces.end())) {
-        s_surfaces.erase(it);
-      } else {
-        Logger::warn("DDrawCommonInterface::RemoveWrappedSurface: Surface not found");
-      }
+    auto it = s_surfaces.find(surface);
+    if (likely(it != s_surfaces.end())) {
+      s_surfaces.erase(it);
+    } else {
+      Logger::warn("DDrawCommonInterface::RemoveWrappedSurface: Surface not found");
     }
   }
 
   bool DDrawCommonInterface::IsWrappedSurface(IDirectDrawSurface2* surface) {
-    if (unlikely(surface == nullptr))
-      return false;
-
-    auto it = std::find(s_surfaces2.begin(), s_surfaces2.end(), surface);
+    auto it = s_surfaces2.find(surface);
     if (likely(it != s_surfaces2.end()))
       return true;
 
@@ -81,32 +66,20 @@ namespace dxvk {
   }
 
   void DDrawCommonInterface::AddWrappedSurface(IDirectDrawSurface2* surface) {
-    if (likely(surface != nullptr)) {
-      auto it = std::find(s_surfaces2.begin(), s_surfaces2.end(), surface);
-      if (unlikely(it != s_surfaces2.end())) {
-        Logger::warn("DDrawCommonInterface::AddWrappedSurface: Pre-existing wrapped surface found");
-      } else {
-        s_surfaces2.push_back(surface);
-      }
-    }
+    s_surfaces2.insert(surface);
   }
 
   void DDrawCommonInterface::RemoveWrappedSurface(IDirectDrawSurface2* surface) {
-    if (likely(surface != nullptr)) {
-      auto it = std::find(s_surfaces2.begin(), s_surfaces2.end(), surface);
-      if (likely(it != s_surfaces2.end())) {
-        s_surfaces2.erase(it);
-      } else {
-        Logger::warn("DDrawCommonInterface::RemoveWrappedSurface: Surface not found");
-      }
+    auto it = s_surfaces2.find(surface);
+    if (likely(it != s_surfaces2.end())) {
+      s_surfaces2.erase(it);
+    } else {
+      Logger::warn("DDrawCommonInterface::RemoveWrappedSurface: Surface not found");
     }
   }
 
   bool DDrawCommonInterface::IsWrappedSurface(IDirectDrawSurface3* surface) {
-    if (unlikely(surface == nullptr))
-      return false;
-
-    auto it = std::find(s_surfaces3.begin(), s_surfaces3.end(), surface);
+    auto it = s_surfaces3.find(surface);
     if (likely(it != s_surfaces3.end()))
       return true;
 
@@ -114,32 +87,20 @@ namespace dxvk {
   }
 
   void DDrawCommonInterface::AddWrappedSurface(IDirectDrawSurface3* surface) {
-    if (likely(surface != nullptr)) {
-      auto it = std::find(s_surfaces3.begin(), s_surfaces3.end(), surface);
-      if (unlikely(it != s_surfaces3.end())) {
-        Logger::warn("DDrawCommonInterface::AddWrappedSurface: Pre-existing wrapped surface found");
-      } else {
-        s_surfaces3.push_back(surface);
-      }
-    }
+    s_surfaces3.insert(surface);
   }
 
   void DDrawCommonInterface::RemoveWrappedSurface(IDirectDrawSurface3* surface) {
-    if (likely(surface != nullptr)) {
-      auto it = std::find(s_surfaces3.begin(), s_surfaces3.end(), surface);
-      if (likely(it != s_surfaces3.end())) {
-        s_surfaces3.erase(it);
-      } else {
-        Logger::warn("DDrawCommonInterface::RemoveWrappedSurface: Surface not found");
-      }
+    auto it = s_surfaces3.find(surface);
+    if (likely(it != s_surfaces3.end())) {
+      s_surfaces3.erase(it);
+    } else {
+      Logger::warn("DDrawCommonInterface::RemoveWrappedSurface: Surface not found");
     }
   }
 
   bool DDrawCommonInterface::IsWrappedSurface(IDirectDrawSurface4* surface) {
-    if (unlikely(surface == nullptr))
-      return false;
-
-    auto it = std::find(s_surfaces4.begin(), s_surfaces4.end(), surface);
+    auto it = s_surfaces4.find(surface);
     if (likely(it != s_surfaces4.end()))
       return true;
 
@@ -147,32 +108,20 @@ namespace dxvk {
   }
 
   void DDrawCommonInterface::AddWrappedSurface(IDirectDrawSurface4* surface) {
-    if (likely(surface != nullptr)) {
-      auto it = std::find(s_surfaces4.begin(), s_surfaces4.end(), surface);
-      if (unlikely(it != s_surfaces4.end())) {
-        Logger::warn("DDrawCommonInterface::AddWrappedSurface: Pre-existing wrapped surface found");
-      } else {
-        s_surfaces4.push_back(surface);
-      }
-    }
+    s_surfaces4.insert(surface);
   }
 
   void DDrawCommonInterface::RemoveWrappedSurface(IDirectDrawSurface4* surface) {
-    if (likely(surface != nullptr)) {
-      auto it = std::find(s_surfaces4.begin(), s_surfaces4.end(), surface);
-      if (likely(it != s_surfaces4.end())) {
-        s_surfaces4.erase(it);
-      } else {
-        Logger::warn("DDrawCommonInterface::RemoveWrappedSurface: Surface not found");
-      }
+    auto it = s_surfaces4.find(surface);
+    if (likely(it != s_surfaces4.end())) {
+      s_surfaces4.erase(it);
+    } else {
+      Logger::warn("DDrawCommonInterface::RemoveWrappedSurface: Surface not found");
     }
   }
 
   bool DDrawCommonInterface::IsWrappedSurface(IDirectDrawSurface7* surface) {
-    if (unlikely(surface == nullptr))
-      return false;
-
-    auto it = std::find(s_surfaces7.begin(), s_surfaces7.end(), surface);
+    auto it = s_surfaces7.find(surface);
     if (likely(it != s_surfaces7.end()))
       return true;
 
@@ -180,24 +129,15 @@ namespace dxvk {
   }
 
   void DDrawCommonInterface::AddWrappedSurface(IDirectDrawSurface7* surface) {
-    if (likely(surface != nullptr)) {
-      auto it = std::find(s_surfaces7.begin(), s_surfaces7.end(), surface);
-      if (unlikely(it != s_surfaces7.end())) {
-        Logger::warn("DDrawCommonInterface::AddWrappedSurface: Pre-existing wrapped surface found");
-      } else {
-        s_surfaces7.push_back(surface);
-      }
-    }
+    s_surfaces7.insert(surface);
   }
 
   void DDrawCommonInterface::RemoveWrappedSurface(IDirectDrawSurface7* surface) {
-    if (likely(surface != nullptr)) {
-      auto it = std::find(s_surfaces7.begin(), s_surfaces7.end(), surface);
-      if (likely(it != s_surfaces7.end())) {
-        s_surfaces7.erase(it);
-      } else {
-        Logger::warn("DDrawCommonInterface::RemoveWrappedSurface: Surface not found");
-      }
+    auto it = s_surfaces7.find(surface);
+    if (likely(it != s_surfaces7.end())) {
+      s_surfaces7.erase(it);
+    } else {
+      Logger::warn("DDrawCommonInterface::RemoveWrappedSurface: Surface not found");
     }
   }
 

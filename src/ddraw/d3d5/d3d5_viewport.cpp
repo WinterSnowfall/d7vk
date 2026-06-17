@@ -282,7 +282,7 @@ namespace dxvk {
     Logger::debug(">>> D3D5Viewport::SetBackgroundDepth");
 
     if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
-      Logger::warn("D3D5Viewport::SetBackgroundDepth: Received an unwrapped surface");
+      Logger::err("D3D5Viewport::SetBackgroundDepth: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }
 

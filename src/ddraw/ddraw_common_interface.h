@@ -3,7 +3,7 @@
 #include "ddraw_include.h"
 #include "ddraw_options.h"
 
-#include <vector>
+#include <unordered_set>
 #include <unordered_map>
 
 namespace dxvk {
@@ -33,11 +33,11 @@ namespace dxvk {
   // Keep wrapped surface tracking shared between all DDraw interfaces as tests
   // as well as some games (e.g. GTA 2) depend on wrapped surface lookups across
   // unrelated DDraw interface objects... yes, really...
-  static inline std::vector<IDirectDrawSurface7*> s_surfaces7;
-  static inline std::vector<IDirectDrawSurface4*> s_surfaces4;
-  static inline std::vector<IDirectDrawSurface3*> s_surfaces3;
-  static inline std::vector<IDirectDrawSurface2*> s_surfaces2;
-  static inline std::vector<IDirectDrawSurface*>  s_surfaces;
+  static inline std::unordered_set<IDirectDrawSurface7*> s_surfaces7;
+  static inline std::unordered_set<IDirectDrawSurface4*> s_surfaces4;
+  static inline std::unordered_set<IDirectDrawSurface3*> s_surfaces3;
+  static inline std::unordered_set<IDirectDrawSurface2*> s_surfaces2;
+  static inline std::unordered_set<IDirectDrawSurface*>  s_surfaces;
 
   public:
 
