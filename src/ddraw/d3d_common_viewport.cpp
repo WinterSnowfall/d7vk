@@ -2,6 +2,8 @@
 
 #include "ddraw_common_surface.h"
 
+#include "d3d_common_device.h"
+
 #include "ddraw4/ddraw4_surface.h"
 #include "ddraw/ddraw_surface.h"
 
@@ -73,6 +75,18 @@ namespace dxvk {
       DDrawSurface* ds = m_device3->GetDepthStencil();
       if (likely(ds != nullptr))
         return ds->GetCommonSurface();
+    }
+
+    return nullptr;
+  }
+
+  D3DCommonDevice* D3DCommonViewport::GetCommonD3DDevice() {
+    if (m_device6 != nullptr) {
+      return m_device6->GetCommonD3DDevice();
+    } else if (m_device5 != nullptr) {
+      return m_device5->GetCommonD3DDevice();
+    } else if (m_device3 != nullptr) {
+      return m_device3->GetCommonD3DDevice();
     }
 
     return nullptr;

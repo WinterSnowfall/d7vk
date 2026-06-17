@@ -490,8 +490,8 @@ namespace dxvk {
     D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
 
     if (unlikely(m_currentViewport != d3d3Viewport)) {
-      auto viewportIt = std::find(m_viewports.begin(), m_viewports.end(), d3d3Viewport);
-      if (unlikely(viewportIt == m_viewports.end()))
+      // Validate that the viewport is attached to this (common) device
+      if (unlikely(m_commonD3DDevice != d3d3Viewport->GetCommonViewport()->GetCommonD3DDevice()))
         return DDERR_INVALIDPARAMS;
 
       if (likely(m_currentViewport != nullptr)) {

@@ -478,12 +478,12 @@ namespace dxvk {
 
     Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
 
-    auto viewportIt = std::find(m_viewports.begin(), m_viewports.end(), d3d6Viewport);
-    if (unlikely(viewportIt == m_viewports.end()))
-      return DDERR_INVALIDPARAMS;
-
     if (unlikely(m_currentViewport == d3d6Viewport))
       return D3D_OK;
+
+    // Validate that the viewport is attached to this (common) device
+    if (unlikely(m_commonD3DDevice != d3d6Viewport->GetCommonViewport()->GetCommonD3DDevice()))
+      return DDERR_INVALIDPARAMS;
 
     if (likely(m_currentViewport != nullptr)) {
       m_currentViewport->DeactivateLights();
