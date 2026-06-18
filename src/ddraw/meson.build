@@ -7,6 +7,7 @@ ddraw_src = [
   'ddraw_common_surface.cpp',
   'ddraw_clipper.cpp',
   'ddraw_gamma.cpp',
+  'ddraw_options.cpp',
   'ddraw_palette.cpp',
   'ddraw/ddraw_interface.cpp',
   'ddraw/ddraw_surface.cpp',

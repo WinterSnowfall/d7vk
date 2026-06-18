@@ -86,11 +86,12 @@ namespace dxvk {
       *data_size = m_size;
 
     HRESULT hr = m_vb9->Lock(0, 0, data, ConvertD3D6LockFlags(flags, false));
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    if (likely(SUCCEEDED(hr)))
-      m_locked = true;
+    m_locked = true;
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6VertexBuffer::Unlock() {
@@ -104,13 +105,12 @@ namespace dxvk {
     }
 
     HRESULT hr = m_vb9->Unlock();
-
-    if (likely(SUCCEEDED(hr)))
-      m_locked = false;
-    else
+    if (unlikely(FAILED(hr)))
       return D3DERR_VERTEXBUFFERUNLOCKFAILED;
 
-    return hr;
+    m_locked = false;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6VertexBuffer::ProcessVertices(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPDIRECT3DVERTEXBUFFER lpSrcBuffer, DWORD dwSrcIndex, LPDIRECT3DDEVICE3 lpD3DDevice, DWORD dwFlags) {

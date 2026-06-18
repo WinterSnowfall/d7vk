@@ -203,13 +203,12 @@ namespace dxvk {
 
     Com<IDirectDrawClipper> lplpDDClipperProxy;
     HRESULT hr = m_proxy->CreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
-
-    if (likely(SUCCEEDED(hr))) {
-      *lplpDDClipper = ref(new DDrawClipper(m_commonIntf.ptr(), std::move(lplpDDClipperProxy), this));
-    } else {
+    if (unlikely(FAILED(hr))) {
       Logger::warn("DDrawInterface::CreateClipper: Failed to create proxy clipper");
       return hr;
     }
+
+    *lplpDDClipper = ref(new DDrawClipper(m_commonIntf.ptr(), std::move(lplpDDClipperProxy), this));
 
     return DD_OK;
   }
@@ -224,14 +223,13 @@ namespace dxvk {
 
     Com<IDirectDrawPalette> lplpDDPaletteProxy;
     HRESULT hr = m_proxy->CreatePalette(dwFlags, lpColorTable, &lplpDDPaletteProxy, pUnkOuter);
-
-    if (likely(SUCCEEDED(hr))) {
-      // Palettes created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
-      *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), nullptr));
-    } else {
+    if (unlikely(FAILED(hr))) {
       Logger::warn("DDrawInterface::CreatePalette: Failed to create proxy palette");
       return hr;
     }
+
+    // Palettes created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
+    *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), nullptr));
 
     return DD_OK;
   }
@@ -273,53 +271,53 @@ namespace dxvk {
 
     Com<IDirectDrawSurface> ddrawSurfaceProxied;
     hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddrawSurfaceProxied, pUnkOuter);
-
-    if (likely(SUCCEEDED(hr))) {
-      try{
-        // Surfaces created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
-        Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied), this, nullptr, false);
-
-        if (unlikely(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)) {
-          m_commonIntf->SetPrimarySurface(surface->GetCommonSurface());
-
-          // Shadow surface creation for the primary surface
-          // (it needs to be based on the same incoming desc)
-          if (unlikely(!surface->GetCommonSurface()->Is8BitFormat() &&
-                        m_commonIntf->GetOptions()->forceLegacyPresent)) {
-            Logger::debug("DDrawInterface::CreateSurface: Creating shadow surface");
-
-            DDSURFACEDESC shadowDesc = *lpDDSurfaceDesc;
-            const DDSURFACEDESC* primaryDesc = surface->GetCommonSurface()->GetDesc();
-
-            shadowDesc.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE & ~DDSCAPS_COMPLEX & ~DDSCAPS_FLIP;
-            shadowDesc.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
-            shadowDesc.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
-            // Dimensions aren't specified in the incoming desc,
-            // but are explicitly needed for non-primary surfaces
-            shadowDesc.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
-            shadowDesc.dwWidth  = primaryDesc->dwWidth;
-            shadowDesc.dwHeight = primaryDesc->dwHeight;
-
-            Com<IDirectDrawSurface> ddrawSurfaceShadow;
-            hr = m_proxy->CreateSurface(&shadowDesc, &ddrawSurfaceShadow, pUnkOuter);
-            if (unlikely(FAILED(hr))) {
-              Logger::warn("DDrawInterface::CreateSurface: Failed to create shadow surface");
-            } else {
-              Com<DDrawSurface> shadowSurf = new DDrawSurface(nullptr, std::move(ddrawSurfaceShadow),
-                                                              this, nullptr, false);
-              surface->SetShadowSurface(std::move(shadowSurf));
-            }
-          }
-        }
-
-        *lplpDDSurface = surface.ref();
-      } catch (const DxvkError& e) {
-        Logger::err(e.message());
-        return DDERR_GENERIC;
-      }
-    } else {
+    // Some games simply try creating surfaces with various formats until something works...
+    if (unlikely(FAILED(hr))) {
       Logger::debug("DDrawInterface::CreateSurface: Failed to create proxy surface");
       return hr;
+    }
+
+    try{
+      // Surfaces created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
+      Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied), this, nullptr, false);
+
+      if (unlikely(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)) {
+        m_commonIntf->SetPrimarySurface(surface->GetCommonSurface());
+
+        // Shadow surface creation for the primary surface
+        // (it needs to be based on the same incoming desc)
+        if (unlikely(!surface->GetCommonSurface()->Is8BitFormat() &&
+                      m_commonIntf->GetOptions()->forceLegacyPresent)) {
+          Logger::debug("DDrawInterface::CreateSurface: Creating shadow surface");
+
+          DDSURFACEDESC shadowDesc = *lpDDSurfaceDesc;
+          const DDSURFACEDESC* primaryDesc = surface->GetCommonSurface()->GetDesc();
+
+          shadowDesc.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE & ~DDSCAPS_COMPLEX & ~DDSCAPS_FLIP;
+          shadowDesc.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
+          shadowDesc.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
+          // Dimensions aren't specified in the incoming desc,
+          // but are explicitly needed for non-primary surfaces
+          shadowDesc.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
+          shadowDesc.dwWidth  = primaryDesc->dwWidth;
+          shadowDesc.dwHeight = primaryDesc->dwHeight;
+
+          Com<IDirectDrawSurface> ddrawSurfaceShadow;
+          hr = m_proxy->CreateSurface(&shadowDesc, &ddrawSurfaceShadow, pUnkOuter);
+          if (unlikely(FAILED(hr))) {
+            Logger::warn("DDrawInterface::CreateSurface: Failed to create shadow surface");
+          } else {
+            Com<DDrawSurface> shadowSurf = new DDrawSurface(nullptr, std::move(ddrawSurfaceShadow),
+                                                            this, nullptr, false);
+            surface->SetShadowSurface(std::move(shadowSurf));
+          }
+        }
+      }
+
+      *lplpDDSurface = surface.ref();
+    } catch (const DxvkError& e) {
+      Logger::err(e.message());
+      return DDERR_GENERIC;
     }
 
     return DD_OK;
@@ -526,7 +524,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDrawInterface::GetGDISurface(LPDIRECTDRAWSURFACE *lplpGDIDDSurface) {
     Logger::debug("<<< DDrawInterface::GetGDISurface: Proxy");
 
-    if(unlikely(lplpGDIDDSurface == nullptr))
+    if (unlikely(lplpGDIDDSurface == nullptr))
       return DDERR_INVALIDPARAMS;
 
     InitReturnPtr(lplpGDIDDSurface);
@@ -551,7 +549,7 @@ namespace dxvk {
       }
     }
 
-    return hr;
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::GetMonitorFrequency(LPDWORD lpdwFrequency) {
@@ -660,8 +658,8 @@ namespace dxvk {
 
       d3d9::D3DPRESENT_PARAMETERS resetParams = *commonDevice->GetPresentParameters();
       resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
-      HRESULT hrReset = commonDevice->ResetD3D9Swapchain(&resetParams);
-      if (likely(SUCCEEDED(hrReset)))
+      HRESULT hr = commonDevice->ResetD3D9Swapchain(&resetParams);
+      if (likely(SUCCEEDED(hr)))
         m_commonIntf->SetWaitForVBlank(true);
     }
 

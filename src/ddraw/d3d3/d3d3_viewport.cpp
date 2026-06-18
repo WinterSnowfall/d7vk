@@ -462,10 +462,12 @@ namespace dxvk {
     Logger::debug("D3D3Viewport: Applying viewport to D3D9");
 
     HRESULT hr = m_commonViewport->GetD3D9Device()->SetViewport(m_commonViewport->GetD3D9Viewport());
-    if(unlikely(FAILED(hr)))
+    if (unlikely(FAILED(hr))) {
       Logger::err("D3D3Viewport: Failed to set the D3D9 viewport");
+      return hr;
+    }
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT D3D3Viewport::ApplyAndActivateLights() {
@@ -507,22 +509,22 @@ namespace dxvk {
     HRESULT hr = d3d9Device->SetLight(index, light->GetD3D9Light());
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D3Viewport: Failed D3D9 SetLight call");
-    } else {
-      HRESULT hrLE;
-      if (light->IsActive()) {
-        Logger::debug(str::format("D3D3Viewport: Enabling D3D9 light nr. ", index));
-        hrLE = d3d9Device->LightEnable(index, TRUE);
-        if (unlikely(FAILED(hrLE)))
-          Logger::err("D3D3Viewport: Failed D3D9 LightEnable call (TRUE)");
-      } else {
-        Logger::debug(str::format("D3D3Viewport: Disabling D3D9 light nr. ", index));
-        hrLE = d3d9Device->LightEnable(index, FALSE);
-        if (unlikely(FAILED(hrLE)))
-          Logger::err("D3D3Viewport: Failed D3D9 LightEnable call (FALSE)");
-      }
+      return hr;
     }
 
-    return hr;
+    if (light->IsActive()) {
+      Logger::debug(str::format("D3D3Viewport: Enabling D3D9 light nr. ", index));
+      hr = d3d9Device->LightEnable(index, TRUE);
+      if (unlikely(FAILED(hr)))
+        Logger::err("D3D3Viewport: Failed D3D9 LightEnable call (TRUE)");
+    } else {
+      Logger::debug(str::format("D3D3Viewport: Disabling D3D9 light nr. ", index));
+      hr = d3d9Device->LightEnable(index, FALSE);
+      if (unlikely(FAILED(hr)))
+        Logger::err("D3D3Viewport: Failed D3D9 LightEnable call (FALSE)");
+    }
+
+    return D3D_OK;
   }
 
 }

@@ -399,11 +399,12 @@ namespace dxvk {
       return D3DERR_SCENE_IN_SCENE;
 
     HRESULT hr = m_commonD3DDevice->GetD3D9Device()->BeginScene();
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    if (likely(SUCCEEDED(hr)))
-      m_commonD3DDevice->SetInScene(true);
+    m_commonD3DDevice->SetInScene(true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::EndScene() {
@@ -417,11 +418,12 @@ namespace dxvk {
       return D3DERR_SCENE_NOT_IN_SCENE;
 
     HRESULT hr = m_commonD3DDevice->GetD3D9Device()->EndScene();
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    if (likely(SUCCEEDED(hr)))
-      m_commonD3DDevice->SetInScene(false);
+    m_commonD3DDevice->SetInScene(false);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::GetDirect3D(IDirect3D **d3d) {
@@ -937,7 +939,7 @@ namespace dxvk {
         Logger::debug(str::format("D3D3Device::InitializeDS: DepthStencil: ", dsRect->right, "x", dsRect->bottom));
 
         HRESULT hrDS9 = device9->SetDepthStencilSurface(m_ds->GetCommonSurface()->GetD3D9Surface());
-        if(unlikely(FAILED(hrDS9))) {
+        if (unlikely(FAILED(hrDS9))) {
           Logger::err("D3D3Device::InitializeDS: Failed to set D3D9 depth stencil");
         } else {
           // This needs to act like an auto depth stencil of sorts, so manually enable z-buffering
@@ -953,7 +955,7 @@ namespace dxvk {
   }
 
   void D3D3Device::UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface) {
-    if(likely(dirtyRenderTarget))
+    if (likely(dirtyRenderTarget))
       m_rt->GetCommonSurface()->DirtyD3D9Surface();
 
     if (likely(dirtyPrimarySurface)) {
@@ -1556,17 +1558,17 @@ namespace dxvk {
       Logger::debug("D3D3Device::SetTextureInternal: Unbiding D3D9 texture");
 
       hr = device9->SetTexture(0, nullptr);
-
-      if (likely(SUCCEEDED(hr))) {
-        if (m_commonD3DDevice->GetCurrentTextureHandle() != 0) {
-          Logger::debug("D3D3Device::SetTextureInternal: Unbinding local texture");
-          m_commonD3DDevice->SetCurrentTextureHandle(0);
-        }
-      } else {
+      if (unlikely(FAILED(hr))) {
         Logger::err("D3D3Device::SetTextureInternal: Failed to unbind D3D9 texture");
+        return hr;
       }
 
-      return hr;
+      if (likely(m_commonD3DDevice->GetCurrentTextureHandle() != 0)) {
+        Logger::debug("D3D3Device::SetTextureInternal: Unbinding local texture");
+        m_commonD3DDevice->SetCurrentTextureHandle(0);
+      }
+
+      return D3D_OK;
     }
 
     Logger::debug("D3D3Device::SetTextureInternal: Binding D3D9 texture");
