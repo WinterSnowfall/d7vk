@@ -430,11 +430,12 @@ namespace dxvk {
       return D3DERR_SCENE_IN_SCENE;
 
     HRESULT hr = m_commonD3DDevice->GetD3D9Device()->BeginScene();
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    if (likely(SUCCEEDED(hr)))
-      m_commonD3DDevice->SetInScene(true);
+    m_commonD3DDevice->SetInScene(true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::EndScene() {
@@ -448,11 +449,12 @@ namespace dxvk {
       return D3DERR_SCENE_NOT_IN_SCENE;
 
     HRESULT hr = m_commonD3DDevice->GetD3D9Device()->EndScene();
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    if (likely(SUCCEEDED(hr)))
-      m_commonD3DDevice->SetInScene(false);
+    m_commonD3DDevice->SetInScene(false);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::GetDirect3D(IDirect3D3 **d3d) {
@@ -549,45 +551,42 @@ namespace dxvk {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
     hr = device9->SetRenderTarget(0, rt6->GetCommonSurface()->GetD3D9Surface());
-
-    if (likely(SUCCEEDED(hr))) {
-      Logger::debug("D3D6Device::SetRenderTarget: Set a new D3D9 RT");
-
-      m_rt = rt6;
-      m_ds = m_rt->GetAttachedDepthStencil();
-
-      HRESULT hrDS;
-
-      if (m_ds != nullptr) {
-        Logger::debug("D3D6Device::SetRenderTarget: Found an attached DS");
-
-        hrDS = m_ds->InitializeD3D9DepthStencil();
-        if (unlikely(FAILED(hrDS))) {
-          Logger::err("D3D6Device::SetRenderTarget: Failed to initialize/upload D3D9 DS");
-          return hrDS;
-        }
-
-        hrDS = device9->SetDepthStencilSurface(m_ds->GetCommonSurface()->GetD3D9Surface());
-        if (unlikely(FAILED(hrDS))) {
-          Logger::err("D3D6Device::SetRenderTarget: Failed to set D3D9 DS");
-          return hrDS;
-        }
-
-        Logger::debug("D3D6Device::SetRenderTarget: Set a new D3D9 DS");
-      } else {
-        Logger::debug("D3D6Device::SetRenderTarget: RT has no depth stencil attached");
-
-        hrDS = device9->SetDepthStencilSurface(nullptr);
-        if (unlikely(FAILED(hrDS))) {
-          Logger::err("D3D6Device::SetRenderTarget: Failed to clear the D3D9 DS");
-          return hrDS;
-        }
-
-        Logger::debug("D3D6Device::SetRenderTarget: Cleared the D3D9 DS");
-      }
-    } else {
+    if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::SetRenderTarget: Failed to set D3D9 RT");
       return hr;
+    }
+
+    Logger::debug("D3D6Device::SetRenderTarget: Set a new D3D9 RT");
+
+    m_rt = rt6;
+    m_ds = m_rt->GetAttachedDepthStencil();
+
+    if (m_ds != nullptr) {
+      Logger::debug("D3D6Device::SetRenderTarget: Found an attached DS");
+
+      hr = m_ds->InitializeD3D9DepthStencil();
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D6Device::SetRenderTarget: Failed to initialize/upload D3D9 DS");
+        return hr;
+      }
+
+      hr = device9->SetDepthStencilSurface(m_ds->GetCommonSurface()->GetD3D9Surface());
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D6Device::SetRenderTarget: Failed to set D3D9 DS");
+        return hr;
+      }
+
+      Logger::debug("D3D6Device::SetRenderTarget: Set a new D3D9 DS");
+    } else {
+      Logger::debug("D3D6Device::SetRenderTarget: RT has no depth stencil attached");
+
+      hr = device9->SetDepthStencilSurface(nullptr);
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D6Device::SetRenderTarget: Failed to clear the D3D9 DS");
+        return hr;
+      }
+
+      Logger::debug("D3D6Device::SetRenderTarget: Cleared the D3D9 DS");
     }
 
     return D3D_OK;
@@ -1712,7 +1711,7 @@ namespace dxvk {
       device9->SetRenderState(d3d9::D3DRS_LIGHTING, TRUE);
     HandlePostDrawLegacyProjection(device9);
 
-    if(unlikely(FAILED(hr))) {
+    if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Failed D3D9 call to DrawIndexedPrimitive");
       return hr;
     }
@@ -1779,20 +1778,20 @@ namespace dxvk {
       Logger::debug("D3D6Device::SetTexture: Unbiding D3D9 texture");
 
       hr = device9->SetTexture(stage, nullptr);
-
-      if (likely(SUCCEEDED(hr))) {
-        if (m_textures[stage] != nullptr) {
-          Logger::debug("D3D6Device::SetTexture: Unbinding local texture");
-          m_textures[stage] = nullptr;
-
-          if (likely(stage == 0))
-            m_bridge->SetColorKeyState(false);
-        }
-      } else {
+      if (unlikely(FAILED(hr))) {
         Logger::err("D3D6Device::SetTexture: Failed to unbind D3D9 texture");
+        return hr;
       }
 
-      return hr;
+      if (likely(m_textures[stage] != nullptr)) {
+        Logger::debug("D3D6Device::SetTexture: Unbinding local texture");
+        m_textures[stage] = nullptr;
+
+        if (likely(stage == 0))
+          m_bridge->SetColorKeyState(false);
+      }
+
+      return D3D_OK;
     }
 
     // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
@@ -1880,9 +1879,14 @@ namespace dxvk {
       if (stateType == d3d9::D3DSAMP_MAGFILTER ||
           stateType == d3d9::D3DSAMP_MINFILTER || stateType == d3d9::D3DSAMP_MIPFILTER) {
         DWORD dwStateProxy9 = 0;
+
         HRESULT hr = device9->GetSamplerState(dwStage, stateType, &dwStateProxy9);
+        if (unlikely(FAILED(hr)))
+          return hr;
+
         *lpdwState = DecodeD3D9TexFilterValues(d3dTexStageStateType, dwStateProxy9);
-        return hr;
+
+        return D3D_OK;
       } else {
         return device9->GetSamplerState(dwStage, stateType, lpdwState);
       }
@@ -1954,7 +1958,7 @@ namespace dxvk {
         Logger::debug(str::format("D3D6Device::InitializeDS: DepthStencil: ", dsRect->right, "x", dsRect->bottom));
 
         HRESULT hrDS9 = device9->SetDepthStencilSurface(m_ds->GetCommonSurface()->GetD3D9Surface());
-        if(unlikely(FAILED(hrDS9))) {
+        if (unlikely(FAILED(hrDS9))) {
           Logger::err("D3D6Device::InitializeDS: Failed to set D3D9 depth stencil");
         } else {
           // This needs to act like an auto depth stencil of sorts, so manually enable z-buffering
@@ -1970,7 +1974,7 @@ namespace dxvk {
   }
 
   void D3D6Device::UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface) {
-    if(likely(dirtyRenderTarget))
+    if (likely(dirtyRenderTarget))
       m_rt->GetCommonSurface()->DirtyD3D9Surface();
 
     if (likely(dirtyPrimarySurface)) {
@@ -1991,41 +1995,42 @@ namespace dxvk {
     HRESULT hr = m_bridge->ResetSwapChain(params);
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::ResetD3D9Swapchain: Failed to reset the D3D9 swapchain");
-    } else {
-      Logger::debug("D3D6Device::ResetD3D9Swapchain: Resetting the render target");
-
-      m_rt->GetCommonSurface()->SetD3D9Surface(nullptr);
-      m_rt->GetCommonSurface()->UnDirtyD3D9Surface();
-
-      // Reset the D3D9 objects for all the following surfaces in the swapchain
-      DDraw4Surface* nextFlippable = m_rt->GetNextFlippable();
-
-      while (nextFlippable != nullptr) {
-        Logger::debug("D3D6Device::ResetD3D9Swapchain: Resetting child surface");
-
-        nextFlippable->GetCommonSurface()->SetD3D9Surface(nullptr);
-        nextFlippable->GetCommonSurface()->UnDirtyD3D9Surface();
-
-        nextFlippable = nextFlippable->GetNextFlippable();
-      }
-
-      // Reset the D3D9 objects for all the previous surfaces in the swapchain
-      DDraw4Surface* parentSurf = m_rt->GetParentSurface();
-
-      while (parentSurf != nullptr) {
-        Logger::debug("D3D6Device::ResetD3D9Swapchain: Resetting parent surface");
-
-        parentSurf->GetCommonSurface()->SetD3D9Surface(nullptr);
-        parentSurf->GetCommonSurface()->UnDirtyD3D9Surface();
-
-        parentSurf = parentSurf->GetParentSurface();
-      }
-
-      // Note that the D3D9 depth stencil survives a swapchain reset,
-      // so there's no need to worry about it in this case
+      return hr;
     }
 
-    return hr;
+    Logger::debug("D3D6Device::ResetD3D9Swapchain: Resetting the render target");
+
+    m_rt->GetCommonSurface()->SetD3D9Surface(nullptr);
+    m_rt->GetCommonSurface()->UnDirtyD3D9Surface();
+
+    // Reset the D3D9 objects for all the following surfaces in the swapchain
+    DDraw4Surface* nextFlippable = m_rt->GetNextFlippable();
+
+    while (nextFlippable != nullptr) {
+      Logger::debug("D3D6Device::ResetD3D9Swapchain: Resetting child surface");
+
+      nextFlippable->GetCommonSurface()->SetD3D9Surface(nullptr);
+      nextFlippable->GetCommonSurface()->UnDirtyD3D9Surface();
+
+      nextFlippable = nextFlippable->GetNextFlippable();
+    }
+
+    // Reset the D3D9 objects for all the previous surfaces in the swapchain
+    DDraw4Surface* parentSurf = m_rt->GetParentSurface();
+
+    while (parentSurf != nullptr) {
+      Logger::debug("D3D6Device::ResetD3D9Swapchain: Resetting parent surface");
+
+      parentSurf->GetCommonSurface()->SetD3D9Surface(nullptr);
+      parentSurf->GetCommonSurface()->UnDirtyD3D9Surface();
+
+      parentSurf = parentSurf->GetParentSurface();
+    }
+
+    // Note that the D3D9 depth stencil survives a swapchain reset,
+    // so there's no need to worry about it in this case
+
+    return D3D_OK;
   }
 
   inline HRESULT D3D6Device::InitializeIndexBuffers() {
@@ -2112,17 +2117,17 @@ namespace dxvk {
       Logger::debug("D3D6Device::SetTextureWithHandle: Unbiding D3D9 texture");
 
       hr = device9->SetTexture(0, nullptr);
-
-      if (likely(SUCCEEDED(hr))) {
-        if (m_commonD3DDevice->GetCurrentTextureHandle() != 0) {
-          Logger::debug("D3D6Device::SetTextureWithHandle: Unbinding local texture");
-          m_commonD3DDevice->SetCurrentTextureHandle(0);
-        }
-      } else {
+      if (unlikely(FAILED(hr))) {
         Logger::err("D3D6Device::SetTextureWithHandle: Failed to unbind D3D9 texture");
+        return hr;
       }
 
-      return hr;
+      if (likely(m_commonD3DDevice->GetCurrentTextureHandle() != 0)) {
+        Logger::debug("D3D6Device::SetTextureWithHandle: Unbinding local texture");
+        m_commonD3DDevice->SetCurrentTextureHandle(0);
+      }
+
+      return D3D_OK;
     }
 
     Logger::debug("D3D6Device::SetTextureWithHandle: Binding D3D9 texture");

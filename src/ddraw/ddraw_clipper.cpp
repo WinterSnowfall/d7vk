@@ -64,18 +64,18 @@ namespace dxvk {
     Logger::debug("<<< DDrawClipper::SetHWnd: Proxy");
 
     HRESULT hr = m_proxy->SetHWnd(dwFlags, hWnd);
+    if (unlikely(FAILED(hr)))
+      return hr;
 
     // The Eschalon: Book I launcher creates a device before attaching the clipper to
     // the primary surface, but right after it sets a HWND on the newly created clipper
-    if (likely(SUCCEEDED(hr) && m_commonIntf != nullptr)) {
+    if (unlikely(m_commonIntf != nullptr && m_commonIntf->GetHWND() == nullptr)) {
+      Logger::debug("DDrawClipper::SetHWnd: Caching passed hWnd");
       // Only set the cached hWnd if it's absent
-      if (unlikely(m_commonIntf->GetHWND() == nullptr)) {
-        Logger::debug("DDrawClipper::SetHWnd: Caching passed hWnd");
-        m_commonIntf->SetHWND(hWnd);
-      }
+      m_commonIntf->SetHWND(hWnd);
     }
 
-    return hr;
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawClipper::GetHWnd(HWND *lphWnd) {

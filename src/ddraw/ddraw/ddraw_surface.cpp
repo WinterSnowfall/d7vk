@@ -355,7 +355,7 @@ namespace dxvk {
     if (likely(attachedSurf->GetCommonSurface()->IsDepthStencil()))
       m_depthStencil = attachedSurf;
 
-    return hr;
+    return DD_OK;
   }
 
   // Docs: "This method is used for the software implementation.
@@ -409,30 +409,29 @@ namespace dxvk {
     }
 
     HRESULT hr;
-
     if (unlikely(lpDDSrcSurface == nullptr)) {
       hr = GetShadowOrProxied()->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
     } else {
       DDrawSurface* sourceSurface = static_cast<DDrawSurface*>(lpDDSrcSurface);
       hr = GetShadowOrProxied()->Blt(lpDestRect, sourceSurface->GetShadowOrProxied(), lpSrcRect, dwFlags, lpDDBltFx);
     }
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    if (likely(SUCCEEDED(hr))) {
-      m_commonSurf->DirtyDDrawSurface();
+    m_commonSurf->DirtyDDrawSurface();
 
-      if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
-        const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
-                                  !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
-                                   m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
-                                   false : true;
-        if (shouldPresent) {
-          InitializeOrUploadD3D9();
-          d3d9Device->Present(NULL, NULL, NULL, NULL);
-        }
+    if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
+      const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
+                                !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
+                                 m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
+                                 false : true;
+      if (shouldPresent) {
+        InitializeOrUploadD3D9();
+        d3d9Device->Present(NULL, NULL, NULL, NULL);
       }
     }
 
-    return hr;
+    return DD_OK;
   }
 
   // Docs: "The IDirectDrawSurface::BltBatch method is not currently implemented."
@@ -487,30 +486,29 @@ namespace dxvk {
     }
 
     HRESULT hr;
-
     if (lpDDSrcSurface == nullptr) {
       hr = GetShadowOrProxied()->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwTrans);
     } else {
       DDrawSurface* sourceSurface = static_cast<DDrawSurface*>(lpDDSrcSurface);
       hr = GetShadowOrProxied()->BltFast(dwX, dwY, sourceSurface->GetShadowOrProxied(), lpSrcRect, dwTrans);
     }
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    if (likely(SUCCEEDED(hr))) {
-      m_commonSurf->DirtyDDrawSurface();
+    m_commonSurf->DirtyDDrawSurface();
 
-      if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
-        const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
-                                  !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
-                                   m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
-                                   false : true;
-        if (shouldPresent) {
-          InitializeOrUploadD3D9();
-          d3d9Device->Present(NULL, NULL, NULL, NULL);
-        }
+    if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
+      const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
+                                !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
+                                 m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
+                                 false : true;
+      if (shouldPresent) {
+        InitializeOrUploadD3D9();
+        d3d9Device->Present(NULL, NULL, NULL, NULL);
       }
     }
 
-    return hr;
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE lpDDSAttachedSurface) {
@@ -526,12 +524,13 @@ namespace dxvk {
 
     if (lpDDSAttachedSurface == nullptr) {
       HRESULT hrProxy = m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
+      if (unlikely(FAILED(hrProxy)))
+        return hrProxy;
 
       // If lpDDSAttachedSurface is NULL, then all surfaces are detached
-      if (likely(SUCCEEDED(hrProxy)))
-        m_depthStencil = nullptr;
+      m_depthStencil = nullptr;
 
-      return hrProxy;
+      return DD_OK;
     }
 
     DDrawSurface* attachedSurf = static_cast<DDrawSurface*>(lpDDSAttachedSurface);
@@ -552,7 +551,7 @@ namespace dxvk {
       m_depthStencil = nullptr;
     }
 
-    return hr;
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback) {
@@ -598,7 +597,7 @@ namespace dxvk {
       ++surfaceIt;
     }
 
-    return D3D_OK;
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::EnumOverlayZOrders(DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpfnCallback) {
@@ -802,7 +801,7 @@ namespace dxvk {
 
     *lplpDDClipper = ref(clipper);
 
-    return D3D_OK;
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColorKey) {
@@ -902,24 +901,24 @@ namespace dxvk {
     Logger::debug("<<< DDrawSurface::ReleaseDC: Proxy");
 
     HRESULT hr = GetShadowOrProxied()->ReleaseDC(hDC);
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    if (likely(SUCCEEDED(hr))) {
-      m_commonSurf->DirtyDDrawSurface();
+    m_commonSurf->DirtyDDrawSurface();
 
-      d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
-      if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
-        const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
-                                  !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
-                                   m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
-                                   false : true;
-        if (shouldPresent) {
-          InitializeOrUploadD3D9();
-          d3d9Device->Present(NULL, NULL, NULL, NULL);
-        }
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
+    if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
+      const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
+                                !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
+                                  m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
+                                  false : true;
+      if (shouldPresent) {
+        InitializeOrUploadD3D9();
+        d3d9Device->Present(NULL, NULL, NULL, NULL);
       }
     }
 
-    return hr;
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::Restore() {
@@ -1026,24 +1025,24 @@ namespace dxvk {
     Logger::debug("<<< DDrawSurface::Unlock: Proxy");
 
     HRESULT hr = GetShadowOrProxied()->Unlock(lpSurfaceData);
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    if (likely(SUCCEEDED(hr))) {
-      m_commonSurf->DirtyDDrawSurface();
+    m_commonSurf->DirtyDDrawSurface();
 
-      d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
-      if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
-        const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
-                                  !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
-                                   m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
-                                   false : true;
-        if (shouldPresent) {
-          InitializeOrUploadD3D9();
-          d3d9Device->Present(NULL, NULL, NULL, NULL);
-        }
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
+    if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
+      const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
+                                !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
+                                 m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Strict ?
+                                 false : true;
+      if (shouldPresent) {
+        InitializeOrUploadD3D9();
+        d3d9Device->Present(NULL, NULL, NULL, NULL);
       }
     }
 
-    return hr;
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFACE lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx) {

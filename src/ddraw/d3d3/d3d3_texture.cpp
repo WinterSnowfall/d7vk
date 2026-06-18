@@ -93,7 +93,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D3Texture::GetHandle(LPDIRECT3DDEVICE lpDirect3DDevice, LPD3DTEXTUREHANDLE lpHandle) {
     Logger::debug(">>> D3D3Texture::GetHandle");
 
-    if(unlikely(lpDirect3DDevice == nullptr || lpHandle == nullptr))
+    if (unlikely(lpDirect3DDevice == nullptr || lpHandle == nullptr))
       return DDERR_INVALIDPARAMS;
 
     *lpHandle = m_commonTex->GetTextureHandle();
@@ -125,12 +125,15 @@ namespace dxvk {
       return hr;
 
     DDrawCommonSurface* commonSurf = m_commonTex->GetCommonSurface();
-    HRESULT hrDesc = commonSurf->RefreshSurfaceDescripton();
-    if (unlikely(FAILED(hrDesc)))
+    hr = commonSurf->RefreshSurfaceDescripton();
+    if (unlikely(FAILED(hr))) {
       Logger::err("D3D3Texture::Load: Failed to refresh surface description");
+      return hr;
+    }
+
     commonSurf->DirtyDDrawSurface();
 
-    return hr;
+    return D3D_OK;
   }
 
   // Docs state: "Returns DDERR_ALREADYINITIALIZED because the Direct3DTexture object is initialized when it is created."
