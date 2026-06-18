@@ -56,7 +56,7 @@ namespace dxvk {
     if (unlikely(!data->dwSize))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(data->dltType == 0 || data->dltType > D3DLIGHT_GLSPOT))
+    if (unlikely(!data->dltType || data->dltType > D3DLIGHT_GLSPOT))
       return DDERR_INVALIDPARAMS;
 
     // Hidden & Dangeous spams a lot of parallel point lights

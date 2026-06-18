@@ -593,10 +593,10 @@ namespace dxvk {
       d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
 
       // Note: This doesn't do anything in the D3D9 backend at the moment
-      HRESULT hr9 = d3d9Device->EvictManagedResources();
-      if (unlikely(FAILED(hr9))) {
+      hr = d3d9Device->EvictManagedResources();
+      if (unlikely(FAILED(hr))) {
         Logger::err("D3D6Interface::EvictManagedTextures: Failed D3D9 managed resource eviction");
-        return hr9;
+        return hr;
       }
     }
 

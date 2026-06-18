@@ -93,11 +93,12 @@ namespace dxvk {
                                                   && (flags & DDLOCK_WRITEONLY));
 
     HRESULT hr = m_vb9->Lock(0, 0, data, ConvertD3D7LockFlags(flags, legacyDiscard, false));
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    if (likely(SUCCEEDED(hr)))
-      m_locked = true;
+    m_locked = true;
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::Unlock() {
@@ -111,13 +112,12 @@ namespace dxvk {
     }
 
     HRESULT hr = m_vb9->Unlock();
-
-    if (likely(SUCCEEDED(hr)))
-      m_locked = false;
-    else
+    if (unlikely(FAILED(hr)))
       return D3DERR_VERTEXBUFFERUNLOCKFAILED;
 
-    return hr;
+    m_locked = false;
+
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::ProcessVertices(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPDIRECT3DVERTEXBUFFER7 lpSrcBuffer, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags) {
@@ -233,13 +233,13 @@ namespace dxvk {
     if (unlikely(!dwCount))
       return D3D_OK;
 
-    if(unlikely(lpD3DDevice == nullptr))
+    if (unlikely(lpD3DDevice == nullptr))
       return DDERR_INVALIDPARAMS;
 
     D3D7Device* device = static_cast<D3D7Device*>(lpD3DDevice);
 
     RefreshD3DDevice();
-    if(unlikely(m_d3d7Device == nullptr || device != m_d3d7Device)) {
+    if (unlikely(m_d3d7Device == nullptr || device != m_d3d7Device)) {
       Logger::err(">>> D3D7VertexBuffer::ProcessVerticesStrided: Incompatible or null device");
       return DDERR_GENERIC;
     }

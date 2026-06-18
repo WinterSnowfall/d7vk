@@ -2020,6 +2020,10 @@ namespace dxvk {
     { R"(\\powerslide\.exe$)", {{
       { "ddraw.nonLocalVideoMemory",       "False" },
     }} },
+    /* Tex Murtphy: Overseer                      */
+    { R"(\\OVERSEER\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+    }} },
 
     /**********************************************/
     /* D3D3 GAMES                                 */
@@ -2029,6 +2033,10 @@ namespace dxvk {
      * Fixes black lines in the background image  */
     { R"(\\ResidentEvil\.exe$)", {{
       { "ddraw.vertexOffset",               "-0.5" },
+    }} },
+    /* Star Trek: Starfleet Academy               */
+    { R"(\\sfad3d\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
     }} },
 
   };

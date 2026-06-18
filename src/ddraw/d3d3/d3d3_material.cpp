@@ -107,7 +107,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D3Material::GetHandle(IDirect3DDevice *device, D3DMATERIALHANDLE *handle) {
     Logger::debug(">>> D3D3Material::GetHandle");
 
-    if(unlikely(device == nullptr || handle == nullptr))
+    if (unlikely(device == nullptr || handle == nullptr))
       return DDERR_INVALIDPARAMS;
 
     *handle = m_commonMaterial->GetMaterialHandle();

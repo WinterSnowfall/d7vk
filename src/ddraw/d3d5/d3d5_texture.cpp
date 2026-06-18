@@ -100,7 +100,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D5Texture::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3DTEXTUREHANDLE lpHandle) {
     Logger::debug(str::format(">>> ", m_objectType, "::GetHandle"));
 
-    if(unlikely(lpDirect3DDevice2 == nullptr || lpHandle == nullptr))
+    if (unlikely(lpDirect3DDevice2 == nullptr || lpHandle == nullptr))
       return DDERR_INVALIDPARAMS;
 
     *lpHandle = m_commonTex->GetTextureHandle();
@@ -139,12 +139,15 @@ namespace dxvk {
 
     DDrawCommonSurface* commonSurf = m_commonTex->GetCommonSurface();
 
-    HRESULT hrDesc = commonSurf->RefreshSurfaceDescripton();
-    if (unlikely(FAILED(hrDesc)))
+    hr = commonSurf->RefreshSurfaceDescripton();
+    if (unlikely(FAILED(hr))) {
       Logger::err(str::format(m_objectType, "::Load: Failed to refresh surface description"));
+      return hr;
+    }
+
     commonSurf->DirtyDDrawSurface();
 
-    return hr;
+    return D3D_OK;
   }
 
 }

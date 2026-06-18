@@ -402,11 +402,12 @@ namespace dxvk {
       return D3DERR_SCENE_IN_SCENE;
 
     HRESULT hr = m_commonD3DDevice->GetD3D9Device()->BeginScene();
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    if (likely(SUCCEEDED(hr)))
-      m_commonD3DDevice->SetInScene(true);
+    m_commonD3DDevice->SetInScene(true);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::EndScene() {
@@ -420,11 +421,12 @@ namespace dxvk {
       return D3DERR_SCENE_NOT_IN_SCENE;
 
     HRESULT hr = m_commonD3DDevice->GetD3D9Device()->EndScene();
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    if (likely(SUCCEEDED(hr)))
-      m_commonD3DDevice->SetInScene(false);
+    m_commonD3DDevice->SetInScene(false);
 
-    return hr;
+    return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Device::GetDirect3D(IDirect3D2 **d3d) {
@@ -521,45 +523,42 @@ namespace dxvk {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
     hr = device9->SetRenderTarget(0, rt5->GetCommonSurface()->GetD3D9Surface());
-
-    if (likely(SUCCEEDED(hr))) {
-      Logger::debug("D3D5Device::SetRenderTarget: Set a new D3D9 RT");
-
-      m_rt = rt5;
-      m_ds = m_rt->GetAttachedDepthStencil();
-
-      HRESULT hrDS;
-
-      if (m_ds != nullptr) {
-        Logger::debug("D3D5Device::SetRenderTarget: Found an attached DS");
-
-        hrDS = m_ds->InitializeD3D9DepthStencil();
-        if (unlikely(FAILED(hrDS))) {
-          Logger::err("D3D5Device::SetRenderTarget: Failed to initialize/upload D3D9 DS");
-          return hrDS;
-        }
-
-        hrDS = device9->SetDepthStencilSurface(m_ds->GetCommonSurface()->GetD3D9Surface());
-        if (unlikely(FAILED(hrDS))) {
-          Logger::err("D3D5Device::SetRenderTarget: Failed to set D3D9 DS");
-          return hrDS;
-        }
-
-        Logger::debug("D3D5Device::SetRenderTarget: Set a new D3D9 DS");
-      } else {
-        Logger::debug("D3D5Device::SetRenderTarget: RT has no depth stencil attached");
-
-        hrDS = device9->SetDepthStencilSurface(nullptr);
-        if (unlikely(FAILED(hrDS))) {
-          Logger::err("D3D5Device::SetRenderTarget: Failed to clear the D3D9 DS");
-          return hrDS;
-        }
-
-        Logger::debug("D3D5Device::SetRenderTarget: Cleared the D3D9 DS");
-      }
-    } else {
+    if (unlikely(FAILED(hr))) {
       Logger::err("D3D5Device::SetRenderTarget: Failed to set D3D9 RT");
       return hr;
+    }
+
+    Logger::debug("D3D5Device::SetRenderTarget: Set a new D3D9 RT");
+
+    m_rt = rt5;
+    m_ds = m_rt->GetAttachedDepthStencil();
+
+    if (m_ds != nullptr) {
+      Logger::debug("D3D5Device::SetRenderTarget: Found an attached DS");
+
+      hr = m_ds->InitializeD3D9DepthStencil();
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D5Device::SetRenderTarget: Failed to initialize/upload D3D9 DS");
+        return hr;
+      }
+
+      hr = device9->SetDepthStencilSurface(m_ds->GetCommonSurface()->GetD3D9Surface());
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D5Device::SetRenderTarget: Failed to set D3D9 DS");
+        return hr;
+      }
+
+      Logger::debug("D3D5Device::SetRenderTarget: Set a new D3D9 DS");
+    } else {
+      Logger::debug("D3D5Device::SetRenderTarget: RT has no depth stencil attached");
+
+      hr = device9->SetDepthStencilSurface(nullptr);
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D5Device::SetRenderTarget: Failed to clear the D3D9 DS");
+        return hr;
+      }
+
+      Logger::debug("D3D5Device::SetRenderTarget: Cleared the D3D9 DS");
     }
 
     return D3D_OK;
@@ -1483,7 +1482,7 @@ namespace dxvk {
         Logger::debug(str::format("D3D5Device::InitializeDS: DepthStencil: ", dsRect->right, "x", dsRect->bottom));
 
         HRESULT hrDS9 = device9->SetDepthStencilSurface(m_ds->GetCommonSurface()->GetD3D9Surface());
-        if(unlikely(FAILED(hrDS9))) {
+        if (unlikely(FAILED(hrDS9))) {
           Logger::err("D3D5Device::InitializeDS: Failed to set D3D9 depth stencil");
         } else {
           // This needs to act like an auto depth stencil of sorts, so manually enable z-buffering
@@ -1499,7 +1498,7 @@ namespace dxvk {
   }
 
   void D3D5Device::UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface) {
-    if(likely(dirtyRenderTarget))
+    if (likely(dirtyRenderTarget))
       m_rt->GetCommonSurface()->DirtyD3D9Surface();
 
     if (likely(dirtyPrimarySurface)) {
@@ -1565,17 +1564,17 @@ namespace dxvk {
       Logger::debug("D3D5Device::SetTextureInternal: Unbiding D3D9 texture");
 
       hr = device9->SetTexture(0, nullptr);
-
-      if (likely(SUCCEEDED(hr))) {
-        if (m_commonD3DDevice->GetCurrentTextureHandle() != 0) {
-          Logger::debug("D3D5Device::SetTextureInternal: Unbinding local texture");
-          m_commonD3DDevice->SetCurrentTextureHandle(0);
-        }
-      } else {
+      if (unlikely(FAILED(hr))) {
         Logger::err("D3D5Device::SetTextureInternal: Failed to unbind D3D9 texture");
+        return hr;
       }
 
-      return hr;
+      if (likely(m_commonD3DDevice->GetCurrentTextureHandle() != 0)) {
+        Logger::debug("D3D5Device::SetTextureInternal: Unbinding local texture");
+        m_commonD3DDevice->SetCurrentTextureHandle(0);
+      }
+
+      return D3D_OK;
     }
 
     Logger::debug("D3D5Device::SetTextureInternal: Binding D3D9 texture");
