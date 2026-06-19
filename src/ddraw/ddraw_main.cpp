@@ -6,6 +6,8 @@
 #include "ddraw/ddraw_interface.h"
 #include "ddraw7/ddraw7_interface.h"
 
+#include <vector>
+
 namespace dxvk {
 
   //Logger Logger::s_instance("ddraw.log");
@@ -18,6 +20,7 @@ namespace dxvk {
       hDDraw = ::LoadLibraryA("ddraw_.dll");
 
       if (hDDraw == nullptr) {
+        // Determine the system directory path
         char loadPath[MAX_PATH] = { };
         UINT returnLength = ::GetSystemDirectoryA(loadPath, MAX_PATH);
         if (unlikely(!returnLength))
@@ -26,10 +29,42 @@ namespace dxvk {
         strcat(loadPath, "\\ddraw.dll");
         hDDraw = ::LoadLibraryA(loadPath);
 
-        if (likely(hDDraw != nullptr))
-          Logger::debug(">>> GetProxiedDDrawModule: Loaded ddraw.dll from system path");
+        if (likely(hDDraw != nullptr)) {
+          Logger::debug("GetProxiedDDrawModule: Loaded ddraw.dll from system path");
+
+          // We still need to validate that we've not actually loaded D7VK again,
+          // because that has the potential to liveloop any subsequent call
+          const DWORD versionInfoSize = ::GetFileVersionInfoSizeA(loadPath, nullptr);
+          if (unlikely(versionInfoSize == 0))
+            return nullptr;
+
+          std::vector<BYTE> versionInfo(versionInfoSize);
+          const BOOL result = ::GetFileVersionInfoA(loadPath, 0, versionInfoSize, versionInfo.data());
+          if (unlikely(!result))
+            return nullptr;
+
+          void* pvData = nullptr;
+          UINT iLenData = 0u;
+          // DXVK/D7VK will use the English UK encoding, so simply skip
+          // the check if nothing is returned (pvData will be nullptr)
+          ::VerQueryValueA(versionInfo.data(), "\\StringFileInfo\\080904B0\\ProductName", &pvData, &iLenData);
+
+          if (pvData != nullptr) {
+            Logger::debug(str::format("GetProxiedDDrawModule: ProductName: ", static_cast<char*>(pvData)));
+
+            if (unlikely(!strcmp(static_cast<char*>(pvData), "DXVK"))) {
+              Logger::err("GetProxiedDDrawModule: Loaded proxy ddraw.dll is also D7VK!");
+              // FreeLibrary won't work properly here since we've loaded
+              // ourselves, and, well, we're already loaded, now aren't we?
+              // The program will most likely crash at this point, or soon
+              // enough, so no point in worrying about it too much though.
+              hDDraw = nullptr;
+              return nullptr;
+            }
+          }
+        }
       } else {
-        Logger::debug(">>> GetProxiedDDrawModule: Loaded ddraw_.dll");
+        Logger::debug("GetProxiedDDrawModule: Loaded ddraw_.dll");
       }
     }
 
