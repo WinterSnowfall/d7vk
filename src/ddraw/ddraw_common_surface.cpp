@@ -424,4 +424,24 @@ namespace dxvk {
     return DD_OK;
   }
 
+  HRESULT DDrawCommonSurface::InitializeOrUploadD3D9() {
+    if (m_surf7 != nullptr) {
+      return m_surf7->InitializeOrUploadD3D9();
+    }
+    if (m_surf4 != nullptr) {
+      return m_surf4->InitializeOrUploadD3D9();
+    }
+    if (m_surf3 != nullptr) {
+      return m_surf3->InitializeOrUploadD3D9();
+    }
+    if (m_surf2 != nullptr) {
+      return m_surf2->InitializeOrUploadD3D9();
+    }
+    if (m_surf != nullptr) {
+      return m_surf->InitializeOrUploadD3D9();
+    }
+
+    return DDERR_GENERIC;
+  }
+
 }

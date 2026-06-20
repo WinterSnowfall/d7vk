@@ -41,6 +41,8 @@ namespace dxvk {
 
     HRESULT InitializeD3D9(const bool initRenderTarget);
 
+    HRESULT InitializeOrUploadD3D9();
+
     bool IsInitialized() const {
       return m_surface9 != nullptr;
     }
