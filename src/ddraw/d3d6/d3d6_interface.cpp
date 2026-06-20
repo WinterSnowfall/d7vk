@@ -240,11 +240,7 @@ namespace dxvk {
 
     InitReturnPtr(lplpDirect3DMaterial);
 
-    D3DMATERIALHANDLE handle = D3DCommonInterface::GetNextMaterialHandle();
-    Com<D3D6Material> d3d6Material = new D3D6Material(this, handle);
-    D3DCommonInterface::EmplaceMaterial(d3d6Material->GetCommonMaterial(), handle);
-
-    *lplpDirect3DMaterial = d3d6Material.ref();
+    *lplpDirect3DMaterial = ref(new D3D6Material(this));
 
     return D3D_OK;
   }

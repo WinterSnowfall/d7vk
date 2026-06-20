@@ -17,8 +17,7 @@ namespace dxvk {
     D3D3Texture(
           DDrawCommonSurface* commonSurf,
           Com<IDirect3DTexture>&& proxyTexture,
-          IUnknown* pParent,
-          D3DTEXTUREHANDLE handle);
+          IUnknown* pParent);
 
     ~D3D3Texture();
 
