@@ -395,14 +395,29 @@ namespace dxvk {
     if (unlikely(!count && rects))
       return D3D_OK;
 
+    const bool clearRenderTarget = flags & D3DCLEAR_TARGET;
+    const bool clearDepthStencil = (flags & D3DCLEAR_ZBUFFER) || (flags & D3DCLEAR_STENCIL);
+
+    if (unlikely(clearRenderTarget && count)) {
+      // If this isn't a full surface clear, we need to first upload the DDraw surface
+      if (count > 1 || !m_rt->GetCommonSurface()->IsFullSurfaceLock(reinterpret_cast<RECT*>(rects), nullptr)) {
+        Logger::debug("D3D7Device::Clear: Partial render target clear");
+        m_rt->InitializeOrUploadD3D9();
+      }
+    }
+    if (unlikely(clearDepthStencil && count && m_ds != nullptr)) {
+      // If this isn't a full surface clear, we need to first upload the DDraw surface
+      if (count > 1 || !m_ds->GetCommonSurface()->IsFullSurfaceLock(reinterpret_cast<RECT*>(rects), nullptr)) {
+        Logger::debug("D3D7Device::Clear: Partial depth stencil clear");
+        m_ds->InitializeOrUploadD3D9();
+      }
+    }
+
     HRESULT hr = m_commonD3DDevice->GetD3D9Device()->Clear(count, rects, flags, color, static_cast<float>(z), stencil);
     if (unlikely(FAILED(hr))) {
       Logger::debug("D3D7Device::Clear: Failed D3D9 Clear call");
       return hr;
     }
-
-    const bool clearRenderTarget = flags & D3DCLEAR_TARGET;
-    const bool clearDepthStencil = (flags & D3DCLEAR_ZBUFFER) || (flags & D3DCLEAR_STENCIL);
 
     if (clearRenderTarget)
       m_rt->GetCommonSurface()->UnDirtyDDrawSurface();
