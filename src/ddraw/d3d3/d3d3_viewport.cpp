@@ -315,7 +315,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Viewport::Clear(DWORD count, D3DRECT *rects, DWORD flags) {
-    Logger::debug("<<< D3D3Viewport::Clear: Proxy");
+    Logger::debug(">>> D3D3Viewport::Clear");
 
     if (unlikely(!m_commonViewport->HasDevice()))
       return D3DERR_VIEWPORTHASNODEVICE;
@@ -323,6 +323,36 @@ namespace dxvk {
     // Early D3D viewport fast skip
     if (unlikely(!count || (count && rects == nullptr)))
       return D3D_OK;
+
+    const bool clearRenderTarget = flags & D3DCLEAR_TARGET;
+    const bool clearDepthStencil = flags & D3DCLEAR_ZBUFFER;
+    DDrawCommonSurface* rt = nullptr;
+    DDrawCommonSurface* ds = nullptr;
+
+    if (clearRenderTarget) {
+      rt = m_commonViewport->GetCommonRenderTarget();
+      if (likely(rt != nullptr)) {
+        // If this isn't a full surface clear, we need to first upload the DDraw surface
+        if (unlikely(count > 1 || !rt->IsFullSurfaceLock(reinterpret_cast<RECT*>(rects), nullptr))) {
+          Logger::debug("D3D3Viewport::Clear: Partial render target clear");
+          // Use a common surface helper, because we want to handle all
+          // possible surface interfaces that may be alive at this time
+          rt->InitializeOrUploadD3D9();
+        }
+      }
+    }
+    if (clearDepthStencil) {
+      ds = m_commonViewport->GetCommonDepthStencil();
+      if (likely(ds != nullptr)) {
+        // If this isn't a full surface clear, we need to first upload the DDraw surface
+        if (unlikely(count > 1 || !ds->IsFullSurfaceLock(reinterpret_cast<RECT*>(rects), nullptr))) {
+          Logger::debug("D3D3Viewport::Clear: Partial depth stencil clear");
+          // Use a common surface helper, because we want to handle all
+          // possible surface interfaces that may be alive at this time
+          ds->InitializeOrUploadD3D9();
+        }
+      }
+    }
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetD3D9Device();
 
@@ -352,25 +382,18 @@ namespace dxvk {
       d3d9Device->SetViewport(&currentViewport9);
     }
 
+    // Clear() will only ever silently fail
     if (unlikely(FAILED(hr))) {
       Logger::debug("D3D3Viewport::Clear: Failed D3D9 Clear call");
-    } else {
-      const bool clearRenderTarget = flags & D3DCLEAR_TARGET;
-      const bool clearDepthStencil = flags & D3DCLEAR_ZBUFFER;
-
-      if (clearRenderTarget) {
-        DDrawCommonSurface* rt = m_commonViewport->GetCommonRenderTarget();
-        if (likely(rt != nullptr))
-          rt->UnDirtyDDrawSurface();
-      }
-      if (clearDepthStencil) {
-        DDrawCommonSurface* ds = m_commonViewport->GetCommonDepthStencil();
-        if (likely(ds != nullptr))
-          ds->UnDirtyDDrawSurface();
-      }
-
-      m_commonViewport->UpdateSurfaceDirtyTracking(clearRenderTarget, clearDepthStencil, false);
+      return D3D_OK;
     }
+
+    if (clearRenderTarget && rt != nullptr)
+      rt->UnDirtyDDrawSurface();
+    if (clearDepthStencil && ds != nullptr)
+      ds->UnDirtyDDrawSurface();
+
+    m_commonViewport->UpdateSurfaceDirtyTracking(clearRenderTarget, clearDepthStencil, false);
 
     return D3D_OK;
   }
