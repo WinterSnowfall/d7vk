@@ -120,17 +120,13 @@ namespace dxvk {
 
     Com<D3D5Texture> d3d5Texture = static_cast<D3D5Texture*>(lpD3DTexture2);
 
-    //IDirect3DTexture2 can have either a IDirectDrawSurface4 or a IDirectDrawSurface parent
+    // IDirect3DTexture2 is guaranteed to have a IDirectDrawSurface4 parent,
+    // because we create and cache one ourselves on creation if it doesn't exist
     DDraw4Surface* parentSurf4 = d3d5Texture->GetCommonTexture()->GetDD4Surface();
-    if (parentSurf4 != nullptr) {
+    if (likely(parentSurf4 != nullptr)) {
       parentSurf4->DownloadSurfaceData();
     } else {
-      DDrawSurface* parentSurf = d3d5Texture->GetCommonTexture()->GetDDSurface();
-      if (likely(parentSurf != nullptr)) {
-        parentSurf->DownloadSurfaceData();
-      } else {
-        Logger::warn(str::format(m_objectType, "::Load: Failed to download parent surface"));
-      }
+      Logger::warn(str::format(m_objectType, "::Load: Failed to download parent surface"));
     }
 
     HRESULT hr = m_proxy->Load(d3d5Texture->GetProxied());

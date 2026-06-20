@@ -151,6 +151,32 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
+        // If any games query for IDirect3DTexture2 from IDirectDrawSurface, they will need
+        // a valid IDirectDrawSurface4 object in order to use IDirect3DTexture2 with a D3D6
+        // device, or when calling IDirect3DTexture2::Load, which is a known use in D3D5/3.
+        // Query for one and cache it, to keep it alive as long as needed.
+        //
+        // Note: Doing only this for The Sims won't be enough as, for some reason,
+        // it goes out of its way to release the originating IDirectDrawSurface4
+        // object AFTER it queries for IDirect3DTexture2 from IDirectDrawSurface...
+        if (unlikely(m_commonSurf->GetDD4Surface() == nullptr)) {
+          Logger::debug("DDrawSurface::QueryInterface: Query for IDirectDrawSurface4");
+
+          Com<IDirectDrawSurface4> surface4ProxyObject;
+          HRESULT hr = m_proxy->QueryInterface(__uuidof(IDirectDrawSurface4),
+                                               reinterpret_cast<void**>(&surface4ProxyObject));
+          if (unlikely(FAILED(hr)))
+            return hr;
+
+          try {
+            m_surface4 = new DDraw4Surface(m_commonSurf.ptr(), std::move(surface4ProxyObject),
+                                           m_commonIntf->GetDD4Interface(), nullptr, false);
+          } catch (const DxvkError& e) {
+            Logger::err(e.message());
+            return E_NOINTERFACE;
+          }
+        }
+
         D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
         m_texture5 = new D3D5Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nextHandle, false);
         D3DCommonTexture* commonTex = m_texture5->GetCommonTexture();

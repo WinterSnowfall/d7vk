@@ -113,6 +113,8 @@ namespace dxvk {
 
     Com<D3D3Texture> d3d3Texture = static_cast<D3D3Texture*>(lpD3DTexture);
 
+    // Note: Will not work if IDirect3DTexture is queried directly
+    // from IDirectDrawSurface4, though that shouldn't happen in practice
     DDrawSurface* parentSurf = d3d3Texture->GetCommonTexture()->GetDDSurface();
     if (likely(parentSurf != nullptr)) {
       parentSurf->DownloadSurfaceData();
