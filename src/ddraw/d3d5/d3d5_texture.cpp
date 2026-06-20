@@ -14,11 +14,10 @@ namespace dxvk {
         DDrawCommonSurface* commonSurf,
         Com<IDirect3DTexture2>&& proxyTexture,
         IUnknown* pParent,
-        D3DTEXTUREHANDLE handle,
         bool isD3D6Texture)
     : DDrawWrappedObject<IUnknown, IDirect3DTexture2>(pParent, std::move(proxyTexture))
     , m_commonIntf ( commonSurf->GetCommonInterface() ) {
-    m_commonTex = new D3DCommonTexture(commonSurf, handle);
+    m_commonTex = new D3DCommonTexture(commonSurf);
 
     // D3D5Texture is shared between D3D5/6, however textures used in a D3D6 context
     // typically come from an IDirectDrawSurface4 parent. This isn't a hard requirement,
@@ -103,6 +102,13 @@ namespace dxvk {
     if (unlikely(lpDirect3DDevice2 == nullptr || lpHandle == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    if (!m_commonTex->GetTextureHandle()) {
+      const D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
+      m_commonTex->SetTextureHandle(nextHandle);
+      DDrawCommonInterface::EmplaceTexture(m_commonTex.ptr(), nextHandle);
+    }
+
+    // Grandia II uses IDirect3DTexture2 objects with handles, even on D3D6...
     *lpHandle = m_commonTex->GetTextureHandle();
 
     return D3D_OK;

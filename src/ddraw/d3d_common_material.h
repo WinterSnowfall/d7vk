@@ -14,7 +14,7 @@ namespace dxvk {
 
   public:
 
-    D3DCommonMaterial(D3DMATERIALHANDLE materialHandle);
+    D3DCommonMaterial();
 
     ~D3DCommonMaterial();
 
@@ -25,6 +25,10 @@ namespace dxvk {
 
     d3d9::D3DMATERIAL9* GetD3D9Material() {
       return &m_material9;
+    }
+
+    void SetMaterialHandle(D3DMATERIALHANDLE materialHandle) {
+      m_materialHandle = materialHandle;
     }
 
     D3DMATERIALHANDLE GetMaterialHandle() const {

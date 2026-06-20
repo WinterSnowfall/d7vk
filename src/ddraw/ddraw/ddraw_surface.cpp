@@ -132,10 +132,7 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
-        m_texture3 = new D3D3Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nextHandle);
-        D3DCommonTexture* commonTex = m_texture3->GetCommonTexture();
-        DDrawCommonInterface::EmplaceTexture(commonTex, nextHandle);
+        m_texture3 = new D3D3Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this);
       }
 
       *ppvObject = m_texture3.ref();
@@ -177,10 +174,7 @@ namespace dxvk {
           }
         }
 
-        D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
-        m_texture5 = new D3D5Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nextHandle, false);
-        D3DCommonTexture* commonTex = m_texture5->GetCommonTexture();
-        DDrawCommonInterface::EmplaceTexture(commonTex, nextHandle);
+        m_texture5 = new D3D5Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, false);
       }
 
       *ppvObject = m_texture5.ref();
