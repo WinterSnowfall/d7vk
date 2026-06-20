@@ -126,40 +126,24 @@ namespace dxvk {
     if (riid == __uuidof(IDirect3DTexture)) {
       Logger::debug("DDraw3Surface::QueryInterface: Query for IDirect3DTexture");
 
-      if (unlikely(m_parent->GetD3D3Texture() == nullptr)) {
-        Com<IDirect3DTexture> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      IDirect3DTexture* texture3 = m_parent->GetD3D3Texture();
 
-        D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
-        Com<D3D3Texture> texture3 = new D3D3Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), m_parent, nextHandle);
-        D3DCommonTexture* commonTex = texture3->GetCommonTexture();
-        m_parent->SetD3D3Texture(texture3.ptr());
-        DDrawCommonInterface::EmplaceTexture(commonTex, nextHandle);
-      }
+      if (unlikely(texture3 == nullptr))
+        return m_parent->QueryInterface(riid, ppvObject);
 
-      *ppvObject = ref(m_parent->GetD3D3Texture());
+      *ppvObject = ref(texture3);
 
       return S_OK;
     }
     if (riid == __uuidof(IDirect3DTexture2)) {
       Logger::debug("DDraw3Surface::QueryInterface: Query for IDirect3DTexture2");
 
-      if (unlikely(m_parent->GetD3D5Texture() == nullptr)) {
-        Com<IDirect3DTexture2> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
+      IDirect3DTexture2* texture5 = m_parent->GetD3D5Texture();
 
-        D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
-        Com<D3D5Texture> texture5 = new D3D5Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), m_parent, nextHandle, false);
-        D3DCommonTexture* commonTex = texture5->GetCommonTexture();
-        m_parent->SetD3D5Texture(texture5.ptr());
-        DDrawCommonInterface::EmplaceTexture(commonTex, nextHandle);
-      }
+      if (unlikely(texture5 == nullptr))
+        return m_parent->QueryInterface(riid, ppvObject);
 
-      *ppvObject = ref(m_parent->GetD3D5Texture());
+      *ppvObject = ref(texture5);
 
       return S_OK;
     }
