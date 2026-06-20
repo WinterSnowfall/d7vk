@@ -14,7 +14,7 @@ namespace dxvk {
 
   public:
 
-    D3DCommonTexture(DDrawCommonSurface* commonSurf, D3DTEXTUREHANDLE textureHandle);
+    D3DCommonTexture(DDrawCommonSurface* commonSurf);
 
     ~D3DCommonTexture();
 
@@ -27,7 +27,6 @@ namespace dxvk {
       return m_commonSurf;
     }
 
-    // Needed for SwapTextureHandles device calls
     void SetTextureHandle(D3DTEXTUREHANDLE handle) {
       m_textureHandle = handle;
     }
@@ -46,9 +45,9 @@ namespace dxvk {
 
   private:
 
-    DDrawCommonSurface*     m_commonSurf;
+    D3DTEXTUREHANDLE    m_textureHandle = 0;
 
-    D3DTEXTUREHANDLE        m_textureHandle = 0;
+    DDrawCommonSurface* m_commonSurf;
 
   };
 

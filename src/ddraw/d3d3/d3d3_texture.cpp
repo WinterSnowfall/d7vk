@@ -12,11 +12,10 @@ namespace dxvk {
   D3D3Texture::D3D3Texture(
         DDrawCommonSurface* commonSurf,
         Com<IDirect3DTexture>&& proxyTexture,
-        IUnknown* pParent,
-        D3DTEXTUREHANDLE handle)
+        IUnknown* pParent)
     : DDrawWrappedObject<IUnknown, IDirect3DTexture>(pParent, std::move(proxyTexture))
     , m_commonIntf ( commonSurf->GetCommonInterface() ) {
-    m_commonTex = new D3DCommonTexture(commonSurf, handle);
+    m_commonTex = new D3DCommonTexture(commonSurf);
 
     m_texCount = ++s_texCount;
 
@@ -95,6 +94,12 @@ namespace dxvk {
 
     if (unlikely(lpDirect3DDevice == nullptr || lpHandle == nullptr))
       return DDERR_INVALIDPARAMS;
+
+    if (!m_commonTex->GetTextureHandle()) {
+      const D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
+      m_commonTex->SetTextureHandle(nextHandle);
+      DDrawCommonInterface::EmplaceTexture(m_commonTex.ptr(), nextHandle);
+    }
 
     *lpHandle = m_commonTex->GetTextureHandle();
 

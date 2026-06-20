@@ -130,10 +130,7 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
-        m_texture3 = new D3D3Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nextHandle);
-        D3DCommonTexture* commonTex = m_texture3->GetCommonTexture();
-        DDrawCommonInterface::EmplaceTexture(commonTex, nextHandle);
+        m_texture3 = new D3D3Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this);
       }
 
       *ppvObject = m_texture3.ref();
@@ -149,12 +146,8 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
         // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
-        m_texture6 = new D3D5Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, nextHandle, true);
-        // Grandia II uses IDirect3DTexture2 objects with handles, even on D3D6...
-        D3DCommonTexture* commonTex = m_texture6->GetCommonTexture();
-        DDrawCommonInterface::EmplaceTexture(commonTex, nextHandle);
+        m_texture6 = new D3D5Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, true);
       }
 
       *ppvObject = m_texture6.ref();
