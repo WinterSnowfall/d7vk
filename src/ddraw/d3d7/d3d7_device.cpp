@@ -469,8 +469,10 @@ namespace dxvk {
     // however it is possible some corrections were performed at
     // driver level or in the runtime, but without affecting
     // reported viewport dvMinZ/dvMaxZ values.
-    if (unlikely(data->dvMinZ == 0.0f && data->dvMaxZ == 0.0f))
+    if (unlikely(m_commonIntf->GetOptions()->viewportZCorrection)) {
+      data->dvMinZ = 0.0f;
       data->dvMaxZ = 1.0f;
+    }
 
     return m_commonD3DDevice->GetD3D9Device()->SetViewport(reinterpret_cast<d3d9::D3DVIEWPORT9*>(data));
   }

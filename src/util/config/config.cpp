@@ -1609,9 +1609,11 @@ namespace dxvk {
     { R"(\\Screamer4x4_d3d\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
     }} },
-    /* (The) Summoner - Accelerated game speed    */
+    /* (The) Summoner - Accelerated game speed    *
+     * and invalid viewport dvMinZ/dvMaxZ values  */
     { R"(\\Sum\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
+      { "ddraw.viewportZCorrection",        "True" },
       { "ddraw.emulateFSAA",                "True" },
     }} },
     /* Wizardry 8 - Fixes broken input handling   */
