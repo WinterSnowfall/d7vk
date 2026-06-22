@@ -46,6 +46,9 @@ namespace dxvk {
     /// Report any 8-bit display modes as being 16-bit
     bool mask8BitModes;
 
+    /// Always use 0.0f and 1.0f as viewport Z values
+    bool viewportZCorrection;
+
     /// Report POW2 texture dimension restrictions
     bool forcePOW2Textures;
 
