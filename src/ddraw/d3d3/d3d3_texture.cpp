@@ -95,6 +95,20 @@ namespace dxvk {
     if (unlikely(lpDirect3DDevice == nullptr || lpHandle == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    DDrawCommonSurface* commonSurf = m_commonTex->GetCommonSurface();
+
+    if (unlikely(!commonSurf->IsTexture())) {
+      // The Sims tries to get a handle from a surface which wasn't created with the DDSCAPS_TEXTURE flag,
+      // so manually flag it as a texture before we initialize its D3D9 object
+      if (likely(!commonSurf->IsInitialized())) {
+        Logger::debug("D3D3Texture::GetHandle: Parent surface isn't a texture");
+        m_commonTex->GetCommonSurface()->MarkWithTextureHandle();
+      // If for some reason this happens after it's initialized, there's nothing we can do but log an error
+      } else {
+        Logger::err("D3D3Texture::GetHandle: Parent surface isn't a texture");
+      }
+    }
+
     if (!m_commonTex->GetTextureHandle()) {
       const D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
       m_commonTex->SetTextureHandle(nextHandle);

@@ -231,6 +231,10 @@ namespace dxvk {
       return m_isD3D9DepthStencil;
     }
 
+    void MarkWithTextureHandle() {
+      m_hasTextureHandle = true;
+    }
+
     void SetClipper(DDrawClipper* clipper) {
       m_clipper = clipper;
     }
@@ -335,7 +339,8 @@ namespace dxvk {
 
     bool IsTexture() const {
       return m_desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE
-          || m_desc.ddsCaps.dwCaps  & DDSCAPS_TEXTURE;
+          || m_desc.ddsCaps.dwCaps  & DDSCAPS_TEXTURE
+          || m_hasTextureHandle;
     }
 
     bool IsOverlay() const {
@@ -386,7 +391,8 @@ namespace dxvk {
     bool IsTextureOrCubeMap() const {
       return m_desc2.ddsCaps.dwCaps  & DDSCAPS_TEXTURE
           || m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP
-          || m_desc.ddsCaps.dwCaps   & DDSCAPS_TEXTURE;
+          || m_desc.ddsCaps.dwCaps   & DDSCAPS_TEXTURE
+          || m_hasTextureHandle;
     }
 
     bool IsBackBufferOrFlippable() const {
@@ -515,6 +521,7 @@ namespace dxvk {
 
     bool                             m_isDesc2Set         = false;
     bool                             m_isDescSet          = false;
+    bool                             m_hasTextureHandle   = false;
 
     bool                             m_isBackBufferOrFlippable = false;
     bool                             m_isRenderTarget          = false;
