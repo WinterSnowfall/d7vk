@@ -1400,7 +1400,6 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                 "-60" },
     }} },
 
-
     /**********************************************/
     /* D3D7 GAMES                                 */
     /**********************************************/
@@ -1941,6 +1940,10 @@ namespace dxvk {
      * Prevents hangs on race/drive start         */
     { R"(\\midtown\.(exe|icd)$)", {{
       { "ddraw.legacyDeviceNames",          "True" },
+    }} },
+    /* Matrox G400 TechDemo - prevents crashing   */
+    { R"(\\Matrox\.exe$)", {{
+      { "ddraw.forcePOW2Textures",          "True" },
     }} },
 
     /**********************************************/
