@@ -1939,6 +1939,10 @@ namespace dxvk {
     { R"(\\midtown\.(exe|icd)$)", {{
       { "ddraw.legacyDeviceNames",          "True" },
     }} },
+    /* Matrox G400 TechDemo - prevents crashing   */
+    { R"(\\Matrox\.exe$)", {{
+      { "ddraw.forcePOW2Textures",          "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */

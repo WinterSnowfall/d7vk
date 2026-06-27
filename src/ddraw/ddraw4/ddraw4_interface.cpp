@@ -808,7 +808,8 @@ namespace dxvk {
     if (unlikely(dwFlags & DDGDI_GETHOSTIDENTIFIER)) {
       Logger::debug("DDraw4Interface::GetDeviceIdentifier: Retrieving secondary adapter info");
       CopyToStringArray(pDDDI->szDriver, "vga.dll");
-      CopyToStringArray(pDDDI->szDescription, "Standard VGA Adapter");
+      // The Matrox G400 TechDemo expects the description to be aligned with native
+      CopyToStringArray(pDDDI->szDescription, "DirectDraw HAL");
       pDDDI->liDriverVersion.QuadPart = 0;
       pDDDI->dwVendorId               = 0;
       pDDDI->dwDeviceId               = 0;
