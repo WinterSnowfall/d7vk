@@ -818,10 +818,10 @@ namespace dxvk {
     desc.dwMinTextureHeight      = 1;
     desc.dwMaxTextureWidth       = ddrawCaps::MaxTextureDimension;
     desc.dwMaxTextureHeight      = ddrawCaps::MaxTextureDimension;
-    desc.dwMinStippleWidth       = 1;
-    desc.dwMinStippleHeight      = 1;
-    desc.dwMaxStippleWidth       = 32;
-    desc.dwMaxStippleHeight      = 32;
+    desc.dwMinStippleWidth       = 0;
+    desc.dwMinStippleHeight      = 0;
+    desc.dwMaxStippleWidth       = 0;
+    desc.dwMaxStippleHeight      = 0;
 
     return desc;
   }
@@ -1040,10 +1040,10 @@ namespace dxvk {
     desc.dwMinTextureHeight      = 1;
     desc.dwMaxTextureWidth       = ddrawCaps::MaxTextureDimension;
     desc.dwMaxTextureHeight      = ddrawCaps::MaxTextureDimension;
-    desc.dwMinStippleWidth       = 1;
-    desc.dwMinStippleHeight      = 1;
-    desc.dwMaxStippleWidth       = 32;
-    desc.dwMaxStippleHeight      = 32;
+    desc.dwMinStippleWidth       = 0;
+    desc.dwMinStippleHeight      = 0;
+    desc.dwMaxStippleWidth       = 0;
+    desc.dwMaxStippleHeight      = 0;
     desc.dwMaxTextureRepeat      = 8192;
     desc.dwMaxTextureAspectRatio = ddrawCaps::MaxTextureDimension;
     desc.dwMaxAnisotropy         = 16;
