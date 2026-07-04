@@ -139,12 +139,9 @@ namespace dxvk {
         m_commonIntf->SetCommonD3DDevice(m_commonD3DDevice.ptr());
     }
 
-    static uint32_t                s_deviceCount;
-    uint32_t                       m_deviceCount = 0;
-
-    DDrawCommonInterface*          m_commonIntf  = nullptr;
-
     Com<D3DCommonDevice>           m_commonD3DDevice;
+
+    DDrawCommonInterface*          m_commonIntf       = nullptr;
 
     Com<DxvkD3D8Bridge>            m_bridge;
 
@@ -166,6 +163,9 @@ namespace dxvk {
 
     std::atomic<D3DMATRIXHANDLE>   m_matrixHandle     = 0;
     std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> m_matrices;
+
+    uint32_t                       m_deviceCount      = 0;
+    static std::atomic<uint32_t>   s_deviceCount;
 
   };
 

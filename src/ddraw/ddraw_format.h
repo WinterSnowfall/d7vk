@@ -773,7 +773,7 @@ namespace dxvk {
         if (isDXTFormat) {
           const size_t size = static_cast<size_t>(desc.lPitch);
           memcpy(rect9.pBits, desc.lpSurface, size);
-          Logger::debug("BlitToD3D9Texture: Done blitting DXT surface");
+          Logger::debug("BlitToD3D9Surface: Done blitting DXT surface");
         } else if (desc.lPitch != rect9.Pitch) {
           Logger::debug("BlitToD3D9Surface: Incompatible surface pitch");
 

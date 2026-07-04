@@ -78,9 +78,6 @@ namespace dxvk {
     bool                              m_locked        = false;
     bool                              m_legacyDiscard = false;
 
-    static uint32_t                   s_buffCount;
-    uint32_t                          m_buffCount     = 0;
-
     DDrawCommonInterface*             m_commonIntf    = nullptr;
 
     D3DVERTEXBUFFERDESC               m_desc;
@@ -91,6 +88,9 @@ namespace dxvk {
     D3D7Device*                       m_d3d7Device    = nullptr;
 
     Com<d3d9::IDirect3DVertexBuffer9> m_vb9;
+
+    uint32_t                          m_buffCount     = 0;
+    static std::atomic<uint32_t>      s_buffCount;
 
   };
 

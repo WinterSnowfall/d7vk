@@ -77,12 +77,12 @@ namespace dxvk {
 
   private:
 
-    static uint32_t            s_intfCount;
-    uint32_t                   m_intfCount  = 0;
-
     Com<DDrawCommonInterface>  m_commonIntf;
 
     Com<DDrawInterface, false> m_parentIntf;
+
+    uint32_t                   m_intfCount = 0;
+    static std::atomic<uint32_t> s_intfCount;
 
   };
 

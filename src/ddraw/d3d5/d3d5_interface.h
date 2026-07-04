@@ -20,8 +20,8 @@ namespace dxvk {
 
   public:
     D3D5Interface(
-          DDrawCommonInterface* commonIntf,
           D3DCommonInterface* commonD3DIntf,
+          DDrawCommonInterface* commonIntf,
           IUnknown* pParent);
 
     ~D3D5Interface();
@@ -56,17 +56,17 @@ namespace dxvk {
 
     inline DWORD DetermineBackBufferCount(IDirectDrawSurface* renderTarget);
 
-    static uint32_t               s_intfCount;
-    uint32_t                      m_intfCount  = 0;
-
     Com<IDxvkD3D8InterfaceBridge> m_bridge;
-
-    DDrawCommonInterface*         m_commonIntf = nullptr;
 
     Com<D3DCommonInterface>       m_commonD3DIntf;
 
+    DDrawCommonInterface*         m_commonIntf = nullptr;
+
     Com<D3D6Interface, false>     m_d3d6Intf;
     Com<D3D3Interface, false>     m_d3d3Intf;
+
+    uint32_t                      m_intfCount  = 0;
+    static std::atomic<uint32_t>  s_intfCount;
 
   };
 

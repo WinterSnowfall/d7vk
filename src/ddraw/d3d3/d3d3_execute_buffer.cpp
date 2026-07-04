@@ -4,7 +4,7 @@
 
 namespace dxvk {
 
-  uint32_t D3D3ExecuteBuffer::s_buffCount = 0;
+  std::atomic<uint32_t> D3D3ExecuteBuffer::s_buffCount = 0;
 
   D3D3ExecuteBuffer::D3D3ExecuteBuffer(D3D3Device* pParent, D3DEXECUTEBUFFERDESC* pDesc)
     : DDrawChildObject<D3D3Device, IDirect3DExecuteBuffer>(pParent) {

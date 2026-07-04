@@ -191,12 +191,9 @@ namespace dxvk {
         m_commonIntf->SetCommonD3DDevice(m_commonD3DDevice.ptr());
     }
 
-    static uint32_t             s_deviceCount;
-    uint32_t                    m_deviceCount = 0;
-
-    DDrawCommonInterface*       m_commonIntf  = nullptr;
-
     Com<D3DCommonDevice>        m_commonD3DDevice;
+
+    DDrawCommonInterface*       m_commonIntf            = nullptr;
 
     Com<DxvkD3D8Bridge>         m_bridge;
 
@@ -212,13 +209,16 @@ namespace dxvk {
     std::unordered_map<DWORD, d3d9::D3DLIGHT9> m_lights;
     std::unordered_map<DWORD, BOOL>            m_lightsStates;
 
-    D3D7StateBlock* m_recorder       = nullptr;
-    DWORD           m_recorderHandle = 0;
-    DWORD           m_handle         = 0;
+    D3D7StateBlock*             m_recorder              = nullptr;
+    DWORD                       m_recorderHandle        = 0;
+    DWORD                       m_handle                = 0;
     std::unordered_map<DWORD, D3D7StateBlock> m_stateBlocks;
 
     std::array<Com<d3d9::IDirect3DIndexBuffer9>, ddrawCaps::IndexBufferCount> m_ib9;
     uint32_t m_ib9_uploads[ddrawCaps::IndexBufferCount] = { };
+
+    uint32_t                    m_deviceCount           = 0;
+    static std::atomic<uint32_t> s_deviceCount;
 
   };
 

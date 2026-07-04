@@ -4,7 +4,7 @@
 
 namespace dxvk {
 
-  uint32_t DDrawPalette::s_paletteCount = 0;
+  std::atomic<uint32_t> DDrawPalette::s_paletteCount = 0;
 
   DDrawPalette::DDrawPalette(
         Com<IDirectDrawPalette>&& paletteProxy,

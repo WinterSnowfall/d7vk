@@ -9,7 +9,7 @@
 
 namespace dxvk {
 
-  uint32_t D3D5Texture::s_texCount = 0;
+  std::atomic<uint32_t> D3D5Texture::s_texCount = 0;
 
   D3D5Texture::D3D5Texture(
         D3DCommonTexture* commonTex,
@@ -18,12 +18,10 @@ namespace dxvk {
         IUnknown* pParent,
         bool isD3D6Texture)
     : DDrawWrappedObject<IUnknown, IDirect3DTexture2>(pParent, std::move(proxyTexture))
+    , m_commonTex ( commonTex )
     , m_commonIntf ( commonSurf->GetCommonInterface() ) {
-    if (likely(commonTex == nullptr)) {
+    if (m_commonTex == nullptr)
       m_commonTex = new D3DCommonTexture(commonSurf);
-    } else {
-      m_commonTex = commonTex;
-    }
 
     m_commonTex->SetD3D5Texture(this);
 

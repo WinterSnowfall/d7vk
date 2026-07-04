@@ -16,7 +16,7 @@
 
 namespace dxvk {
 
-  uint32_t DDraw7Interface::s_intfCount = 0;
+  std::atomic<uint32_t> DDraw7Interface::s_intfCount = 0;
 
   DDraw7Interface::DDraw7Interface(
         DDrawCommonInterface* commonIntf,
@@ -83,7 +83,7 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        m_d3d7Intf = new D3D7Interface(m_commonIntf.ptr(), nullptr, std::move(ppvProxyObject), this);
+        m_d3d7Intf = new D3D7Interface(nullptr, m_commonIntf.ptr(), std::move(ppvProxyObject), this);
       }
 
       *ppvObject = m_d3d7Intf.ref();

@@ -33,10 +33,10 @@ namespace dxvk {
 
   private:
 
-    static uint32_t     s_paletteCount;
-    uint32_t            m_paletteCount = 0;
-
     DDrawCommonSurface* m_commonSurf   = nullptr;
+
+    uint32_t            m_paletteCount = 0;
+    static std::atomic<uint32_t> s_paletteCount;
 
   };
 
