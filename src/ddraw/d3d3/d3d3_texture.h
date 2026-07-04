@@ -9,12 +9,14 @@ namespace dxvk {
 
   class DDrawCommonInterface;
   class DDrawCommonSurface;
+  class D3DCommonTexture;
 
   class D3D3Texture final : public DDrawWrappedObject<IUnknown, IDirect3DTexture> {
 
   public:
 
     D3D3Texture(
+          D3DCommonTexture* commonTex,
           DDrawCommonSurface* commonSurf,
           Com<IDirect3DTexture>&& proxyTexture,
           IUnknown* pParent);

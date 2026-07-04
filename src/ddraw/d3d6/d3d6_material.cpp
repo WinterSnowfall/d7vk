@@ -67,6 +67,8 @@ namespace dxvk {
     material9->Emissive = data->dcvEmissive;
     material9->Power    = data->dvPower;
 
+    m_commonMaterial->DirtyMaterialColor();
+
     // Update the D3D9 material directly if it's actively being used
     D3DCommonDevice* commonDevice = m_parent->GetCommonInterface()->GetCommonD3DDevice();
     if (likely(commonDevice != nullptr)) {

@@ -1,5 +1,6 @@
 #include "d3d3_device.h"
 
+#include "../d3d_common_material.h"
 #include "../d3d_common_texture.h"
 #include "../ddraw_common_interface.h"
 
@@ -1021,7 +1022,7 @@ namespace dxvk {
           return D3D_OK;
         }
 
-        d3d9::D3DMATERIAL9* material9 = D3DCommonInterface::GetD3D9MaterialFromHandle(dwLightState);
+        d3d9::D3DMATERIAL9* material9 = D3DCommonInterface::GetCommonMaterialFromHandle(dwLightState)->GetD3D9Material();
         if (unlikely(material9 == nullptr))
           return DDERR_INVALIDPARAMS;
 

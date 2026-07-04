@@ -15,11 +15,6 @@ namespace dxvk {
 
   class D3DCommonInterface : public ComObjectClamp<IUnknown> {
 
-  // Tests have indicated that once created, material handles are shared across
-  // all devices and D3D interfaces, regardless of their relation
-  static std::atomic<D3DMATERIALHANDLE> s_materialHandle;
-  static inline std::unordered_map<D3DMATERIALHANDLE, D3DCommonMaterial*> s_materials;
-
   public:
 
     D3DCommonInterface();
@@ -30,8 +25,6 @@ namespace dxvk {
       *ppvObject = this;
       return S_OK;
     }
-
-    static d3d9::D3DMATERIAL9* GetD3D9MaterialFromHandle(D3DMATERIALHANDLE handle);
 
     static D3DCommonMaterial* GetCommonMaterialFromHandle(D3DMATERIALHANDLE handle);
 
@@ -87,11 +80,15 @@ namespace dxvk {
 
     Com<d3d9::IDirect3D9> m_d3d9Intf       = nullptr;
 
-    // Track all possible last used D3D interfaces
     D3D7Interface*        m_d3d7Intf       = nullptr;
     D3D6Interface*        m_d3d6Intf       = nullptr;
     D3D5Interface*        m_d3d5Intf       = nullptr;
     D3D3Interface*        m_d3d3Intf       = nullptr;
+
+    // Tests have indicated that once created, material handles are shared across
+    // all devices and D3D interfaces, regardless of their relation
+    static std::atomic<D3DMATERIALHANDLE> s_materialHandle;
+    static inline std::unordered_map<D3DMATERIALHANDLE, D3DCommonMaterial*> s_materials;
 
   };
 

@@ -6,6 +6,8 @@
 #include "ddraw/ddraw_surface.h"
 #include "ddraw4/ddraw4_surface.h"
 
+#include "d3d3/d3d3_interface.h"
+
 #include <algorithm>
 
 namespace dxvk {
@@ -29,6 +31,8 @@ namespace dxvk {
       HRESULT hr = m_intf->QueryInterface(__uuidof(IDirect3D), reinterpret_cast<void**>(m_d3d3Intf));
       if (unlikely(FAILED(hr)))
         return nullptr;
+      // The call to QueryInterface has incremented the public ref
+      m_d3d3Intf->Release();
 
       return m_d3d3Intf;
     }
@@ -141,17 +145,6 @@ namespace dxvk {
     }
   }
 
-  DDrawSurface* DDrawCommonInterface::GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle) {
-    auto texturesIter = s_textures.find(handle);
-
-    if (unlikely(texturesIter == s_textures.end())) {
-      Logger::warn(str::format("DDrawCommonInterface::GetSurfaceFromTextureHandle: Invalid handle: ", handle));
-      return nullptr;
-    }
-
-    return texturesIter->second->GetDDSurface();
-  }
-
   DDraw4Surface* DDrawCommonInterface::GetSurface4FromTextureHandle(D3DTEXTUREHANDLE handle) {
     auto texturesIter = s_textures.find(handle);
 
@@ -161,6 +154,17 @@ namespace dxvk {
     }
 
     return texturesIter->second->GetDD4Surface();
+  }
+
+  DDrawSurface* DDrawCommonInterface::GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle) {
+    auto texturesIter = s_textures.find(handle);
+
+    if (unlikely(texturesIter == s_textures.end())) {
+      Logger::warn(str::format("DDrawCommonInterface::GetSurfaceFromTextureHandle: Invalid handle: ", handle));
+      return nullptr;
+    }
+
+    return texturesIter->second->GetDDSurface();
   }
 
 }
