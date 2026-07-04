@@ -9,6 +9,7 @@ namespace dxvk {
 
   class DDrawCommonInterface;
   class DDrawCommonSurface;
+  class D3DCommonTexture;
 
   class D3D5Texture final : public DDrawWrappedObject<IUnknown, IDirect3DTexture2> {
 
@@ -16,6 +17,7 @@ namespace dxvk {
 
     // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
     D3D5Texture(
+          D3DCommonTexture* commonTex,
           DDrawCommonSurface* commonSurf,
           Com<IDirect3DTexture2>&& proxyTexture,
           // This can be either an IDirectDrawSurface or an IDirectDrawSurface4

@@ -45,25 +45,12 @@ namespace dxvk {
 
     D3DCommonDevice* GetCommonD3DDevice();
 
-    d3d9::IDirect3DDevice9* GetD3D9Device();
-
     void UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface);
 
     HRESULT TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen);
 
     d3d9::D3DVIEWPORT9* GetD3D9Viewport() {
       return &m_viewport9;
-    }
-
-    void GetD3D9Lights(std::vector<d3d9::D3DLIGHT9>* lights9) {
-      for (auto light: m_lights) {
-        if (light->IsActive())
-          lights9->push_back(*light->GetD3D9Light());
-      }
-    }
-
-    std::vector<Com<D3DLight>>& GetLights() {
-      return m_lights;
     }
 
     void MarkViewportAsSet() {
@@ -87,6 +74,47 @@ namespace dxvk {
 
     D3DMATERIALHANDLE GetMaterialHandle() const {
       return m_materialHandle;
+    }
+
+    D3DVECTOR* GetLegacyScale() {
+      return &m_legacyScale;
+    }
+
+    D3DVECTOR* GetLegacyClip() {
+      return &m_legacyClip;
+    }
+
+    const D3DMATRIX* GetLegacyProjectionMatrix(DWORD drawFlags) {
+      // Fast skip if viewport values haven't been set
+      if (unlikely(!m_isViewportSet))
+        return nullptr;
+
+      const bool needsClipping = !(drawFlags & D3DDP_DONOTCLIP);
+      if (unlikely(m_needsClipping != needsClipping)) {
+        m_dirtyProjection = true;
+        m_needsClipping = needsClipping;
+      }
+
+      // Recalculate legacy projection matrix only when needed
+      if (unlikely(m_dirtyProjection)) {
+        m_legacyProjection._11 = m_legacyScale.x;
+        m_legacyProjection._22 = m_legacyScale.y;
+        m_legacyProjection._33 = m_legacyScale.z;
+        m_legacyProjection._41 = m_needsClipping ? m_legacyClip.x : 0.0f;
+        m_legacyProjection._42 = m_needsClipping ? m_legacyClip.y : 0.0f;
+        m_legacyProjection._43 = m_needsClipping ? m_legacyClip.z : 0.0f;
+        m_legacyProjection._44 = 1.0f;
+        // Determine if the projection matrix is an identity matrix
+        m_isIdentityMatrix = m_legacyProjection._11 == 1.0f &&
+                             m_legacyProjection._22 == 1.0f &&
+                             m_legacyProjection._33 == 1.0f &&
+                             m_legacyProjection._41 == 0.0f &&
+                             m_legacyProjection._42 == 0.0f &&
+                             m_legacyProjection._43 == 0.0f;
+        m_dirtyProjection = false;
+      }
+
+      return m_isIdentityMatrix ? nullptr : &m_legacyProjection;
     }
 
     void SetIsCurrentViewport(bool isCurrentViewport) {
@@ -157,45 +185,15 @@ namespace dxvk {
       return m_device6 != nullptr || m_device5 != nullptr || m_device3 != nullptr;
     }
 
-    D3DVECTOR* GetLegacyScale() {
-      return &m_legacyScale;
+    void GetD3D9Lights(std::vector<d3d9::D3DLIGHT9>* lights9) {
+      for (auto light: m_lights) {
+        if (light->IsActive())
+          lights9->push_back(*light->GetD3D9Light());
+      }
     }
 
-    D3DVECTOR* GetLegacyClip() {
-      return &m_legacyClip;
-    }
-
-    const D3DMATRIX* GetLegacyProjectionMatrix(DWORD drawFlags) {
-      // Fast skip if viewport values haven't been set
-      if (unlikely(!m_isViewportSet))
-        return nullptr;
-
-      const bool needsClipping = !(drawFlags & D3DDP_DONOTCLIP);
-      if (unlikely(m_needsClipping != needsClipping)) {
-        m_dirtyProjection = true;
-        m_needsClipping = needsClipping;
-      }
-
-      // Recalculate legacy projection matrix only when needed
-      if (unlikely(m_dirtyProjection)) {
-        m_legacyProjection._11 = m_legacyScale.x;
-        m_legacyProjection._22 = m_legacyScale.y;
-        m_legacyProjection._33 = m_legacyScale.z;
-        m_legacyProjection._41 = m_needsClipping ? m_legacyClip.x : 0.0f;
-        m_legacyProjection._42 = m_needsClipping ? m_legacyClip.y : 0.0f;
-        m_legacyProjection._43 = m_needsClipping ? m_legacyClip.z : 0.0f;
-        m_legacyProjection._44 = 1.0f;
-        // Determine if the projection matrix is an identity matrix
-        m_isIdentityMatrix = m_legacyProjection._11 == 1.0f &&
-                             m_legacyProjection._22 == 1.0f &&
-                             m_legacyProjection._33 == 1.0f &&
-                             m_legacyProjection._41 == 0.0f &&
-                             m_legacyProjection._42 == 0.0f &&
-                             m_legacyProjection._43 == 0.0f;
-        m_dirtyProjection = false;
-      }
-
-      return m_isIdentityMatrix ? nullptr : &m_legacyProjection;
+    std::vector<Com<D3DLight>>& GetLights() {
+      return m_lights;
     }
 
   private:
@@ -211,13 +209,12 @@ namespace dxvk {
 
     D3DMATERIALHANDLE     m_materialHandle    = 0;
 
-    d3d9::D3DVIEWPORT9    m_viewport9 = { };
-
     D3DVECTOR             m_legacyScale       = { };
     D3DVECTOR             m_legacyClip        = { };
     D3DMATRIX             m_legacyProjection  = { };
 
-    // Track all possible viewport versions of the same object
+    d3d9::D3DVIEWPORT9    m_viewport9         = { };
+
     D3D6Viewport*         m_d3d6Viewport      = nullptr;
     D3D5Viewport*         m_d3d5Viewport      = nullptr;
     D3D3Viewport*         m_d3d3Viewport      = nullptr;

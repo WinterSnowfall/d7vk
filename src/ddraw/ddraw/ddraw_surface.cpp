@@ -132,7 +132,8 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        m_texture3 = new D3D3Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this);
+        m_texture3 = new D3D3Texture(m_texture5 != nullptr ? m_texture5->GetCommonTexture() : nullptr,
+                                     m_commonSurf.ptr(), std::move(ppvProxyObject), this);
       }
 
       *ppvObject = m_texture3.ref();
@@ -174,7 +175,8 @@ namespace dxvk {
           }
         }
 
-        m_texture5 = new D3D5Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, false);
+        m_texture5 = new D3D5Texture(m_texture3 != nullptr ? m_texture3->GetCommonTexture() : nullptr,
+                                     m_commonSurf.ptr(), std::move(ppvProxyObject), this, false);
       }
 
       *ppvObject = m_texture5.ref();

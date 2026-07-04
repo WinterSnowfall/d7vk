@@ -130,7 +130,8 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        m_texture3 = new D3D3Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this);
+        m_texture3 = new D3D3Texture(m_texture6 != nullptr ? m_texture6->GetCommonTexture() : nullptr,
+                                     m_commonSurf.ptr(), std::move(ppvProxyObject), this);
       }
 
       *ppvObject = m_texture3.ref();
@@ -147,7 +148,8 @@ namespace dxvk {
           return hr;
 
         // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
-        m_texture6 = new D3D5Texture(m_commonSurf.ptr(), std::move(ppvProxyObject), this, true);
+        m_texture6 = new D3D5Texture(m_texture3 != nullptr ? m_texture3->GetCommonTexture() : nullptr,
+                                     m_commonSurf.ptr(), std::move(ppvProxyObject), this, true);
       }
 
       *ppvObject = m_texture6.ref();

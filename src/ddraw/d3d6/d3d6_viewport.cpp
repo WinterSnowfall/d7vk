@@ -7,6 +7,7 @@
 #include "../ddraw_util.h"
 
 #include "../d3d_light.h"
+#include "../d3d_common_device.h"
 #include "../d3d_common_material.h"
 
 #include "../ddraw/ddraw_surface.h"
@@ -218,7 +219,7 @@ namespace dxvk {
       return D3DERR_VIEWPORTHASNODEVICE;
     }
 
-    d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetCommonD3DDevice()->GetD3D9Device();
 
     // Temporarily activate this viewport, if not already active
     d3d9::D3DVIEWPORT9 currentViewport9;
@@ -346,7 +347,7 @@ namespace dxvk {
       }
     }
 
-    d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetCommonD3DDevice()->GetD3D9Device();
 
     // Temporarily activate this viewport in order to clear it
     d3d9::D3DVIEWPORT9 currentViewport9;
@@ -431,7 +432,8 @@ namespace dxvk {
       const DWORD lightIndex = d3dLight->GetIndex();
       if (m_commonViewport->HasDevice() && m_commonViewport->IsCurrentViewport() && d3dLight->IsActive()) {
         Logger::debug(str::format("D3D6Viewport: Disabling light nr. ", lightIndex));
-        m_commonViewport->GetD3D9Device()->LightEnable(lightIndex, FALSE);
+        d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetCommonD3DDevice()->GetD3D9Device();
+        d3d9Device->LightEnable(lightIndex, FALSE);
       }
       lights.erase(it);
       d3dLight->SetViewport6(nullptr);
@@ -616,7 +618,7 @@ namespace dxvk {
       }
     }
 
-    d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetCommonD3DDevice()->GetD3D9Device();
 
     // Temporarily activate this viewport in order to clear it
     d3d9::D3DVIEWPORT9 currentViewport9;
@@ -660,7 +662,9 @@ namespace dxvk {
 
     Logger::debug("D3D6Viewport: Applying viewport to D3D9");
 
-    HRESULT hr = m_commonViewport->GetD3D9Device()->SetViewport(m_commonViewport->GetD3D9Viewport());
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetCommonD3DDevice()->GetD3D9Device();
+
+    HRESULT hr = d3d9Device->SetViewport(m_commonViewport->GetD3D9Viewport());
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Viewport: Failed to set the D3D9 viewport");
       return hr;
@@ -691,11 +695,13 @@ namespace dxvk {
 
     Logger::debug("D3D6Viewport: Deactivating D3D9 lights");
 
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetCommonD3DDevice()->GetD3D9Device();
+
     for (auto light: lights) {
       const DWORD lightIndex = light->GetIndex();
       if (m_commonViewport->HasDevice() && m_commonViewport->IsCurrentViewport() && light->IsActive()) {
         Logger::debug(str::format("D3D6Viewport: Disabling light nr. ", lightIndex));
-        m_commonViewport->GetD3D9Device()->LightEnable(lightIndex, FALSE);
+        d3d9Device->LightEnable(lightIndex, FALSE);
       }
     }
 
@@ -703,7 +709,7 @@ namespace dxvk {
   }
 
   HRESULT D3D6Viewport::ApplyAndActivateLight(DWORD index, D3DLight* light) {
-    d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetCommonD3DDevice()->GetD3D9Device();
 
     HRESULT hr = d3d9Device->SetLight(index, light->GetD3D9Light());
     if (unlikely(FAILED(hr))) {

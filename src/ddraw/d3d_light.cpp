@@ -6,7 +6,7 @@
 
 namespace dxvk {
 
-  uint32_t D3DLight::s_lightCount = 0;
+  std::atomic<uint32_t> D3DLight::s_lightCount = 0;
 
   D3DLight::D3DLight(IUnknown* pParent)
     : DDrawChildObject<IUnknown, IDirect3DLight>(pParent) {

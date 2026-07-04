@@ -2,6 +2,7 @@
 
 #include "../ddraw_common_interface.h"
 #include "../ddraw_common_surface.h"
+#include "../d3d_common_texture.h"
 
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw4/ddraw4_surface.h"
@@ -11,13 +12,20 @@ namespace dxvk {
   uint32_t D3D5Texture::s_texCount = 0;
 
   D3D5Texture::D3D5Texture(
+        D3DCommonTexture* commonTex,
         DDrawCommonSurface* commonSurf,
         Com<IDirect3DTexture2>&& proxyTexture,
         IUnknown* pParent,
         bool isD3D6Texture)
     : DDrawWrappedObject<IUnknown, IDirect3DTexture2>(pParent, std::move(proxyTexture))
     , m_commonIntf ( commonSurf->GetCommonInterface() ) {
-    m_commonTex = new D3DCommonTexture(commonSurf);
+    if (likely(commonTex == nullptr)) {
+      m_commonTex = new D3DCommonTexture(commonSurf);
+    } else {
+      m_commonTex = commonTex;
+    }
+
+    m_commonTex->SetD3D5Texture(this);
 
     // D3D5Texture is shared between D3D5/6, however textures used in a D3D6 context
     // typically come from an IDirectDrawSurface4 parent. This isn't a hard requirement,
@@ -31,6 +39,8 @@ namespace dxvk {
   }
 
   D3D5Texture::~D3D5Texture() {
+    m_commonTex->SetD3D5Texture(nullptr);
+
     Logger::debug(str::format(m_objectType, ": Texture nr. [[2-", m_texCount, "]] bites the dust"));
   }
 

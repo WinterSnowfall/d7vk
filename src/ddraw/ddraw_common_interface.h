@@ -20,24 +20,10 @@ namespace dxvk {
   class DDraw2Interface;
   class DDrawInterface;
 
-  class DDrawSurface;
   class DDraw4Surface;
+  class DDrawSurface;
 
   class DDrawCommonInterface : public ComObjectClamp<IUnknown> {
-
-  // Tests have indicated that once created, texture handles are shared across
-  // all devices and DDraw interfaces, regardless of their relation
-  static std::atomic<D3DTEXTUREHANDLE> s_textureHandle;
-  static inline std::unordered_map<D3DTEXTUREHANDLE, D3DCommonTexture*> s_textures;
-
-  // Keep wrapped surface tracking shared between all DDraw interfaces as tests
-  // as well as some games (e.g. GTA 2) depend on wrapped surface lookups across
-  // unrelated DDraw interface objects... yes, really...
-  static inline std::unordered_set<IDirectDrawSurface7*> s_surfaces7;
-  static inline std::unordered_set<IDirectDrawSurface4*> s_surfaces4;
-  static inline std::unordered_set<IDirectDrawSurface3*> s_surfaces3;
-  static inline std::unordered_set<IDirectDrawSurface2*> s_surfaces2;
-  static inline std::unordered_set<IDirectDrawSurface*>  s_surfaces;
 
   public:
 
@@ -82,9 +68,9 @@ namespace dxvk {
 
     static void RemoveWrappedSurface(IDirectDrawSurface7* surface);
 
-    static DDrawSurface* GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle);
-
     static DDraw4Surface* GetSurface4FromTextureHandle(D3DTEXTUREHANDLE handle);
+
+    static DDrawSurface* GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle);
 
     static D3DTEXTUREHANDLE GetNextTextureHandle() {
       return ++s_textureHandle;
@@ -111,18 +97,6 @@ namespace dxvk {
       return m_isInitialized;
     }
 
-    void SetAdapterIdentifier(const d3d9::D3DADAPTER_IDENTIFIER9& adapterIdentifier9) {
-      m_adapterIdentifier9 = adapterIdentifier9;
-    }
-
-    const d3d9::D3DADAPTER_IDENTIFIER9* GetAdapterIdentifier() const {
-      return &m_adapterIdentifier9;
-    }
-
-    const D3DOptions* GetOptions() const {
-      return &m_d3dOptions;
-    }
-
     void SetWaitForVBlank(bool waitForVBlank) {
       m_waitForVBlank = waitForVBlank;
     }
@@ -131,20 +105,12 @@ namespace dxvk {
       return m_waitForVBlank;
     }
 
-    void SetPrimarySurface(DDrawCommonSurface* ps) {
-      m_ps = ps;
+    void SetCommonD3DDevice(D3DCommonDevice* commonD3DDevice) {
+      m_commonD3DDevice = commonD3DDevice;
     }
 
-    DDrawCommonSurface* GetPrimarySurface() {
-      return m_ps;
-    }
-
-    void SetDDrawRenderTarget(DDrawCommonSurface* rt) {
-      m_rt = rt;
-    }
-
-    DDrawCommonSurface* GetDDrawRenderTarget() {
-      return m_rt;
+    D3DCommonDevice* GetCommonD3DDevice() const {
+      return m_commonD3DDevice;
     }
 
     void SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
@@ -173,8 +139,36 @@ namespace dxvk {
       return m_hWnd;
     }
 
+    void SetPrimarySurface(DDrawCommonSurface* ps) {
+      m_ps = ps;
+    }
+
+    DDrawCommonSurface* GetPrimarySurface() {
+      return m_ps;
+    }
+
+    void SetDDrawRenderTarget(DDrawCommonSurface* rt) {
+      m_rt = rt;
+    }
+
+    DDrawCommonSurface* GetDDrawRenderTarget() {
+      return m_rt;
+    }
+
     DDrawModeSize* GetModeSize() {
       return &m_modeSize;
+    }
+
+    void SetAdapterIdentifier(const d3d9::D3DADAPTER_IDENTIFIER9& adapterIdentifier9) {
+      m_adapterIdentifier9 = adapterIdentifier9;
+    }
+
+    const d3d9::D3DADAPTER_IDENTIFIER9* GetAdapterIdentifier() const {
+      return &m_adapterIdentifier9;
+    }
+
+    const D3DOptions* GetOptions() const {
+      return &m_d3dOptions;
     }
 
     void SetD3D3Interface(D3D3Interface* d3d3Intf) {
@@ -225,24 +219,18 @@ namespace dxvk {
       return m_origin;
     }
 
-    void SetCommonD3DDevice(D3DCommonDevice* commonD3DDevice) {
-      m_commonD3DDevice = commonD3DDevice;
-    }
-
-    D3DCommonDevice* GetCommonD3DDevice() const {
-      return m_commonD3DDevice;
-    }
-
   private:
 
     bool                              m_isInitialized      = false;
     bool                              m_waitForVBlank      = true;
 
+    D3DCommonDevice*                  m_commonD3DDevice    = nullptr;
+
+    HWND                              m_hWnd               = nullptr;
     DWORD                             m_cooperativeLevel   = 0;
 
     DDrawCommonSurface*               m_ps                 = nullptr;
     DDrawCommonSurface*               m_rt                 = nullptr;
-    HWND                              m_hWnd               = nullptr;
     DDrawModeSize                     m_modeSize           = { };
 
     d3d9::D3DADAPTER_IDENTIFIER9      m_adapterIdentifier9 = { };
@@ -251,7 +239,6 @@ namespace dxvk {
 
     D3D3Interface*                    m_d3d3Intf           = nullptr;
 
-    // Track all possible instance versions of the same object
     DDraw7Interface*                  m_intf7              = nullptr;
     DDraw4Interface*                  m_intf4              = nullptr;
     DDraw2Interface*                  m_intf2              = nullptr;
@@ -261,7 +248,19 @@ namespace dxvk {
     // that gets created through a DirectDrawCreate(Ex) call
     IUnknown*                         m_origin             = nullptr;
 
-    D3DCommonDevice*                  m_commonD3DDevice    = nullptr;
+    // Tests have indicated that once created, texture handles are shared across
+    // all devices and DDraw interfaces, regardless of their relation
+    static std::atomic<D3DTEXTUREHANDLE> s_textureHandle;
+    static inline std::unordered_map<D3DTEXTUREHANDLE, D3DCommonTexture*> s_textures;
+
+    // Keep wrapped surface tracking shared between all DDraw interfaces as tests
+    // as well as some games (e.g. GTA 2) depend on wrapped surface lookups across
+    // unrelated DDraw interface objects... yes, really...
+    static inline std::unordered_set<IDirectDrawSurface7*> s_surfaces7;
+    static inline std::unordered_set<IDirectDrawSurface4*> s_surfaces4;
+    static inline std::unordered_set<IDirectDrawSurface3*> s_surfaces3;
+    static inline std::unordered_set<IDirectDrawSurface2*> s_surfaces2;
+    static inline std::unordered_set<IDirectDrawSurface*>  s_surfaces;
 
   };
 

@@ -20,21 +20,21 @@ namespace dxvk {
   }
 
   D3D6Viewport* D3DCommonViewport::GetCurrentD3D6Viewport() {
-    if (m_device6 != nullptr)
+    if (likely(m_device6 != nullptr))
       return m_device6->GetCurrentViewportInternal();
 
     return nullptr;
   }
 
   D3D5Viewport* D3DCommonViewport::GetCurrentD3D5Viewport() {
-    if (m_device5 != nullptr)
+    if (likely(m_device5 != nullptr))
       return m_device5->GetCurrentViewportInternal();
 
     return nullptr;
   }
 
   D3D3Viewport* D3DCommonViewport::GetCurrentD3D3Viewport() {
-    if (m_device3 != nullptr)
+    if (likely(m_device3 != nullptr))
       return m_device3->GetCurrentViewportInternal();
 
     return nullptr;
@@ -92,18 +92,6 @@ namespace dxvk {
     return nullptr;
   }
 
-  d3d9::IDirect3DDevice9* D3DCommonViewport::GetD3D9Device() {
-    if (m_device6 != nullptr) {
-      return m_device6->GetCommonD3DDevice()->GetD3D9Device();
-    } else if (m_device5 != nullptr) {
-      return m_device5->GetCommonD3DDevice()->GetD3D9Device();
-    } else if (m_device3 != nullptr) {
-      return m_device3->GetCommonD3DDevice()->GetD3D9Device();
-    }
-
-    return nullptr;
-  }
-
   void D3DCommonViewport::UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface) {
     if (m_device6 != nullptr) {
       m_device6->UpdateSurfaceDirtyTracking(dirtyRenderTarget, dirtyDepthStencil, dirtyPrimarySurface);
@@ -149,7 +137,7 @@ namespace dxvk {
     if (m_device3 != nullptr)
       D3DDeviceLock lock3 = m_device3->LockDevice();
 
-    d3d9::IDirect3DDevice9* m_device9 = GetD3D9Device();
+    d3d9::IDirect3DDevice9* m_device9 = GetCommonD3DDevice()->GetD3D9Device();
 
     D3DMATRIX world9, view9, projection9;
     HRESULT hr;

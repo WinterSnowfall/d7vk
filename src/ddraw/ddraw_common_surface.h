@@ -83,6 +83,10 @@ namespace dxvk {
       return m_cubeMap9.ptr();
     }
 
+    d3d9::D3DFORMAT GetD3D9Format() const {
+      return m_format9;
+    }
+
     bool IsDesc2Set() const {
       return m_isDesc2Set;
     }
@@ -135,10 +139,6 @@ namespace dxvk {
 
       // Empire of the Ants relies on us using the "Low" color space DWORD
       return ColorKeyToARGB(pixelFormat, colorKey->dwColorSpaceLowValue);
-    }
-
-    d3d9::D3DFORMAT GetD3D9Format() const {
-      return m_format9;
     }
 
     bool IsFullSurfaceLock(RECT* lockRect, RECT* fullSurfaceRect) const {
@@ -395,12 +395,12 @@ namespace dxvk {
           || m_hasTextureHandle;
     }
 
-    bool IsBackBufferOrFlippable() const {
-      return m_isBackBufferOrFlippable;
-    }
-
     bool IsRenderTarget() const {
       return m_isRenderTarget;
+    }
+
+    bool IsBackBufferOrFlippable() const {
+      return m_isBackBufferOrFlippable;
     }
 
     bool IsDXTFormat() const {
@@ -508,8 +508,8 @@ namespace dxvk {
       m_rect.bottom = (m_desc2.dwFlags & DDSD_HEIGHT) ? m_desc2.dwHeight : m_desc.dwHeight;
       m_format9 = ConvertFormat((m_desc2.dwFlags & DDSD_PIXELFORMAT) ? m_desc2.ddpfPixelFormat : m_desc.ddpfPixelFormat);
       // determine and cache various frequently used flag combinations
-      m_isBackBufferOrFlippable = !IsPrimarySurface() && !IsFrontBuffer() && (IsBackBuffer() || IsFlippable());
       m_isRenderTarget          = IsFrontBuffer() || IsBackBuffer() || IsFlippable() || Is3DSurface();
+      m_isBackBufferOrFlippable = !IsPrimarySurface() && !IsFrontBuffer() && (IsBackBuffer() || IsFlippable());
     }
 
     bool                             m_dirtyDDraw         = false;
@@ -523,38 +523,38 @@ namespace dxvk {
     bool                             m_isDescSet          = false;
     bool                             m_hasTextureHandle   = false;
 
+    bool                             m_isRenderTarget     = false;
     bool                             m_isBackBufferOrFlippable = false;
-    bool                             m_isRenderTarget          = false;
-
-    uint16_t                         m_mipCount        = 1;
-    uint32_t                         m_backBufferIndex = 0;
-
-    DDSURFACEDESC                    m_desc  = { };
-    DDSURFACEDESC2                   m_desc2 = { };
-    RECT                             m_rect  = { };
-    d3d9::D3DFORMAT                  m_format9 = d3d9::D3DFMT_UNKNOWN;
-
-    Com<DDrawClipper>                m_clipper;
-    Com<DDrawPalette>                m_palette;
 
     Com<DDrawCommonInterface>        m_commonIntf;
 
-    D3DCommonDevice*                 m_commonD3DDevice = nullptr;
+    D3DCommonDevice*                 m_commonD3DDevice    = nullptr;
+
+    uint16_t                         m_mipCount           = 1;
+    uint32_t                         m_backBufferIndex    = 0;
+
+    DDSURFACEDESC                    m_desc               = { };
+    DDSURFACEDESC2                   m_desc2              = { };
+    RECT                             m_rect               = { };
+
+    Com<DDrawClipper>                m_clipper;
+    Com<DDrawPalette>                m_palette;
 
     Com<d3d9::IDirect3DSurface9>     m_surface9;
     Com<d3d9::IDirect3DTexture9>     m_texture9;
     Com<d3d9::IDirect3DCubeTexture9> m_cubeMap9;
 
-    // Track all possible surface versions of the same object
-    DDraw7Surface*                   m_surf7  = nullptr;
-    DDraw4Surface*                   m_surf4  = nullptr;
-    DDraw3Surface*                   m_surf3  = nullptr;
-    DDraw2Surface*                   m_surf2  = nullptr;
-    DDrawSurface*                    m_surf   = nullptr;
+    d3d9::D3DFORMAT                  m_format9            = d3d9::D3DFMT_UNKNOWN;
+
+    DDraw7Surface*                   m_surf7              = nullptr;
+    DDraw4Surface*                   m_surf4              = nullptr;
+    DDraw3Surface*                   m_surf3              = nullptr;
+    DDraw2Surface*                   m_surf2              = nullptr;
+    DDrawSurface*                    m_surf               = nullptr;
 
     // Track the origin surface, as in the DDraw surface
     // that gets created through a CreateSurface call
-    IUnknown*                        m_origin = nullptr;
+    IUnknown*                        m_origin             = nullptr;
 
   };
 

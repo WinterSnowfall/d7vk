@@ -5,8 +5,8 @@
 namespace dxvk {
 
   class DDrawCommonSurface;
-  class D3DCommonInterface;
   class DDrawCommonInterface;
+  class D3DCommonInterface;
 
   class DDraw7Surface;
   class DDraw4Surface;
@@ -46,19 +46,23 @@ namespace dxvk {
 
     bool IsCurrentRenderTarget(DDrawCommonSurface* commonSurface) const;
 
-    bool IsHALOrTNLHALDevice() const {
-      return m_deviceGUID == IID_IDirect3DHALDevice ||
-             // Functionally identical to a HAL device
-             m_deviceGUID == IID_WineD3DDevice ||
-             m_deviceGUID == IID_IDirect3DTnLHalDevice;
-    }
-
     void SetInScene(bool inScene) {
       m_inScene = inScene;
     }
 
     bool IsInScene() const {
       return m_inScene;
+    }
+
+    GUID GetDeviceGUID() const {
+      return m_deviceGUID;
+    }
+
+    bool IsHALOrTNLHALDevice() const {
+      return m_deviceGUID == IID_IDirect3DHALDevice ||
+             // Functionally identical to a HAL device
+             m_deviceGUID == IID_WineD3DDevice ||
+             m_deviceGUID == IID_IDirect3DTnLHalDevice;
     }
 
     DDrawCommonInterface* GetCommonInterface() const {
@@ -71,22 +75,6 @@ namespace dxvk {
 
     uint32_t GetTotalTextureMemory() const {
       return m_totalMemory;
-    }
-
-    GUID GetDeviceGUID() const {
-      return m_deviceGUID;
-    }
-
-    const d3d9::D3DPRESENT_PARAMETERS* GetPresentParameters() const {
-      return &m_params9;
-    }
-
-    d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType() const {
-      return m_params9.MultiSampleType;
-    }
-
-    DWORD GetD3D9CreationFlags() const {
-      return m_creationFlags9;
     }
 
     D3DMATERIALHANDLE GetCurrentMaterialHandle() const {
@@ -145,6 +133,18 @@ namespace dxvk {
       m_textureMapBlend = textureMapBlend;
     }
 
+    const d3d9::D3DPRESENT_PARAMETERS* GetPresentParameters() const {
+      return &m_params9;
+    }
+
+    d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType() const {
+      return m_params9.MultiSampleType;
+    }
+
+    DWORD GetD3D9CreationFlags() const {
+      return m_creationFlags9;
+    }
+
     void SetD3D9Device(Com<d3d9::IDirect3DDevice9>&& device9) {
       m_device9 = device9;
     }
@@ -195,41 +195,39 @@ namespace dxvk {
 
   private:
 
-    bool                        m_inScene        = false;
+    bool                        m_inScene             = false;
 
-    DDrawCommonInterface*       m_commonIntf     = nullptr;
-
-    uint32_t                    m_totalMemory    = 0;
+    DDrawCommonInterface*       m_commonIntf          = nullptr;
 
     GUID                        m_deviceGUID;
-    d3d9::D3DPRESENT_PARAMETERS m_params9;
-    DWORD                       m_creationFlags9 = 0;
+    uint32_t                    m_totalMemory         = 0;
+    D3DMATERIALHANDLE           m_materialHandle      = 0;
+    D3DTEXTUREHANDLE            m_textureHandle       = 0;
 
-    D3DMATERIALHANDLE           m_materialHandle = 0;
-    D3DTEXTUREHANDLE            m_textureHandle  = 0;
-
-    // Value of D3DRENDERSTATE_COLORKEYENABLE
-    DWORD                       m_colorKeyEnable      = 0;
-    // Value of D3DRENDERSTATE_COLORKEYBLENDENABLE
-    DWORD                       m_colorKeyBlendEnable = 0;
-    // Value of D3DRENDERSTATE_ANTIALIAS
+    // D3DRENDERSTATE_COLORKEYENABLE
+    DWORD                       m_colorKeyEnable      = FALSE;
+    // D3DRENDERSTATE_COLORKEYBLENDENABLE
+    DWORD                       m_colorKeyBlendEnable = FALSE;
+    // D3DRENDERSTATE_ANTIALIAS
     DWORD                       m_antialias           = D3DANTIALIAS_NONE;
-    // Value of D3DRENDERSTATE_LINEPATTERN
+    // D3DRENDERSTATE_LINEPATTERN
     D3DLINEPATTERN              m_linePattern         = { };
-    // Value of D3DRENDERSTATE_TEXTUREMAPBLEND
+    // D3DRENDERSTATE_TEXTUREMAPBLEND
     DWORD                       m_textureMapBlend     = D3DTBLEND_MODULATE;
+
+    d3d9::D3DPRESENT_PARAMETERS m_params9;
+    DWORD                       m_creationFlags9      = 0;
 
     Com<d3d9::IDirect3DDevice9> m_device9;
 
-    // Track all possible last used D3D devices
-    D3D7Device*                 m_device7        = nullptr;
-    D3D6Device*                 m_device6        = nullptr;
-    D3D5Device*                 m_device5        = nullptr;
-    D3D3Device*                 m_device3        = nullptr;
+    D3D7Device*                 m_device7             = nullptr;
+    D3D6Device*                 m_device6             = nullptr;
+    D3D5Device*                 m_device5             = nullptr;
+    D3D3Device*                 m_device3             = nullptr;
 
     // Track the origin device, as in the device
     // that gets created through a CreateDevice call
-    IUnknown*                   m_origin         = nullptr;
+    IUnknown*                   m_origin              = nullptr;
 
   };
 

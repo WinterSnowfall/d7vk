@@ -2,6 +2,7 @@
 
 #include "../ddraw_common_interface.h"
 #include "../ddraw_common_surface.h"
+#include "../d3d_common_texture.h"
 
 #include "../ddraw/ddraw_surface.h"
 
@@ -10,12 +11,19 @@ namespace dxvk {
   uint32_t D3D3Texture::s_texCount = 0;
 
   D3D3Texture::D3D3Texture(
+        D3DCommonTexture* commonTex,
         DDrawCommonSurface* commonSurf,
         Com<IDirect3DTexture>&& proxyTexture,
         IUnknown* pParent)
     : DDrawWrappedObject<IUnknown, IDirect3DTexture>(pParent, std::move(proxyTexture))
     , m_commonIntf ( commonSurf->GetCommonInterface() ) {
-    m_commonTex = new D3DCommonTexture(commonSurf);
+    if (likely(commonTex == nullptr)) {
+      m_commonTex = new D3DCommonTexture(commonSurf);
+    } else {
+      m_commonTex = commonTex;
+    }
+
+    m_commonTex->SetD3D3Texture(this);
 
     m_texCount = ++s_texCount;
 
@@ -23,6 +31,8 @@ namespace dxvk {
   }
 
   D3D3Texture::~D3D3Texture() {
+    m_commonTex->SetD3D3Texture(nullptr);
+
     Logger::debug(str::format("D3D3Texture: Texture nr. [[1-", m_texCount, "]] bites the dust"));
   }
 
