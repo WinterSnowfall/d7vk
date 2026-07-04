@@ -15,7 +15,7 @@
 
 namespace dxvk {
 
-  uint32_t D3D6Device::s_deviceCount = 0;
+  std::atomic<uint32_t> D3D6Device::s_deviceCount = 0;
 
   D3D6Device::D3D6Device(
         D3DCommonDevice* commonD3DDevice,

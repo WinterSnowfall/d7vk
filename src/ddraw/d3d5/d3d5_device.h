@@ -165,12 +165,9 @@ namespace dxvk {
       }
     }
 
-    static uint32_t                s_deviceCount;
-    uint32_t                       m_deviceCount = 0;
-
-    DDrawCommonInterface*          m_commonIntf  = nullptr;
-
     Com<D3DCommonDevice>           m_commonD3DDevice;
+
+    DDrawCommonInterface*          m_commonIntf       = nullptr;
 
     Com<DxvkD3D8Bridge>            m_bridge;
 
@@ -191,8 +188,11 @@ namespace dxvk {
     std::vector<D3DLVERTEX>        m_lvertexStream;
     std::vector<D3DTLVERTEX>       m_tlvertexStream;
 
-    D3DMATRIX        m_projectionMatrix = { };
-    const D3DMATRIX* m_legacyProjection = nullptr;
+    D3DMATRIX                      m_projectionMatrix = { };
+    const D3DMATRIX*               m_legacyProjection = nullptr;
+
+    uint32_t                       m_deviceCount      = 0;
+    static std::atomic<uint32_t>   s_deviceCount;
 
   };
 

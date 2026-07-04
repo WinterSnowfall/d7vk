@@ -13,7 +13,7 @@
 
 namespace dxvk {
 
-  uint32_t D3D7VertexBuffer::s_buffCount = 0;
+  std::atomic<uint32_t> D3D7VertexBuffer::s_buffCount = 0;
 
   D3D7VertexBuffer::D3D7VertexBuffer(
         D3D7Interface* pParent,

@@ -45,11 +45,12 @@ namespace dxvk {
 
   private:
 
-    static uint32_t       s_texCount;
-    uint32_t              m_texCount   = 0;
-
     Com<D3DCommonTexture> m_commonTex;
+
     DDrawCommonInterface* m_commonIntf = nullptr;
+
+    uint32_t              m_texCount   = 0;
+    static std::atomic<uint32_t> s_texCount;
 
   };
 

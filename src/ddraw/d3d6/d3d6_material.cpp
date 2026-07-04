@@ -11,7 +11,7 @@
 
 namespace dxvk {
 
-  uint32_t D3D6Material::s_materialCount = 0;
+  std::atomic<uint32_t> D3D6Material::s_materialCount = 0;
 
   D3D6Material::D3D6Material(
         D3D6Interface* pParent)

@@ -208,10 +208,7 @@ namespace dxvk {
 
     inline HRESULT UploadSurfaceData();
 
-    bool             m_isChildObject = false;
-
-    static uint32_t  s_surfCount;
-    uint32_t         m_surfCount     = 0;
+    bool                                m_isChildObject   = false;
 
     Com<DDrawCommonSurface>             m_commonSurf;
     DDrawCommonInterface*               m_commonIntf      = nullptr;
@@ -235,6 +232,9 @@ namespace dxvk {
     // They are implemented with linked list, so for example only one mip level
     // will be held in a parent texture, and the next mip level will be held in the previous mip.
     std::unordered_map<IDirectDrawSurface7*, Com<DDraw7Surface, false>> m_attachedSurfaces;
+
+    uint32_t                            m_surfCount       = 0;
+    static std::atomic<uint32_t>        s_surfCount;
 
   };
 

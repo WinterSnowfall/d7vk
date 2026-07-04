@@ -16,15 +16,15 @@
 
 namespace dxvk {
 
-  uint32_t D3D5Interface::s_intfCount = 0;
+  std::atomic<uint32_t> D3D5Interface::s_intfCount = 0;
 
   D3D5Interface::D3D5Interface(
-        DDrawCommonInterface* m_commonIntf,
         D3DCommonInterface* commonD3DIntf,
+        DDrawCommonInterface* m_commonIntf,
         IUnknown* pParent)
     : DDrawChildObject<IUnknown, IDirect3D2>(pParent)
-    , m_commonIntf ( m_commonIntf )
-    , m_commonD3DIntf ( commonD3DIntf ) {
+    , m_commonD3DIntf ( commonD3DIntf )
+    , m_commonIntf ( m_commonIntf ) {
     if (m_commonD3DIntf == nullptr) {
       m_commonD3DIntf = new D3DCommonInterface();
 
@@ -106,7 +106,7 @@ namespace dxvk {
 
       Logger::debug("D3D5Interface::QueryInterface: Query for IDirect3D");
 
-      m_d3d3Intf = new D3D3Interface(m_commonIntf, m_commonD3DIntf.ptr(), m_parent);
+      m_d3d3Intf = new D3D3Interface(m_commonD3DIntf.ptr(), m_commonIntf, m_parent);
       m_commonIntf->SetD3D3Interface(m_d3d3Intf.ptr());
       *ppvObject = m_d3d3Intf.ref();
 
@@ -127,7 +127,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      m_d3d6Intf = new D3D6Interface(m_commonIntf, m_commonD3DIntf.ptr(), std::move(ppvProxyObject), m_parent);
+      m_d3d6Intf = new D3D6Interface(m_commonD3DIntf.ptr(), m_commonIntf, std::move(ppvProxyObject), m_parent);
       *ppvObject = m_d3d6Intf.ref();
 
       return S_OK;

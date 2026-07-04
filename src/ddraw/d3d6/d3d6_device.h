@@ -202,14 +202,11 @@ namespace dxvk {
       }
     }
 
-    bool                           m_alphaOpSet  = false;
-
-    static uint32_t                s_deviceCount;
-    uint32_t                       m_deviceCount = 0;
-
-    DDrawCommonInterface*          m_commonIntf  = nullptr;
+    bool                           m_alphaOpSet         = false;
 
     Com<D3DCommonDevice>           m_commonD3DDevice;
+
+    DDrawCommonInterface*          m_commonIntf         = nullptr;
 
     Com<DxvkD3D8Bridge>            m_bridge;
 
@@ -234,11 +231,14 @@ namespace dxvk {
     // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
     std::array<Com<D3D5Texture, false>, ddrawCaps::TextureStageCount> m_textures;
 
-    D3DMATRIX        m_projectionMatrix = { };
-    const D3DMATRIX* m_legacyProjection = nullptr;
+    D3DMATRIX                      m_projectionMatrix   = { };
+    const D3DMATRIX*               m_legacyProjection   = nullptr;
 
     std::array<Com<d3d9::IDirect3DIndexBuffer9>, ddrawCaps::IndexBufferCount> m_ib9;
     uint32_t m_ib9_uploads[ddrawCaps::IndexBufferCount] = { };
+
+    uint32_t                       m_deviceCount        = 0;
+    static std::atomic<uint32_t>   s_deviceCount;
 
   };
 

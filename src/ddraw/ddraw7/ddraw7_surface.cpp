@@ -10,7 +10,7 @@
 
 namespace dxvk {
 
-  uint32_t DDraw7Surface::s_surfCount = 0;
+  std::atomic<uint32_t> DDraw7Surface::s_surfCount = 0;
 
   DDraw7Surface::DDraw7Surface(
         DDrawCommonSurface* commonSurf,

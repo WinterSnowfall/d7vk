@@ -192,15 +192,12 @@ namespace dxvk {
 
     inline HRESULT UploadSurfaceData();
 
-    bool             m_isChildObject = true;
-
-    static uint32_t  s_surfCount;
-    uint32_t         m_surfCount     = 0;
+    bool                    m_isChildObject = true;
 
     Com<DDrawCommonSurface> m_commonSurf;
-    DDrawCommonInterface*   m_commonIntf = nullptr;
+    DDrawCommonInterface*   m_commonIntf    = nullptr;
 
-    DDraw4Surface*          m_parentSurf = nullptr;
+    DDraw4Surface*          m_parentSurf    = nullptr;
 
     Com<D3D3Texture, false> m_texture3;
     // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
@@ -221,6 +218,9 @@ namespace dxvk {
     // They are implemented with linked list, so for example only one mip level
     // will be held in a parent texture, and the next mip level will be held in the previous mip.
     std::unordered_map<IDirectDrawSurface4*, Com<DDraw4Surface, false>> m_attachedSurfaces;
+
+    uint32_t                m_surfCount     = 0;
+    static std::atomic<uint32_t> s_surfCount;
 
   };
 

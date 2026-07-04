@@ -21,7 +21,7 @@
 
 namespace dxvk {
 
-  uint32_t D3D6Viewport::s_viewportCount = 0;
+  std::atomic<uint32_t> D3D6Viewport::s_viewportCount = 0;
 
   D3D6Viewport::D3D6Viewport(
         D3DCommonViewport* commonViewport,

@@ -17,7 +17,7 @@
 
 namespace dxvk {
 
-  uint32_t DDraw4Interface::s_intfCount = 0;
+  std::atomic<uint32_t> DDraw4Interface::s_intfCount = 0;
 
   DDraw4Interface::DDraw4Interface(
         DDrawCommonInterface* commonIntf,
@@ -69,7 +69,7 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        m_d3d6Intf = new D3D6Interface(m_commonIntf.ptr(), nullptr, std::move(ppvProxyObject), this);
+        m_d3d6Intf = new D3D6Interface(nullptr, m_commonIntf.ptr(), std::move(ppvProxyObject), this);
       }
 
       *ppvObject = m_d3d6Intf.ref();
@@ -139,7 +139,7 @@ namespace dxvk {
 
       Logger::debug("DDraw4Interface::QueryInterface: Query for IDirect3D");
 
-      Com<D3D3Interface> d3d3Intf = new D3D3Interface(m_commonIntf.ptr(), nullptr, this);
+      Com<D3D3Interface> d3d3Intf = new D3D3Interface(nullptr, m_commonIntf.ptr(), this);
       m_commonIntf->SetD3D3Interface(d3d3Intf.ptr());
       *ppvObject = d3d3Intf.ref();
 
@@ -154,7 +154,7 @@ namespace dxvk {
 
       Logger::debug("DDraw4Interface::QueryInterface: Query for IDirect3D2");
 
-      Com<D3D5Interface> d3d5Intf = new D3D5Interface(m_commonIntf.ptr(), nullptr, this);
+      Com<D3D5Interface> d3d5Intf = new D3D5Interface(nullptr, m_commonIntf.ptr(), this);
       *ppvObject = d3d5Intf.ref();
 
       return S_OK;
