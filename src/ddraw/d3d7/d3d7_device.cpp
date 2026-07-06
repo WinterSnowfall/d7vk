@@ -297,6 +297,11 @@ namespace dxvk {
 
     InitReturnPtr(d3d);
 
+    if (unlikely(m_parent == nullptr)) {
+      Logger::err("D3D7Device::GetDirect3D: Found no valid parent D3D interface");
+      return DDERR_NOTFOUND;
+    }
+
     *d3d = ref(m_parent);
 
     return D3D_OK;
@@ -337,8 +342,6 @@ namespace dxvk {
       return hr;
     }
 
-    Logger::debug("D3D7Device::SetRenderTarget: Set a new D3D9 RT");
-
     m_rt = rt7;
     m_ds = m_rt->GetAttachedDepthStencil();
 
@@ -356,8 +359,6 @@ namespace dxvk {
         Logger::err("D3D7Device::SetRenderTarget: Failed to set D3D9 DS");
         return hr;
       }
-
-      Logger::debug("D3D7Device::SetRenderTarget: Set a new D3D9 DS");
     } else {
       Logger::debug("D3D7Device::SetRenderTarget: RT has no depth stencil attached");
 
@@ -366,8 +367,6 @@ namespace dxvk {
         Logger::err("D3D7Device::SetRenderTarget: Failed to clear the D3D9 DS");
         return hr;
       }
-
-      Logger::debug("D3D7Device::SetRenderTarget: Cleared the D3D9 DS");
     }
 
     return D3D_OK;
@@ -607,7 +606,8 @@ namespace dxvk {
       case D3DRENDERSTATE_ZVISIBLE:
         return D3D_OK;
 
-      // TODO:
+      // Tests have shown age accurate GPUs didn't offer support for
+      // stippling at all, so this should be safe to ignore
       case D3DRENDERSTATE_STIPPLEDALPHA:
         static bool s_stippledAlphaErrorShown;
 

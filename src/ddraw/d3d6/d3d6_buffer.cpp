@@ -160,13 +160,13 @@ namespace dxvk {
       uint8_t *outData = nullptr;
 
       HRESULT hr = vb->GetD3D9VertexBuffer()->Lock(dwSrcIndex * vb->GetStride(), dwCount * vb->GetStride(),
-                                                   reinterpret_cast<void**>(&inData), D3DLOCK_READONLY|D3DLOCK_NOSYSLOCK);
+                                                   reinterpret_cast<void**>(&inData), D3DLOCK_READONLY);
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D6VertexBuffer::ProcessVertices: Failed to lock source buffer");
         return D3DERR_VERTEXBUFFERLOCKED;
       }
 
-      hr = m_vb9->Lock(dwDestIndex * m_stride, dwCount * m_stride, reinterpret_cast<void**>(&outData), D3DLOCK_NOSYSLOCK);
+      hr = m_vb9->Lock(dwDestIndex * m_stride, dwCount * m_stride, reinterpret_cast<void**>(&outData), 0);
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D6VertexBuffer::ProcessVertices: Failed to lock destination buffer");
         vb->Unlock();
@@ -233,13 +233,15 @@ namespace dxvk {
       device9->SetFVF(vb->GetFVF());
       device9->SetStreamSource(0, vb->GetD3D9VertexBuffer(), 0, vb->GetStride());
       HRESULT hr = device9->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_vb9.ptr(), nullptr, dwFlags);
-      if (unlikely(FAILED(hr))) {
-        Logger::err("D3D6VertexBuffer::ProcessVertices: Failed call to D3D9 ProcessVertices");
-      }
 
       if (legacyProjection != nullptr) {
         //Logger::debug("D3D6Device: Reverting legacy projection");
         device9->SetTransform(d3d9::D3DTS_PROJECTION, &projectionMatrix);
+      }
+
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D6VertexBuffer::ProcessVertices: Failed call to D3D9 ProcessVertices");
+        return hr;
       }
     }
 

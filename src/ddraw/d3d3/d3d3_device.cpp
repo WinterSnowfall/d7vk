@@ -439,8 +439,10 @@ namespace dxvk {
     // at all unless it's explicitly created before this call
     D3D3Interface* d3d3Intf = m_commonIntf->GetOrCreateD3D3Interface();
     // Shouldn't happen under normal circumstances, but validate just in case
-    if (unlikely(d3d3Intf == nullptr))
+    if (unlikely(d3d3Intf == nullptr)) {
+      Logger::err("D3D3Device::GetDirect3D: Found no valid D3D interface");
       return DDERR_NOTFOUND;
+    }
 
     *d3d = ref(d3d3Intf);
 
@@ -1307,7 +1309,8 @@ namespace dxvk {
       case D3DRENDERSTATE_SUBPIXELX:
         return D3D_OK;
 
-      // TODO:
+      // Tests have shown age accurate GPUs didn't offer support for
+      // stippling at all, so this should be safe to ignore
       case D3DRENDERSTATE_STIPPLEDALPHA:
         static bool s_stippledAlphaErrorShown;
 
@@ -1316,7 +1319,8 @@ namespace dxvk {
 
         return D3D_OK;
 
-      // TODO:
+      // Tests have shown age accurate GPUs didn't offer support for
+      // stippling at all, so this should be safe to ignore
       case D3DRENDERSTATE_STIPPLEENABLE:
         static bool s_stippleEnableErrorShown;
 

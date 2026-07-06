@@ -167,13 +167,13 @@ namespace dxvk {
       uint8_t *outData = nullptr;
 
       HRESULT hr = vb->GetD3D9VertexBuffer()->Lock(dwSrcIndex * vb->GetStride(), dwCount * vb->GetStride(),
-                                                   reinterpret_cast<void**>(&inData), D3DLOCK_READONLY|D3DLOCK_NOSYSLOCK);
+                                                   reinterpret_cast<void**>(&inData), D3DLOCK_READONLY);
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7VertexBuffer::ProcessVertices: Failed to lock source buffer");
         return D3DERR_VERTEXBUFFERLOCKED;
       }
 
-      hr = m_vb9->Lock(dwDestIndex * m_stride, dwCount * m_stride, reinterpret_cast<void**>(&outData), D3DLOCK_NOSYSLOCK);
+      hr = m_vb9->Lock(dwDestIndex * m_stride, dwCount * m_stride, reinterpret_cast<void**>(&outData), 0);
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7VertexBuffer::ProcessVertices: Failed to lock destination buffer");
         vb->Unlock();
@@ -221,6 +221,7 @@ namespace dxvk {
       HRESULT hr = device9->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, m_vb9.ptr(), nullptr, dwFlags);
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7VertexBuffer::ProcessVertices: Failed call to D3D9 ProcessVertices");
+        return hr;
       }
     }
 
@@ -294,7 +295,6 @@ namespace dxvk {
     m_legacyDiscard = m_commonIntf->GetOptions()->forceLegacyDiscard &&
                       (usage & D3DUSAGE_DYNAMIC) && (usage & D3DUSAGE_WRITEONLY);
     HRESULT hr = device9->CreateVertexBuffer(m_size, usage, m_desc.dwFVF, pool, &m_vb9, nullptr);
-
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7VertexBuffer::InitializeD3D9: Failed to create D3D9 vertex buffer");
       return hr;

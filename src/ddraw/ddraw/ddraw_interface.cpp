@@ -256,6 +256,21 @@ namespace dxvk {
     // D3D9, so always strip the DDSCAPS_WRITEONLY flag on creation
     lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_WRITEONLY;
 
+    // Work around a WineD3D bug/limitation that prevents
+    // read back from L6V5U5 and X8L8V8U8 video memory surfaces
+    //
+    // Note: Doing this for other surfaces/formats is a bad idea,
+    // because some games expect these flags to remain in place, and
+    // may crash in case they find that's not the case
+    if (unlikely((lpDDSurfaceDesc->ddpfPixelFormat.dwFlags & DDPF_BUMPLUMINANCE)
+               && lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY)) {
+      Logger::warn("DDrawInterface::CreateSurface: Video memory DDPF_BUMPLUMINANCE surface");
+      lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY &
+                                         ~DDSCAPS_LOCALVIDMEM &
+                                         ~DDSCAPS_NONLOCALVIDMEM;
+      lpDDSurfaceDesc->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+    }
+
     if (unlikely((lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)
               && (lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF))) {
       if (m_commonIntf->GetOptions()->useD24X8forD32) {

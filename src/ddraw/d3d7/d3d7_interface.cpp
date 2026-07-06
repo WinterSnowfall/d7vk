@@ -297,11 +297,11 @@ namespace dxvk {
     params.MultiSampleQuality = 0;
     params.SwapEffect         = d3d9::D3DSWAPEFFECT_DISCARD;
     params.hDeviceWindow      = hWnd;
-    params.Windowed           = TRUE; // Always use windowed, so that we can delegate mode switching to ddraw
+    params.Windowed           = TRUE; // Always use windowed, so that we can delegate mode switching to DDraw
     params.EnableAutoDepthStencil     = FALSE;
     params.AutoDepthStencilFormat     = d3d9::D3DFMT_UNKNOWN;
     params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // Needed for back buffer locks
-    params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by ddraw, just play along
+    params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by DDraw, just play along
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
     Com<d3d9::IDirect3DDevice9> device9;

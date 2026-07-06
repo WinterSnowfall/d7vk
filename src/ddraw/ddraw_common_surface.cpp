@@ -299,9 +299,6 @@ namespace dxvk {
         return hr;
       }
 
-      if (unlikely(m_commonIntf->GetOptions()->autoGenMipMaps))
-        m_cubeMap9->SetAutoGenFilterType(d3d9::D3DTEXF_ANISOTROPIC);
-
       // Always attach the positive X face to this surface
       m_cubeMap9->GetCubeMapSurface(d3d9::D3DCUBEMAP_FACE_POSITIVE_X, 0, &m_surface9);
 
@@ -319,9 +316,6 @@ namespace dxvk {
         Logger::err("DDrawCommonSurface::InitializeD3D9: Failed to create texture");
         return hr;
       }
-
-      if (unlikely(m_commonIntf->GetOptions()->autoGenMipMaps))
-        m_texture9->SetAutoGenFilterType(d3d9::D3DTEXF_ANISOTROPIC);
 
       // Attach level 0 to this surface
       m_texture9->GetSurfaceLevel(0, &m_surface9);
