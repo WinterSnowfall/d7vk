@@ -335,7 +335,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw4Interface::DuplicateSurface(LPDIRECTDRAWSURFACE4 lpDDSurface, LPDIRECTDRAWSURFACE4 *lplpDupDDSurface) {
     Logger::debug("<<< DDraw4Interface::DuplicateSurface: Proxy");
 
-    if (unlikely(lpDDSurface == nullptr))
+    if (unlikely(lpDDSurface == nullptr || lplpDupDDSurface == nullptr))
       return DDERR_CANTDUPLICATE;
 
     InitReturnPtr(lplpDupDDSurface);

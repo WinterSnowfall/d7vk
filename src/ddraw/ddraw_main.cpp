@@ -224,16 +224,20 @@ namespace dxvk {
     } else if (riid == __uuidof(IDirectDraw2)) {
       void* directDraw2 = nullptr;
       hr = ppvObjectProxy->QueryInterface(__uuidof(IDirectDraw2), &directDraw2);
-      if (unlikely(FAILED(hr)))
+      if (unlikely(FAILED(hr))) {
+        ppvObjectProxy->Release();
         return hr;
+      }
       Logger::debug(">>> ClassFactoryCreateDirectDraw: Returning IDirectDraw2");
       *ppvObject = directDraw2;
       ppvObjectProxy->Release();
     } else if (riid == __uuidof(IDirectDraw4)) {
       void* directDraw4 = nullptr;
       hr = ppvObjectProxy->QueryInterface(__uuidof(IDirectDraw4), &directDraw4);
-      if (unlikely(FAILED(hr)))
+      if (unlikely(FAILED(hr))) {
+        ppvObjectProxy->Release();
         return hr;
+      }
       Logger::debug(">>> ClassFactoryCreateDirectDraw: Returning IDirectDraw4");
       *ppvObject = directDraw4;
       ppvObjectProxy->Release();
@@ -491,6 +495,9 @@ extern "C" {
   DLLEXPORT HRESULT __stdcall DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv) {
     dxvk::Logger::debug(">>> DllGetClassObject");
 
+    if (unlikely(ppv == nullptr))
+      return E_POINTER;
+
     dxvk::Logger::debug(dxvk::str::format("DllGetClassObject: Call for rclsid: ", rclsid));
 
     if (unlikely(riid != __uuidof(IClassFactory) && riid != __uuidof(IUnknown)))
@@ -563,7 +570,7 @@ extern "C" {
         return DDERR_GENERIC;
       }
 
-      ProxiedReleaseDDThreadLock = reinterpret_cast<ReleaseDDThreadLock_t>(GetProcAddress(hDDraw, "AcquireDDThreadLock"));
+      ProxiedReleaseDDThreadLock = reinterpret_cast<ReleaseDDThreadLock_t>(GetProcAddress(hDDraw, "ReleaseDDThreadLock"));
 
       if (unlikely(ProxiedReleaseDDThreadLock == nullptr)) {
         dxvk::Logger::err("ReleaseDDThreadLock: Failed GetProcAddress");

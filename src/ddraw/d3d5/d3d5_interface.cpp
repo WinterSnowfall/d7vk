@@ -113,7 +113,7 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3D3))) {
-      if (m_commonD3DIntf->GetD3D3Interface() != nullptr) {
+      if (m_commonD3DIntf->GetD3D6Interface() != nullptr) {
         Logger::debug("D3D5Interface::QueryInterface: Query for existing IDirect3D3");
         return m_commonD3DIntf->GetD3D6Interface()->QueryInterface(riid, ppvObject);
       }

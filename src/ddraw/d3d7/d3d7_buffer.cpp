@@ -272,7 +272,7 @@ namespace dxvk {
     if (unlikely(IsOptimized()))
       return D3DERR_VERTEXBUFFEROPTIMIZED;
 
-    m_desc.dwCaps &= D3DVBCAPS_OPTIMIZED;
+    m_desc.dwCaps |= D3DVBCAPS_OPTIMIZED;
 
     return D3D_OK;
   };

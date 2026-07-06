@@ -1000,9 +1000,9 @@ namespace dxvk {
       clip_status->dwFlags = D3DCLIPSTATUS_EXTENTS2;
       clip_status->dwStatus = 0;
       clip_status->minx = viewport9.X;
-      clip_status->maxx = viewport9.X + viewport9.Height;
+      clip_status->maxx = viewport9.X + viewport9.Width;
       clip_status->miny = viewport9.Y;
-      clip_status->maxy = viewport9.Y + viewport9.Width;
+      clip_status->maxy = viewport9.Y + viewport9.Height;
       clip_status->minz = 0;
       clip_status->maxz = 0;
     }
@@ -1323,7 +1323,7 @@ namespace dxvk {
           Logger::warn("D3D7Device::SetTexture: Unsupported use of cube texture color key");
       }
     } else {
-      Logger::warn("D3D7Device::SetTexture: Found no valid D3D9 texture");
+      Logger::err("D3D7Device::SetTexture: Found no valid D3D9 texture");
     }
 
     m_textures[stage] = surface7;

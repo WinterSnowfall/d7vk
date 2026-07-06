@@ -318,7 +318,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Interface::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIRECTDRAWSURFACE7 *lplpDupDDSurface) {
     Logger::debug("<<< DDraw7Interface::DuplicateSurface: Proxy");
 
-    if (unlikely(lpDDSurface == nullptr))
+    if (unlikely(lpDDSurface == nullptr || lplpDupDDSurface == nullptr))
       return DDERR_CANTDUPLICATE;
 
     InitReturnPtr(lplpDupDDSurface);
@@ -472,7 +472,7 @@ namespace dxvk {
       lpDDDriverCaps->dwNumFourCCCodes = ddrawCaps::NumberOfFOURCCCodes;
     }
     if (lpDDHELCaps != nullptr) {
-      lpDDDriverCaps->dwCaps2 &= ~DDCAPS2_CANCALIBRATEGAMMA;
+      lpDDHELCaps->dwCaps2 &= ~DDCAPS2_CANCALIBRATEGAMMA;
       lpDDHELCaps->dwCaps2 |= DDCAPS2_FLIPINTERVAL | DDCAPS2_FLIPNOVSYNC;
       lpDDHELCaps->dwZBufferBitDepths = d3dOptions->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
       lpDDHELCaps->dwVidMemTotal = total9;

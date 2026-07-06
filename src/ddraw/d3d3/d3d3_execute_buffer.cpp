@@ -44,8 +44,10 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpData) {
+    D3DDeviceLock lock;
+
     if (unlikely(m_executed))
-      D3DDeviceLock lock = m_parent->LockDevice();
+      lock = m_parent->LockDevice();
 
     Logger::debug(">>> D3D3ExecuteBuffer::GetExecuteData");
 
@@ -68,8 +70,10 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc) {
+    D3DDeviceLock lock;
+
     if (unlikely(m_executed))
-      D3DDeviceLock lock = m_parent->LockDevice();
+      lock = m_parent->LockDevice();
 
     Logger::debug(">>> D3D3ExecuteBuffer::Lock");
 
@@ -98,8 +102,10 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpData) {
+    D3DDeviceLock lock;
+
     if (unlikely(m_executed))
-      D3DDeviceLock lock = m_parent->LockDevice();
+      lock = m_parent->LockDevice();
 
     Logger::debug(">>> D3D3ExecuteBuffer::SetExecuteData");
 
@@ -118,8 +124,10 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::Unlock() {
+    D3DDeviceLock lock;
+
     if (unlikely(m_executed))
-      D3DDeviceLock lock = m_parent->LockDevice();
+      lock = m_parent->LockDevice();
 
     Logger::debug(">>> D3D3ExecuteBuffer::Unlock");
 

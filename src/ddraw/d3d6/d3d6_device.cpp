@@ -737,7 +737,7 @@ namespace dxvk {
       case D3DRENDERSTATE_WRAPU: {
         DWORD value9 = 0;
         device9->GetRenderState(d3d9::D3DRS_WRAP0, &value9);
-        *lpdwRenderState = value9 & D3DWRAP_U;
+        *lpdwRenderState = (value9 & D3DWRAP_U) ? TRUE : FALSE;
         return D3D_OK;
       }
 
@@ -745,7 +745,7 @@ namespace dxvk {
       case D3DRENDERSTATE_WRAPV: {
         DWORD value9 = 0;
         device9->GetRenderState(d3d9::D3DRS_WRAP0, &value9);
-        *lpdwRenderState = value9 & D3DWRAP_V;
+        *lpdwRenderState = (value9 & D3DWRAP_V) ? TRUE : FALSE;
         return D3D_OK;
       }
 
@@ -958,7 +958,7 @@ namespace dxvk {
         DWORD value9 = 0;
         device9->GetRenderState(d3d9::D3DRS_WRAP0, &value9);
         if (dwRenderState == TRUE) {
-          device9->SetRenderState(d3d9::D3DRS_WRAP0, value9 & D3DWRAP_U);
+          device9->SetRenderState(d3d9::D3DRS_WRAP0, value9 | D3DWRAP_U);
         } else {
           device9->SetRenderState(d3d9::D3DRS_WRAP0, value9 & ~D3DWRAP_U);
         }
@@ -970,7 +970,7 @@ namespace dxvk {
         DWORD value9 = 0;
         device9->GetRenderState(d3d9::D3DRS_WRAP0, &value9);
         if (dwRenderState == TRUE) {
-          device9->SetRenderState(d3d9::D3DRS_WRAP0, value9 & D3DWRAP_V);
+          device9->SetRenderState(d3d9::D3DRS_WRAP0, value9 | D3DWRAP_V);
         } else {
           device9->SetRenderState(d3d9::D3DRS_WRAP0, value9 & ~D3DWRAP_V);
         }
@@ -1268,6 +1268,9 @@ namespace dxvk {
 
     Logger::debug(">>> D3D6Device::GetLightState");
 
+    if (unlikely(lpdwLightState == nullptr))
+      return DDERR_INVALIDPARAMS;
+
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
     switch (dwLightStateType) {
@@ -1486,9 +1489,9 @@ namespace dxvk {
       clip_status->dwFlags = D3DCLIPSTATUS_EXTENTS2;
       clip_status->dwStatus = 0;
       clip_status->minx = viewport9.X;
-      clip_status->maxx = viewport9.X + viewport9.Height;
+      clip_status->maxx = viewport9.X + viewport9.Width;
       clip_status->miny = viewport9.Y;
-      clip_status->maxy = viewport9.Y + viewport9.Width;
+      clip_status->maxy = viewport9.Y + viewport9.Height;
       clip_status->minz = 0;
       clip_status->maxz = 0;
     }
@@ -1851,7 +1854,7 @@ namespace dxvk {
         }
       }
     } else {
-      Logger::warn("D3D6Device::SetTexture: Found no valid D3D9 texture");
+      Logger::err("D3D6Device::SetTexture: Found no valid D3D9 texture");
     }
 
     m_textures[stage] = texture6;
@@ -2175,7 +2178,7 @@ namespace dxvk {
                               normalizedColorKey.dwColorSpaceHighValue);
       }
     } else {
-      Logger::warn("D3D6Device::SetTextureWithHandle: Found no valid D3D9 texture");
+      Logger::err("D3D6Device::SetTextureWithHandle: Found no valid D3D9 texture");
     }
 
     m_commonD3DDevice->SetCurrentTextureHandle(textureHandle);

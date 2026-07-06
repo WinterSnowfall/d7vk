@@ -561,7 +561,7 @@ namespace dxvk {
                   continue;
                 destination.z = destination.y * destination.y;
               } else {
-                if (destination.y > 0.0f)
+                if (destination.y > light.Range)
                   continue;
               }
 

@@ -171,10 +171,10 @@ namespace dxvk {
       switch (fmt.dwLuminanceBitCount) {
         case 8: {
           switch (fmt.dwLuminanceBitMask) {
-            case (0xF):
+            case 0xFF:
               // L: 1111 1111
               return d3d9::D3DFMT_L8;
-            case (0x8):
+            case 0xF:
               // A: 1111 0000
               // L: 0000 1111
               return d3d9::D3DFMT_A4L4;
@@ -854,8 +854,8 @@ namespace dxvk {
     uint32_t bits = 0;
     cmask = mask;
     while (cmask) {
-    if (cmask & 1)
-      bits++;
+      if (cmask & 1)
+        bits++;
       cmask >>= 1;
     }
 

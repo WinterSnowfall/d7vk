@@ -34,7 +34,7 @@ if get_option('enable_d3d8')
 endif
 
 if get_option('enable_ddraw')
-  if not get_option('enable_ddraw')
+  if not get_option('enable_d3d9')
     error('D3D9 is required for DDRAW.')
   endif
   subdir('ddraw')

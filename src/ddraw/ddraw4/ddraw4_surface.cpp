@@ -965,8 +965,10 @@ namespace dxvk {
     // appear to work well universally, however, so only apply when needed.
     if (unlikely(m_commonIntf->GetOptions()->colorKeyMasking && lpDDColorKey != nullptr)) {
       const uint8_t colorBitCount = m_commonSurf->GetColorBitCount();
-      lpDDColorKey->dwColorSpaceLowValue  &= (1 << colorBitCount) - 1;
-      lpDDColorKey->dwColorSpaceHighValue &= (1 << colorBitCount) - 1;
+      if (likely(colorBitCount < 32u)) {
+        lpDDColorKey->dwColorSpaceLowValue  &= (1 << colorBitCount) - 1;
+        lpDDColorKey->dwColorSpaceHighValue &= (1 << colorBitCount) - 1;
+      }
     }
 
     HRESULT hr = m_proxy->SetColorKey(dwFlags, lpDDColorKey);

@@ -1122,7 +1122,7 @@ namespace dxvk {
         DWORD value9 = 0;
         device9->GetRenderState(d3d9::D3DRS_WRAP0, &value9);
         if (dwRenderState == TRUE) {
-          device9->SetRenderState(d3d9::D3DRS_WRAP0, value9 & D3DWRAP_U);
+          device9->SetRenderState(d3d9::D3DRS_WRAP0, value9 | D3DWRAP_U);
         } else {
           device9->SetRenderState(d3d9::D3DRS_WRAP0, value9 & ~D3DWRAP_U);
         }
@@ -1134,7 +1134,7 @@ namespace dxvk {
         DWORD value9 = 0;
         device9->GetRenderState(d3d9::D3DRS_WRAP0, &value9);
         if (dwRenderState == TRUE) {
-          device9->SetRenderState(d3d9::D3DRS_WRAP0, value9 & D3DWRAP_V);
+          device9->SetRenderState(d3d9::D3DRS_WRAP0, value9 | D3DWRAP_V);
         } else {
           device9->SetRenderState(d3d9::D3DRS_WRAP0, value9 & ~D3DWRAP_V);
         }
@@ -1620,7 +1620,7 @@ namespace dxvk {
                               normalizedColorKey.dwColorSpaceHighValue);
       }
     } else {
-      Logger::warn("D3D3Device::SetTextureInternal: Found no valid D3D9 texture");
+      Logger::err("D3D3Device::SetTextureInternal: Found no valid D3D9 texture");
     }
 
     m_commonD3DDevice->SetCurrentTextureHandle(textureHandle);

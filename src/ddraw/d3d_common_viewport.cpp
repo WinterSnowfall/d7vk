@@ -130,12 +130,13 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     // Ensure transform states aren't modified in flight
+    D3DDeviceLock lock6, lock5, lock3;
     if (m_device6 != nullptr)
-      D3DDeviceLock lock6 = m_device6->LockDevice();
+      lock6 = m_device6->LockDevice();
     if (m_device5 != nullptr)
-      D3DDeviceLock lock5 = m_device5->LockDevice();
+      lock5 = m_device5->LockDevice();
     if (m_device3 != nullptr)
-      D3DDeviceLock lock3 = m_device3->LockDevice();
+      lock3 = m_device3->LockDevice();
 
     d3d9::IDirect3DDevice9* m_device9 = GetCommonD3DDevice()->GetD3D9Device();
 
@@ -177,7 +178,7 @@ namespace dxvk {
       const Vector4 h = wvp * Vector4({in.x, in.y, in.z, 1.0f});
 
       auto outH = data->lpHOut;
-      if (clipped) {
+      if (outH != nullptr && clipped) {
         outH[t].dwFlags = 0;
         if (h.x > h.w)
           outH[t].dwFlags |= D3DCLIP_RIGHT;

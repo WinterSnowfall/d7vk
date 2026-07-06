@@ -28,7 +28,7 @@ namespace dxvk {
     // In case a D3D3 interface doesn't exist, query one from the
     // base DDraw interface, where it will also be cached
     if (likely(m_intf != nullptr)) {
-      HRESULT hr = m_intf->QueryInterface(__uuidof(IDirect3D), reinterpret_cast<void**>(m_d3d3Intf));
+      HRESULT hr = m_intf->QueryInterface(__uuidof(IDirect3D), reinterpret_cast<void**>(&m_d3d3Intf));
       if (unlikely(FAILED(hr)))
         return nullptr;
       // The call to QueryInterface has incremented the public ref
