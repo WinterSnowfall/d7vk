@@ -1647,9 +1647,11 @@ namespace dxvk {
       { "ddraw.legacyPresentGuard",       "Strict" },
     }} },
     /* Need for Speed: Porsche Unleashed          *
-     * Fixes missing mip maps on car models       */
+     * Fixes missing mip maps on car models       *
+     * and Z-fighting with projected lights       */
     { R"(\\(Porsche|nfs5)\.exe$)", {{
       { "ddraw.autoGenMipMaps",             "True" },
+      { "ddraw.useD16forD24X8",             "True" },
     }} },
     /* Star Trek: Deep Space Nine - The Fallen    *
      * Fixes missing mip map uploads              */
@@ -1826,7 +1828,7 @@ namespace dxvk {
       { "ddraw.legacyPresentGuard",       "Strict" },
     }} },
     /* Expendable                                 */
-    { R"(\\Expendable\\go_start\.exe$)", {{
+    { R"(\\Expendable\\go(_start)?\.exe$)", {{
       { "ddraw.emulateFSAA",                "True" },
       { "ddraw.support32BitDepth",         "False" },
     }} },
@@ -1878,6 +1880,7 @@ namespace dxvk {
     { R"(\\tomb4\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.emulateFrontBuffer",         "True" },
+      { "ddraw.managedVertexBuffers",       "True" },
     }} },
     /* Tomb Raider Chronicles                     *
      * Fixes missing pause screen background      */

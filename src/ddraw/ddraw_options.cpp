@@ -11,6 +11,7 @@ namespace dxvk {
     this->supportD16             = config.getOption<bool>   ("ddraw.supportD16",              true);
     this->support32BitDepth      = config.getOption<bool>   ("ddraw.support32BitDepth",       true);
     this->useD24X8forD32         = config.getOption<bool>   ("ddraw.useD24X8forD32",         false);
+    this->useD16forD24X8         = config.getOption<bool>   ("ddraw.useD16forD24X8",         false);
     this->mask8BitModes          = config.getOption<bool>   ("ddraw.mask8BitModes",          false);
     this->viewportZCorrection    = config.getOption<bool>   ("ddraw.viewportZCorrection",    false);
     this->forcePOW2Textures      = config.getOption<bool>   ("ddraw.forcePOW2Textures",      false);

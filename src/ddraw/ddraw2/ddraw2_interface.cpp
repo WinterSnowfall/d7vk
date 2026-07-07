@@ -273,16 +273,27 @@ namespace dxvk {
       lpDDSurfaceDesc->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
     }
 
-    if (unlikely((lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)
-              && (lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF))) {
-      if (m_commonIntf->GetOptions()->useD24X8forD32) {
-        // In case of up-front unsupported and unadvertised D32 depth stencil use,
-        // replace it with D24X8, as some games, such as Sacrifice, rely on it
-        // to properly enable 32-bit display modes (and revert to 16-bit otherwise)
-        Logger::info("DDraw2Interface::CreateSurface: Using D24X8 instead of D32");
-        lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask = 0xFFFFFF;
-      } else {
-        Logger::warn("DDraw2Interface::CreateSurface: Use of unsupported D32");
+    if (unlikely(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)) {
+      if (unlikely(m_commonIntf->GetOptions()->useD16forD24X8
+                && lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFF
+                && lpDDSurfaceDesc->ddpfPixelFormat.dwStencilBitMask == 0x0)) {
+        // Games such as Need for Speed: Porsche are broken with 32-bit color
+        // on night tracks with "projected" lights, because they clearly were
+        // designed with 16-bit Z buffers in mind. Fix it up by silently swapping
+        // D16 for D24X8 on depth stencil creation.
+        Logger::info("DDraw2Interface::CreateSurface: Using D16 instead of D24X8");
+        lpDDSurfaceDesc->ddpfPixelFormat.dwZBufferBitDepth = 16;
+        lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask = 0xFFFF;
+      } else if (unlikely(lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF)) {
+        if (m_commonIntf->GetOptions()->useD24X8forD32) {
+          // In case of up-front unsupported and unadvertised D32 depth stencil use,
+          // replace it with D24X8, as some games, such as Sacrifice, rely on it
+          // to properly enable 32-bit display modes (and revert to 16-bit otherwise)
+          Logger::info("DDraw2Interface::CreateSurface: Using D24X8 instead of D32");
+          lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask = 0xFFFFFF;
+        } else {
+          Logger::warn("DDraw2Interface::CreateSurface: Use of unsupported D32");
+        }
       }
     }
 

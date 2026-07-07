@@ -46,6 +46,9 @@ namespace dxvk {
     /// Replaces any use of D32 with D24X8
     bool useD24X8forD32;
 
+    /// Replaces any use of D24X8 with D16
+    bool useD16forD24X8;
+
     /// Report any 8-bit display modes as being 16-bit
     bool mask8BitModes;
 
