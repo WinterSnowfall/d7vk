@@ -265,7 +265,7 @@ namespace dxvk {
     // because some games expect these flags to remain in place, and
     // may crash in case they find that's not the case
     if (unlikely((lpDDSurfaceDesc->ddpfPixelFormat.dwFlags & DDPF_BUMPLUMINANCE)
-               && lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY)) {
+              && (lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY))) {
       Logger::warn("DDraw2Interface::CreateSurface: Video memory DDPF_BUMPLUMINANCE surface");
       lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY &
                                          ~DDSCAPS_LOCALVIDMEM &
