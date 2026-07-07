@@ -1937,7 +1937,7 @@ namespace dxvk {
     /* Half-Life (: Opposing Force/: Blue Shift)  */
     { R"(\\hl\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.forceSWVP",                  "True" },
+      { "ddraw.managedVertexBuffers",       "True" },
     }} },
     /* The Sims (& DLCs/Expansion Packs)          */
     { R"(\\Sims\.(exe|icd)$)", {{

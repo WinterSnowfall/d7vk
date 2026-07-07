@@ -6,6 +6,7 @@ namespace dxvk {
     // D3D7/6/5/3/DDraw options
     this->forceMultiThreaded     = config.getOption<bool>   ("ddraw.forceMultiThreaded",     false);
     this->forceSWVP              = config.getOption<bool>   ("ddraw.forceSWVP",              false);
+    this->managedVertexBuffers   = config.getOption<bool>   ("ddraw.managedVertexBuffers",   false);
     this->supportR3G3B2          = config.getOption<bool>   ("ddraw.supportR3G3B2",          false);
     this->supportD16             = config.getOption<bool>   ("ddraw.supportD16",              true);
     this->support32BitDepth      = config.getOption<bool>   ("ddraw.support32BitDepth",       true);

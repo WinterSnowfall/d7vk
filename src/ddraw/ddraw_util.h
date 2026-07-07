@@ -136,7 +136,7 @@ namespace dxvk {
     return lockFlagsD3D9;
   }
 
-  inline DWORD ConvertD3D6UsageFlags(DWORD usageFlags, DWORD creationFlags) {
+  inline DWORD ConvertD3D6UsageFlags(DWORD usageFlags, DWORD creationFlags, d3d9::D3DPOOL pool) {
     DWORD usageFlagsD3D9 = 0;
 
     // The D3D6 docs do not mention the presence of a D3DVBCAPS_DONOTCLIP flag,
@@ -147,14 +147,17 @@ namespace dxvk {
     if (usageFlags & D3DVBCAPS_WRITEONLY) {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_WRITEONLY;
     }
+    if (pool != d3d9::D3DPOOL_MANAGED) {
+      // D3D6 does not use DDLOCK_DISCARDCONTENTS or
+      // DDLOCK_NOOVERWRITE, however, still mark all non-MANAGED
+      // buffers as DYNAMIC to handle any potential CPU read-backs
+      usageFlagsD3D9 |= D3DUSAGE_DYNAMIC;
+    }
 
-    // D3D6 does not use DDLOCK_DISCARDCONTENTS or
-    // DDLOCK_NOOVERWRITE, however, still mark all buffers
-    // as DYNAMIC to handle any potential CPU read-backs
-    return usageFlagsD3D9 | D3DUSAGE_DYNAMIC;
+    return usageFlagsD3D9;
   }
 
-  inline DWORD ConvertD3D7UsageFlags(DWORD usageFlags) {
+  inline DWORD ConvertD3D7UsageFlags(DWORD usageFlags, d3d9::D3DPOOL pool) {
     DWORD usageFlagsD3D9 = 0;
 
     if (usageFlags & D3DVBCAPS_DONOTCLIP) {
@@ -163,11 +166,14 @@ namespace dxvk {
     if (usageFlags & D3DVBCAPS_WRITEONLY) {
       usageFlagsD3D9 |= (DWORD)D3DUSAGE_WRITEONLY;
     }
+    if (pool != d3d9::D3DPOOL_MANAGED) {
+      // Though D3D7 does not specify it, all non-MANAGED buffers
+      // need to be DYNAMIC, either due to some lock flags not
+      // working properly otherwise, or for performance reasons
+      usageFlagsD3D9 |= D3DUSAGE_DYNAMIC;
+    }
 
-    // Though D3D7 does not specify it, all buffers need
-    // to be DYNAMIC, either due to some lock flags not
-    // working properly otherwise, or for performance reasons
-    return usageFlagsD3D9 | D3DUSAGE_DYNAMIC;
+    return usageFlagsD3D9;
   }
 
   inline size_t GetFVFPositionSize(DWORD fvf) {
