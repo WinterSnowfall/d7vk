@@ -639,7 +639,9 @@ namespace dxvk {
     Com<DDrawSurface> overrideSurf = static_cast<DDrawSurface*>(lpDDSurfaceTargetOverride);
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
-    if (likely(d3d9Device != nullptr)) {
+    // Overlays can have odd video formats which DXVK doesn't support for RT
+    // use, so let DDraw present in case the flipped surface is an overlay
+    if (likely(d3d9Device != nullptr && !m_commonSurf->IsOverlay())) {
       Logger::debug("*** DDrawSurface::Flip: Presenting");
 
       // Lost surfaces are not flippable
@@ -708,7 +710,7 @@ namespace dxvk {
 
       if (m_commonSurf->IsPrimarySurface()) {
         DDrawSurface* rt = m_commonIntf->GetDDrawRenderTarget() != nullptr ?
-                            m_commonIntf->GetDDrawRenderTarget()->GetDDSurface() : nullptr;
+                           m_commonIntf->GetDDrawRenderTarget()->GetDDSurface() : nullptr;
 
         if (unlikely(rt != nullptr)) {
           Logger::debug("DDrawSurface::Flip: Blitting DDraw RT");

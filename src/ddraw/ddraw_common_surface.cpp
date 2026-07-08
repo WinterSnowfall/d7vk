@@ -365,19 +365,20 @@ namespace dxvk {
 
         Logger::debug("DDrawCommonSurface::InitializeD3D9: Created offscreen plain surface");
       }
-    // Overlays (haven't seen any actual use of overlays in the wild)
+    // Overlays
     } else if (IsOverlay()) {
       Logger::debug("DDrawCommonSurface::InitializeD3D9: Initializing overlay...");
 
-      // Always link overlays to the back buffer
-      hr = d3d9Device->GetBackBuffer(0, m_backBufferIndex, d3d9::D3DBACKBUFFER_TYPE_MONO, &m_surface9);
+      hr = d3d9Device->CreateOffscreenPlainSurface(
+        dwWidth, dwHeight, m_format9,
+        pool, &m_surface9, nullptr);
 
       if (unlikely(FAILED(hr))) {
-        Logger::err("DDrawCommonSurface::InitializeD3D9: Failed to retrieve overlay surface");
+        Logger::err("DDrawCommonSurface::InitializeD3D9: Failed to create offscreen plain surface");
         return hr;
       }
 
-      MarkAsD3D9BackBuffer();
+      Logger::debug("DDrawCommonSurface::InitializeD3D9: Created offscreen plain surface");
 
     // Generic render target
     } else if (IsRenderTarget()) {
