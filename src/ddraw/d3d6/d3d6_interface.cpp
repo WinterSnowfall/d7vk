@@ -162,15 +162,13 @@ namespace dxvk {
     D3DDEVICEDESC descRGB_HEL = descRGB_HAL;
     descRGB_HAL.dwFlags = 0;
     descRGB_HAL.dcmColorModel = 0;
-    // Some applications apparently care about RGB texture caps
+    // Some applications apparently care about HAL texture caps
     descRGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL
-                                           & ~D3DPTEXTURECAPS_POW2;
+                                           & ~D3DPTEXTURECAPS_POW2
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
     descRGB_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL
-                                           & ~D3DPTEXTURECAPS_POW2;
-    descRGB_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
-    descRGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
+                                           & ~D3DPTEXTURECAPS_POW2
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
 
     if (likely(!d3dOptions->legacyDeviceNames)) {
       static char deviceDescRGB[100] = "D6VK RGB";
@@ -193,11 +191,11 @@ namespace dxvk {
     descHAL_HEL.dcmColorModel = 0;
     // Some applications apparently care about RGB texture caps
     descHAL_HEL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL
-                                           & ~D3DPTEXTURECAPS_POW2;
+                                           & ~D3DPTEXTURECAPS_POW2
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
     descHAL_HEL.dpcTriCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL
-                                          & ~D3DPTEXTURECAPS_POW2;
+                                          & ~D3DPTEXTURECAPS_POW2
+                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
     descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
@@ -275,27 +273,25 @@ namespace dxvk {
     D3DDEVICEDESC descRGB_HEL = descRGB_HAL;
     descRGB_HAL.dwFlags = 0;
     descRGB_HAL.dcmColorModel = 0;
-    // Some applications apparently care about RGB texture caps
+    // Some applications apparently care about HAL texture caps
     descRGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL
-                                           & ~D3DPTEXTURECAPS_POW2;
+                                           & ~D3DPTEXTURECAPS_POW2
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
     descRGB_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL
-                                           & ~D3DPTEXTURECAPS_POW2;
-    descRGB_HEL.dpcLineCaps.dwTextureCaps |= D3DPTEXTURECAPS_POW2;
-    descRGB_HEL.dpcTriCaps.dwTextureCaps  |= D3DPTEXTURECAPS_POW2;
+                                           & ~D3DPTEXTURECAPS_POW2
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
 
     // Hardware acceleration
     D3DDEVICEDESC descHAL_HAL = GetD3D6Caps(IID_IDirect3DHALDevice, d3dOptions);
     D3DDEVICEDESC descHAL_HEL = descHAL_HAL;
     descHAL_HEL.dcmColorModel = 0;
-    // Some applications apparently care about RGB texture caps
+    // Some applications apparently care about HEL texture caps
     descHAL_HEL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL
-                                           & ~D3DPTEXTURECAPS_POW2;
+                                           & ~D3DPTEXTURECAPS_POW2
+                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
     descHAL_HEL.dpcTriCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL
-                                          & ~D3DPTEXTURECAPS_POW2;
+                                          & ~D3DPTEXTURECAPS_POW2
+                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
     descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2
                            & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;

@@ -648,7 +648,8 @@ namespace dxvk {
 
         return D3D_OK;
 
-      // Used in conjunction with D3DRENDERSTATE_COLORKEYENABLE
+      // D3DPTEXTURECAPS_COLORKEYBLEND isn't advertised by any D3D7 capable
+      // or later GPUs, so this render state serves no practical purpose
       case D3DRENDERSTATE_COLORKEYBLENDENABLE:
         m_commonD3DDevice->SetColorKeyBlendEnable(dwRenderState);
         return D3D_OK;

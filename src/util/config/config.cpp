@@ -1835,7 +1835,6 @@ namespace dxvk {
     /* Total Annihilation: Kingdoms               */
     { R"(\\KINGDOMS\.icd$)", {{
       { "ddraw.emulateFSAA",                "True" },
-      { "ddraw.forcePOW2Textures",          "True" },
     }} },
     /* Gorky 17                                   */
     { R"(\\gorky17\.exe$)", {{
@@ -1846,7 +1845,6 @@ namespace dxvk {
      * too dark in-game gamma/brightness          */
     { R"(\\Revenant\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-      { "ddraw.forcePOW2Textures",          "True" },
       { "ddraw.ignoreGammaRamp",            "True" },
     }} },
     /* Re-Volt                                    */
@@ -1952,10 +1950,6 @@ namespace dxvk {
      * Prevents hangs on race/drive start         */
     { R"(\\midtown\.(exe|icd)$)", {{
       { "ddraw.legacyDeviceNames",          "True" },
-    }} },
-    /* Matrox G400 TechDemo - prevents crashing   */
-    { R"(\\Matrox\.exe$)", {{
-      { "ddraw.forcePOW2Textures",          "True" },
     }} },
 
     /**********************************************/

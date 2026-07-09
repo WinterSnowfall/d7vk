@@ -14,7 +14,6 @@ namespace dxvk {
     this->useD16forD24X8         = config.getOption<bool>   ("ddraw.useD16forD24X8",         false);
     this->mask8BitModes          = config.getOption<bool>   ("ddraw.mask8BitModes",          false);
     this->viewportZCorrection    = config.getOption<bool>   ("ddraw.viewportZCorrection",    false);
-    this->forcePOW2Textures      = config.getOption<bool>   ("ddraw.forcePOW2Textures",      false);
     this->forceLegacyDiscard     = config.getOption<bool>   ("ddraw.forceLegacyDiscard",     false);
     this->cpuProcessVertices     = config.getOption<bool>   ("ddraw.cpuProcessVertices",      true);
     this->vertexOffset           = config.getOption<float>  ("ddraw.vertexOffset",            0.0f);

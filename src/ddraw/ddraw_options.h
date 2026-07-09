@@ -55,9 +55,6 @@ namespace dxvk {
     /// Always use 0.0f and 1.0f as viewport Z values
     bool viewportZCorrection;
 
-    /// Report POW2 texture dimension restrictions
-    bool forcePOW2Textures;
-
     /// Respect DISCARD only on DYNAMIC + WRITEONLY buffers
     bool forceLegacyDiscard;
 
