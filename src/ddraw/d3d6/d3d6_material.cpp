@@ -74,7 +74,7 @@ namespace dxvk {
     if (likely(commonDevice != nullptr)) {
       const D3DMATERIALHANDLE handle        = m_commonMaterial->GetMaterialHandle();
       const D3DMATERIALHANDLE currentHandle = commonDevice->GetCurrentMaterialHandle();
-      if (currentHandle == handle) {
+      if (handle && currentHandle == handle) {
         Logger::debug(str::format("D3D6Material::SetMaterial: Applying material nr. ", handle, " to D3D9"));
         commonDevice->GetD3D9Device()->SetMaterial(material9);
       }

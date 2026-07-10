@@ -1024,6 +1024,8 @@ namespace dxvk {
       case D3DLIGHTSTATE_MATERIAL: {
         if (unlikely(!dwLightState)) {
           m_commonD3DDevice->SetCurrentMaterialHandle(dwLightState);
+          static constexpr d3d9::D3DMATERIAL9 DefaultMaterial9 = { };
+          device9->SetMaterial(&DefaultMaterial9);
           return D3D_OK;
         }
 
