@@ -86,37 +86,27 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Interface::QueryInterface(REFIID riid, void** ppvObject) {
-    Logger::debug(">>> D3D3Interface::QueryInterface");
-
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
     InitReturnPtr(ppvObject);
 
     if (riid == __uuidof(IDirectDraw)) {
-      Logger::debug("D3D3Interface::QueryInterface: Query for IDirectDraw");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     // Deathtrap Dungeon queries for IDirect3D2...
     if (unlikely(riid == __uuidof(IDirect3D2))) {
-      if (likely(m_commonD3DIntf->GetD3D5Interface() != nullptr)) {
-        Logger::debug("D3D3Interface::QueryInterface: Query for existing IDirect3D2");
+      if (likely(m_commonD3DIntf->GetD3D5Interface() != nullptr))
         return m_commonD3DIntf->GetD3D5Interface()->QueryInterface(riid, ppvObject);
-      }
 
-      Logger::debug("D3D3Interface::QueryInterface: Query for IDirect3D2");
       m_d3d5Intf = new D3D5Interface(m_commonD3DIntf.ptr(), m_commonIntf, m_parent);
       *ppvObject = m_d3d5Intf.ref();
       return S_OK;
     }
     // ... and Final Fantasy VIII queries for IDirect3D3, because why not...
     if (unlikely(riid == __uuidof(IDirect3D3))) {
-      if (likely(m_commonD3DIntf->GetD3D6Interface() != nullptr)) {
-        Logger::debug("D3D3Interface::QueryInterface: Query for existing IDirect3D3");
+      if (likely(m_commonD3DIntf->GetD3D6Interface() != nullptr))
         return m_commonD3DIntf->GetD3D6Interface()->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("D3D3Interface::QueryInterface: Query for IDirect3D3");
 
       // We don't have a proxied object on D3D3Interface, so use the parent
       // DDraw interface to get a proxied object for the queried D3D6Interface
@@ -144,13 +134,10 @@ namespace dxvk {
   // Docs state: "This method is provided for compliance with the COM protocol.
   // Returns DDERR_ALREADYINITIALIZED because the Direct3D object is initialized when it is created."
   HRESULT STDMETHODCALLTYPE D3D3Interface::Initialize(REFIID riid) {
-    Logger::debug(">>> D3D3Interface::Initialize");
     return DDERR_ALREADYINITIALIZED;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg) {
-    Logger::debug(">>> D3D3Interface::EnumDevices");
-
     if (unlikely(lpEnumDevicesCallback == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -268,8 +255,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Interface::CreateLight(LPDIRECT3DLIGHT *lplpDirect3DLight, IUnknown *pUnkOuter) {
-    Logger::debug(">>> D3D3Interface::CreateLight");
-
     if (unlikely(lplpDirect3DLight == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -281,8 +266,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Interface::CreateMaterial(LPDIRECT3DMATERIAL *lplpDirect3DMaterial, IUnknown *pUnkOuter) {
-    Logger::debug(">>> D3D3Interface::CreateMaterial");
-
     if (unlikely(lplpDirect3DMaterial == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -294,8 +277,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Interface::CreateViewport(LPDIRECT3DVIEWPORT *lplpD3DViewport, IUnknown *pUnkOuter) {
-    Logger::debug(">>> D3D3Interface::CreateViewport");
-
     InitReturnPtr(lplpD3DViewport);
 
     *lplpD3DViewport = ref(new D3D3Viewport(nullptr, this));
@@ -304,8 +285,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Interface::FindDevice(D3DFINDDEVICESEARCH *lpD3DFDS, D3DFINDDEVICERESULT *lpD3DFDR) {
-    Logger::debug(">>> D3D3Interface::FindDevice");
-
     if (unlikely(lpD3DFDS == nullptr || lpD3DFDR == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -349,17 +328,13 @@ namespace dxvk {
     lpD3DFRD3.dwSize = sizeof(D3DFINDDEVICERESULT3);
 
     if (lpD3DFDS->dwFlags & D3DFDS_GUID) {
-      Logger::debug("D3D3Interface::FindDevice: Matching by device GUID");
-
       if (lpD3DFDS->guid == IID_IDirect3DRGBDevice ||
           lpD3DFDS->guid == IID_IDirect3DMMXDevice ||
           lpD3DFDS->guid == IID_IDirect3DRampDevice) {
-        Logger::debug("D3D3Interface::FindDevice: Matched IID_IDirect3DRGBDevice");
         lpD3DFRD3.guid = IID_IDirect3DRGBDevice;
         lpD3DFRD3.ddHwDesc = descRGB_HAL;
         lpD3DFRD3.ddSwDesc = descRGB_HEL;
       } else if (lpD3DFDS->guid == IID_IDirect3DHALDevice) {
-        Logger::debug("D3D3Interface::FindDevice: Matched IID_IDirect3DHALDevice");
         lpD3DFRD3.guid = IID_IDirect3DHALDevice;
         lpD3DFRD3.ddHwDesc = descHAL_HAL;
         lpD3DFRD3.ddSwDesc = descHAL_HEL;
@@ -370,15 +345,11 @@ namespace dxvk {
 
       memcpy(lpD3DFDR, &lpD3DFRD3, sizeof(D3DFINDDEVICERESULT3));
     } else if (lpD3DFDS->dwFlags & D3DFDS_HARDWARE) {
-      Logger::debug("D3D3Interface::FindDevice: Matching by hardware flag");
-
       if (likely(lpD3DFDS->bHardware == TRUE)) {
-        Logger::debug("D3D3Interface::FindDevice: Matched IID_IDirect3DHALDevice");
         lpD3DFRD3.guid = IID_IDirect3DHALDevice;
         lpD3DFRD3.ddHwDesc = descHAL_HAL;
         lpD3DFRD3.ddSwDesc = descHAL_HEL;
       } else {
-        Logger::debug("D3D3Interface::FindDevice: Matched IID_IDirect3DRGBDevice");
         lpD3DFRD3.guid = IID_IDirect3DRGBDevice;
         lpD3DFRD3.ddHwDesc = descRGB_HAL;
         lpD3DFRD3.ddSwDesc = descRGB_HEL;
@@ -386,18 +357,12 @@ namespace dxvk {
 
       memcpy(lpD3DFDR, &lpD3DFRD3, sizeof(D3DFINDDEVICERESULT3));
     } else if (lpD3DFDS->dwFlags & D3DFDS_COLORMODEL) {
-      Logger::debug("D3D3Interface::FindDevice: Matching by color model");
-
-      Logger::debug("D3D3Interface::FindDevice: Matched IID_IDirect3DHALDevice");
       lpD3DFRD3.guid = IID_IDirect3DHALDevice;
       lpD3DFRD3.ddHwDesc = descHAL_HAL;
       lpD3DFRD3.ddSwDesc = descHAL_HEL;
 
       memcpy(lpD3DFDR, &lpD3DFRD3, sizeof(D3DFINDDEVICERESULT3));
     } else if (lpD3DFDS->dwFlags == 0) {
-      Logger::debug("D3D3Interface::FindDevice: No matching criteria specified");
-
-      Logger::debug("D3D3Interface::FindDevice: Matched IID_IDirect3DHALDevice");
       lpD3DFRD3.guid = IID_IDirect3DHALDevice;
       lpD3DFRD3.ddHwDesc = descHAL_HAL;
       lpD3DFRD3.ddSwDesc = descHAL_HEL;

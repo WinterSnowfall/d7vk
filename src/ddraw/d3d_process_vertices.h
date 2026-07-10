@@ -707,8 +707,6 @@ namespace dxvk {
 
   inline void ProcessVerticesSW(
         d3d9::IDirect3DDevice9* d3d9Device, const D3DOptions* options, ProcessVerticesData* pvData) {
-    Logger::debug(">>> ProcessVerticesSW");
-
     if (unlikely(pvData == nullptr)) {
       Logger::err("ProcessVerticesSW: Missing processing data");
       return;

@@ -188,7 +188,6 @@ namespace dxvk {
         m_legacyProjection = m_currentViewport->GetCommonViewport()->GetLegacyProjectionMatrix(drawFlags);
 
         if (m_legacyProjection != nullptr) {
-          //Logger::debug("D3D6Device: Applying legacy projection");
           device9->GetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
           device9->MultiplyTransform(d3d9::D3DTS_PROJECTION, m_legacyProjection);
         }
@@ -197,7 +196,6 @@ namespace dxvk {
 
     inline void HandlePostDrawLegacyProjection(d3d9::IDirect3DDevice9* device9) {
       if (m_legacyProjection != nullptr) {
-        //Logger::debug("D3D6Device: Reverting legacy projection");
         device9->SetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
       }
     }

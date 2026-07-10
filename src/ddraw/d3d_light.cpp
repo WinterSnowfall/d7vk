@@ -20,8 +20,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3DLight::QueryInterface(REFIID riid, void** ppvObject) {
-    Logger::debug(">> D3DLight::QueryInterface");
-
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
@@ -41,13 +39,10 @@ namespace dxvk {
   // Docs state: "The method returns DDERR_ALREADYINITIALIZED because
   // the Direct3DLight object is initialized when it is created."
   HRESULT STDMETHODCALLTYPE D3DLight::Initialize(IDirect3D *d3d) {
-    Logger::debug(">>> D3DLight::Initialize");
     return DDERR_ALREADYINITIALIZED;
   }
 
   HRESULT STDMETHODCALLTYPE D3DLight::SetLight(D3DLIGHT *data) {
-    Logger::debug(">>> D3DLight::SetLight");
-
     static constexpr D3DCOLORVALUE noLight = {0.0f, 0.0f, 0.0f, 0.0f};
 
     if (unlikely(data == nullptr))
@@ -120,8 +115,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3DLight::GetLight(D3DLIGHT *data) {
-    Logger::debug(">>> D3DLight::GetLight");
-
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 

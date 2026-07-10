@@ -77,22 +77,18 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::QueryInterface(REFIID riid, void** ppvObject) {
-    Logger::debug(">>> D3D7Interface::QueryInterface");
-
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
     InitReturnPtr(ppvObject);
 
     if (riid == __uuidof(IDirectDraw7)) {
-      Logger::debug("D3D7Interface::QueryInterface: Query for IDirectDraw7");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     // Some games query for legacy ddraw interfaces
     if (unlikely(riid == __uuidof(IDirectDraw)
               || riid == __uuidof(IDirectDraw2)
               || riid == __uuidof(IDirectDraw4))) {
-      Logger::debug("D3D7Interface::QueryInterface: Query for legacy IDirectDraw");
       return m_parent->QueryInterface(riid, ppvObject);
     }
 
@@ -108,8 +104,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK7 cb, void *ctx) {
-    Logger::debug(">>> D3D7Interface::EnumDevices");
-
     if (unlikely(cb == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -170,17 +164,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::CreateDevice(REFCLSID rclsid, IDirectDrawSurface7 *surface, IDirect3DDevice7 **ppd3dDevice) {
-    Logger::debug(">>> D3D7Interface::CreateDevice");
-
     if (unlikely(ppd3dDevice == nullptr))
       return DDERR_INVALIDPARAMS;
 
     InitReturnPtr(ppd3dDevice);
 
-    if (unlikely(surface == nullptr)) {
-      Logger::err("D3D7Interface::CreateDevice: Null surface provided");
+    if (unlikely(surface == nullptr))
       return DDERR_INVALIDPARAMS;
-    }
 
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
@@ -250,7 +240,6 @@ namespace dxvk {
         if ((modeSize->width  && modeSize->width  < desc.dwWidth)
          || (modeSize->height && modeSize->height < desc.dwHeight)) {
           Logger::info("D3D7Interface::CreateDevice: Enforcing mode dimensions");
-
           backBufferWidth  = modeSize->width;
           BackBufferHeight = modeSize->height;
         }
@@ -339,8 +328,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::CreateVertexBuffer(D3DVERTEXBUFFERDESC *desc, IDirect3DVertexBuffer7 **ppVertexBuffer, DWORD usage) {
-    Logger::debug(">>> D3D7Interface::CreateVertexBuffer");
-
     if (unlikely(desc == nullptr || ppVertexBuffer == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -352,8 +339,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext) {
-    Logger::debug(">>> D3D7Interface::EnumZBufferFormats");
-
     if (unlikely(lpEnumCallback == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -398,8 +383,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::EvictManagedTextures() {
-    Logger::debug(">>> D3D7Interface::EvictManagedTextures");
-
     HRESULT hr = m_proxy->EvictManagedTextures();
     if (unlikely(FAILED(hr)))
       return hr;

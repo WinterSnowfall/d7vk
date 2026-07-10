@@ -53,8 +53,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::QueryInterface(REFIID riid, void** ppvObject) {
-    Logger::debug(">>> DDraw2Interface::QueryInterface");
-
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
@@ -62,22 +60,15 @@ namespace dxvk {
 
     // Standard way of retrieving a D3D5 interface
     if (riid == __uuidof(IDirect3D2)) {
-      if (m_commonIntf->GetDDInterface() != nullptr) {
-        Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D2");
+      if (m_commonIntf->GetDDInterface() != nullptr)
         return m_commonIntf->GetDDInterface()->QueryInterface(riid, ppvObject);
-      }
 
-      Logger::warn("DDraw2Interface::QueryInterface: Query for IDirect3D2");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
     // Some games query for legacy DDraw interfaces
     if (unlikely(riid == __uuidof(IDirectDraw))) {
-      if (m_commonIntf->GetDDInterface() != nullptr) {
-        Logger::debug("DDraw2Interface::QueryInterface: Query for existing IDirectDraw");
+      if (m_commonIntf->GetDDInterface() != nullptr)
         return m_commonIntf->GetDDInterface()->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirectDraw");
 
       Com<IDirectDraw> ppvProxyObject;
       HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
@@ -90,12 +81,8 @@ namespace dxvk {
     }
     // Legacy way of getting a DDraw4 interface
     if (riid == __uuidof(IDirectDraw4)) {
-      if (m_commonIntf->GetDD4Interface() != nullptr) {
-        Logger::debug("DDraw2Interface::QueryInterface: Query for existing IDirectDraw4");
+      if (m_commonIntf->GetDD4Interface() != nullptr)
         return m_commonIntf->GetDD4Interface()->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirectDraw4");
 
       Com<IDirectDraw4> ppvProxyObject;
       HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
@@ -108,12 +95,8 @@ namespace dxvk {
     }
     // Legacy way of getting a DDraw7 interface
     if (unlikely(riid == __uuidof(IDirectDraw7))) {
-      if (m_commonIntf->GetDD7Interface() != nullptr) {
-        Logger::debug("DDraw2Interface::QueryInterface: Query for existing IDirectDraw7");
+      if (m_commonIntf->GetDD7Interface() != nullptr)
         return m_commonIntf->GetDD7Interface()->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirectDraw7");
 
       Com<IDirectDraw7> ppvProxyObject;
       HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
@@ -126,12 +109,8 @@ namespace dxvk {
     }
     // Standard way of retrieving a D3D3 interface
     if (unlikely(riid == __uuidof(IDirect3D))) {
-      if (m_commonIntf->GetDDInterface() != nullptr) {
-        Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D");
+      if (m_commonIntf->GetDDInterface() != nullptr)
         return m_commonIntf->GetDDInterface()->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D");
 
       Com<D3D3Interface> d3d3Intf = new D3D3Interface(nullptr, m_commonIntf.ptr(), this);
       m_commonIntf->SetD3D3Interface(d3d3Intf.ptr());
@@ -141,12 +120,8 @@ namespace dxvk {
     }
     // Standard way of retrieving a D3D5 interface
     if (unlikely(riid == __uuidof(IDirect3D2))) {
-      if (m_commonIntf->GetDDInterface() != nullptr) {
-        Logger::debug("DDraw2Interface::QueryInterface: Forwarded query for IDirect3D2");
+      if (m_commonIntf->GetDDInterface() != nullptr)
         return m_commonIntf->GetDDInterface()->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D2");
 
       Com<D3D5Interface> d3d5Intf = new D3D5Interface(nullptr, m_commonIntf.ptr(), this);
       *ppvObject = d3d5Intf.ref();
@@ -155,8 +130,6 @@ namespace dxvk {
     }
     // Standard way of retrieving a D3D6 interface
     if (unlikely(riid == __uuidof(IDirect3D3))) {
-      Logger::debug("DDraw2Interface::QueryInterface: Query for IDirect3D3");
-
       Com<IDirect3D3> ppvProxyObject;
       HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
       if (unlikely(FAILED(hr)))
@@ -169,12 +142,10 @@ namespace dxvk {
     }
     // Quite a lot of games query for this IID during intro playback
     if (unlikely(riid == GUID_IAMMediaStream)) {
-      Logger::debug("DDraw2Interface::QueryInterface: Query for IAMMediaStream");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
     // Also seen queried by some games, such as V-Rally 2: Expert Edition
     if (unlikely(riid == GUID_IMediaStream)) {
-      Logger::debug("DDraw2Interface::QueryInterface: Query for IMediaStream");
       return m_proxy->QueryInterface(riid, ppvObject);
     }
 
@@ -191,13 +162,10 @@ namespace dxvk {
 
   // The documentation states: "The IDirectDraw2::Compact method is not currently implemented."
   HRESULT STDMETHODCALLTYPE DDraw2Interface::Compact() {
-    Logger::debug(">>> DDraw2Interface::Compact");
-    return DD_OK;
+    return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
-    Logger::debug(">>> DDraw2Interface::CreateClipper");
-
     if (unlikely(lplpDDClipper == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -205,10 +173,8 @@ namespace dxvk {
 
     Com<IDirectDrawClipper> lplpDDClipperProxy;
     HRESULT hr = m_proxy->CreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
-    if (unlikely(FAILED(hr))) {
-      Logger::warn("DDraw2Interface::CreateClipper: Failed to create proxy clipper");
+    if (unlikely(FAILED(hr)))
       return hr;
-    }
 
     *lplpDDClipper = ref(new DDrawClipper(m_commonIntf.ptr(), std::move(lplpDDClipperProxy), this));
 
@@ -216,8 +182,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpColorTable, LPDIRECTDRAWPALETTE *lplpDDPalette, IUnknown *pUnkOuter) {
-    Logger::debug(">>> DDraw2Interface::CreatePalette");
-
     if (unlikely(lplpDDPalette == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -225,10 +189,8 @@ namespace dxvk {
 
     Com<IDirectDrawPalette> lplpDDPaletteProxy;
     HRESULT hr = m_proxy->CreatePalette(dwFlags, lpColorTable, &lplpDDPaletteProxy, pUnkOuter);
-    if (unlikely(FAILED(hr))) {
-      Logger::warn("DDraw2Interface::CreatePalette: Failed to create proxy palette");
+    if (unlikely(FAILED(hr)))
       return hr;
-    }
 
     // Palettes created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
     *lplpDDPalette = ref(new DDrawPalette(std::move(lplpDDPaletteProxy), nullptr));
@@ -237,8 +199,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE *lplpDDSurface, IUnknown *pUnkOuter) {
-    Logger::debug(">>> DDraw2Interface::CreateSurface");
-
     // The cooperative level is always checked first
     if (unlikely(!m_commonIntf->IsCooperativeLevelSet()))
       return DDERR_NOCOOPERATIVELEVELSET;
@@ -300,10 +260,8 @@ namespace dxvk {
     Com<IDirectDrawSurface> ddrawSurfaceProxied;
     hr = m_proxy->CreateSurface(lpDDSurfaceDesc, &ddrawSurfaceProxied, pUnkOuter);
     // Some games simply try creating surfaces with various formats until something works...
-    if (unlikely(FAILED(hr))) {
-      Logger::debug("DDraw2Interface::CreateSurface: Failed to create proxy surface");
+    if (unlikely(FAILED(hr)))
       return hr;
-    }
 
     try{
       // Surfaces created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
@@ -353,8 +311,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::DuplicateSurface(LPDIRECTDRAWSURFACE lpDDSurface, LPDIRECTDRAWSURFACE *lplpDupDDSurface) {
-    Logger::debug("<<< DDraw2Interface::DuplicateSurface: Proxy");
-
     if (unlikely(lpDDSurface == nullptr || lplpDupDDSurface == nullptr))
       return DDERR_CANTDUPLICATE;
 
@@ -384,23 +340,19 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK lpEnumModesCallback) {
-    Logger::debug("<<< DDraw2Interface::EnumDisplayModes: Proxy");
     return m_proxy->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSD, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback) {
     if (unlikely(m_commonIntf->GetDDInterface() == nullptr)) {
-      Logger::warn("!!! DDraw2Interface::EnumSurfaces: Stub");
+      Logger::err("DDraw2Interface::EnumSurfaces: Found no valid parent interface");
       return DDERR_UNSUPPORTED;
     }
 
-    Logger::warn(">>> DDraw2Interface::EnumSurfaces");
     return m_commonIntf->GetDDInterface()->EnumSurfaces(dwFlags, lpDDSD, lpContext, lpEnumSurfacesCallback);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::FlipToGDISurface() {
-    Logger::debug("*** DDraw2Interface::FlipToGDISurface: Ignoring");
-
     DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();
 
     // A primary surface must exist for a GDI flip to be possible
@@ -414,8 +366,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps) {
-    Logger::debug("<<< DDraw2Interface::GetCaps: Proxy");
-
     if (unlikely(lpDDDriverCaps == nullptr && lpDDHELCaps == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -442,8 +392,6 @@ namespace dxvk {
 
     D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
     if (likely(commonDevice != nullptr)) {
-      Logger::debug("DDraw2Interface::GetCaps: Getting memory stats from D3D9");
-
       d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
 
       total9 = static_cast<DWORD>(commonDevice->GetTotalTextureMemory());
@@ -455,16 +403,14 @@ namespace dxvk {
         free9 = free9 > delta + ReservedMemory ? free9 - (delta + ReservedMemory) : 0;
       }
 
-      Logger::debug(str::format("DDraw2Interface::GetCaps: Total: ", total9));
-      Logger::debug(str::format("DDraw2Interface::GetCaps: Free : ", free9));
+      //Logger::debug(str::format("DDraw2Interface::GetCaps: Total: ", total9));
+      //Logger::debug(str::format("DDraw2Interface::GetCaps: Free : ", free9));
     } else {
-      Logger::debug("DDraw2Interface::GetCaps: Getting memory stats from DDraw");
-
       const DWORD total5 = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemTotal : 0;
       const DWORD free5  = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemFree  : 0;
 
-      Logger::debug(str::format("DDraw2Interface::GetCaps: DDraw Total: ", total5));
-      Logger::debug(str::format("DDraw2Interface::GetCaps: DDraw Free : ", free5));
+      //Logger::debug(str::format("DDraw2Interface::GetCaps: DDraw Total: ", total5));
+      //Logger::debug(str::format("DDraw2Interface::GetCaps: DDraw Free : ", free5));
 
       if (unlikely(total5 < MaxMemory)) {
         total9 = total5;
@@ -475,8 +421,8 @@ namespace dxvk {
         free9 = free5 > delta + ReservedMemory ? free5 - (delta + ReservedMemory) : 0;
       }
 
-      Logger::debug(str::format("DDraw2Interface::GetCaps: Total: ", total9));
-      Logger::debug(str::format("DDraw2Interface::GetCaps: Free : ", free9));
+      //Logger::debug(str::format("DDraw2Interface::GetCaps: Total: ", total9));
+      //Logger::debug(str::format("DDraw2Interface::GetCaps: Free : ", free9));
     }
 
     if (lpDDDriverCaps != nullptr) {
@@ -496,8 +442,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetDisplayMode(LPDDSURFACEDESC lpDDSurfaceDesc) {
-    Logger::debug("<<< DDraw2Interface::GetDisplayMode: Proxy");
-
     if (unlikely(lpDDSurfaceDesc == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -514,8 +458,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes) {
-    Logger::debug(">>> DDraw2Interface::GetFourCCCodes");
-
     if (likely(lpNumCodes != nullptr && lpCodes != nullptr)) {
       const uint32_t copyNumCodes = std::min<uint32_t>(ddrawCaps::NumberOfFOURCCCodes, *lpNumCodes);
       for (uint32_t i = 0; i < copyNumCodes; i++) {
@@ -530,8 +472,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetGDISurface(LPDIRECTDRAWSURFACE *lplpGDIDDSurface) {
-    Logger::debug("<<< DDraw2Interface::GetGDISurface: Proxy");
-
     if (unlikely(lplpGDIDDSurface == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -539,16 +479,12 @@ namespace dxvk {
 
     Com<IDirectDrawSurface> gdiSurface;
     HRESULT hr = m_proxy->GetGDISurface(&gdiSurface);
-
-    if (unlikely(FAILED(hr))) {
-      Logger::debug("DDraw2Interface::GetGDISurface: Failed to retrieve GDI surface");
+    if (unlikely(FAILED(hr)))
       return hr;
-    }
 
     if (unlikely(DDrawCommonInterface::IsWrappedSurface(gdiSurface.ptr()))) {
       *lplpGDIDDSurface = gdiSurface.ref();
     } else {
-      Logger::debug("DDraw2Interface::GetGDISurface: Received a non-wrapped GDI surface");
       try {
         *lplpGDIDDSurface = ref(new DDrawSurface(nullptr, std::move(gdiSurface),
                                                  m_commonIntf->GetDDInterface(), nullptr, false));
@@ -562,17 +498,14 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetMonitorFrequency(LPDWORD lpdwFrequency) {
-    Logger::debug("<<< DDraw2Interface::GetMonitorFrequency: Proxy");
     return m_proxy->GetMonitorFrequency(lpdwFrequency);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetScanLine(LPDWORD lpdwScanLine) {
-    Logger::debug("<<< DDraw2Interface::GetScanLine: Proxy");
     return m_proxy->GetScanLine(lpdwScanLine);
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetVerticalBlankStatus(LPBOOL lpbIsInVB) {
-    Logger::debug("<<< DDraw2Interface::GetVerticalBlankStatus: Proxy");
     return m_proxy->GetVerticalBlankStatus(lpbIsInVB);
   }
 
@@ -583,8 +516,6 @@ namespace dxvk {
   // On native DDraw the initial interface most likely gets reused. In practice,
   // applications that don't use IClassFactory won't call this, so keep it simple.
   HRESULT STDMETHODCALLTYPE DDraw2Interface::Initialize(GUID* lpGUID) {
-    Logger::debug(">>> DDraw2Interface::Initialize");
-
     if (unlikely(m_commonIntf->IsInitialized()))
       return DDERR_ALREADYINITIALIZED;
 
@@ -594,13 +525,10 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::RestoreDisplayMode() {
-    Logger::debug("<<< DDraw2Interface::RestoreDisplayMode: Proxy");
     return m_proxy->RestoreDisplayMode();
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
-    Logger::debug("<<< DDraw2Interface::SetCooperativeLevel: Proxy");
-
     // DDSCL_CREATEDEVICEWINDOW doesn't appear to behave properly in
     // Wine, so use the cached hWnd to set the device window instead
     if (unlikely((dwFlags & DDSCL_CREATEDEVICEWINDOW) && hWnd == nullptr
@@ -620,8 +548,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags) {
-    Logger::debug("<<< DDraw2Interface::SetDisplayMode: Proxy");
-
     Logger::debug(str::format("DDraw2Interface::SetDisplayMode: ", dwWidth, "x", dwHeight, ":", dwBPP, "@", dwRefreshRate));
 
     HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
@@ -654,8 +580,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent) {
-    Logger::debug(">>> DDraw2Interface::WaitForVerticalBlank");
-
     if (unlikely(dwFlags & DDWAITVB_BLOCKBEGINEVENT))
       return DDERR_UNSUPPORTED;
 
@@ -676,8 +600,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw2Interface::GetAvailableVidMem(LPDDSCAPS lpDDCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree) {
-    Logger::debug(">>> DDraw2Interface::GetAvailableVidMem");
-
     if (unlikely(lpdwTotal == nullptr && lpdwFree == nullptr))
       return DD_OK;
 
@@ -687,8 +609,6 @@ namespace dxvk {
 
     D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
     if (likely(commonDevice != nullptr)) {
-      Logger::debug("DDraw2Interface::GetAvailableVidMem: Getting memory stats from D3D9");
-
       d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
 
       DWORD total9 = static_cast<DWORD>(commonDevice->GetTotalTextureMemory());
@@ -700,8 +620,8 @@ namespace dxvk {
         free9 = free9 > delta + ReservedMemory ? free9 - (delta + ReservedMemory) : 0;
       }
 
-      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Total: ", total9));
-      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Free : ", free9));
+      //Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Total: ", total9));
+      //Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Free : ", free9));
 
       if (lpdwTotal != nullptr)
         *lpdwTotal = total9;
@@ -709,8 +629,6 @@ namespace dxvk {
         *lpdwFree  = free9;
 
     } else {
-      Logger::debug("DDraw2Interface::GetAvailableVidMem: Getting memory stats from DDraw");
-
       DWORD total5 = 0;
       DWORD free5  = 0;
 
@@ -724,8 +642,8 @@ namespace dxvk {
         return hr;
       }
 
-      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: DDraw Total: ", total5));
-      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: DDraw Free : ", free5));
+      //Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: DDraw Total: ", total5));
+      //Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: DDraw Free : ", free5));
 
       DWORD total9 = 0;
       DWORD free9  = 0;
@@ -739,8 +657,8 @@ namespace dxvk {
         free9 = free5 > delta + ReservedMemory ? free5 - (delta + ReservedMemory) : 0;
       }
 
-      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Total: ", total9));
-      Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Free : ", free9));
+      //Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Total: ", total9));
+      //Logger::debug(str::format("DDraw2Interface::GetAvailableVidMem: Free : ", free9));
 
       if (lpdwTotal != nullptr)
         *lpdwTotal = total9;

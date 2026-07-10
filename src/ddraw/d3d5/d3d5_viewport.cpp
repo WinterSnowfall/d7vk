@@ -78,8 +78,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::QueryInterface(REFIID riid, void** ppvObject) {
-    Logger::debug(">>> D3D5Viewport::QueryInterface");
-
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
@@ -87,12 +85,8 @@ namespace dxvk {
 
     // Some games query for legacy viewport interfaces
     if (unlikely(riid == __uuidof(IDirect3DViewport))) {
-      if (m_commonViewport->GetD3D3Viewport() != nullptr) {
-        Logger::debug("D3D5Viewport::QueryInterface: Query for existing IDirect3DViewport");
+      if (m_commonViewport->GetD3D3Viewport() != nullptr)
         return m_commonViewport->GetD3D3Viewport()->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("D3D5Viewport::QueryInterface: Query for IDirect3DViewport");
 
       m_viewport3 = new D3D3Viewport(m_commonViewport.ptr(), nullptr);
       *ppvObject = m_viewport3.ref();
@@ -100,12 +94,8 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DViewport3))) {
-      if (m_commonViewport->GetD3D6Viewport() != nullptr) {
-        Logger::debug("D3D5Viewport::QueryInterface: Query for existing IDirect3DViewport3");
+      if (m_commonViewport->GetD3D6Viewport() != nullptr)
         return m_commonViewport->GetD3D6Viewport()->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("D3D5Viewport::QueryInterface: Query for IDirect3DViewport3");
 
       m_viewport6 = new D3D6Viewport(m_commonViewport.ptr(), nullptr);
       *ppvObject = m_viewport6.ref();
@@ -126,13 +116,10 @@ namespace dxvk {
 
   // Docs state: "The IDirect3DViewport2::Initialize method is not implemented."
   HRESULT STDMETHODCALLTYPE D3D5Viewport::Initialize(LPDIRECT3D lpDirect3D) {
-    Logger::debug(">>> D3D5Viewport::Initialize");
     return DDERR_ALREADYINITIALIZED;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::GetViewport(D3DVIEWPORT *data) {
-    Logger::debug(">>> D3D5Viewport::GetViewport");
-
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -163,8 +150,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::SetViewport(D3DVIEWPORT *data) {
-    Logger::debug(">>> D3D5Viewport::SetViewport");
-
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -212,12 +197,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::TransformVertices(DWORD vertex_count, D3DTRANSFORMDATA *data, DWORD flags, DWORD *offscreen) {
-    Logger::debug(">>> D3D5Viewport::TransformVertices");
-
-    if (unlikely(!m_commonViewport->HasDevice())) {
-      Logger::warn("D3D5Viewport::TransformVertices: Viewport isn't attached to a device");
+    if (unlikely(!m_commonViewport->HasDevice()))
       return D3DERR_VIEWPORTHASNODEVICE;
-    }
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetCommonD3DDevice()->GetD3D9Device();
 
@@ -245,13 +226,10 @@ namespace dxvk {
 
   // Docs state: "The IDirect3DViewport2::LightElements method is not currently implemented."
   HRESULT STDMETHODCALLTYPE D3D5Viewport::LightElements(DWORD element_count, D3DLIGHTDATA *data) {
-    Logger::warn(">>> D3D5Viewport::LightElements");
     return DDERR_UNSUPPORTED;
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::SetBackground(D3DMATERIALHANDLE hMat) {
-    Logger::debug(">>> D3D5Viewport::SetBackground");
-
     if (unlikely(m_commonViewport->GetMaterialHandle() == hMat))
       return D3D_OK;
 
@@ -268,8 +246,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::GetBackground(D3DMATERIALHANDLE *material, BOOL *valid) {
-    Logger::debug(">>> D3D5Viewport::GetBackground");
-
     if (unlikely(material == nullptr || valid == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -280,8 +256,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::SetBackgroundDepth(IDirectDrawSurface *surface) {
-    Logger::debug(">>> D3D5Viewport::SetBackgroundDepth");
-
     if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
       Logger::err("D3D5Viewport::SetBackgroundDepth: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
@@ -294,8 +268,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::GetBackgroundDepth(IDirectDrawSurface **surface, BOOL *valid) {
-    Logger::debug(">>> D3D5Viewport::GetBackgroundDepth");
-
     if (unlikely(surface == nullptr || valid == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -308,8 +280,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::Clear(DWORD count, D3DRECT *rects, DWORD flags) {
-    Logger::debug(">>> D3D5Viewport::Clear");
-
     if (unlikely(!m_commonViewport->HasDevice()))
       return D3DERR_VIEWPORTHASNODEVICE;
 
@@ -327,7 +297,7 @@ namespace dxvk {
       if (likely(rt != nullptr)) {
         // If this isn't a full surface clear, we need to first upload the DDraw surface
         if (unlikely(count > 1 || !rt->IsFullSurfaceLock(reinterpret_cast<RECT*>(rects), nullptr))) {
-          Logger::debug("D3D5Viewport::Clear: Partial render target clear");
+          //Logger::debug("D3D5Viewport::Clear: Partial render target clear");
           // Use a common surface helper, because we want to handle all
           // possible surface interfaces that may be alive at this time
           rt->InitializeOrUploadD3D9();
@@ -339,7 +309,7 @@ namespace dxvk {
       if (likely(ds != nullptr)) {
         // If this isn't a full surface clear, we need to first upload the DDraw surface
         if (unlikely(count > 1 || !ds->IsFullSurfaceLock(reinterpret_cast<RECT*>(rects), nullptr))) {
-          Logger::debug("D3D5Viewport::Clear: Partial depth stencil clear");
+          //Logger::debug("D3D5Viewport::Clear: Partial depth stencil clear");
           // Use a common surface helper, because we want to handle all
           // possible surface interfaces that may be alive at this time
           ds->InitializeOrUploadD3D9();
@@ -392,8 +362,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::AddLight(IDirect3DLight *light) {
-    Logger::debug(">>> D3D5Viewport::AddLight");
-
     if (unlikely(light == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -415,8 +383,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::DeleteLight(IDirect3DLight *light) {
-    Logger::debug(">>> D3D5Viewport::DeleteLight");
-
     if (unlikely(light == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -431,7 +397,7 @@ namespace dxvk {
     if (likely(it != lights.end())) {
       const DWORD lightIndex = d3dLight->GetIndex();
       if (m_commonViewport->HasDevice() && m_commonViewport->IsCurrentViewport() && d3dLight->IsActive()) {
-        Logger::debug(str::format("D3D5Viewport: Disabling light nr. ", lightIndex));
+        //Logger::debug(str::format("D3D5Viewport: Disabling light nr. ", lightIndex));
         d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetCommonD3DDevice()->GetD3D9Device();
         d3d9Device->LightEnable(lightIndex, FALSE);
       }
@@ -446,8 +412,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::NextLight(IDirect3DLight *lpDirect3DLight, IDirect3DLight **lplpDirect3DLight, DWORD flags) {
-    Logger::debug(">>> D3D5Viewport::NextLight");
-
     if (unlikely(lplpDirect3DLight == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -473,8 +437,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::GetViewport2(D3DVIEWPORT2 *data) {
-    Logger::debug(">>> D3D5Viewport::GetViewport2");
-
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -504,8 +466,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::SetViewport2(D3DVIEWPORT2 *data) {
-    Logger::debug(">>> D3D5Viewport::SetViewport2");
-
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -554,8 +514,6 @@ namespace dxvk {
     if (!m_commonViewport->IsViewportSet())
       return D3D_OK;
 
-    Logger::debug("D3D5Viewport: Applying viewport to D3D9");
-
     d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetCommonD3DDevice()->GetD3D9Device();
 
     HRESULT hr = d3d9Device->SetViewport(m_commonViewport->GetD3D9Viewport());
@@ -573,8 +531,6 @@ namespace dxvk {
     if (!lights.size())
       return D3D_OK;
 
-    Logger::debug("D3D5Viewport: Applying lights to D3D9");
-
     for (auto light: lights)
       ApplyAndActivateLight(light->GetIndex(), light.ptr());
 
@@ -587,14 +543,12 @@ namespace dxvk {
     if (!lights.size())
       return D3D_OK;
 
-    Logger::debug("D3D5Viewport: Deactivating D3D9 lights");
-
     d3d9::IDirect3DDevice9* d3d9Device = m_commonViewport->GetCommonD3DDevice()->GetD3D9Device();
 
     for (auto light: lights) {
       const DWORD lightIndex = light->GetIndex();
       if (m_commonViewport->HasDevice() && m_commonViewport->IsCurrentViewport() && light->IsActive()) {
-        Logger::debug(str::format("D3D5Viewport: Disabling light nr. ", lightIndex));
+        //Logger::debug(str::format("D3D5Viewport: Disabling light nr. ", lightIndex));
         d3d9Device->LightEnable(lightIndex, FALSE);
       }
     }
@@ -612,12 +566,12 @@ namespace dxvk {
     }
 
     if (light->IsActive()) {
-      Logger::debug(str::format("D3D5Viewport: Enabling D3D9 light nr. ", index));
+      //Logger::debug(str::format("D3D5Viewport: Enabling D3D9 light nr. ", index));
       hr = d3d9Device->LightEnable(index, TRUE);
       if (unlikely(FAILED(hr)))
         Logger::err("D3D5Viewport: Failed D3D9 LightEnable call (TRUE)");
     } else {
-      Logger::debug(str::format("D3D5Viewport: Disabling D3D9 light nr. ", index));
+      //Logger::debug(str::format("D3D5Viewport: Disabling D3D9 light nr. ", index));
       hr = d3d9Device->LightEnable(index, FALSE);
       if (unlikely(FAILED(hr)))
         Logger::err("D3D5Viewport: Failed D3D9 LightEnable call (FALSE)");

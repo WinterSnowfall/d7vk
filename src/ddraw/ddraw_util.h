@@ -443,7 +443,6 @@ namespace dxvk {
       if (unlikely(isOnePixelWider || isOnePixelTaller)) {
         Logger::debug("ValidateViewportRT: Viewport exceeds render target dimensions by one pixel");
       } else {
-        Logger::debug("ValidateViewportRT: Viewport exceeds render target dimensions");
         return DDERR_INVALIDPARAMS;
       }
     }

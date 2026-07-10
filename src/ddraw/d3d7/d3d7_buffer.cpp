@@ -37,8 +37,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::QueryInterface(REFIID riid, void** ppvObject) {
-    Logger::debug(">>> D3D7VertexBuffer::QueryInterface");
-
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
@@ -56,8 +54,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC lpVBDesc) {
-    Logger::debug(">>> D3D7VertexBuffer::GetVertexBufferDesc");
-
     if (unlikely(lpVBDesc == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -72,8 +68,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::Lock(DWORD flags, void **data, DWORD *data_size) {
-    Logger::debug(">>> D3D7VertexBuffer::Lock");
-
     if (unlikely(IsOptimized()))
       return D3DERR_VERTEXBUFFEROPTIMIZED;
 
@@ -102,8 +96,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::Unlock() {
-    Logger::debug(">>> D3D7VertexBuffer::Unlock");
-
     RefreshD3DDevice();
     if (unlikely(!IsInitialized())) {
       HRESULT hrInit = InitializeD3D9();
@@ -121,8 +113,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::ProcessVertices(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPDIRECT3DVERTEXBUFFER7 lpSrcBuffer, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags) {
-    Logger::debug(">>> D3D7VertexBuffer::ProcessVertices");
-
     if (unlikely(!dwCount))
       return D3D_OK;
 
@@ -261,8 +251,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::Optimize(LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags) {
-    Logger::debug(">>> D3D7VertexBuffer::Optimize");
-
     if (unlikely(lpD3DDevice == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -302,8 +290,6 @@ namespace dxvk {
       Logger::err("D3D7VertexBuffer::InitializeD3D9: Failed to create D3D9 vertex buffer");
       return hr;
     }
-
-    Logger::debug("D3D7VertexBuffer::InitializeD3D9: Created D3D9 vertex buffer");
 
     return D3D_OK;
   }

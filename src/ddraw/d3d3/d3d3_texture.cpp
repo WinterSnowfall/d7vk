@@ -45,44 +45,34 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Texture::QueryInterface(REFIID riid, void** ppvObject) {
-    Logger::debug(">>> D3D3Texture::QueryInterface");
-
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
     InitReturnPtr(ppvObject);
 
     if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
-      Logger::debug("D3D3Texture::QueryInterface: Query for IDirect3DTexture");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawGammaControl))) {
-      Logger::debug("D3D3Texture::QueryInterface: Query for IDirectDrawGammaControl");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
-      Logger::debug("D3D3Texture::QueryInterface: Query for IDirectDrawColorControl");
       return E_NOINTERFACE;
     }
     if (unlikely(riid == __uuidof(IUnknown)
               || riid == __uuidof(IDirectDrawSurface))) {
-      Logger::debug("D3D3Texture::QueryInterface: Query for IDirectDrawSurface");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface2))) {
-      Logger::debug("D3D3Texture::QueryInterface: Query for IDirectDrawSurface2");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface3))) {
-      Logger::debug("D3D3Texture::QueryInterface: Query for IDirectDrawSurface3");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface4))) {
-      Logger::debug("D3D3Texture::QueryInterface: Query for IDirectDrawSurface4");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     if (unlikely(riid == __uuidof(IDirectDrawSurface7))) {
-      Logger::debug("D3D3Texture::QueryInterface: Query for IDirectDrawSurface7");
       return m_parent->QueryInterface(riid, ppvObject);
     }
 
@@ -98,8 +88,6 @@ namespace dxvk {
 
   // Frogger gets texture handles from IDirect3DTexture objects and uses them in calls on a IDirect3DDevice2
   HRESULT STDMETHODCALLTYPE D3D3Texture::GetHandle(LPDIRECT3DDEVICE lpDirect3DDevice, LPD3DTEXTUREHANDLE lpHandle) {
-    Logger::debug(">>> D3D3Texture::GetHandle");
-
     if (unlikely(lpDirect3DDevice == nullptr || lpHandle == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -109,7 +97,6 @@ namespace dxvk {
       // The Sims tries to get a handle from a surface which wasn't created with the DDSCAPS_TEXTURE flag,
       // so manually flag it as a texture before we initialize its D3D9 object
       if (likely(!commonSurf->IsInitialized())) {
-        Logger::debug("D3D3Texture::GetHandle: Parent surface isn't a texture");
         m_commonTex->GetCommonSurface()->MarkWithTextureHandle();
       // If for some reason this happens after it's initialized, there's nothing we can do but log an error
       } else {
@@ -131,13 +118,10 @@ namespace dxvk {
   // Docs state: "This method only affects the legacy ramp device.
   // For all other devices, this method takes no action and returns D3D_OK."
   HRESULT STDMETHODCALLTYPE D3D3Texture::PaletteChanged(DWORD dwStart, DWORD dwCount) {
-    Logger::debug(">>> D3D3Texture::PaletteChanged");
     return D3D_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Texture::Load(LPDIRECT3DTEXTURE lpD3DTexture) {
-    Logger::debug("<<< D3D3Texture::Load: Proxy");
-
     Com<D3D3Texture> d3d3Texture = static_cast<D3D3Texture*>(lpD3DTexture);
 
     // Note: Will not work if IDirect3DTexture is queried directly
@@ -167,13 +151,11 @@ namespace dxvk {
 
   // Docs state: "Returns DDERR_ALREADYINITIALIZED because the Direct3DTexture object is initialized when it is created."
   HRESULT STDMETHODCALLTYPE D3D3Texture::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIRECTDRAWSURFACE lpDDSurface) {
-    Logger::debug(">>> D3D3Texture::Initialize");
     return DDERR_ALREADYINITIALIZED;
   }
 
   // Nothing to do here, this isn't managed texture unloading
   HRESULT STDMETHODCALLTYPE D3D3Texture::Unload() {
-    Logger::debug(">>> D3D3Texture::Unload");
     return D3D_OK;
   }
 

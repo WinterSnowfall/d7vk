@@ -10,7 +10,7 @@ namespace dxvk {
     : DDrawChildObject<D3D3Device, IDirect3DExecuteBuffer>(pParent) {
     if (likely(pDesc->dwFlags & D3DDEB_BUFSIZE)) {
       m_buffer.resize(pDesc->dwBufferSize);
-      Logger::debug(str::format("D3D3ExecuteBuffer: Buffer is initialized with size ", pDesc->dwBufferSize));
+      Logger::debug(str::format("D3D3ExecuteBuffer: Buffer is initialized with size: ", pDesc->dwBufferSize));
     } else {
       Logger::warn("D3D3ExecuteBuffer: No buffer size specified during initialization");
     }
@@ -25,8 +25,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::QueryInterface(REFIID riid, void** ppvObject) {
-    Logger::debug(">> D3D3ExecuteBuffer::QueryInterface");
-
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
@@ -49,8 +47,6 @@ namespace dxvk {
     if (unlikely(m_executed))
       lock = m_parent->LockDevice();
 
-    Logger::debug(">>> D3D3ExecuteBuffer::GetExecuteData");
-
     if (unlikely(lpData == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -65,7 +61,6 @@ namespace dxvk {
   // Docs state: "Returns DDERR_ALREADYINITIALIZED because the
   // Direct3DExecuteBuffer object is initialized when it is created."
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPD3DEXECUTEBUFFERDESC lpDesc) {
-    Logger::debug(">>> D3D3ExecuteBuffer::Initialize");
     return DDERR_ALREADYINITIALIZED;
   }
 
@@ -74,8 +69,6 @@ namespace dxvk {
 
     if (unlikely(m_executed))
       lock = m_parent->LockDevice();
-
-    Logger::debug(">>> D3D3ExecuteBuffer::Lock");
 
     if (unlikely(lpDesc == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -97,7 +90,6 @@ namespace dxvk {
 
   // Docs state: "Not currently implemented."
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::Optimize(DWORD dwUnknown) {
-    Logger::debug(">>> D3D3ExecuteBuffer::Optimize");
     return DDERR_UNSUPPORTED;
   }
 
@@ -106,8 +98,6 @@ namespace dxvk {
 
     if (unlikely(m_executed))
       lock = m_parent->LockDevice();
-
-    Logger::debug(">>> D3D3ExecuteBuffer::SetExecuteData");
 
     if (unlikely(lpData == nullptr || m_buffer.size() == 0))
       return DDERR_INVALIDPARAMS;
@@ -129,8 +119,6 @@ namespace dxvk {
     if (unlikely(m_executed))
       lock = m_parent->LockDevice();
 
-    Logger::debug(">>> D3D3ExecuteBuffer::Unlock");
-
     if (unlikely(!m_locked))
       return D3DERR_EXECUTE_NOT_LOCKED;
 
@@ -141,7 +129,6 @@ namespace dxvk {
 
   // Docs state: "Not currently implemented."
   HRESULT STDMETHODCALLTYPE D3D3ExecuteBuffer::Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALLBACK lpFunc, LPVOID lpUserArg, DWORD dwReserved) {
-    Logger::debug(">>> D3D3ExecuteBuffer::Validate");
     return DDERR_UNSUPPORTED;
   }
 

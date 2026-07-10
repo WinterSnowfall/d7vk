@@ -495,10 +495,9 @@ namespace dxvk {
       Logger::debug(str::format("   IsComplex:   ", IsComplex() ? "yes" : "no"));
       Logger::debug(str::format("   HasMipMaps:  ", mipMapCount ? "yes" : "no"));
       Logger::debug(str::format("   IsAttached:  ", IsAttached() ? "yes" : "no"));
+      Logger::debug(str::format("   ColorKey:    ", HasColorKey() ? "yes" : "no"));
       if (IsFrontBuffer())
         Logger::debug(str::format("   BackBuffers: ", backBuferCount));
-      if (HasColorKey())
-        Logger::debug(str::format("   ColorKey:    ", GetColorKey()->dwColorSpaceLowValue));
     }
 
   private:

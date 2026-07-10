@@ -82,29 +82,21 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Interface::QueryInterface(REFIID riid, void** ppvObject) {
-    Logger::debug(">>> D3D5Interface::QueryInterface");
-
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
     InitReturnPtr(ppvObject);
 
     if (riid == __uuidof(IDirectDraw)) {
-      Logger::debug("D3D5Interface::QueryInterface: Query for IDirectDraw");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     if (riid == __uuidof(IDirectDraw2)) {
-      Logger::debug("D3D5Interface::QueryInterface: Query for IDirectDraw2");
       return m_parent->QueryInterface(riid, ppvObject);
     }
     // Some games query for legacy D3D interfaces
     if (unlikely(riid == __uuidof(IDirect3D))) {
-      if (m_commonD3DIntf->GetD3D3Interface() != nullptr) {
-        Logger::debug("D3D5Interface::QueryInterface: Query for existing IDirect3D");
+      if (m_commonD3DIntf->GetD3D3Interface() != nullptr)
         return m_commonD3DIntf->GetD3D3Interface()->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("D3D5Interface::QueryInterface: Query for IDirect3D");
 
       m_d3d3Intf = new D3D3Interface(m_commonD3DIntf.ptr(), m_commonIntf, m_parent);
       m_commonIntf->SetD3D3Interface(m_d3d3Intf.ptr());
@@ -113,12 +105,8 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3D3))) {
-      if (m_commonD3DIntf->GetD3D6Interface() != nullptr) {
-        Logger::debug("D3D5Interface::QueryInterface: Query for existing IDirect3D3");
+      if (m_commonD3DIntf->GetD3D6Interface() != nullptr)
         return m_commonD3DIntf->GetD3D6Interface()->QueryInterface(riid, ppvObject);
-      }
-
-      Logger::debug("D3D5Interface::QueryInterface: Query for IDirect3D3");
 
       // We don't have a proxied object on D3D5Interface, so use the parent
       // DDraw interface to get a proxied object for the queried D3D6Interface
@@ -145,8 +133,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Interface::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg) {
-    Logger::debug(">>> D3D5Interface::EnumDevices");
-
     if (unlikely(lpEnumDevicesCallback == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -264,8 +250,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Interface::CreateLight(LPDIRECT3DLIGHT *lplpDirect3DLight, IUnknown *pUnkOuter) {
-    Logger::debug(">>> D3D5Interface::CreateLight");
-
     if (unlikely(lplpDirect3DLight == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -277,8 +261,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Interface::CreateMaterial(LPDIRECT3DMATERIAL2 *lplpDirect3DMaterial, IUnknown *pUnkOuter) {
-    Logger::debug(">>> D3D5Interface::CreateMaterial");
-
     if (unlikely(lplpDirect3DMaterial == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -290,8 +272,6 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Interface::CreateViewport(LPDIRECT3DVIEWPORT2 *lplpD3DViewport, IUnknown *pUnkOuter) {
-    Logger::debug(">>> D3D5Interface::CreateViewport");
-
     InitReturnPtr(lplpD3DViewport);
 
     *lplpD3DViewport = ref(new D3D5Viewport(nullptr, this));
@@ -301,8 +281,6 @@ namespace dxvk {
 
   // Minimal implementation which should suffice in most cases
   HRESULT STDMETHODCALLTYPE D3D5Interface::FindDevice(D3DFINDDEVICESEARCH *lpD3DFDS, D3DFINDDEVICERESULT *lpD3DFDR) {
-    Logger::debug(">>> D3D5Interface::FindDevice");
-
     if (unlikely(lpD3DFDS == nullptr || lpD3DFDR == nullptr))
       return DDERR_INVALIDPARAMS;
 
@@ -346,17 +324,13 @@ namespace dxvk {
     lpD3DFRD2.dwSize = sizeof(D3DFINDDEVICERESULT2);
 
     if (lpD3DFDS->dwFlags & D3DFDS_GUID) {
-      Logger::debug("D3D5Interface::FindDevice: Matching by device GUID");
-
       if (lpD3DFDS->guid == IID_IDirect3DRGBDevice ||
           lpD3DFDS->guid == IID_IDirect3DMMXDevice ||
           lpD3DFDS->guid == IID_IDirect3DRampDevice) {
-        Logger::debug("D3D5Interface::FindDevice: Matched IID_IDirect3DRGBDevice");
         lpD3DFRD2.guid = IID_IDirect3DRGBDevice;
         lpD3DFRD2.ddHwDesc = descRGB_HAL;
         lpD3DFRD2.ddSwDesc = descRGB_HEL;
       } else if (lpD3DFDS->guid == IID_IDirect3DHALDevice) {
-        Logger::debug("D3D5Interface::FindDevice: Matched IID_IDirect3DHALDevice");
         lpD3DFRD2.guid = IID_IDirect3DHALDevice;
         lpD3DFRD2.ddHwDesc = descHAL_HAL;
         lpD3DFRD2.ddSwDesc = descHAL_HEL;
@@ -367,15 +341,11 @@ namespace dxvk {
 
       memcpy(lpD3DFDR, &lpD3DFRD2, sizeof(D3DFINDDEVICERESULT2));
     } else if (lpD3DFDS->dwFlags & D3DFDS_HARDWARE) {
-      Logger::debug("D3D5Interface::FindDevice: Matching by hardware flag");
-
       if (likely(lpD3DFDS->bHardware == TRUE)) {
-        Logger::debug("D3D5Interface::FindDevice: Matched IID_IDirect3DHALDevice");
         lpD3DFRD2.guid = IID_IDirect3DHALDevice;
         lpD3DFRD2.ddHwDesc = descHAL_HAL;
         lpD3DFRD2.ddSwDesc = descHAL_HEL;
       } else {
-        Logger::debug("D3D5Interface::FindDevice: Matched IID_IDirect3DRGBDevice");
         lpD3DFRD2.guid = IID_IDirect3DRGBDevice;
         lpD3DFRD2.ddHwDesc = descRGB_HAL;
         lpD3DFRD2.ddSwDesc = descRGB_HEL;
@@ -383,18 +353,12 @@ namespace dxvk {
 
       memcpy(lpD3DFDR, &lpD3DFRD2, sizeof(D3DFINDDEVICERESULT2));
     } else if (lpD3DFDS->dwFlags & D3DFDS_COLORMODEL) {
-      Logger::debug("D3D5Interface::FindDevice: Matching by color model");
-
-      Logger::debug("D3D5Interface::FindDevice: Matched IID_IDirect3DHALDevice");
       lpD3DFRD2.guid = IID_IDirect3DHALDevice;
       lpD3DFRD2.ddHwDesc = descHAL_HAL;
       lpD3DFRD2.ddSwDesc = descHAL_HEL;
 
       memcpy(lpD3DFDR, &lpD3DFRD2, sizeof(D3DFINDDEVICERESULT2));
     } else if (lpD3DFDS->dwFlags == 0) {
-      Logger::debug("D3D5Interface::FindDevice: No matching criteria specified");
-
-      Logger::debug("D3D5Interface::FindDevice: Matched IID_IDirect3DHALDevice");
       lpD3DFRD2.guid = IID_IDirect3DHALDevice;
       lpD3DFRD2.ddHwDesc = descHAL_HAL;
       lpD3DFRD2.ddSwDesc = descHAL_HEL;
@@ -409,17 +373,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Interface::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE lpDDS, LPDIRECT3DDEVICE2 *lplpD3DDevice) {
-    Logger::debug(">>> D3D5Interface::CreateDevice");
-
     if (unlikely(lplpD3DDevice == nullptr))
       return DDERR_INVALIDPARAMS;
 
     InitReturnPtr(lplpD3DDevice);
 
-    if (unlikely(lpDDS == nullptr)) {
-      Logger::err("D3D5Interface::CreateDevice: Null surface provided");
+    if (unlikely(lpDDS == nullptr))
       return DDERR_INVALIDPARAMS;
-    }
 
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
@@ -459,7 +419,6 @@ namespace dxvk {
     if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDS))) {
       // Nightmare Creatures passes an IDirectDrawSurface3 surface as RT
       if (unlikely(DDrawCommonInterface::IsWrappedSurface(reinterpret_cast<IDirectDrawSurface3*>(lpDDS)))) {
-        Logger::debug("D3D5Interface::CreateDevice: IDirectDrawSurface3 surface passed as RT");
         DDraw3Surface* ddraw3Surface = reinterpret_cast<DDraw3Surface*>(lpDDS);
         // A DDrawSurface usually exists, because a DDraw3Surface is obtained from it via
         // QueryInterface, however the passed surface can be obtained by GetAttachedSurface() calls
@@ -507,7 +466,6 @@ namespace dxvk {
         if ((modeSize->width  && modeSize->width  < desc.dwWidth)
          || (modeSize->height && modeSize->height < desc.dwHeight)) {
           Logger::info("D3D5Interface::CreateDevice: Enforcing mode dimensions");
-
           backBufferWidth  = modeSize->width;
           BackBufferHeight = modeSize->height;
         }

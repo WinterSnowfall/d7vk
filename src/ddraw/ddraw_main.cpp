@@ -102,11 +102,8 @@ namespace dxvk {
 
       LPVOID lplpDDProxied = nullptr;
       HRESULT hr = ProxiedDirectDrawCreateEx(lpGUID, &lplpDDProxied, iid, pUnkOuter);
-
-      if (unlikely(FAILED(hr))) {
-        Logger::warn("CreateDirectDrawEx: Failed call to proxied interface");
+      if (unlikely(FAILED(hr)))
         return hr;
-      }
 
       Com<IDirectDraw7> DDraw7IntfProxied = static_cast<IDirectDraw7*>(lplpDDProxied);
       *lplpDD = ref(new DDraw7Interface(nullptr, std::move(DDraw7IntfProxied)));
@@ -146,11 +143,8 @@ namespace dxvk {
 
       LPVOID lplpDDProxied = nullptr;
       HRESULT hr = ProxiedDirectDrawCreate(lpGUID, &lplpDDProxied, pUnkOuter);
-
-      if (unlikely(FAILED(hr))) {
-        Logger::warn("CreateDirectDraw: Failed call to proxied interface");
+      if (unlikely(FAILED(hr)))
         return hr;
-      }
 
       Com<IDirectDraw> DDrawIntfProxied = static_cast<IDirectDraw*>(lplpDDProxied);
       *lplpDD = ref(new DDrawInterface(nullptr, std::move(DDrawIntfProxied)));
@@ -189,11 +183,8 @@ namespace dxvk {
 
     Com<IDirectDrawClipper> lplpDDClipperProxy;
     HRESULT hr = ProxiedDirectDrawCreateClipper(dwFlags, &lplpDDClipperProxy, pUnkOuter);
-
-    if (unlikely(FAILED(hr))) {
-      Logger::warn("DirectDrawCreateClipper: Failed call to proxied interface");
+    if (unlikely(FAILED(hr)))
       return hr;
-    }
 
     *lplpDDClipper = ref(new DDrawClipper(nullptr, std::move(lplpDDClipperProxy), nullptr));
 
@@ -201,8 +192,6 @@ namespace dxvk {
   }
 
   HRESULT ClassFactoryCreateDirectDraw(IUnknown *pUnkOuter, REFIID riid, void **ppvObject) {
-    Logger::debug(">>> ClassFactoryCreateDirectDraw");
-
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
@@ -219,7 +208,6 @@ namespace dxvk {
     // ClassFactoryCreateDirectDraw can be used to construct objects
     // ranging from IDirectDraw to IDirectDraw2 and IDirectDraw4
     if (riid == __uuidof(IDirectDraw)) {
-      Logger::debug(">>> ClassFactoryCreateDirectDraw: Returning IDirectDraw");
       *ppvObject = static_cast<void*>(ppvObjectProxy);
     } else if (riid == __uuidof(IDirectDraw2)) {
       void* directDraw2 = nullptr;
@@ -228,7 +216,6 @@ namespace dxvk {
         ppvObjectProxy->Release();
         return hr;
       }
-      Logger::debug(">>> ClassFactoryCreateDirectDraw: Returning IDirectDraw2");
       *ppvObject = directDraw2;
       ppvObjectProxy->Release();
     } else if (riid == __uuidof(IDirectDraw4)) {
@@ -238,13 +225,11 @@ namespace dxvk {
         ppvObjectProxy->Release();
         return hr;
       }
-      Logger::debug(">>> ClassFactoryCreateDirectDraw: Returning IDirectDraw4");
       *ppvObject = directDraw4;
       ppvObjectProxy->Release();
     // Apparently this also works, but I doubt is ever used in practice,
     // since IDirectDraw7 can be requested directly in DllGetClassObject
     } else if (riid == __uuidof(IDirectDraw7)) {
-      Logger::debug(">>> ClassFactoryCreateDirectDraw: Returning IDirectDraw7");
       ppvObjectProxy->Release();
       return CreateDirectDrawEx(NULL, ppvObject, riid, NULL);
     } else {
@@ -256,8 +241,6 @@ namespace dxvk {
   }
 
   HRESULT ClassFactoryCreateDirectDrawEx(IUnknown *pUnkOuter, REFIID riid, void **ppvObject) {
-    Logger::debug(">>> ClassFactoryCreateDirectDrawEx");
-
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
@@ -271,13 +254,10 @@ namespace dxvk {
       return CLASS_E_CLASSNOTAVAILABLE;
     }
 
-    Logger::debug(">>> ClassFactoryCreateDirectDrawEx: Returning IDirectDraw7");
     return CreateDirectDrawEx(NULL, ppvObject, riid, NULL);
   }
 
   HRESULT ClassFactoryCreateDirectDrawClipper(IUnknown *pUnkOuter, REFIID riid, void **ppvObject) {
-    Logger::debug(">>> ClassFactoryCreateDirectDrawClipper");
-
     if (unlikely(ppvObject == nullptr))
       return E_POINTER;
 
@@ -297,8 +277,6 @@ namespace dxvk {
 extern "C" {
 
   DLLEXPORT HRESULT __stdcall AcquireDDThreadLock() {
-    dxvk::Logger::debug("<<< AcquireDDThreadLock: Proxy");
-
     typedef HRESULT (__stdcall *AcquireDDThreadLock_t)();
     static AcquireDDThreadLock_t ProxiedAcquireDDThreadLock = nullptr;
 
@@ -352,24 +330,19 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawCreate(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuter) {
-    dxvk::Logger::debug(">>> DirectDrawCreate");
     return dxvk::CreateDirectDraw(lpGUID, lplpDD, pUnkOuter);
   }
 
   // Mostly unused, except for Sea Dogs (D3D6)
   DLLEXPORT HRESULT __stdcall DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter) {
-    dxvk::Logger::debug(">>> DirectDrawCreateClipper");
     return dxvk::CreateDirectDrawClipper(dwFlags, lplpDDClipper, pUnkOuter);
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawCreateEx(GUID *lpGUID, LPVOID *lplpDD, REFIID iid, IUnknown *pUnkOuter) {
-    dxvk::Logger::debug(">>> DirectDrawCreateEx");
     return dxvk::CreateDirectDrawEx(lpGUID, lplpDD, iid, pUnkOuter);
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext) {
-    dxvk::Logger::debug("<<< DirectDrawEnumerateA: Proxy");
-
     typedef HRESULT (__stdcall *DirectDrawEnumerateA_t)(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext);
     static DirectDrawEnumerateA_t ProxiedDirectDrawEnumerateA = nullptr;
 
@@ -393,8 +366,6 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID lpContext, DWORD dwFlags) {
-    dxvk::Logger::debug("<<< DirectDrawEnumerateExA: Proxy");
-
     typedef HRESULT (__stdcall *DirectDrawEnumerateExA_t)(LPDDENUMCALLBACKEXA lpCallback, LPVOID lpContext, DWORD dwFlags);
     static DirectDrawEnumerateExA_t ProxiedDirectDrawEnumerateExA = nullptr;
 
@@ -418,8 +389,6 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID lpContext, DWORD dwFlags) {
-    dxvk::Logger::debug("<<< DirectDrawEnumerateExW: Proxy");
-
     typedef HRESULT (__stdcall *DirectDrawEnumerateExW_t)(LPDDENUMCALLBACKEXW lpCallback, LPVOID lpContext, DWORD dwFlags);
     static DirectDrawEnumerateExW_t ProxiedDirectDrawEnumerateExW = nullptr;
 
@@ -443,8 +412,6 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext) {
-    dxvk::Logger::debug("<<< DirectDrawEnumerateW: Proxy");
-
     typedef HRESULT (__stdcall *DirectDrawEnumerateW_t)(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext);
     static DirectDrawEnumerateW_t ProxiedDirectDrawEnumerateW = nullptr;
 
@@ -468,8 +435,6 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall DllCanUnloadNow() {
-    dxvk::Logger::debug("<<< DllCanUnloadNow: Proxy");
-
     typedef HRESULT (__stdcall *DllCanUnloadNow_t)();
     static DllCanUnloadNow_t ProxiedDllCanUnloadNow = nullptr;
 
@@ -493,12 +458,10 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv) {
-    dxvk::Logger::debug(">>> DllGetClassObject");
-
     if (unlikely(ppv == nullptr))
       return E_POINTER;
 
-    dxvk::Logger::debug(dxvk::str::format("DllGetClassObject: Call for rclsid: ", rclsid));
+    //dxvk::Logger::debug(dxvk::str::format("DllGetClassObject: Call for rclsid: ", rclsid));
 
     if (unlikely(riid != __uuidof(IClassFactory) && riid != __uuidof(IUnknown)))
       return E_NOINTERFACE;
@@ -557,8 +520,6 @@ extern "C" {
   }
 
   DLLEXPORT HRESULT __stdcall ReleaseDDThreadLock() {
-    dxvk::Logger::debug("<<< ReleaseDDThreadLock: Proxy");
-
     typedef HRESULT (__stdcall *ReleaseDDThreadLock_t)();
     static ReleaseDDThreadLock_t ProxiedReleaseDDThreadLock = nullptr;
 
