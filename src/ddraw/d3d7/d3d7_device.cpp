@@ -385,9 +385,16 @@ namespace dxvk {
       }
     }
 
-    HRESULT hr = m_commonD3DDevice->GetD3D9Device()->Clear(count, rects, flags, color, static_cast<float>(z), stencil);
-    if (unlikely(FAILED(hr)))
-      return hr;
+    HRESULT hr = m_commonD3DDevice->GetD3D9Device()->Clear(count, rects, flags, color, z, stencil);
+    // Can fail in D3D9 only in case of a missing depth stencil surface
+    if (unlikely(FAILED(hr))) {
+      // Fix up expected return codes
+      if (flags & D3DCLEAR_ZBUFFER) {
+        return D3DERR_ZBUFFER_NOTPRESENT;
+      } else {
+        return D3DERR_STENCILBUFFER_NOTPRESENT;
+      }
+    }
 
     if (clearRenderTarget)
       m_rt->GetCommonSurface()->UnDirtyDDrawSurface();

@@ -282,12 +282,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Viewport::Clear(DWORD count, D3DRECT *rects, DWORD flags) {
+    // Early D3D viewport fast skip
+    if (unlikely(!count || !rects))
+      return D3D_OK;
+
     if (unlikely(!m_commonViewport->HasDevice()))
       return D3DERR_VIEWPORTHASNODEVICE;
-
-    // Early D3D viewport fast skip
-    if (unlikely(!count || (count && rects == nullptr)))
-      return D3D_OK;
 
     const bool clearRenderTarget = flags & D3DCLEAR_TARGET;
     const bool clearDepthStencil = flags & D3DCLEAR_ZBUFFER;
@@ -323,7 +323,8 @@ namespace dxvk {
 
     // Temporarily activate this viewport in order to clear it
     d3d9::D3DVIEWPORT9 currentViewport9;
-    if (!m_commonViewport->IsCurrentViewport()) {
+    const bool isCurrentViewport = m_commonViewport->IsCurrentViewport();
+    if (!isCurrentViewport) {
       D3D3Viewport* currentViewport = m_commonViewport->GetCurrentD3D3Viewport();
       if (currentViewport != nullptr) {
         currentViewport9 = *currentViewport->GetCommonViewport()->GetD3D9Viewport();
@@ -343,14 +344,14 @@ namespace dxvk {
     HRESULT hr = d3d9Device->Clear(count, rects, flags, clearColor, 1.0f, 0u);
 
     // Restore the previously active viewport
-    if (!m_commonViewport->IsCurrentViewport()) {
+    if (!isCurrentViewport) {
       d3d9Device->SetViewport(&currentViewport9);
     }
 
-    // Clear() will only ever silently fail
+    // Can fail in D3D9 only in case of a missing depth stencil surface
     if (unlikely(FAILED(hr))) {
-      Logger::debug("D3D3Viewport::Clear: Failed D3D9 Clear call");
-      return D3D_OK;
+      // Fix up expected return codes
+      return D3DERR_ZBUFFER_NOTPRESENT;
     }
 
     if (clearRenderTarget && rt != nullptr)
