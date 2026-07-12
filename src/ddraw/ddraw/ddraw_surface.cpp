@@ -1176,10 +1176,11 @@ namespace dxvk {
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
     bool  isHALDevice          = false;
+    bool  halFallback          = false;
     bool  rgbFallback          = false;
 
     if (likely(!d3dOptions->forceSWVP)) {
-      if (riid == IID_IDirect3DHALDevice || riid == IID_WineD3DDevice) {
+      if (riid == IID_IDirect3DHALDevice) {
         Logger::info("DDrawSurface::CreateDeviceInternal: Creating an IID_IDirect3DHALDevice device");
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
         isHALDevice = true;
@@ -1192,13 +1193,19 @@ namespace dxvk {
         Logger::warn("DDrawSurface::CreateDeviceInternal: Unsupported Ramp device, falling back to RGB");
         rgbFallback = true;
       } else {
-        Logger::warn("DDrawSurface::CreateDeviceInternal: Unknown device identifier, falling back to RGB");
-        Logger::warn(str::format(riid));
-        rgbFallback = true;
+        if (unlikely(riid != IID_WineD3DDevice)) {
+          Logger::warn("DDrawSurface::CreateDeviceInternal: Unknown device type, falling back to HAL");
+          Logger::warn(str::format(riid));
+        } else {
+          Logger::info("DDrawSurface::CreateDeviceInternal: Creating an IID_WineD3DDevice HAL device");
+        }
+        halFallback = true;
+        // Don't enforce isHALDevice RT validations
       }
     }
 
-    const IID rclsidOverride = rgbFallback ? IID_IDirect3DRGBDevice : riid;
+    const IID rclsidOverride = halFallback ? IID_IDirect3DHALDevice :
+                               rgbFallback ? IID_IDirect3DRGBDevice : riid;
 
     HWND hWnd = m_commonIntf->GetHWND();
     // Needed to sometimes safely skip intro playback on legacy devices

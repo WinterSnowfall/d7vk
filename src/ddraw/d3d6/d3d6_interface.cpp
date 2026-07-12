@@ -328,10 +328,11 @@ namespace dxvk {
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
     bool  isHALDevice          = false;
+    bool  halFallback          = false;
     bool  rgbFallback          = false;
 
     if (likely(!d3dOptions->forceSWVP)) {
-      if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
+      if (rclsid == IID_IDirect3DHALDevice) {
         Logger::info("D3D6Interface::CreateDevice: Creating an IID_IDirect3DHALDevice device");
         deviceCreationFlags9 = D3DCREATE_MIXED_VERTEXPROCESSING;
         isHALDevice = true;
@@ -340,15 +341,24 @@ namespace dxvk {
       } else if (rclsid == IID_IDirect3DMMXDevice) {
         Logger::warn("D3D6Interface::CreateDevice: Unsupported MMX device, falling back to RGB");
         rgbFallback = true;
-      } else {
-        // Revenant uses a rclsid of 7a31a548-0000-0007-26ed-780000000000...
-        Logger::warn("D3D6Interface::CreateDevice: Unsupported device type, falling back to RGB");
-        Logger::warn(str::format(rclsid));
+      } else if (rclsid == IID_IDirect3DRampDevice) {
+        Logger::warn("D3D6Interface::CreateDevice: Unsupported Ramp device, falling back to RGB");
         rgbFallback = true;
+      } else {
+        // Revenant uses a bogus rclsid (not WineD3D's), so fall back to HAL in these cases
+        if (unlikely(rclsid != IID_WineD3DDevice)) {
+          Logger::warn("D3D6Interface::CreateDevice: Unknown device type, falling back to HAL");
+          Logger::warn(str::format(rclsid));
+        } else {
+          Logger::info("D3D6Interface::CreateDevice: Creating an IID_WineD3DDevice HAL device");
+        }
+        halFallback = true;
+        // Don't enforce isHALDevice RT validations
       }
     }
 
-    const IID rclsidOverride = rgbFallback ? IID_IDirect3DRGBDevice : rclsid;
+    const IID rclsidOverride = halFallback ? IID_IDirect3DHALDevice :
+                               rgbFallback ? IID_IDirect3DRGBDevice : rclsid;
 
     HWND hWnd = m_commonIntf->GetHWND();
     // Needed to sometimes safely skip intro playback on legacy devices

@@ -481,7 +481,7 @@ namespace dxvk {
                    | D3DDEVCAPS_TLVERTEXVIDEOMEMORY;
 
     // Also advertised in D3D3
-    if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
+    if (rclsid == IID_IDirect3DHALDevice) {
       desc.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
                       | D3DDEVCAPS_HWTRANSFORMANDLIGHT
                       | D3DDEVCAPS_DRAWPRIMITIVES2
@@ -660,7 +660,7 @@ namespace dxvk {
     }
 
     // Also advertised in D3D5
-    if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
+    if (rclsid == IID_IDirect3DHALDevice) {
       desc.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
                       | D3DDEVCAPS_HWTRANSFORMANDLIGHT
                       | D3DDEVCAPS_DRAWPRIMITIVES2
@@ -865,7 +865,7 @@ namespace dxvk {
     }
 
     // Also advertised in D3D6
-    if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
+    if (rclsid == IID_IDirect3DHALDevice) {
       desc.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
                       | D3DDEVCAPS_HWTRANSFORMANDLIGHT
                       | D3DDEVCAPS_DRAWPRIMITIVES2
@@ -1125,7 +1125,7 @@ namespace dxvk {
                        | D3DDEVCAPS_DRAWPRIMITIVES2
                        | D3DDEVCAPS_DRAWPRIMITIVES2EX;
     }
-    else if (rclsid == IID_IDirect3DHALDevice || rclsid == IID_WineD3DDevice) {
+    else if (rclsid == IID_IDirect3DHALDevice) {
       desc7.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
                        | D3DDEVCAPS_DRAWPRIMITIVES2
                        | D3DDEVCAPS_DRAWPRIMITIVES2EX;
