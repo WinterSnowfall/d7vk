@@ -259,10 +259,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
-    const bool sourceIsWrappedSurface = lpDDSrcSurface == nullptr ||
-                                        DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface);
-
-    if (unlikely(!sourceIsWrappedSurface)) {
+    if (unlikely(lpDDSrcSurface != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface))) {
       Logger::err("DDraw7Surface::Blt: Received an unwrapped source surface");
       return DDERR_UNSUPPORTED;
     }
@@ -331,10 +329,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
-    const bool sourceIsWrappedSurface = lpDDSrcSurface == nullptr ||
-                                        DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface);
-
-    if (unlikely(!sourceIsWrappedSurface)) {
+    if (unlikely(lpDDSrcSurface != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface))) {
       Logger::err("DDraw7Surface::BltFast: Received an unwrapped source surface");
       return DDERR_UNSUPPORTED;
     }
@@ -401,10 +397,8 @@ namespace dxvk {
 
   // This call will only detach DDSCAPS_ZBUFFER type surfaces and will reject anything else.
   HRESULT STDMETHODCALLTYPE DDraw7Surface::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE7 lpDDSAttachedSurface) {
-    const bool attachedSurfaceIsWrappedSurface = lpDDSAttachedSurface == nullptr ||
-                                                 DDrawCommonInterface::IsWrappedSurface(lpDDSAttachedSurface);
-
-    if (unlikely(!attachedSurfaceIsWrappedSurface)) {
+    if (unlikely(lpDDSAttachedSurface != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(lpDDSAttachedSurface))) {
       Logger::err("DDraw7Surface::DeleteAttachedSurface: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }
@@ -483,10 +477,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride, DWORD dwFlags) {
-    const bool overrideIsWrappedSurface = lpDDSurfaceTargetOverride == nullptr ||
-                                          DDrawCommonInterface::IsWrappedSurface(lpDDSurfaceTargetOverride);
-
-    if (unlikely(!overrideIsWrappedSurface)) {
+    if (unlikely(lpDDSurfaceTargetOverride != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(lpDDSurfaceTargetOverride))) {
       Logger::err("DDraw7Surface::Flip: Received an unwrapped override surface");
       return DDERR_UNSUPPORTED;
     }
@@ -551,8 +543,9 @@ namespace dxvk {
       }
 
       if (likely(m_nextFlippable != nullptr)) {
-        if (unlikely(m_commonIntf->GetOptions()->emulateFrontBuffer)) {
+        if (m_commonIntf->GetOptions()->emulateFrontBuffer) {
           InitializeOrUploadD3D9();
+          // Workaround for front buffer image retention issues
           if (m_shadowSurf != nullptr && m_nextFlippable->GetCommonSurface()->IsDDrawSurfaceDirty())
             GetShadowOrProxied()->BltFast(0, 0, m_nextFlippable->GetShadowOrProxied(), nullptr, DDBLTFAST_NOCOLORKEY);
         }
@@ -903,10 +896,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Surface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE7 lpDDSReference) {
-    const bool referenceIsWrappedSurface = lpDDSReference == nullptr ||
-                                           DDrawCommonInterface::IsWrappedSurface(lpDDSReference);
-
-    if (unlikely(!referenceIsWrappedSurface)) {
+    if (unlikely(lpDDSReference != nullptr
+              && !DDrawCommonInterface::IsWrappedSurface(lpDDSReference))) {
       Logger::err("DDraw7Surface::UpdateOverlayZOrder: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }

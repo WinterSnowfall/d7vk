@@ -147,14 +147,6 @@ namespace dxvk {
       return m_ps;
     }
 
-    void SetDDrawRenderTarget(DDrawCommonSurface* rt) {
-      m_rt = rt;
-    }
-
-    DDrawCommonSurface* GetDDrawRenderTarget() {
-      return m_rt;
-    }
-
     DDrawModeSize* GetModeSize() {
       return &m_modeSize;
     }
@@ -230,7 +222,6 @@ namespace dxvk {
     DWORD                             m_cooperativeLevel   = 0;
 
     DDrawCommonSurface*               m_ps                 = nullptr;
-    DDrawCommonSurface*               m_rt                 = nullptr;
     DDrawModeSize                     m_modeSize           = { };
 
     d3d9::D3DADAPTER_IDENTIFIER9      m_adapterIdentifier9 = { };

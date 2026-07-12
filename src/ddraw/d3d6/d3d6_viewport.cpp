@@ -256,13 +256,19 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackgroundDepth(IDirectDrawSurface *surface) {
-    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
+    if (unlikely(surface != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(surface))) {
       Logger::err("D3D6Viewport::SetBackgroundDepth: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }
 
-    m_backgroundDepth = reinterpret_cast<DDrawSurface*>(surface);
-    m_isBackgroundDepthSet = true;
+    if (unlikely(surface == nullptr)) {
+      m_backgroundDepth = nullptr;
+      m_isBackgroundDepthSet = false;
+    } else {
+      m_backgroundDepth = reinterpret_cast<DDrawSurface*>(surface);
+      m_isBackgroundDepthSet = true;
+    }
 
     return D3D_OK;
   }
@@ -512,13 +518,19 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Viewport::SetBackgroundDepth2(IDirectDrawSurface4 *surface) {
-    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
+    if (unlikely(surface != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(surface))) {
       Logger::err("D3D6Viewport::SetBackgroundDepth2: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }
 
-    m_backgroundDepth4 = reinterpret_cast<DDraw4Surface*>(surface);
-    m_isBackgroundDepth4Set = true;
+    if (unlikely(surface == nullptr)) {
+      m_backgroundDepth4 = nullptr;
+      m_isBackgroundDepth4Set = false;
+    } else {
+      m_backgroundDepth4 = reinterpret_cast<DDraw4Surface*>(surface);
+      m_isBackgroundDepth4Set = true;
+    }
 
     return D3D_OK;
   }

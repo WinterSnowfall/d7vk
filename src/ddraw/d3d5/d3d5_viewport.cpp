@@ -256,13 +256,19 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D5Viewport::SetBackgroundDepth(IDirectDrawSurface *surface) {
-    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
+    if (unlikely(surface != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(surface))) {
       Logger::err("D3D5Viewport::SetBackgroundDepth: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }
 
-    m_backgroundDepth = reinterpret_cast<DDrawSurface*>(surface);
-    m_isBackgroundDepthSet = true;
+    if (unlikely(surface == nullptr)) {
+      m_backgroundDepth = nullptr;
+      m_isBackgroundDepthSet = false;
+    } else {
+      m_backgroundDepth = reinterpret_cast<DDrawSurface*>(surface);
+      m_isBackgroundDepthSet = true;
+    }
 
     return D3D_OK;
   }

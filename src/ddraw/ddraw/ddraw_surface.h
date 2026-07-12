@@ -129,6 +129,10 @@ namespace dxvk {
       return m_commonIntf;
     }
 
+    void SetNextFlippable(DDrawSurface* nextFlippable) {
+      m_nextFlippable = nextFlippable;
+    }
+
     DDrawSurface* GetNextFlippable() const {
       return m_nextFlippable;
     }

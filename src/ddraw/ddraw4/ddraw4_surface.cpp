@@ -271,19 +271,18 @@ namespace dxvk {
 
     DDraw4Surface* attachedSurf = static_cast<DDraw4Surface*>(lpDDSAttachedSurface);
 
-    // Unsupported by Wine's DDraw implementation, so we'll do our own handling
-    if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable())) {
-      m_commonIntf->SetDDrawRenderTarget(attachedSurf->GetCommonSurface());
-      return DD_OK;
-    }
-
     HRESULT hr = m_proxy->AddAttachedSurface(attachedSurf->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
     attachedSurf->SetParentSurface(this);
-    if (likely(attachedSurf->GetCommonSurface()->IsDepthStencil()))
+
+    if (likely(attachedSurf->GetCommonSurface()->IsDepthStencil())) {
       m_depthStencil = attachedSurf;
+    // If a flippable surface is attached, mark it as the next flippable surface
+    } else if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable())) {
+      m_nextFlippable = attachedSurf;
+    }
 
     return DD_OK;
   }
@@ -294,10 +293,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE4 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
-    const bool sourceIsWrappedSurface = lpDDSrcSurface == nullptr ||
-                                        DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface);
-
-    if (unlikely(!sourceIsWrappedSurface)) {
+    if (unlikely(lpDDSrcSurface != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface))) {
       Logger::err("DDraw4Surface::Blt: Received an unwrapped source surface");
       return DDERR_UNSUPPORTED;
     }
@@ -366,10 +363,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE4 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
-    const bool sourceIsWrappedSurface = lpDDSrcSurface == nullptr ||
-                                        DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface);
-
-    if (unlikely(!sourceIsWrappedSurface)) {
+    if (unlikely(lpDDSrcSurface != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface))) {
       Logger::err("DDraw4Surface::BltFast: Received an unwrapped source surface");
       return DDERR_UNSUPPORTED;
     }
@@ -436,10 +431,8 @@ namespace dxvk {
 
   // This call will only detach DDSCAPS_ZBUFFER type surfaces and will reject anything else.
   HRESULT STDMETHODCALLTYPE DDraw4Surface::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE4 lpDDSAttachedSurface) {
-    const bool attachedSurfaceIsWrappedSurface = lpDDSAttachedSurface == nullptr ||
-                                                 DDrawCommonInterface::IsWrappedSurface(lpDDSAttachedSurface);
-
-    if (unlikely(!attachedSurfaceIsWrappedSurface)) {
+    if (unlikely(lpDDSAttachedSurface != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(lpDDSAttachedSurface))) {
       Logger::err("DDraw4Surface::DeleteAttachedSurface: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }
@@ -457,19 +450,18 @@ namespace dxvk {
 
     DDraw4Surface* attachedSurf = static_cast<DDraw4Surface*>(lpDDSAttachedSurface);
 
-    if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable() &&
-                 attachedSurf->GetCommonSurface() == m_commonIntf->GetDDrawRenderTarget())) {
-      m_commonIntf->SetDDrawRenderTarget(nullptr);
-      return DD_OK;
-    }
-
     HRESULT hr = m_proxy->DeleteAttachedSurface(dwFlags, attachedSurf->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
+    attachedSurf->ClearParentSurface();
+
     if (likely(m_depthStencil == attachedSurf)) {
-      attachedSurf->ClearParentSurface();
       m_depthStencil = nullptr;
+    // Clear the next flippable surface or flippable surface detachment
+    } else if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable() &&
+                        attachedSurf == m_nextFlippable)) {
+      m_nextFlippable = nullptr;
     }
 
     return DD_OK;
@@ -524,10 +516,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::Flip(LPDIRECTDRAWSURFACE4 lpDDSurfaceTargetOverride, DWORD dwFlags) {
-    const bool overrideIsWrappedSurface = lpDDSurfaceTargetOverride == nullptr ||
-                                          DDrawCommonInterface::IsWrappedSurface(lpDDSurfaceTargetOverride);
-
-    if (unlikely(!overrideIsWrappedSurface)) {
+    if (unlikely(lpDDSurfaceTargetOverride != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(lpDDSurfaceTargetOverride))) {
       Logger::err("DDraw4Surface::Flip: Received an unwrapped override surface");
       return DDERR_UNSUPPORTED;
     }
@@ -591,30 +581,10 @@ namespace dxvk {
         }
       }
 
-      if (m_commonSurf->IsPrimarySurface()) {
-        // TODO: Handle such odd cases more elegantly; The Sims uploads data to an
-        // offscreen surface RT, and then flips the primary surface, however that
-        // offsceen surface isn't part of the same swapchain...
-        DDraw4Surface* rt = m_commonIntf->GetOptions()->forceRTFlip ?
-                            m_commonSurf->GetCommonD3DDevice()->GetCurrentRenderTarget4() :
-                            m_commonIntf->GetDDrawRenderTarget() != nullptr ?
-                            m_commonIntf->GetDDrawRenderTarget()->GetDD4Surface() : nullptr;
-
-        if (unlikely(rt != nullptr)) {
-          if (unlikely(m_commonIntf->GetOptions()->emulateFrontBuffer)) {
-            InitializeOrUploadD3D9();
-            if (m_shadowSurf != nullptr && rt->GetCommonSurface()->IsDDrawSurfaceDirty())
-              GetShadowOrProxied()->BltFast(0, 0, rt->GetShadowOrProxied(), nullptr, DDBLTFAST_NOCOLORKEY);
-          }
-          rt->InitializeOrUploadD3D9();
-          d3d9Device->Present(NULL, NULL, NULL, NULL);
-          return DD_OK;
-        }
-      }
-
       if (likely(m_nextFlippable != nullptr)) {
-        if (unlikely(m_commonIntf->GetOptions()->emulateFrontBuffer)) {
+        if (m_commonIntf->GetOptions()->emulateFrontBuffer) {
           InitializeOrUploadD3D9();
+          // Workaround for front buffer image retention issues
           if (m_shadowSurf != nullptr && m_nextFlippable->GetCommonSurface()->IsDDrawSurfaceDirty())
             GetShadowOrProxied()->BltFast(0, 0, m_nextFlippable->GetShadowOrProxied(), nullptr, DDBLTFAST_NOCOLORKEY);
         }
@@ -628,16 +598,6 @@ namespace dxvk {
     } else {
       // Update the VBlank wait status based on the flip flags
       m_commonIntf->SetWaitForVBlank(IsVSyncFlipFlag(dwFlags));
-
-      if (m_commonSurf->IsPrimarySurface()) {
-        DDraw4Surface* rt = m_commonIntf->GetDDrawRenderTarget() != nullptr ?
-                            m_commonIntf->GetDDrawRenderTarget()->GetDD4Surface() : nullptr;
-
-        if (unlikely(rt != nullptr)) {
-          m_proxy->Blt(nullptr, rt->GetShadowOrProxied(), nullptr, DDBLT_WAIT, nullptr);
-          return DD_OK;
-        }
-      }
 
       if (overrideSurf == nullptr) {
         return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
@@ -973,10 +933,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Surface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE4 lpDDSReference) {
-    const bool referenceIsWrappedSurface = lpDDSReference == nullptr ||
-                                           DDrawCommonInterface::IsWrappedSurface(lpDDSReference);
-
-    if (unlikely(!referenceIsWrappedSurface)) {
+    if (unlikely(lpDDSReference != nullptr
+              && !DDrawCommonInterface::IsWrappedSurface(lpDDSReference))) {
       Logger::err("DDraw4Surface::UpdateOverlayZOrder: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }

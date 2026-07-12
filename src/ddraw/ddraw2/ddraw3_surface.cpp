@@ -253,19 +253,19 @@ namespace dxvk {
 
     DDraw3Surface* attachedSurf = static_cast<DDraw3Surface*>(lpDDSAttachedSurface);
 
-    // Unsupported by Wine's DDraw implementation, so we'll do our own handling
-    if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable())) {
-      m_commonIntf->SetDDrawRenderTarget(attachedSurf->GetCommonSurface());
-      return DD_OK;
-    }
-
     HRESULT hr = m_proxy->AddAttachedSurface(attachedSurf->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
     attachedSurf->SetParentSurface(this);
-    if (likely(attachedSurf->GetCommonSurface()->IsDepthStencil()))
+
+    if (likely(attachedSurf->GetCommonSurface()->IsDepthStencil())) {
       m_depthStencil = attachedSurf;
+    // If a flippable surface is attached, mark it as the next flippable surface
+    } else if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable())) {
+      DDrawSurface* attachedSurfParent = attachedSurf->GetCommonSurface()->GetDDSurface();
+      m_parent->SetNextFlippable(attachedSurfParent);
+    }
 
     return DD_OK;
   }
@@ -277,10 +277,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE3 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx) {
-    const bool sourceIsWrappedSurface = lpDDSrcSurface == nullptr ||
-                                        DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface);
-
-    if (unlikely(!sourceIsWrappedSurface)) {
+    if (unlikely(lpDDSrcSurface != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface))) {
       // Powerslide tries to blit here from a IDirectDrawSurface source
       if (likely(DDrawCommonInterface::IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSrcSurface))))
         return m_parent->Blt(lpDestRect, reinterpret_cast<IDirectDrawSurface*>(lpDDSrcSurface), lpSrcRect, dwFlags, lpDDBltFx);
@@ -354,10 +352,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE3 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans) {
-    const bool sourceIsWrappedSurface = lpDDSrcSurface == nullptr ||
-                                        DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface);
-
-    if (unlikely(!sourceIsWrappedSurface)) {
+    if (unlikely(lpDDSrcSurface != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(lpDDSrcSurface))) {
       // Powerslide tries to blit here from a IDirectDrawSurface source
       if (likely(DDrawCommonInterface::IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSrcSurface))))
         return m_parent->BltFast(dwX, dwY, reinterpret_cast<IDirectDrawSurface*>(lpDDSrcSurface), lpSrcRect, dwTrans);
@@ -428,10 +424,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE3 lpDDSAttachedSurface) {
-    const bool attachedSurfaceIsWrappedSurface = lpDDSAttachedSurface == nullptr ||
-                                                 DDrawCommonInterface::IsWrappedSurface(lpDDSAttachedSurface);
-
-    if (unlikely(!attachedSurfaceIsWrappedSurface)) {
+    if (unlikely(lpDDSAttachedSurface != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(lpDDSAttachedSurface))) {
       // Some games, like Nightmare Creatures, try to attach an IDirectDrawSurface depth stencil directly...
       if (likely(DDrawCommonInterface::IsWrappedSurface(reinterpret_cast<IDirectDrawSurface*>(lpDDSAttachedSurface))))
         return m_parent->DeleteAttachedSurface(dwFlags, reinterpret_cast<IDirectDrawSurface*>(lpDDSAttachedSurface));
@@ -453,19 +447,18 @@ namespace dxvk {
 
     DDraw3Surface* attachedSurf = static_cast<DDraw3Surface*>(lpDDSAttachedSurface);
 
-    if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable() &&
-                 attachedSurf->GetCommonSurface() == m_commonIntf->GetDDrawRenderTarget())) {
-      m_commonIntf->SetDDrawRenderTarget(nullptr);
-      return DD_OK;
-    }
-
     HRESULT hr = m_proxy->DeleteAttachedSurface(dwFlags, attachedSurf->GetProxied());
     if (unlikely(FAILED(hr)))
       return hr;
 
+    attachedSurf->ClearParentSurface();
+
     if (likely(m_depthStencil == attachedSurf)) {
-      attachedSurf->ClearParentSurface();
       m_depthStencil = nullptr;
+    // Clear the next flippable surface or flippable surface detachment
+    } else if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable() &&
+                        attachedSurf->GetCommonSurface()->GetDDSurface() == m_parent->GetNextFlippable())) {
+      m_parent->SetNextFlippable(nullptr);
     }
 
     return DD_OK;
@@ -480,10 +473,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::Flip(LPDIRECTDRAWSURFACE3 lpDDSurfaceTargetOverride, DWORD dwFlags) {
-    const bool overrideIsWrappedSurface = lpDDSurfaceTargetOverride == nullptr ||
-                                          DDrawCommonInterface::IsWrappedSurface(lpDDSurfaceTargetOverride);
-
-    if (unlikely(!overrideIsWrappedSurface)) {
+    if (unlikely(lpDDSurfaceTargetOverride != nullptr
+             && !DDrawCommonInterface::IsWrappedSurface(lpDDSurfaceTargetOverride))) {
       Logger::err("DDraw3Surface::Flip: Received an unwrapped override surface");
       return DDERR_UNSUPPORTED;
     }
@@ -515,27 +506,12 @@ namespace dxvk {
       if (unlikely(overrideSurf != nullptr && !overrideSurf->GetParent()->GetCommonSurface()->IsBackBufferOrFlippable()))
         return DDERR_NOTFLIPPABLE;
 
-      if (m_commonSurf->IsPrimarySurface()) {
-        DDraw3Surface* rt = m_commonIntf->GetDDrawRenderTarget() != nullptr ?
-                            m_commonIntf->GetDDrawRenderTarget()->GetDD3Surface() : nullptr;
-
-        if (unlikely(rt != nullptr)) {
-          if (unlikely(m_commonIntf->GetOptions()->emulateFrontBuffer)) {
-            InitializeOrUploadD3D9();
-            if (m_shadowSurf != nullptr && rt->GetCommonSurface()->IsDDrawSurfaceDirty())
-              GetShadowOrProxied()->BltFast(0, 0, rt->GetShadowOrProxied(), nullptr, DDBLTFAST_NOCOLORKEY);
-          }
-          rt->InitializeOrUploadD3D9();
-          d3d9Device->Present(NULL, NULL, NULL, NULL);
-          return DD_OK;
-        }
-      }
-
       DDrawSurface* nextFlippable = m_parent->GetNextFlippable();
 
       if (likely(nextFlippable != nullptr)) {
-        if (unlikely(m_commonIntf->GetOptions()->emulateFrontBuffer)) {
+        if (m_commonIntf->GetOptions()->emulateFrontBuffer) {
           InitializeOrUploadD3D9();
+          // Workaround for front buffer image retention issues
           if (m_shadowSurf != nullptr && nextFlippable->GetCommonSurface()->IsDDrawSurfaceDirty())
             m_parent->GetShadowOrProxied()->BltFast(0, 0, nextFlippable->GetShadowOrProxied(), nullptr, DDBLTFAST_NOCOLORKEY);
         }
@@ -547,16 +523,6 @@ namespace dxvk {
       d3d9Device->Present(NULL, NULL, NULL, NULL);
 
     } else {
-      if (m_commonSurf->IsPrimarySurface()) {
-        DDraw3Surface* rt = m_commonIntf->GetDDrawRenderTarget() != nullptr ?
-                            m_commonIntf->GetDDrawRenderTarget()->GetDD3Surface() : nullptr;
-
-        if (unlikely(rt != nullptr)) {
-          m_proxy->Blt(nullptr, rt->GetShadowOrProxied(), nullptr, DDBLT_WAIT, nullptr);
-          return DD_OK;
-        }
-      }
-
       if (overrideSurf == nullptr) {
         return m_proxy->Flip(lpDDSurfaceTargetOverride, dwFlags);
       } else {
@@ -890,11 +856,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw3Surface::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSURFACE3 lpDDSReference) {
-
-    const bool referenceIsWrappedSurface = lpDDSReference == nullptr ||
-                                           DDrawCommonInterface::IsWrappedSurface(lpDDSReference);
-
-    if (unlikely(!referenceIsWrappedSurface)) {
+    if (unlikely(lpDDSReference != nullptr
+              && !DDrawCommonInterface::IsWrappedSurface(lpDDSReference))) {
       Logger::err("DDraw3Surface::UpdateOverlayZOrder: Received an unwrapped surface");
       return DDERR_UNSUPPORTED;
     }
