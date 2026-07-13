@@ -147,18 +147,17 @@ namespace dxvk {
       return m_depthStencil.ptr();
     }
 
-    void ClearAttachedDepthStencil() {
-      m_depthStencil = nullptr;
-    }
-
     void SetParentSurface(DDraw2Surface* surface) {
       m_parentSurf = surface;
-      m_commonSurf->SetIsAttached(true);
+
+      if (m_parentSurf != nullptr)
+        m_commonSurf->SetIsAttached(true);
+      else
+        m_commonSurf->SetIsAttached(false);
     }
 
-    void ClearParentSurface() {
-      m_parentSurf = nullptr;
-      m_commonSurf->SetIsAttached(false);
+    DDraw2Surface* GetParentSurface() const {
+      return m_parentSurf;
     }
 
   private:

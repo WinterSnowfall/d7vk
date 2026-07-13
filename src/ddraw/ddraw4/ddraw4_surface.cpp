@@ -91,7 +91,7 @@ namespace dxvk {
     // Clear the cached depth stencil on the parent if matched
     if (unlikely(m_parentSurf != nullptr && m_commonSurf->IsDepthStencil()
       && m_parentSurf->GetAttachedDepthStencil() == this)) {
-      m_parentSurf->ClearAttachedDepthStencil();
+      m_parentSurf->SetAttachedDepthStencil(nullptr);
     }
 
     DDrawCommonInterface::RemoveWrappedSurface(this);
@@ -454,7 +454,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    attachedSurf->ClearParentSurface();
+    attachedSurf->SetParentSurface(nullptr);
 
     if (likely(m_depthStencil == attachedSurf)) {
       m_depthStencil = nullptr;
@@ -579,6 +579,12 @@ namespace dxvk {
         } else {
           m_commonIntf->SetWaitForVBlank(true);
         }
+      }
+
+      // Workaround for The Sims/other games flipping a different
+      // swapchain than the one set on the current D3D device
+      if (unlikely(m_commonIntf->GetOptions()->forceRTFlip && m_commonSurf->IsPrimarySurface())) {
+        m_nextFlippable = m_commonSurf->GetCommonD3DDevice()->GetCurrentRenderTarget4();
       }
 
       if (likely(m_nextFlippable != nullptr)) {

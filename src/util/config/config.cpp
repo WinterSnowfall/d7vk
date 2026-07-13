@@ -1523,6 +1523,7 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.emulateFSAA",                "True" },
       { "ddraw.forceMultiThreaded",         "True" },
+      { "ddraw.managedVertexBuffers",       "True" },
     }} },
     /* SCP - Nine-Tailed Fox                      *
      * Same engine as Containment Breach          */
@@ -1530,6 +1531,7 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.emulateFSAA",                "True" },
       { "ddraw.forceMultiThreaded",         "True" },
+      { "ddraw.managedVertexBuffers",       "True" },
     }} },
     /* Unreal                                     *
      * Fixes missing mip map uploads and physics  */
@@ -1910,8 +1912,10 @@ namespace dxvk {
       { "ddraw.colorKeyMasking",            "True" },
     }} },
     /* Dungeon Keeper 2                           *
-     * Fixes missing HW acceleration option       */
-    { R"(\\DKII(-DX)?\.exe$)", {{
+     * Fixes fast animation speed at high FPS     *
+     * and missing HW acceleration option         */
+    { R"(\\DKII\.EXE$)", {{
+      { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.legacyDeviceNames",          "True" },
     }} },
     /* Might and Magic VII: For Blood and Honor   *
@@ -1950,6 +1954,11 @@ namespace dxvk {
      * Prevents hangs on race/drive start         */
     { R"(\\midtown\.(exe|icd)$)", {{
       { "ddraw.legacyDeviceNames",          "True" },
+    }} },
+    /* Toy Story 2: Buzz Lightyear to the Rescue  */
+    { R"(\\toy2\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "30" },
+      { "ddraw.managedVertexBuffers",       "True" },
     }} },
 
     /**********************************************/
@@ -2036,6 +2045,10 @@ namespace dxvk {
     }} },
     /* Tex Murtphy: Overseer                      */
     { R"(\\OVERSEER\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+    }} },
+    /* Resident Evil 2                            */
+    { R"(\\(ClaireU|LeonU)\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
 

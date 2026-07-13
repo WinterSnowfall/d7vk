@@ -94,7 +94,7 @@ namespace dxvk {
     // Clear the cached depth stencil on the parent if matched
     if (unlikely(m_parentSurf != nullptr && m_commonSurf->IsDepthStencil()
       && m_parentSurf->GetAttachedDepthStencil() == this)) {
-      m_parentSurf->ClearAttachedDepthStencil();
+      m_parentSurf->SetAttachedDepthStencil(nullptr);
     }
 
     DDrawCommonInterface::RemoveWrappedSurface(this);
@@ -514,7 +514,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    attachedSurf->ClearParentSurface();
+    attachedSurf->SetParentSurface(nullptr);
 
     if (likely(m_depthStencil == attachedSurf)) {
       m_depthStencil = nullptr;
@@ -608,6 +608,12 @@ namespace dxvk {
 
       if (unlikely(overrideSurf != nullptr && !overrideSurf->GetCommonSurface()->IsBackBufferOrFlippable()))
         return DDERR_NOTFLIPPABLE;
+
+      // Workaround for The Sims/other games flipping a different
+      // swapchain than the one set on the current D3D device
+      if (unlikely(m_commonIntf->GetOptions()->forceRTFlip && m_commonSurf->IsPrimarySurface())) {
+        m_nextFlippable = m_commonSurf->GetCommonD3DDevice()->GetCurrentRenderTarget();
+      }
 
       if (likely(m_nextFlippable != nullptr)) {
         if (m_commonIntf->GetOptions()->emulateFrontBuffer) {
@@ -1180,8 +1186,10 @@ namespace dxvk {
     if (unlikely(FAILED(hrRT)))
       return hrRT;
 
-    DWORD backBufferWidth  = m_commonSurf->GetDesc()->dwWidth;
-    DWORD BackBufferHeight = m_commonSurf->GetDesc()->dwHeight;
+    const DDSURFACEDESC* desc = m_commonSurf->GetDesc();
+
+    DWORD backBufferWidth  = desc->dwWidth;
+    DWORD BackBufferHeight = desc->dwHeight;
 
     if (likely(d3dOptions->backBufferResize)) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
@@ -1190,8 +1198,8 @@ namespace dxvk {
       if (exclusiveMode) {
         DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
         // Wayland apparently needs this for somewhat proper back buffer sizing
-        if ((modeSize->width  && modeSize->width  < m_commonSurf->GetDesc()->dwWidth)
-          || (modeSize->height && modeSize->height < m_commonSurf->GetDesc()->dwHeight)) {
+        if ((modeSize->width  && modeSize->width  < desc->dwWidth)
+         || (modeSize->height && modeSize->height < desc->dwHeight)) {
           Logger::info("DDrawSurface::CreateDeviceInternal: Enforcing mode dimensions");
           backBufferWidth  = modeSize->width;
           BackBufferHeight = modeSize->height;
@@ -1214,7 +1222,7 @@ namespace dxvk {
     if (cooperativeLevel & DDSCL_NOWINDOWCHANGES)
       deviceCreationFlags9 |= D3DCREATE_NOWINDOWCHANGES;
 
-    Logger::info(str::format("DDrawSurface::CreateDeviceInternal: Back buffer size: ", backBufferWidth, "x", BackBufferHeight));
+    Logger::info(str::format("DDrawSurface::CreateDeviceInternal: Back buffer size: ", desc->dwWidth, "x", desc->dwHeight));
 
     const DWORD backBufferCount = DetermineBackBufferCount(m_proxy.ptr());
     Logger::info(str::format("DDrawSurface::CreateDeviceInternal: Back buffer count: ", backBufferCount));
