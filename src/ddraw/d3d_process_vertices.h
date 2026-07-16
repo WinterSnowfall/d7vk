@@ -306,6 +306,23 @@ namespace dxvk {
     return D3DVECTOR{tmp.x, tmp.y, tmp.z};
   }
 
+  inline D3DVECTOR D3DVec4to3Transform_SSE2(const D3DMATRIX& m, const D3DVECTOR4& v) {
+    const __m128 r0 = _mm_loadu_ps(&m._11);
+    const __m128 r1 = _mm_loadu_ps(&m._21);
+    const __m128 r2 = _mm_loadu_ps(&m._31);
+    const __m128 r3 = _mm_loadu_ps(&m._41);
+
+    __m128 r = _mm_mul_ps(_mm_set1_ps(v.x), r0);
+    r = _mm_add_ps(r, _mm_mul_ps(_mm_set1_ps(v.y), r1));
+    r = _mm_add_ps(r, _mm_mul_ps(_mm_set1_ps(v.z), r2));
+    r = _mm_add_ps(r, _mm_mul_ps(_mm_set1_ps(v.w), r3));
+
+    D3DVECTOR4 tmp;
+    _mm_storeu_ps(&tmp.x, r);
+
+    return D3DVECTOR{tmp.x, tmp.y, tmp.z};
+  }
+
   inline float D3DVec3Dot_SSE2(const D3DVECTOR* a, const D3DVECTOR* b) {
     if (a == nullptr || b == nullptr)
       return 0.0f;
@@ -810,18 +827,18 @@ namespace dxvk {
 
         switch (l->Type) {
             case D3DLIGHT_DIRECTIONAL:
-              l->LightDirection = D3DVec3Normalize(D3DVec3Transform_SSE2(view9, D3DVECTOR{-light.Direction.x, -light.Direction.y, -light.Direction.z}));
+              l->LightDirection = D3DVec3Normalize(D3DVec4to3Transform_SSE2(view9, {-light.Direction.x, -light.Direction.y, -light.Direction.z, 0.0f}));
               break;
             case D3DLIGHT_POINT:
-              l->LightPosition = D3DVec3Transform_SSE2(view9, light.Position);
+              l->LightPosition = D3DVec4to3Transform_SSE2(view9, {light.Position.x, light.Position.y, light.Position.z, 1.0f});
               l->Attenuation0 = light.Attenuation0;
               l->Attenuation1 = light.Attenuation1;
               l->Attenuation2 = light.Attenuation2;
               l->Range = light.Range;
               break;
             case D3DLIGHT_SPOT:
-              l->LightDirection = D3DVec3Normalize(D3DVec3Transform_SSE2(view9, light.Direction));
-              l->LightPosition = D3DVec3Transform_SSE2(view9, light.Position);
+              l->LightDirection = D3DVec3Normalize(D3DVec4to3Transform_SSE2(view9, {light.Direction.x, light.Direction.y, light.Direction.z, 0.0f}));
+              l->LightPosition = D3DVec4to3Transform_SSE2(view9, {light.Position.x, light.Position.y, light.Position.z, 1.0f});
               l->cosHalfPhi = cosf(light.Phi / 2.0f);
               l->cosHalfTheta = cosf(light.Theta / 2.0f);
               l->Attenuation0 = light.Attenuation0;
