@@ -108,6 +108,18 @@ namespace dxvk {
 
     DDrawCommonInterface::RemoveWrappedSurface(this);
 
+    if (m_depthStencil != nullptr)
+      m_depthStencil->SetParentSurface(nullptr);
+
+    // Release all public references on all attached surfaces
+    for (auto & attachedSurface : m_attachedSurfaces) {
+      attachedSurface.second->SetParentSurface(nullptr);
+      uint32_t attachedRef;
+      do {
+        attachedRef = attachedSurface.second->Release();
+      } while (attachedRef > 0);
+    }
+
     m_commonSurf->SetDD3Surface(nullptr);
 
     Logger::debug(str::format("DDraw3Surface: Surface nr. [[3-", m_surfCount, "]] bites the dust"));

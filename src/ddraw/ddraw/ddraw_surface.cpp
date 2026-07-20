@@ -99,8 +99,12 @@ namespace dxvk {
 
     DDrawCommonInterface::RemoveWrappedSurface(this);
 
+    if (m_depthStencil != nullptr)
+      m_depthStencil->SetParentSurface(nullptr);
+
     // Release all public references on all attached surfaces
     for (auto & attachedSurface : m_attachedSurfaces) {
+      attachedSurface.second->SetParentSurface(nullptr);
       uint32_t attachedRef;
       do {
         attachedRef = attachedSurface.second->Release();
