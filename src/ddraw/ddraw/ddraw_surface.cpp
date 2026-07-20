@@ -739,6 +739,17 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::GetDC(HDC *lphDC) {
+    // Direct D3D9 path which can sometimes be faster (and other times slower)
+    if (unlikely(m_commonIntf->GetOptions()->forceDCForwarding && m_commonSurf->IsInitialized())) {
+      InitializeOrUploadD3D9();
+
+      HRESULT hr = m_commonSurf->GetD3D9Surface()->GetDC(lphDC);
+      if (unlikely(FAILED(hr)))
+        return DDERR_INVALIDPARAMS;
+
+      return DD_OK;
+    }
+
     // Write back any dirty surface data from bound D3D9 back buffers or depth stencils
     DownloadSurfaceData();
 
@@ -812,6 +823,17 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawSurface::ReleaseDC(HDC hDC) {
+    // Direct D3D9 path which can sometimes be faster (and other times slower)
+    if (unlikely(m_commonIntf->GetOptions()->forceDCForwarding && m_commonSurf->IsInitialized())) {
+      HRESULT hr = m_commonSurf->GetD3D9Surface()->ReleaseDC(hDC);
+      if (unlikely(FAILED(hr)))
+        return DDERR_INVALIDPARAMS;
+
+      m_commonSurf->DirtyD3D9Surface();
+
+      return DD_OK;
+    }
+
     HRESULT hr = GetShadowOrProxied()->ReleaseDC(hDC);
     if (unlikely(FAILED(hr)))
       return hr;

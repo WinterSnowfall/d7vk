@@ -73,6 +73,9 @@ namespace dxvk {
     /// Explicitly flip the RT swapchain, even if the primary surface is not part of it
     bool forceRTFlip;
 
+    /// Forwards all DC operations to D3D9 surfaces
+    bool forceDCForwarding;
+
     /// Emulate an explicit D3D9 front buffer by uploading its content from DDraw
     bool emulateFrontBuffer;
 

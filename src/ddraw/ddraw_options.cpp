@@ -20,6 +20,7 @@ namespace dxvk {
     this->backBufferResize       = config.getOption<bool>   ("ddraw.backBufferResize",        true);
     this->forceLegacyPresent     = config.getOption<bool>   ("ddraw.forceLegacyPresent",     false);
     this->forceRTFlip            = config.getOption<bool>   ("ddraw.forceRTFlip",            false);
+    this->forceDCForwarding      = config.getOption<bool>   ("ddraw.forceDCForwarding",      false);
     this->emulateFrontBuffer     = config.getOption<bool>   ("ddraw.emulateFrontBuffer",     false);
     this->ignoreGammaRamp        = config.getOption<bool>   ("ddraw.ignoreGammaRamp",        false);
     this->autoGenMipMaps         = config.getOption<bool>   ("ddraw.autoGenMipMaps",         false);
