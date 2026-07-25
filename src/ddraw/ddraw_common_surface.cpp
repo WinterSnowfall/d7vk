@@ -128,7 +128,7 @@ namespace dxvk {
     return DD_OK;
   }
 
-  d3d9::IDirect3DDevice9* DDrawCommonSurface::RefreshD3D9Device() {
+  void DDrawCommonSurface::RefreshD3D9Device() {
     D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
 
     if (unlikely(m_commonD3DDevice != commonD3DDevice)) {
@@ -146,8 +146,15 @@ namespace dxvk {
 
       m_commonD3DDevice = commonD3DDevice;
     }
+  }
 
-    return m_commonD3DDevice != nullptr ? m_commonD3DDevice->GetD3D9Device() : nullptr;
+  d3d9::IDirect3DDevice9* DDrawCommonSurface::GetRefreshedD3D9Device() {
+    RefreshD3D9Device();
+
+    if (likely(m_commonD3DDevice != nullptr))
+      return m_commonD3DDevice->GetD3D9Device();
+
+    return nullptr;
   }
 
   HRESULT DDrawCommonSurface::InitializeD3D9(const bool initRenderTarget) {
@@ -240,8 +247,8 @@ namespace dxvk {
     Logger::debug(str::format("DDrawCommonSurface::InitializeD3D9: Placing in: ", poolPlacement));
 
     // Use the MSAA type that was determined to be supported during device creation
-    const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = m_commonIntf->GetCommonD3DDevice()->GetMultiSampleType();
-    d3d9::IDirect3DDevice9* d3d9Device = m_commonIntf->GetCommonD3DDevice()->GetD3D9Device();
+    const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = m_commonD3DDevice->GetMultiSampleType();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonD3DDevice->GetD3D9Device();
 
     HRESULT hr = DDERR_GENERIC;
 

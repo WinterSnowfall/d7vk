@@ -317,7 +317,7 @@ namespace dxvk {
       DownloadSurfaceData();
     }
 
-    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->GetRefreshedD3D9Device();
     if (likely(d3d9Device != nullptr)) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
@@ -389,7 +389,7 @@ namespace dxvk {
       DownloadSurfaceData();
     }
 
-    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->GetRefreshedD3D9Device();
     if (likely(d3d9Device != nullptr)) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
@@ -528,7 +528,7 @@ namespace dxvk {
 
     Com<DDraw4Surface> overrideSurf = static_cast<DDraw4Surface*>(lpDDSurfaceTargetOverride);
 
-    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->GetRefreshedD3D9Device();
     // Overlays can have odd video formats which DXVK doesn't support for RT
     // use, so let DDraw present in case the flipped surface is an overlay
     if (likely(d3d9Device != nullptr && !m_commonSurf->IsOverlay())) {
@@ -816,7 +816,7 @@ namespace dxvk {
 
     m_commonSurf->DirtyDDrawSurface();
 
-    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->GetRefreshedD3D9Device();
     if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
       const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
                                 !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
@@ -931,7 +931,7 @@ namespace dxvk {
 
     m_commonSurf->DirtyDDrawSurface();
 
-    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->GetRefreshedD3D9Device();
     if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr)) {
       const bool shouldPresent = m_commonIntf->GetOptions()->legacyPresentGuard == D3DLegacyPresentGuard::Auto ?
                                 !m_commonSurf->GetCommonD3DDevice()->IsInScene() :
@@ -1050,7 +1050,7 @@ namespace dxvk {
   }
 
   IDirectDrawSurface4* DDraw4Surface::GetShadowOrProxied() {
-    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->GetRefreshedD3D9Device();
 
     if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr))
       return m_shadowSurf->GetProxied();
@@ -1098,7 +1098,7 @@ namespace dxvk {
   }
 
   HRESULT DDraw4Surface::InitializeOrUploadD3D9() {
-    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->RefreshD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->GetRefreshedD3D9Device();
 
     // Fast skip
     if (unlikely(d3d9Device == nullptr))
