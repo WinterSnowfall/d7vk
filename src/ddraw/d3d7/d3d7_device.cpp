@@ -83,20 +83,6 @@ namespace dxvk {
   }
 
   D3D7Device::~D3D7Device() {
-    if (LogIndexBufferUsageStats()) {
-      Logger::info("D3D7Device: Index buffer upload statistics:");
-      Logger::info(str::format("  0.25 kb : ", m_ib9_uploads[0]));
-      Logger::info(str::format("  0.5  kb : ", m_ib9_uploads[1]));
-      Logger::info(str::format("  1    kb : ", m_ib9_uploads[2]));
-      Logger::info(str::format("  2    kb : ", m_ib9_uploads[3]));
-      Logger::info(str::format("  4    kb : ", m_ib9_uploads[4]));
-      Logger::info(str::format("  8    kb : ", m_ib9_uploads[5]));
-      Logger::info(str::format("  16   kb : ", m_ib9_uploads[6]));
-      Logger::info(str::format("  32   kb : ", m_ib9_uploads[7]));
-      Logger::info(str::format("  64   kb : ", m_ib9_uploads[8]));
-      Logger::info(str::format("  128  kb : ", m_ib9_uploads[9]));
-    }
-
     if (m_commonD3DDevice->GetD3D7Device() == this)
       m_commonD3DDevice->SetD3D7Device(nullptr);
 
@@ -514,16 +500,72 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
     D3DDeviceLock lock = LockDevice();
 
-    // As opposed to D3D8/9, D3D7 actually validates and
-    // errors out in case of unknown/invalid render states
-    if (unlikely(!IsValidD3D7RenderStateType(dwRenderStateType)))
-      return DDERR_INVALIDPARAMS;
-
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
 
     switch (dwRenderStateType) {
       // Most render states translate 1:1 to D3D9
-      default:
+      //case D3DRENDERSTATE_ANTIALIAS:
+      //case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
+      case D3DRENDERSTATE_ZENABLE:
+      case D3DRENDERSTATE_FILLMODE:
+      case D3DRENDERSTATE_SHADEMODE:
+      //case D3DRENDERSTATE_LINEPATTERN:
+      case D3DRENDERSTATE_ZWRITEENABLE:
+      case D3DRENDERSTATE_ALPHATESTENABLE:
+      case D3DRENDERSTATE_LASTPIXEL:
+      case D3DRENDERSTATE_SRCBLEND:
+      case D3DRENDERSTATE_DESTBLEND:
+      case D3DRENDERSTATE_CULLMODE:
+      case D3DRENDERSTATE_ZFUNC:
+      case D3DRENDERSTATE_ALPHAREF:
+      case D3DRENDERSTATE_ALPHAFUNC:
+      case D3DRENDERSTATE_DITHERENABLE:
+      case D3DRENDERSTATE_ALPHABLENDENABLE:
+      case D3DRENDERSTATE_FOGENABLE:
+      case D3DRENDERSTATE_SPECULARENABLE:
+      //case D3DRENDERSTATE_ZVISIBLE:
+      //case D3DRENDERSTATE_STIPPLEDALPHA:
+      case D3DRENDERSTATE_FOGCOLOR:
+      case D3DRENDERSTATE_FOGTABLEMODE:
+      case D3DRENDERSTATE_FOGSTART:   // same as D3DRENDERSTATE_FOGTABLESTART
+      case D3DRENDERSTATE_FOGEND:     // same as D3DRENDERSTATE_FOGTABLEEND
+      case D3DRENDERSTATE_FOGDENSITY: // same as D3DRENDERSTATE_FOGTABLEDENSITY
+      //case D3DRENDERSTATE_EDGEANTIALIAS:
+      //case D3DRENDERSTATE_COLORKEYENABLE:
+      //case D3DRENDERSTATE_ZBIAS:
+      case D3DRENDERSTATE_RANGEFOGENABLE:
+      case D3DRENDERSTATE_STENCILENABLE:
+      case D3DRENDERSTATE_STENCILFAIL:
+      case D3DRENDERSTATE_STENCILZFAIL:
+      case D3DRENDERSTATE_STENCILPASS:
+      case D3DRENDERSTATE_STENCILFUNC:
+      case D3DRENDERSTATE_STENCILREF:
+      case D3DRENDERSTATE_STENCILMASK:
+      case D3DRENDERSTATE_STENCILWRITEMASK:
+      case D3DRENDERSTATE_TEXTUREFACTOR:
+      case D3DRENDERSTATE_WRAP0:
+      case D3DRENDERSTATE_WRAP1:
+      case D3DRENDERSTATE_WRAP2:
+      case D3DRENDERSTATE_WRAP3:
+      case D3DRENDERSTATE_WRAP4:
+      case D3DRENDERSTATE_WRAP5:
+      case D3DRENDERSTATE_WRAP6:
+      case D3DRENDERSTATE_WRAP7:
+      case D3DRENDERSTATE_CLIPPING:
+      case D3DRENDERSTATE_LIGHTING:
+      //case D3DRENDERSTATE_EXTENTS:
+      case D3DRENDERSTATE_AMBIENT:
+      case D3DRENDERSTATE_FOGVERTEXMODE:
+      case D3DRENDERSTATE_COLORVERTEX:
+      case D3DRENDERSTATE_LOCALVIEWER:
+      case D3DRENDERSTATE_NORMALIZENORMALS:
+      //case D3DRENDERSTATE_COLORKEYBLENDENABLE:
+      case D3DRENDERSTATE_DIFFUSEMATERIALSOURCE:
+      case D3DRENDERSTATE_SPECULARMATERIALSOURCE:
+      case D3DRENDERSTATE_AMBIENTMATERIALSOURCE:
+      case D3DRENDERSTATE_EMISSIVEMATERIALSOURCE:
+      case D3DRENDERSTATE_VERTEXBLEND:
+      case D3DRENDERSTATE_CLIPPLANEENABLE:
         break;
 
       case D3DRENDERSTATE_ANTIALIAS: {
@@ -606,6 +648,11 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYBLENDENABLE:
         m_commonD3DDevice->SetColorKeyBlendEnable(dwRenderState);
         return D3D_OK;
+
+      // As opposed to D3D8/9, D3D7 actually validates and
+      // errors out in case of unknown/invalid render states
+      default:
+        return DDERR_INVALIDPARAMS;
     }
 
     // This call will never fail
@@ -618,17 +665,72 @@ namespace dxvk {
     if (unlikely(lpdwRenderState == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    // As opposed to D3D8/9, D3D7 actually validates and
-    // errors out in case of unknown/invalid render states
-    if (unlikely(!IsValidD3D7RenderStateType(dwRenderStateType)
-              && !m_commonIntf->GetOptions()->apitraceMode))
-      return DDERR_INVALIDPARAMS;
-
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
 
     switch (dwRenderStateType) {
       // Most render states translate 1:1 to D3D9
-      default:
+      //case D3DRENDERSTATE_ANTIALIAS:
+      //case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
+      case D3DRENDERSTATE_ZENABLE:
+      case D3DRENDERSTATE_FILLMODE:
+      case D3DRENDERSTATE_SHADEMODE:
+      //case D3DRENDERSTATE_LINEPATTERN:
+      case D3DRENDERSTATE_ZWRITEENABLE:
+      case D3DRENDERSTATE_ALPHATESTENABLE:
+      case D3DRENDERSTATE_LASTPIXEL:
+      case D3DRENDERSTATE_SRCBLEND:
+      case D3DRENDERSTATE_DESTBLEND:
+      case D3DRENDERSTATE_CULLMODE:
+      case D3DRENDERSTATE_ZFUNC:
+      case D3DRENDERSTATE_ALPHAREF:
+      case D3DRENDERSTATE_ALPHAFUNC:
+      case D3DRENDERSTATE_DITHERENABLE:
+      case D3DRENDERSTATE_ALPHABLENDENABLE:
+      case D3DRENDERSTATE_FOGENABLE:
+      case D3DRENDERSTATE_SPECULARENABLE:
+      //case D3DRENDERSTATE_ZVISIBLE:
+      //case D3DRENDERSTATE_STIPPLEDALPHA:
+      case D3DRENDERSTATE_FOGCOLOR:
+      case D3DRENDERSTATE_FOGTABLEMODE:
+      case D3DRENDERSTATE_FOGSTART:   // same as D3DRENDERSTATE_FOGTABLESTART
+      case D3DRENDERSTATE_FOGEND:     // same as D3DRENDERSTATE_FOGTABLEEND
+      case D3DRENDERSTATE_FOGDENSITY: // same as D3DRENDERSTATE_FOGTABLEDENSITY
+      //case D3DRENDERSTATE_EDGEANTIALIAS:
+      //case D3DRENDERSTATE_COLORKEYENABLE:
+      //case D3DRENDERSTATE_ZBIAS:
+      case D3DRENDERSTATE_RANGEFOGENABLE:
+      case D3DRENDERSTATE_STENCILENABLE:
+      case D3DRENDERSTATE_STENCILFAIL:
+      case D3DRENDERSTATE_STENCILZFAIL:
+      case D3DRENDERSTATE_STENCILPASS:
+      case D3DRENDERSTATE_STENCILFUNC:
+      case D3DRENDERSTATE_STENCILREF:
+      case D3DRENDERSTATE_STENCILMASK:
+      case D3DRENDERSTATE_STENCILWRITEMASK:
+      case D3DRENDERSTATE_TEXTUREFACTOR:
+      case D3DRENDERSTATE_WRAP0:
+      case D3DRENDERSTATE_WRAP1:
+      case D3DRENDERSTATE_WRAP2:
+      case D3DRENDERSTATE_WRAP3:
+      case D3DRENDERSTATE_WRAP4:
+      case D3DRENDERSTATE_WRAP5:
+      case D3DRENDERSTATE_WRAP6:
+      case D3DRENDERSTATE_WRAP7:
+      case D3DRENDERSTATE_CLIPPING:
+      case D3DRENDERSTATE_LIGHTING:
+      //case D3DRENDERSTATE_EXTENTS:
+      case D3DRENDERSTATE_AMBIENT:
+      case D3DRENDERSTATE_FOGVERTEXMODE:
+      case D3DRENDERSTATE_COLORVERTEX:
+      case D3DRENDERSTATE_LOCALVIEWER:
+      case D3DRENDERSTATE_NORMALIZENORMALS:
+      //case D3DRENDERSTATE_COLORKEYBLENDENABLE:
+      case D3DRENDERSTATE_DIFFUSEMATERIALSOURCE:
+      case D3DRENDERSTATE_SPECULARMATERIALSOURCE:
+      case D3DRENDERSTATE_AMBIENTMATERIALSOURCE:
+      case D3DRENDERSTATE_EMISSIVEMATERIALSOURCE:
+      case D3DRENDERSTATE_VERTEXBLEND:
+      case D3DRENDERSTATE_CLIPPLANEENABLE:
         break;
 
       case D3DRENDERSTATE_ANTIALIAS:
@@ -677,6 +779,13 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYBLENDENABLE:
         *lpdwRenderState = m_commonD3DDevice->GetColorKeyBlendEnable();
         return D3D_OK;
+
+      // As opposed to D3D8/9, D3D7 actually validates and
+      // errors out in case of unknown/invalid render states
+      default:
+        if (likely(!m_commonIntf->GetOptions()->apitraceMode))
+          return DDERR_INVALIDPARAMS;
+        break;
     }
 
     // This call will never fail
@@ -1037,9 +1146,9 @@ namespace dxvk {
     device9->SetFVF(vb->GetFVF());
     device9->SetStreamSource(0, vb->GetD3D9VertexBuffer(), 0, vb->GetStride());
     HRESULT hr = device9->DrawPrimitive(
-                           d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
-                           dwStartVertex,
-                           GetPrimitiveCount(d3dptPrimitiveType, dwNumVertices));
+                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                      dwStartVertex,
+                      GetPrimitiveCount(d3dptPrimitiveType, dwNumVertices));
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawPrimitiveVB: Failed D3D9 call to DrawPrimitive");
@@ -1086,17 +1195,16 @@ namespace dxvk {
     d3d9::IDirect3DIndexBuffer9* ib9 = m_ib9[ibIndex].ptr();
 
     UploadIndices(ib9, lpwIndices, dwIndexCount);
-    m_ib9_uploads[ibIndex]++;
     device9->SetIndices(ib9);
     device9->SetFVF(vb->GetFVF());
     device9->SetStreamSource(0, vb->GetD3D9VertexBuffer(), 0, vb->GetStride());
     HRESULT hr = device9->DrawIndexedPrimitive(
-                    d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
-                    dwStartVertex,
-                    0,
-                    dwNumVertices,
-                    0,
-                    GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount));
+                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                      dwStartVertex,
+                      0,
+                      dwNumVertices,
+                      0,
+                      GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount));
 
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Failed D3D9 call to DrawIndexedPrimitive");
@@ -1179,10 +1287,12 @@ namespace dxvk {
 
     DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
 
+    DDrawCommonSurface* commonSurface = surface7->GetCommonSurface();
+
     // If textures have been used on a different device, they
     // will get their D3D9 object reinitialized at this point
-    if (unlikely(surface7->GetCommonSurface()->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
-      surface7->GetCommonSurface()->DirtyDDrawSurface();
+    if (unlikely(commonSurface->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
+      commonSurface->DirtyDDrawSurface();
 
     hr = surface7->InitializeOrUploadD3D9();
     if (unlikely(FAILED(hr))) {
@@ -1194,8 +1304,8 @@ namespace dxvk {
     //if (unlikely(m_textures[stage] == surface7))
       //return D3D_OK;
 
-    d3d9::IDirect3DTexture9*     tex9  = surface7->GetCommonSurface()->GetD3D9Texture();
-    d3d9::IDirect3DCubeTexture9* cube9 = surface7->GetCommonSurface()->GetD3D9CubeTexture();
+    d3d9::IDirect3DTexture9*     tex9  = commonSurface->GetD3D9Texture();
+    d3d9::IDirect3DCubeTexture9* cube9 = commonSurface->GetD3D9CubeTexture();
 
     if (likely(tex9 != nullptr)) {
       hr = device9->SetTexture(stage, tex9);
@@ -1206,10 +1316,10 @@ namespace dxvk {
 
       if (likely(stage == 0)) {
         const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
-        const bool validColorKey = surface7->GetCommonSurface()->HasValidColorKey();
+        const bool validColorKey = commonSurface->HasValidColorKey();
         m_bridge->SetColorKeyState(colorKeyEnable && validColorKey);
         if (colorKeyEnable && validColorKey) {
-          DDCOLORKEY normalizedColorKey = surface7->GetCommonSurface()->GetColorKeyNormalized();
+          DDCOLORKEY normalizedColorKey = commonSurface->GetColorKeyNormalized();
           m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
                                 normalizedColorKey.dwColorSpaceHighValue);
         }
@@ -1223,7 +1333,7 @@ namespace dxvk {
 
       if (likely(stage == 0)) {
         const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
-        const bool validColorKey = surface7->GetCommonSurface()->HasValidColorKey();
+        const bool validColorKey = commonSurface->HasValidColorKey();
         if (unlikely(colorKeyEnable && validColorKey))
           Logger::warn("D3D7Device::SetTexture: Unsupported use of cube texture color key");
       }
@@ -1253,9 +1363,8 @@ namespace dxvk {
     // If the type has been remapped to a sampler state type
     if (stateType != -1u) {
       // MAG/MIN/MIP filter enums are each different than the unified D3D9 D3DTEXTUREFILTERTYPE
-      if (stateType == d3d9::D3DSAMP_MAGFILTER ||
-          stateType == d3d9::D3DSAMP_MINFILTER || stateType == d3d9::D3DSAMP_MIPFILTER) {
-        DWORD dwStateProxy9 = 0;
+      if (stateType == d3d9::D3DSAMP_MAGFILTER || stateType == d3d9::D3DSAMP_MINFILTER || stateType == d3d9::D3DSAMP_MIPFILTER) {
+        DWORD dwStateProxy9;
 
         HRESULT hr = device9->GetSamplerState(dwStage, stateType, &dwStateProxy9);
         if (unlikely(FAILED(hr)))
@@ -1287,8 +1396,7 @@ namespace dxvk {
     // If the type has been remapped to a sampler state type
     if (stateType != -1u) {
       // MAG/MIN/MIP filter enums are each different than the unified D3D9 D3DTEXTUREFILTERTYPE
-      if (stateType == d3d9::D3DSAMP_MAGFILTER ||
-          stateType == d3d9::D3DSAMP_MINFILTER || stateType == d3d9::D3DSAMP_MIPFILTER) {
+      if (stateType == d3d9::D3DSAMP_MAGFILTER || stateType == d3d9::D3DSAMP_MINFILTER || stateType == d3d9::D3DSAMP_MIPFILTER) {
         const DWORD dwState9 = DecodeD3D7TexFilterValues(d3dTexStageStateType, dwState);
         return device9->SetSamplerState(dwStage, stateType, dwState9);
       } else {
@@ -1315,27 +1423,27 @@ namespace dxvk {
     DDraw7Surface* ddraw7SurfaceSrc = nullptr;
     DDraw7Surface* ddraw7SurfaceDst = nullptr;
 
-    RECT* sourceFullSurfaceRect = nullptr;
-    if (likely(DDrawCommonInterface::IsWrappedSurface(src_surface))) {
-      ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
-      ddraw7SurfaceSrc->DownloadSurfaceData();
-      sourceFullSurfaceRect = ddraw7SurfaceSrc->GetCommonSurface()->GetFullSurfaceRect();
-    } else {
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(src_surface))) {
       Logger::err("D3D7Device::Load: Unwrapped surface source");
       return DDERR_UNSUPPORTED;
     }
 
-    if (likely(DDrawCommonInterface::IsWrappedSurface(dst_surface))) {
-      ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
-      if ((dst_point == nullptr || (dst_point->x == 0 && dst_point->y == 0)) &&
-          ddraw7SurfaceDst->GetCommonSurface()->IsFullSurfaceLock(src_rect, sourceFullSurfaceRect)) {
-        ddraw7SurfaceDst->GetCommonSurface()->UnDirtyD3D9Surface();
-      } else {
-        ddraw7SurfaceDst->DownloadSurfaceData();
-      }
-    } else {
+    RECT* sourceFullSurfaceRect = nullptr;
+    ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
+    ddraw7SurfaceSrc->DownloadSurfaceData();
+    sourceFullSurfaceRect = ddraw7SurfaceSrc->GetCommonSurface()->GetFullSurfaceRect();
+
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(dst_surface))) {
       Logger::err("D3D7Device::Load: Unwrapped surface destination");
       return DDERR_UNSUPPORTED;
+    }
+
+    ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
+    if ((dst_point == nullptr || (dst_point->x == 0 && dst_point->y == 0)) &&
+        ddraw7SurfaceDst->GetCommonSurface()->IsFullSurfaceLock(src_rect, sourceFullSurfaceRect)) {
+      ddraw7SurfaceDst->GetCommonSurface()->UnDirtyD3D9Surface();
+    } else {
+      ddraw7SurfaceDst->DownloadSurfaceData();
     }
 
     HRESULT hr = m_proxy->Load(ddraw7SurfaceDst->GetProxied(), dst_point,
@@ -1376,8 +1484,7 @@ namespace dxvk {
 
     m_lightsStates[dwLightIndex] = bEnable;
     // Store a default light if the light cache doesn't contain one
-    if (unlikely(m_lights.find(dwLightIndex) == m_lights.end()))
-      m_lights[dwLightIndex] = DefaultLight;
+    m_lights.try_emplace(dwLightIndex, DefaultLight);
 
     return D3D_OK;
   }
@@ -1461,15 +1568,21 @@ namespace dxvk {
       return hr;
     }
 
-    m_rt->GetCommonSurface()->SetD3D9Surface(nullptr);
-    m_rt->GetCommonSurface()->UnDirtyD3D9Surface();
+    DDrawCommonSurface* commonSurface = m_rt->GetCommonSurface();
+    commonSurface->SetD3D9Surface(nullptr);
+    commonSurface->UnDirtyD3D9Surface();
+    // Ensure the DDraw surface content gets re-uploaded if needed
+    commonSurface->DirtyDDrawSurface();
 
     // Reset the D3D9 objects for all the following surfaces in the swapchain
     DDraw7Surface* nextFlippable = m_rt->GetNextFlippable();
 
     while (nextFlippable != nullptr) {
-      nextFlippable->GetCommonSurface()->SetD3D9Surface(nullptr);
-      nextFlippable->GetCommonSurface()->UnDirtyD3D9Surface();
+      commonSurface = nextFlippable->GetCommonSurface();
+      commonSurface->SetD3D9Surface(nullptr);
+      commonSurface->UnDirtyD3D9Surface();
+      // Ensure the DDraw surface content gets re-uploaded if needed
+      commonSurface->DirtyDDrawSurface();
 
       nextFlippable = nextFlippable->GetNextFlippable();
     }
@@ -1478,8 +1591,11 @@ namespace dxvk {
     DDraw7Surface* parentSurf = m_rt->GetParentSurface();
 
     while (parentSurf != nullptr) {
-      parentSurf->GetCommonSurface()->SetD3D9Surface(nullptr);
-      parentSurf->GetCommonSurface()->UnDirtyD3D9Surface();
+      commonSurface = parentSurf->GetCommonSurface();
+      commonSurface->SetD3D9Surface(nullptr);
+      commonSurface->UnDirtyD3D9Surface();
+      // Ensure the DDraw surface content gets re-uploaded if needed
+      commonSurface->DirtyDDrawSurface();
 
       parentSurf = parentSurf->GetParentSurface();
     }

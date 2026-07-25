@@ -978,17 +978,82 @@ namespace dxvk {
   }
 
   inline HRESULT STDMETHODCALLTYPE D3D3Device::SetRenderStateInternal(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
-    // As opposed to D3D7, D3D3 does not error out on
-    // unknown or invalid render states.
-    if (unlikely(!IsValidD3D3RenderStateType(dwRenderStateType)))
-      return D3D_OK;
-
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
     d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
 
     switch (dwRenderStateType) {
       // Most render states translate 1:1 to D3D9
-      default:
+      //case D3DRENDERSTATE_TEXTUREHANDLE:
+      //case D3DRENDERSTATE_ANTIALIAS:
+      //case D3DRENDERSTATE_TEXTUREADDRESS:
+      //case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
+      //case D3DRENDERSTATE_WRAPU:
+      //case D3DRENDERSTATE_WRAPV:
+      case D3DRENDERSTATE_ZENABLE:
+      case D3DRENDERSTATE_FILLMODE:
+      case D3DRENDERSTATE_SHADEMODE:
+      //case D3DRENDERSTATE_LINEPATTERN:
+      //case D3DRENDERSTATE_MONOENABLE:
+      //case D3DRENDERSTATE_ROP2:
+      //case D3DRENDERSTATE_PLANEMASK:
+      case D3DRENDERSTATE_ZWRITEENABLE:
+      case D3DRENDERSTATE_ALPHATESTENABLE:
+      case D3DRENDERSTATE_LASTPIXEL:
+      //case D3DRENDERSTATE_TEXTUREMAG:
+      //case D3DRENDERSTATE_TEXTUREMIN:
+      case D3DRENDERSTATE_SRCBLEND:
+      case D3DRENDERSTATE_DESTBLEND:
+      //case D3DRENDERSTATE_TEXTUREMAPBLEND:
+      case D3DRENDERSTATE_CULLMODE:
+      case D3DRENDERSTATE_ZFUNC:
+      case D3DRENDERSTATE_ALPHAREF:
+      case D3DRENDERSTATE_ALPHAFUNC:
+      //case D3DRENDERSTATE_DITHERENABLE:
+      //case D3DRENDERSTATE_BLENDENABLE: // The actual D3DRENDERSTATE_ALPHABLENDENABLE
+      case D3DRENDERSTATE_FOGENABLE:
+      case D3DRENDERSTATE_SPECULARENABLE:
+      //case D3DRENDERSTATE_ZVISIBLE:
+      //case D3DRENDERSTATE_SUBPIXEL:
+      //case D3DRENDERSTATE_SUBPIXELX:
+      //case D3DRENDERSTATE_STIPPLEDALPHA:
+      case D3DRENDERSTATE_FOGCOLOR:
+      case D3DRENDERSTATE_FOGTABLEMODE:
+      case D3DRENDERSTATE_FOGTABLESTART:
+      case D3DRENDERSTATE_FOGTABLEEND:
+      case D3DRENDERSTATE_FOGTABLEDENSITY:
+      //case D3DRENDERSTATE_STIPPLEENABLE:
+      //case D3DRENDERSTATE_STIPPLEPATTERN00:
+      //case D3DRENDERSTATE_STIPPLEPATTERN01:
+      //case D3DRENDERSTATE_STIPPLEPATTERN02:
+      //case D3DRENDERSTATE_STIPPLEPATTERN03:
+      //case D3DRENDERSTATE_STIPPLEPATTERN04:
+      //case D3DRENDERSTATE_STIPPLEPATTERN05:
+      //case D3DRENDERSTATE_STIPPLEPATTERN06:
+      //case D3DRENDERSTATE_STIPPLEPATTERN07:
+      //case D3DRENDERSTATE_STIPPLEPATTERN08:
+      //case D3DRENDERSTATE_STIPPLEPATTERN09:
+      //case D3DRENDERSTATE_STIPPLEPATTERN10:
+      //case D3DRENDERSTATE_STIPPLEPATTERN11:
+      //case D3DRENDERSTATE_STIPPLEPATTERN12:
+      //case D3DRENDERSTATE_STIPPLEPATTERN13:
+      //case D3DRENDERSTATE_STIPPLEPATTERN14:
+      //case D3DRENDERSTATE_STIPPLEPATTERN15:
+      //case D3DRENDERSTATE_STIPPLEPATTERN16:
+      //case D3DRENDERSTATE_STIPPLEPATTERN17:
+      //case D3DRENDERSTATE_STIPPLEPATTERN18:
+      //case D3DRENDERSTATE_STIPPLEPATTERN19:
+      //case D3DRENDERSTATE_STIPPLEPATTERN20:
+      //case D3DRENDERSTATE_STIPPLEPATTERN21:
+      //case D3DRENDERSTATE_STIPPLEPATTERN22:
+      //case D3DRENDERSTATE_STIPPLEPATTERN23:
+      //case D3DRENDERSTATE_STIPPLEPATTERN24:
+      //case D3DRENDERSTATE_STIPPLEPATTERN25:
+      //case D3DRENDERSTATE_STIPPLEPATTERN26:
+      //case D3DRENDERSTATE_STIPPLEPATTERN27:
+      //case D3DRENDERSTATE_STIPPLEPATTERN28:
+      //case D3DRENDERSTATE_STIPPLEPATTERN29:
+      //case D3DRENDERSTATE_STIPPLEPATTERN30:
+      //case D3DRENDERSTATE_STIPPLEPATTERN31:
         break;
 
       // Replacement for later implemented SetTexture calls
@@ -1254,6 +1319,11 @@ namespace dxvk {
       case D3DRENDERSTATE_STIPPLEPATTERN30:
       case D3DRENDERSTATE_STIPPLEPATTERN31:
         return D3D_OK;
+
+      // As opposed to D3D7, D3D3 does not error out on
+      // unknown or invalid render states.
+      default:
+        return D3D_OK;
     }
 
     // This call will never fail
@@ -1443,10 +1513,12 @@ namespace dxvk {
       return D3D_OK;
     }
 
+    DDrawCommonSurface* commonSurface = surface->GetCommonSurface();
+
     // If textures have been used on a different device, they
     // will get their D3D9 object reinitialized at this point
-    if (unlikely(surface->GetCommonSurface()->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
-      surface->GetCommonSurface()->DirtyDDrawSurface();
+    if (unlikely(commonSurface->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
+      commonSurface->DirtyDDrawSurface();
 
     hr = surface->InitializeOrUploadD3D9();
     if (unlikely(FAILED(hr))) {
@@ -1458,7 +1530,7 @@ namespace dxvk {
     //if (unlikely(m_commonD3DDevice->GetCurrentTextureHandle() == textureHandle))
       //return D3D_OK;
 
-    d3d9::IDirect3DTexture9* tex9 = surface->GetCommonSurface()->GetD3D9Texture();
+    d3d9::IDirect3DTexture9* tex9 = commonSurface->GetD3D9Texture();
 
     if (likely(tex9 != nullptr)) {
       hr = device9->SetTexture(0, tex9);
@@ -1471,15 +1543,15 @@ namespace dxvk {
       //  have been used with no texturing; if the texture does not contain an alpha component,
       //  alpha values at the vertices in the source are interpolated between vertices."
       if (m_commonD3DDevice->GetTextureMapBlend() == D3DTBLEND_MODULATE) {
-        const DWORD textureOp = surface->GetCommonSurface()->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_SELECTARG2;
+        const DWORD textureOp = commonSurface->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_SELECTARG2;
         device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
       }
 
       // D3D3 enables color key transparency globally
-      const bool validColorKey = surface->GetCommonSurface()->HasValidColorKey();
+      const bool validColorKey = commonSurface->HasValidColorKey();
       m_bridge->SetColorKeyState(validColorKey);
       if (validColorKey) {
-        DDCOLORKEY normalizedColorKey = surface->GetCommonSurface()->GetColorKeyNormalized();
+        DDCOLORKEY normalizedColorKey = commonSurface->GetColorKeyNormalized();
         m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
                               normalizedColorKey.dwColorSpaceHighValue);
       }

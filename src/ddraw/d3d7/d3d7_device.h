@@ -176,14 +176,6 @@ namespace dxvk {
 
     inline void DDrawDirtySurfaceUpload();
 
-    inline bool LogIndexBufferUsageStats() const {
-      for (uint32_t m_ib9_upload : m_ib9_uploads) {
-        if (m_ib9_upload > 0)
-          return true;
-      }
-      return false;
-    }
-
     inline bool ShouldRecord() const { return m_recorder != nullptr; }
 
     inline void RefreshLastUsedDevice() {
@@ -215,7 +207,6 @@ namespace dxvk {
     std::unordered_map<DWORD, D3D7StateBlock> m_stateBlocks;
 
     std::array<Com<d3d9::IDirect3DIndexBuffer9>, ddrawCaps::IndexBufferCount> m_ib9;
-    uint32_t m_ib9_uploads[ddrawCaps::IndexBufferCount] = { };
 
     uint32_t                    m_deviceCount           = 0;
     static std::atomic<uint32_t> s_deviceCount;

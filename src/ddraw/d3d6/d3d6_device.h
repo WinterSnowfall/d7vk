@@ -170,14 +170,6 @@ namespace dxvk {
 
     inline HRESULT SetTextureWithHandle(DDraw4Surface* surface, DWORD textureHandle);
 
-    inline bool LogIndexBufferUsageStats() const {
-      for (uint32_t m_ib9_upload : m_ib9_uploads) {
-        if (m_ib9_upload > 0)
-          return true;
-      }
-      return false;
-    }
-
     inline void RefreshLastUsedDevice() {
       if (unlikely(m_commonIntf->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
         m_commonIntf->SetCommonD3DDevice(m_commonD3DDevice.ptr());
@@ -233,7 +225,6 @@ namespace dxvk {
     const D3DMATRIX*               m_legacyProjection   = nullptr;
 
     std::array<Com<d3d9::IDirect3DIndexBuffer9>, ddrawCaps::IndexBufferCount> m_ib9;
-    uint32_t m_ib9_uploads[ddrawCaps::IndexBufferCount] = { };
 
     uint32_t                       m_deviceCount        = 0;
     static std::atomic<uint32_t>   s_deviceCount;
