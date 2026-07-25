@@ -1132,9 +1132,14 @@ namespace dxvk {
     if (unlikely(lpd3dVertexBuffer == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    Com<D3D7VertexBuffer> vb = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
+    Com<D3D7VertexBuffer> vb7 = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
 
-    if (unlikely(vb->IsLocked())) {
+    if (unlikely(vb7->GetDevice() != this)) {
+      Logger::err("D3D7Device::DrawPrimitiveVB: Invalid vertex buffer parent device");
+      return DDERR_GENERIC;
+    }
+
+    if (unlikely(vb7->IsLocked())) {
       Logger::err("D3D7Device::DrawPrimitiveVB: Buffer is locked");
       return D3DERR_VERTEXBUFFERLOCKED;
     }
@@ -1143,8 +1148,8 @@ namespace dxvk {
 
     DDrawDirtySurfaceUpload();
 
-    device9->SetFVF(vb->GetFVF());
-    device9->SetStreamSource(0, vb->GetD3D9VertexBuffer(), 0, vb->GetStride());
+    device9->SetFVF(vb7->GetFVF());
+    device9->SetStreamSource(0, vb7->GetD3D9VertexBuffer(), 0, vb7->GetStride());
     HRESULT hr = device9->DrawPrimitive(
                       d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
                       dwStartVertex,
@@ -1171,9 +1176,14 @@ namespace dxvk {
     if (unlikely(lpd3dVertexBuffer == nullptr || lpwIndices == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    Com<D3D7VertexBuffer> vb = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
+    Com<D3D7VertexBuffer> vb7 = static_cast<D3D7VertexBuffer*>(lpd3dVertexBuffer);
 
-    if (unlikely(vb->IsLocked())) {
+    if (unlikely(vb7->GetDevice() != this)) {
+      Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Invalid vertex buffer parent device");
+      return DDERR_GENERIC;
+    }
+
+    if (unlikely(vb7->IsLocked())) {
       Logger::err("D3D7Device::DrawIndexedPrimitiveVB: Buffer is locked");
       return D3DERR_VERTEXBUFFERLOCKED;
     }
@@ -1196,8 +1206,8 @@ namespace dxvk {
 
     UploadIndices(ib9, lpwIndices, dwIndexCount);
     device9->SetIndices(ib9);
-    device9->SetFVF(vb->GetFVF());
-    device9->SetStreamSource(0, vb->GetD3D9VertexBuffer(), 0, vb->GetStride());
+    device9->SetFVF(vb7->GetFVF());
+    device9->SetStreamSource(0, vb7->GetD3D9VertexBuffer(), 0, vb7->GetStride());
     HRESULT hr = device9->DrawIndexedPrimitive(
                       d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
                       dwStartVertex,

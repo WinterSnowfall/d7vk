@@ -1701,6 +1701,11 @@ namespace dxvk {
 
     Com<D3D6VertexBuffer> vb6 = static_cast<D3D6VertexBuffer*>(vb);
 
+    if (unlikely(vb6->GetDevice() != this)) {
+      Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Invalid vertex buffer parent device");
+      return DDERR_GENERIC;
+    }
+
     if (unlikely(vb6->IsLocked())) {
       Logger::err("D3D6Device::DrawPrimitiveVB: Buffer is locked");
       return D3DERR_VERTEXBUFFERLOCKED;
@@ -1751,6 +1756,11 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     Com<D3D6VertexBuffer> vb6 = static_cast<D3D6VertexBuffer*>(vb);
+
+    if (unlikely(vb6->GetDevice() != this)) {
+      Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Invalid vertex buffer parent device");
+      return DDERR_GENERIC;
+    }
 
     if (unlikely(vb6->IsLocked())) {
       Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Buffer is locked");
