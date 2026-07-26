@@ -38,166 +38,173 @@ namespace dxvk {
     DDSURFACEDESC2       desc2        = { };
   };
 
-  inline bool IsCubeMapFace(DDSURFACEDESC2* desc) {
-    return desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEX
-        || desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEX
-        || desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEY
-        || desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEY
-        || desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEZ
-        || desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEZ;
-  }
-
   inline d3d9::D3DCUBEMAP_FACES GetCubemapFace(DDSURFACEDESC2* desc) {
-    if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEX) return d3d9::D3DCUBEMAP_FACE_POSITIVE_X;
-    if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEX) return d3d9::D3DCUBEMAP_FACE_NEGATIVE_X;
-    if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEY) return d3d9::D3DCUBEMAP_FACE_POSITIVE_Y;
-    if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEY) return d3d9::D3DCUBEMAP_FACE_NEGATIVE_Y;
-    if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEZ) return d3d9::D3DCUBEMAP_FACE_POSITIVE_Z;
-    if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEZ) return d3d9::D3DCUBEMAP_FACE_NEGATIVE_Z;
-    return d3d9::D3DCUBEMAP_FACE_POSITIVE_X;
+    const DWORD cubeFaceMask = desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_ALLFACES;
+
+    switch (cubeFaceMask) {
+      default:
+      case DDSCAPS2_CUBEMAP_POSITIVEX: return d3d9::D3DCUBEMAP_FACE_POSITIVE_X;
+      case DDSCAPS2_CUBEMAP_NEGATIVEX: return d3d9::D3DCUBEMAP_FACE_NEGATIVE_X;
+      case DDSCAPS2_CUBEMAP_POSITIVEY: return d3d9::D3DCUBEMAP_FACE_POSITIVE_Y;
+      case DDSCAPS2_CUBEMAP_NEGATIVEY: return d3d9::D3DCUBEMAP_FACE_NEGATIVE_Y;
+      case DDSCAPS2_CUBEMAP_POSITIVEZ: return d3d9::D3DCUBEMAP_FACE_POSITIVE_Z;
+      case DDSCAPS2_CUBEMAP_NEGATIVEZ: return d3d9::D3DCUBEMAP_FACE_NEGATIVE_Z;
+    }
   }
 
   inline d3d9::D3DFORMAT ConvertFormat(DDPIXELFORMAT& fmt) {
+    d3d9::D3DFORMAT d3d9Format;
+
+    // Empire of the Ants erroneously marks all DDPF_RGB surfaces
+    // with the DDPF_ZBUFFER flag as well, so prioritize DDPF_RGB
     if (fmt.dwFlags & DDPF_RGB) {
-      Logger::debug(str::format("ConvertFormat: fmt.dwRGBBitCount:     ", fmt.dwRGBBitCount));
-      Logger::debug(str::format("ConvertFormat: fmt.dwRGBAlphaBitMask: ", fmt.dwRGBAlphaBitMask));
-      Logger::debug(str::format("ConvertFormat: fmt.dwRBitMask:        ", fmt.dwRBitMask));
-      Logger::debug(str::format("ConvertFormat: fmt.dwGBitMask:        ", fmt.dwGBitMask));
-      Logger::debug(str::format("ConvertFormat: fmt.dwBBitMask:        ", fmt.dwBBitMask));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwRGBBitCount:     ", fmt.dwRGBBitCount));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwRGBAlphaBitMask: ", fmt.dwRGBAlphaBitMask));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwRBitMask:        ", fmt.dwRBitMask));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwGBitMask:        ", fmt.dwGBitMask));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwBBitMask:        ", fmt.dwBBitMask));
 
       switch (fmt.dwRGBBitCount) {
         case 8:
           // R: 1110 0000
-          return (fmt.dwFlags & DDPF_PALETTEINDEXED8) ? d3d9::D3DFMT_P8 : d3d9::D3DFMT_R3G3B2;
-        case 16: {
+          d3d9Format = (fmt.dwFlags & DDPF_PALETTEINDEXED8) ? d3d9::D3DFMT_P8 : d3d9::D3DFMT_R3G3B2;
+          break;
+
+        case 16:
           switch (fmt.dwRBitMask) {
             case (0xF << 8):
               // A: 1111 0000 0000 0000
               // R: 0000 1111 0000 0000
-              return d3d9::D3DFMT_A4R4G4B4;
+              d3d9Format = d3d9::D3DFMT_A4R4G4B4;
+              break;
+
             case (0x1F << 10):
               // A: 1000 0000 0000 0000
               // R: 0111 1100 0000 0000
-              return fmt.dwRGBAlphaBitMask ? d3d9::D3DFMT_A1R5G5B5 : d3d9::D3DFMT_X1R5G5B5;
+              d3d9Format = fmt.dwRGBAlphaBitMask ? d3d9::D3DFMT_A1R5G5B5 : d3d9::D3DFMT_X1R5G5B5;
+              break;
+
             case (0x1F << 11):
               // R: 1111 1000 0000 0000
-              return d3d9::D3DFMT_R5G6B5;
+              d3d9Format = d3d9::D3DFMT_R5G6B5;
+              break;
+
+            default:
+              Logger::warn("ConvertFormat: Unhandled dwRGBBitCount 16 format");
+              d3d9Format = d3d9::D3DFMT_UNKNOWN;
+              break;
           }
-          Logger::warn("ConvertFormat: Unhandled dwRGBBitCount 16 format");
-          return d3d9::D3DFMT_UNKNOWN;
-        }
+          break;
+
         // Drakan: Order of the Flame uses a dwRGBBitCount of 24
         // to request for D3DFMT_X8R8G8B8, based on provided bitmasks
         case 24:
-          return d3d9::D3DFMT_X8R8G8B8;
-        case 32: {
+          d3d9Format = d3d9::D3DFMT_X8R8G8B8;
+          break;
+
+        case 32:
           // A: 1111 1111 0000 0000 0000 0000 0000 0000
           // R: 0000 0000 1111 1111 0000 0000 0000 0000
-          return fmt.dwRGBAlphaBitMask ? d3d9::D3DFMT_A8R8G8B8 : d3d9::D3DFMT_X8R8G8B8;
-        }
-      }
-      Logger::warn("ConvertFormat: Unhandled dwRGBBitCount format");
-      return d3d9::D3DFMT_UNKNOWN;
+          d3d9Format = fmt.dwRGBAlphaBitMask ? d3d9::D3DFMT_A8R8G8B8 : d3d9::D3DFMT_X8R8G8B8;
+          break;
 
+        default:
+          Logger::warn("ConvertFormat: Unhandled dwRGBBitCount format");
+          d3d9Format = d3d9::D3DFMT_UNKNOWN;
+          break;
+      }
     // Depth formats will traditionally store stencil info in the MSB, however
     // some games will apparently try to use the LSB, so handle both cases
     } else if (fmt.dwFlags & DDPF_ZBUFFER) {
-      Logger::debug(str::format("ConvertFormat: fmt.dwZBufferBitDepth: ", fmt.dwZBufferBitDepth));
-      Logger::debug(str::format("ConvertFormat: fmt.dwZBitMask:        ",        fmt.dwZBitMask));
-      Logger::debug(str::format("ConvertFormat: fmt.dwStencilBitMask:  ",  fmt.dwStencilBitMask));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwZBufferBitDepth: ", fmt.dwZBufferBitDepth));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwZBitMask:        ",        fmt.dwZBitMask));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwStencilBitMask:  ",  fmt.dwStencilBitMask));
 
       switch (fmt.dwZBufferBitDepth) {
-        case 16: {
+        case 16:
           switch (fmt.dwStencilBitMask) {
             case 0:
               // D: 1111 1111 1111 1111
               // S: 0000 0000 0000 0000
-              return d3d9::D3DFMT_D16;
+              d3d9Format = d3d9::D3DFMT_D16;
+              break;
+
             case 0x1:
             case (0x1 << 15):
               // D: 0111 1111 1111 1111
               // S: 1000 0000 0000 0000
-              Logger::warn("ConvertFormat: Unsupported format D3DFMT_D15S1");
-              return d3d9::D3DFMT_D16;
+              d3d9Format = d3d9::D3DFMT_D15S1;
+              break;
+
+            default:
+              Logger::warn("ConvertFormat: Unhandled dwStencilBitMask 16 format");
+              d3d9Format = d3d9::D3DFMT_UNKNOWN;
+              break;
           }
-          Logger::warn("ConvertFormat: Unhandled dwStencilBitMask 16 format");
-          return d3d9::D3DFMT_UNKNOWN;
-        }
+          break;
+
         // We don't support or expose a 24-bit depth stencil per se,
         // but some applications request one anyway. Use 32-bit depth.
         case 24:
-        case 32: {
+        case 32:
           switch (fmt.dwStencilBitMask) {
-            case 0: {
+            case 0:
               switch (fmt.dwZBitMask) {
                 case 0xFFFFFFFF:
                   // D: 1111 1111 1111 1111 1111 1111 1111 1111
                   // S: 0000 0000 0000 0000 0000 0000 0000 0000
-                  Logger::warn("ConvertFormat: Unsupported format D3DFMT_D32");
-                  return d3d9::D3DFMT_D24X8;
+                  d3d9Format = d3d9::D3DFMT_D32;
+                  break;
+
                 case 0xFFFFFF:
-                case (DWORD(0xFFFFFF << 8)):
+                case DWORD(0xFFFFFF << 8):
                   // D: 0000 0000 1111 1111 1111 1111 1111 1111
                   // S: 0000 0000 0000 0000 0000 0000 0000 0000
-                  return d3d9::D3DFMT_D24X8;
+                  d3d9Format = d3d9::D3DFMT_D24X8;
+                  break;
+
+                default:
+                  Logger::warn("ConvertFormat: Unhandled dwZBitMask 24/32 format");
+                  d3d9Format = d3d9::D3DFMT_UNKNOWN;
+                  break;
               }
-              Logger::warn("ConvertFormat: Unhandled dwZBitMask 24/32 format");
-              return d3d9::D3DFMT_UNKNOWN;
-            }
+              break;
+
             case 0xFF:
-            case (DWORD(0xFF << 24)):
+            case DWORD(0xFF << 24):
               // D: 0000 0000 1111 1111 1111 1111 1111 1111
               // S: 1111 1111 0000 0000 0000 0000 0000 0000
-              return d3d9::D3DFMT_D24S8;
+              d3d9Format = d3d9::D3DFMT_D24S8;
+              break;
+
             case 0xF:
-            case (DWORD(0xF << 24)):
+            case DWORD(0xF << 24):
               // D: 0000 0000 1111 1111 1111 1111 1111 1111
               // S: 1111 0000 0000 0000 0000 0000 0000 0000
               Logger::warn("ConvertFormat: Unsupported format D3DFMT_D24X4S4");
-              return d3d9::D3DFMT_D24S8;
+              d3d9Format = d3d9::D3DFMT_D24S8;
+              break;
+
+            default:
+              Logger::warn("ConvertFormat: Unhandled dwStencilBitMask 24/32 format");
+              d3d9Format = d3d9::D3DFMT_UNKNOWN;
+              break;
           }
-          Logger::warn("ConvertFormat: Unhandled dwStencilBitMask 24/32 format");
-          return d3d9::D3DFMT_UNKNOWN;
-        }
+          break;
+
+        default:
+          Logger::warn("ConvertFormat: Unhandled dwZBufferBitDepth format");
+          d3d9Format = d3d9::D3DFMT_UNKNOWN;
+          break;
       }
-      Logger::warn("ConvertFormat: Unhandled dwZBufferBitDepth format");
-      return d3d9::D3DFMT_UNKNOWN;
-
-    } else if (fmt.dwFlags & DDPF_LUMINANCE) {
-      Logger::debug(str::format("ConvertFormat: fmt.dwLuminanceBitCount:     ", fmt.dwLuminanceBitCount));
-      Logger::debug(str::format("ConvertFormat: fmt.dwLuminanceAlphaBitMask: ", fmt.dwLuminanceAlphaBitMask));
-      Logger::debug(str::format("ConvertFormat: fmt.dwLuminanceBitMask:      ", fmt.dwLuminanceBitMask));
-
-      switch (fmt.dwLuminanceBitCount) {
-        case 8: {
-          switch (fmt.dwLuminanceBitMask) {
-            case 0xFF:
-              // L: 1111 1111
-              return d3d9::D3DFMT_L8;
-            case 0xF:
-              // A: 1111 0000
-              // L: 0000 1111
-              return d3d9::D3DFMT_A4L4;
-          }
-          Logger::warn("ConvertFormat: Unhandled dwLuminanceBitCount 8 format");
-          return d3d9::D3DFMT_UNKNOWN;
-        }
-        case 16:
-          // A: 1111 1111 0000 0000
-          // L: 0000 0000 1111 1111
-          return d3d9::D3DFMT_A8L8;
-      }
-      Logger::warn("ConvertFormat: Unhandled dwLuminanceBitCount format");
-      return d3d9::D3DFMT_UNKNOWN;
-
     } else if (fmt.dwFlags & DDPF_BUMPDUDV) {
-      Logger::debug(str::format("ConvertFormat: fmt.dwBumpBitCount:         ", fmt.dwBumpBitCount));
-      Logger::debug(str::format("ConvertFormat: fmt.dwBumpLuminanceBitMask: ", fmt.dwBumpLuminanceBitMask));
-      Logger::debug(str::format("ConvertFormat: fmt.dwBumpDvBitMask:        ", fmt.dwBumpDvBitMask));
-      Logger::debug(str::format("ConvertFormat: fmt.dwBumpDuBitMask:        ", fmt.dwBumpDuBitMask));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwBumpBitCount:         ", fmt.dwBumpBitCount));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwBumpLuminanceBitMask: ", fmt.dwBumpLuminanceBitMask));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwBumpDvBitMask:        ", fmt.dwBumpDvBitMask));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwBumpDuBitMask:        ", fmt.dwBumpDuBitMask));
 
       switch (fmt.dwBumpBitCount) {
-        case 16: {
+        case 16:
           // L: 1111 1100 0000 0000
           // V: 0000 0011 1110 0000
           // U: 0000 0000 0001 1111
@@ -205,43 +212,100 @@ namespace dxvk {
           // L: 0000 0000 0000 0000
           // V: 1111 1111 0000 0000
           // U: 0000 0000 1111 1111
-          return fmt.dwBumpLuminanceBitMask ? d3d9::D3DFMT_L6V5U5 : d3d9::D3DFMT_V8U8;
-        }
-        case 32: {
+          d3d9Format = fmt.dwBumpLuminanceBitMask ? d3d9::D3DFMT_L6V5U5 : d3d9::D3DFMT_V8U8;
+          break;
+
+        case 32:
           // A: 0000 0000 0000 0000 0000 0000 0000 0000
           // L: 0000 0000 1111 1111 0000 0000 0000 0000
           // V: 0000 0000 0000 0000 1111 1111 0000 0000
           // U: 0000 0000 0000 0000 0000 0000 1111 1111
-          return d3d9::D3DFMT_X8L8V8U8;
-        }
-      }
-      Logger::warn("ConvertFormat: Unhandled dwBumpBitCount format");
-      return d3d9::D3DFMT_UNKNOWN;
+          d3d9Format = d3d9::D3DFMT_X8L8V8U8;
+          break;
 
+        default:
+          Logger::warn("ConvertFormat: Unhandled dwBumpBitCount format");
+          d3d9Format = d3d9::D3DFMT_UNKNOWN;
+          break;
+      }
     } else if (fmt.dwFlags & DDPF_FOURCC) {
       switch (fmt.dwFourCC) {
         case MAKEFOURCC('D', 'X', 'T', '1'):
-          return d3d9::D3DFMT_DXT1;
+          d3d9Format = d3d9::D3DFMT_DXT1;
+          break;
+
         case MAKEFOURCC('D', 'X', 'T', '2'):
-          return d3d9::D3DFMT_DXT2;
+          d3d9Format = d3d9::D3DFMT_DXT2;
+          break;
+
         case MAKEFOURCC('D', 'X', 'T', '3'):
-          return d3d9::D3DFMT_DXT3;
+          d3d9Format = d3d9::D3DFMT_DXT3;
+          break;
+
         case MAKEFOURCC('D', 'X', 'T', '4'):
-          return d3d9::D3DFMT_DXT4;
+          d3d9Format = d3d9::D3DFMT_DXT4;
+          break;
+
         case MAKEFOURCC('D', 'X', 'T', '5'):
-          return d3d9::D3DFMT_DXT5;
+          d3d9Format = d3d9::D3DFMT_DXT5;
+          break;
+
         case MAKEFOURCC('Y', 'U', 'Y', '2'):
-          return d3d9::D3DFMT_YUY2;
+          d3d9Format = d3d9::D3DFMT_YUY2;
+          break;
+
+        default:
+          Logger::warn("ConvertFormat: Unhandled FOURCC payload");
+          d3d9Format = d3d9::D3DFMT_UNKNOWN;
+          break;
       }
-      Logger::warn("ConvertFormat: Unhandled FOURCC payload");
-      return d3d9::D3DFMT_UNKNOWN;
+    // Luminance/alpha-luminance formats appear to be unused in practice in early D3D
+    } else if (unlikely(fmt.dwFlags & DDPF_LUMINANCE)) {
+      //Logger::debug(str::format("ConvertFormat: fmt.dwLuminanceBitCount:     ", fmt.dwLuminanceBitCount));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwLuminanceAlphaBitMask: ", fmt.dwLuminanceAlphaBitMask));
+      //Logger::debug(str::format("ConvertFormat: fmt.dwLuminanceBitMask:      ", fmt.dwLuminanceBitMask));
+
+      switch (fmt.dwLuminanceBitCount) {
+        case 8:
+          switch (fmt.dwLuminanceBitMask) {
+            case 0xFF:
+              // L: 1111 1111
+              d3d9Format = d3d9::D3DFMT_L8;
+              break;
+
+            case 0xF:
+              // A: 1111 0000
+              // L: 0000 1111
+              d3d9Format = d3d9::D3DFMT_A4L4;
+              break;
+
+            default:
+              Logger::warn("ConvertFormat: Unhandled dwLuminanceBitCount 8 format");
+              d3d9Format = d3d9::D3DFMT_UNKNOWN;
+              break;
+          }
+          break;
+
+        case 16:
+          // A: 1111 1111 0000 0000
+          // L: 0000 0000 1111 1111
+          d3d9Format = d3d9::D3DFMT_A8L8;
+          break;
+
+        default:
+          Logger::warn("ConvertFormat: Unhandled dwLuminanceBitCount format");
+          d3d9Format = d3d9::D3DFMT_UNKNOWN;
+          break;
+      }
+    } else {
+      Logger::warn("ConvertFormat: Unhandled bit payload");
+      d3d9Format = d3d9::D3DFMT_UNKNOWN;
     }
 
-    Logger::warn("ConvertFormat: Unhandled bit payload");
-    return d3d9::D3DFMT_UNKNOWN;
+    return d3d9Format;
   }
 
-  inline DDPIXELFORMAT GetTextureFormat (d3d9::D3DFORMAT format) {
+  inline DDPIXELFORMAT GetTextureFormat(d3d9::D3DFORMAT format) {
     DDPIXELFORMAT tformat = { };
     tformat.dwSize = sizeof(DDPIXELFORMAT);
 
@@ -383,6 +447,11 @@ namespace dxvk {
         tformat.dwFourCC = MAKEFOURCC('D', 'X', 'T', '5');
         break;
 
+      case d3d9::D3DFMT_YUY2:
+        tformat.dwFlags = DDPF_FOURCC;
+        tformat.dwFourCC = MAKEFOURCC('Y', 'U', 'Y', '2');
+        break;
+
       default:
       case d3d9::D3DFMT_UNKNOWN:
         Logger::err("GetTextureFormat: Unhandled format");
@@ -392,7 +461,7 @@ namespace dxvk {
     return tformat;
   }
 
-  inline DDPIXELFORMAT GetZBufferFormat (d3d9::D3DFORMAT format) {
+  inline DDPIXELFORMAT GetZBufferFormat(d3d9::D3DFORMAT format) {
     DDPIXELFORMAT zformat = { };
     zformat.dwSize = sizeof(DDPIXELFORMAT);
 
@@ -454,24 +523,6 @@ namespace dxvk {
     }
 
     return zformat;
-  }
-
-  inline d3d9::D3DMULTISAMPLE_TYPE GetSupportedMultiSampleType(d3d9::IDirect3D9* d3d9Intf, d3d9::D3DFORMAT backBufferFormat) {
-    HRESULT hr4S = d3d9Intf->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
-                                                        TRUE, d3d9::D3DMULTISAMPLE_4_SAMPLES, NULL);
-    if (likely(SUCCEEDED(hr4S))) {
-      Logger::info("GetSupportedMultiSampleType: Using 4x MSAA for FSAA emulation");
-      return d3d9::D3DMULTISAMPLE_4_SAMPLES;
-    } else {
-      HRESULT hr2S = d3d9Intf->CheckDeviceMultiSampleType(0, d3d9::D3DDEVTYPE_HAL, backBufferFormat,
-                                                          TRUE, d3d9::D3DMULTISAMPLE_2_SAMPLES, NULL);
-      if (likely(SUCCEEDED(hr2S))) {
-        Logger::info("GetSupportedMultiSampleType: Using 2x MSAA for FSAA emulation");
-        return d3d9::D3DMULTISAMPLE_2_SAMPLES;
-      }
-    }
-
-    return d3d9::D3DMULTISAMPLE_NONE;
   }
 
   template <typename DescType>
@@ -591,28 +642,29 @@ namespace dxvk {
   inline HRESULT STDMETHODCALLTYPE EnumAndAttachCubeMapFacesCallback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     CubeMapAttachedSurfaces* cubeMapAttachedSurfaces = static_cast<CubeMapAttachedSurfaces*>(ctx);
 
-    // Skip any surface which isn't a cube map face
-    if (unlikely(!IsCubeMapFace(desc)))
-      return DDENUMRET_OK;
+    const DWORD cubeFaceMask = desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_ALLFACES;
 
-    if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEX) {
-      cubeMapAttachedSurfaces->positiveX = subsurf;
-      return DDENUMRET_OK;
-    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEX) {
-      cubeMapAttachedSurfaces->negativeX = subsurf;
-      return DDENUMRET_OK;
-    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEY) {
-      cubeMapAttachedSurfaces->positiveY = subsurf;
-      return DDENUMRET_OK;
-    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEY) {
-      cubeMapAttachedSurfaces->negativeY = subsurf;
-      return DDENUMRET_OK;
-    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEZ) {
-      cubeMapAttachedSurfaces->positiveZ = subsurf;
-      return DDENUMRET_OK;
-    } else if (desc->ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEZ) {
-      cubeMapAttachedSurfaces->negativeZ = subsurf;
-      return DDENUMRET_OK;
+    switch (cubeFaceMask) {
+      case DDSCAPS2_CUBEMAP_POSITIVEX:
+        cubeMapAttachedSurfaces->positiveX = subsurf;
+        break;
+      case DDSCAPS2_CUBEMAP_NEGATIVEX:
+        cubeMapAttachedSurfaces->negativeX = subsurf;
+        break;
+      case DDSCAPS2_CUBEMAP_POSITIVEY:
+        cubeMapAttachedSurfaces->positiveY = subsurf;
+        break;
+      case DDSCAPS2_CUBEMAP_NEGATIVEY:
+        cubeMapAttachedSurfaces->negativeY = subsurf;
+        break;
+      case DDSCAPS2_CUBEMAP_POSITIVEZ:
+        cubeMapAttachedSurfaces->positiveZ = subsurf;
+        break;
+      case DDSCAPS2_CUBEMAP_NEGATIVEZ:
+        cubeMapAttachedSurfaces->negativeZ = subsurf;
+        break;
+      default:
+        break;
     }
 
     return DDENUMRET_OK;

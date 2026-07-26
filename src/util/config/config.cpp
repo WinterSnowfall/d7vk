@@ -1960,6 +1960,10 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                  "30" },
       { "ddraw.managedVertexBuffers",       "True" },
     }} },
+    /* Catechumen - fixes runaway physics         */
+    { R"(\\Catechumen\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "30" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */

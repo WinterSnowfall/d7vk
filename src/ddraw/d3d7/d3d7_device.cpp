@@ -1438,7 +1438,7 @@ namespace dxvk {
       return DDERR_UNSUPPORTED;
     }
 
-    RECT* sourceFullSurfaceRect = nullptr;
+    const RECT* sourceFullSurfaceRect = nullptr;
     ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
     ddraw7SurfaceSrc->DownloadSurfaceData();
     sourceFullSurfaceRect = ddraw7SurfaceSrc->GetCommonSurface()->GetFullSurfaceRect();
@@ -1462,7 +1462,7 @@ namespace dxvk {
       return hr;
 
     DDrawCommonSurface* dstCommonSurf = ddraw7SurfaceDst->GetCommonSurface();
-    hr = dstCommonSurf->RefreshSurfaceDescripton();
+    hr = dstCommonSurf->RefreshSurfaceDescripton(true);
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::Load: Failed to refresh surface description");
       return hr;

@@ -147,7 +147,7 @@ namespace dxvk {
 
     DDrawCommonSurface* commonSurf = m_commonTex->GetCommonSurface();
 
-    hr = commonSurf->RefreshSurfaceDescripton();
+    hr = commonSurf->RefreshSurfaceDescripton(true);
     if (unlikely(FAILED(hr))) {
       Logger::err(str::format(m_objectType, "::Load: Failed to refresh surface description"));
       return hr;

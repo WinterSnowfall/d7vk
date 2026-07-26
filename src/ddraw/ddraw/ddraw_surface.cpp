@@ -434,7 +434,7 @@ namespace dxvk {
       return DDERR_UNSUPPORTED;
     }
 
-    RECT* sourceFullSurfaceRect = nullptr;
+    const RECT* sourceFullSurfaceRect = nullptr;
     // Write back any dirty surface data from bound D3D9 back buffers or
     // depth stencils, for both the source surface and the current surface
     if (likely(lpDDSrcSurface != nullptr)) {
@@ -905,7 +905,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    hr = m_commonSurf->RefreshSurfaceDescripton();
+    hr = m_commonSurf->RefreshSurfaceDescripton(false);
     if (unlikely(FAILED(hr)))
       Logger::err("DDrawSurface::SetColorKey: Failed to retrieve updated surface desc");
 
@@ -914,7 +914,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr))) {
         Logger::warn("DDrawSurface::SetColorKey: Failed to set shadow surface color key");
       } else {
-        hr = m_shadowSurf->GetCommonSurface()->RefreshSurfaceDescripton();
+        hr = m_shadowSurf->GetCommonSurface()->RefreshSurfaceDescripton(false);
         if (unlikely(FAILED(hr)))
           Logger::warn("DDrawSurface::SetColorKey: Failed to retrieve updated shadow surface desc");
       }
@@ -1253,29 +1253,18 @@ namespace dxvk {
     const DWORD backBufferCount = DetermineBackBufferCount(m_proxy.ptr());
     Logger::info(str::format("DDrawSurface::CreateDeviceInternal: Back buffer count: ", backBufferCount));
 
-    Com<d3d9::IDirect3D9> d3d9Intf;
-    // D3D3 is "special", so we might not have a valid D3D3 interface to work with
-    // at this point. Create a temporary D3D9 interface should that ever happen.
     D3D3Interface* d3d3Intf = m_commonIntf->GetOrCreateD3D3Interface();
+    // D3D3 is "special", so in odd cases we might not have a valid D3D3 interface to work with
     if (unlikely(d3d3Intf == nullptr)) {
-      Logger::warn("DDrawSurface::CreateDeviceInternal: Creating a temporary D3D9 interface");
-      d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
-
-      Com<IDxvkD3D8InterfaceBridge> d3d9Bridge;
-
-      if (unlikely(FAILED(d3d9Intf->QueryInterface(__uuidof(IDxvkD3D8InterfaceBridge), reinterpret_cast<void**>(&d3d9Bridge))))) {
-        Logger::err("DDrawSurface::CreateDeviceInternal: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
-        return DDERR_GENERIC;
-      }
-
-      d3d9Bridge->EnableD3D3CompatibilityMode();
-    } else {
-      d3d9Intf = d3d3Intf->GetCommonD3DInterface()->GetD3D9Interface();
+      Logger::err("DDrawSurface::CreateDeviceInternal: Unable to retrieve a valid D3D3 interface");
+      return DDERR_UNSUPPORTED;
     }
+
+    D3DCommonInterface* commonD3DIntf = d3d3Intf->GetCommonD3DInterface();
 
     // Determine the supported AA sample count by querying the D3D9 interface
     const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = d3dOptions->emulateFSAA != FSAAEmulation::Disabled ?
-                                                      GetSupportedMultiSampleType(d3d9Intf.ptr(), backBufferFormat) :
+                                                      commonD3DIntf->GetMultiSampleType(backBufferFormat) :
                                                       d3d9::D3DMULTISAMPLE_NONE;
 
     d3d9::D3DPRESENT_PARAMETERS params;
@@ -1295,7 +1284,7 @@ namespace dxvk {
     params.PresentationInterval       = D3DPRESENT_INTERVAL_DEFAULT; // A D3D3 device always uses VSync
 
     Com<d3d9::IDirect3DDevice9> device9;
-    HRESULT hr = d3d9Intf->CreateDevice(
+    HRESULT hr = commonD3DIntf->GetD3D9Interface()->CreateDevice(
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
       hWnd,

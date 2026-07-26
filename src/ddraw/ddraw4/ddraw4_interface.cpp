@@ -575,7 +575,7 @@ namespace dxvk {
     DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();
 
     if (likely(ps != nullptr)) {
-      hr = ps->RefreshSurfaceDescripton();
+      hr = ps->RefreshSurfaceDescripton(true);
       if (unlikely(FAILED(hr)))
         Logger::warn("DDraw4Interface::SetDisplayMode: Failed to update primary surface desc");
     }

@@ -82,7 +82,7 @@ namespace dxvk {
     return nullptr;
   }
 
-  HRESULT DDrawCommonSurface::RefreshSurfaceDescripton() {
+  HRESULT DDrawCommonSurface::RefreshSurfaceDescripton(const bool refreshFormat) {
     HRESULT hr;
 
     DDSURFACEDESC2 desc2;
@@ -93,13 +93,13 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
       m_desc2 = desc2;
-      RefreshStaticDescData();
+      RefreshStaticDescData(refreshFormat);
     } else if (m_surf4 != nullptr) {
       hr = m_surf4->GetProxied()->GetSurfaceDesc(&desc2);
       if (unlikely(FAILED(hr)))
         return hr;
       m_desc2 = desc2;
-      RefreshStaticDescData();
+      RefreshStaticDescData(refreshFormat);
     }
 
     DDSURFACEDESC desc;
@@ -110,19 +110,19 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
       m_desc = desc;
-      RefreshStaticDescData();
+      RefreshStaticDescData(refreshFormat);
     } else if (m_surf2 != nullptr) {
       hr = m_surf2->GetProxied()->GetSurfaceDesc(&desc);
       if (unlikely(FAILED(hr)))
         return hr;
       m_desc = desc;
-      RefreshStaticDescData();
+      RefreshStaticDescData(refreshFormat);
     } else if (m_surf3 != nullptr) {
       hr = m_surf3->GetProxied()->GetSurfaceDesc(&desc);
       if (unlikely(FAILED(hr)))
         return hr;
       m_desc = desc;
-      RefreshStaticDescData();
+      RefreshStaticDescData(refreshFormat);
     }
 
     return DD_OK;
@@ -158,12 +158,10 @@ namespace dxvk {
   }
 
   HRESULT DDrawCommonSurface::InitializeD3D9(const bool initRenderTarget) {
-    const DWORD dwWidth  = (m_desc2.dwFlags & DDSD_WIDTH)  ? m_desc2.dwWidth  : m_desc.dwWidth;
-    const DWORD dwHeight = (m_desc2.dwFlags & DDSD_HEIGHT) ? m_desc2.dwHeight : m_desc.dwHeight;
-    const DWORD dwCaps   = (m_desc2.dwFlags & DDSD_CAPS)   ? m_desc2.ddsCaps.dwCaps  : m_desc.ddsCaps.dwCaps;
-    const DWORD dwCaps2  = (m_desc2.dwFlags & DDSD_CAPS)   ? m_desc2.ddsCaps.dwCaps2 : 0;
+    const DWORD dwWidth  = static_cast<DWORD>(m_rect.right);
+    const DWORD dwHeight = static_cast<DWORD>(m_rect.bottom);
 
-    if (unlikely(dwHeight == 0 || dwWidth == 0)) {
+    if (unlikely(dwWidth == 0 || dwHeight == 0)) {
       Logger::err("DDrawCommonSurface::InitializeD3D9: Surface has 0 height or width");
       return DDERR_UNSUPPORTED;
     }
@@ -195,21 +193,26 @@ namespace dxvk {
       return DD_OK;
     }
 
-    d3d9::D3DPOOL pool  = d3d9::D3DPOOL_DEFAULT;
-    DWORD         usage = 0;
+    d3d9::D3DPOOL pool;
+    DWORD         usage = 0u;
 
     // General surface/texture pool placement
-    if (dwCaps & DDSCAPS_LOCALVIDMEM)
+    //
+    // Early DDraw/D3D didn't make the distinction between local and
+    // non-local video memory, so also cater to sole DDSCAPS_VIDEOMEMORY surfaces
+    if (IsInLocalVideoMemory() || (IsInVideoMemory() && !IsInNonLocalVideoMemory()))
       pool = d3d9::D3DPOOL_DEFAULT;
     // There's no explicit non-local video memory placement
-    // per se, but D3DPOOL_MANAGED is close enough
-    else if ((dwCaps & DDSCAPS_NONLOCALVIDMEM) || (dwCaps2 & DDSCAPS2_TEXTUREMANAGE))
+    // per se in D3D9, but D3DPOOL_MANAGED is close enough
+    else if (IsManaged() || IsInNonLocalVideoMemory())
       pool = d3d9::D3DPOOL_MANAGED;
-    else if (dwCaps & DDSCAPS_SYSTEMMEMORY)
+    else if (IsInSystemMemory())
       // We can't know beforehand if a texture is or isn't going to be
       // used in SetTexture() calls, and textures placed in D3DPOOL_SYSTEMMEM
-      // will not work in that context in dxvk, so revert to D3DPOOL_MANAGED.
+      // will not work in that context, so revert to D3DPOOL_MANAGED
       pool = IsTextureOrCubeMap() ? d3d9::D3DPOOL_MANAGED : d3d9::D3DPOOL_SYSTEMMEM;
+    else
+      pool = d3d9::D3DPOOL_DEFAULT;
 
     // Place all possible render targets in DEFAULT
     //
@@ -232,6 +235,7 @@ namespace dxvk {
 
     // General usage flags
     if (IsTextureOrCubeMap()) {
+      // Needed to ensure D3DPOOL_DEFAULT textures/cubemaps are lockable
       if (pool == d3d9::D3DPOOL_DEFAULT) {
         //Logger::debug("DDrawCommonSurface::InitializeD3D9: Usage: D3DUSAGE_DYNAMIC");
         usage |= D3DUSAGE_DYNAMIC;
@@ -330,6 +334,18 @@ namespace dxvk {
         Logger::err("DDrawCommonSurface::InitializeD3D9: Failed to create depth stencil");
         return hr;
       }
+    // Overlays
+    } else if (unlikely(IsOverlay())) {
+      Logger::debug("DDrawCommonSurface::InitializeD3D9: Initializing overlay");
+
+      hr = d3d9Device->CreateOffscreenPlainSurface(
+        dwWidth, dwHeight, m_format9,
+        pool, &m_surface9, nullptr);
+
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDrawCommonSurface::InitializeD3D9: Failed to create offscreen plain surface");
+        return hr;
+      }
     // Offscreen Plain Surfaces
     } else if (IsOffScreenPlainSurface()) {
       Logger::debug("DDrawCommonSurface::InitializeD3D9: Initializing offscreen plain surface");
@@ -354,20 +370,8 @@ namespace dxvk {
           return hr;
         }
       }
-    // Overlays
-    } else if (IsOverlay()) {
-      Logger::debug("DDrawCommonSurface::InitializeD3D9: Initializing overlay");
-
-      hr = d3d9Device->CreateOffscreenPlainSurface(
-        dwWidth, dwHeight, m_format9,
-        pool, &m_surface9, nullptr);
-
-      if (unlikely(FAILED(hr))) {
-        Logger::err("DDrawCommonSurface::InitializeD3D9: Failed to create offscreen plain surface");
-        return hr;
-      }
     // Generic render target
-    } else if (IsRenderTarget()) {
+    } else if (Is3DSurface()) {
       Logger::debug("DDrawCommonSurface::InitializeD3D9: Initializing render target");
 
       // Must be lockable for blitting to work. Note that
@@ -382,7 +386,7 @@ namespace dxvk {
         return hr;
       }
     // We sometimes get generic surfaces, with only dimensions, format and placement info
-    } else if (!IsNotKnown()) {
+    } else {
       Logger::debug("DDrawCommonSurface::InitializeD3D9: Initializing generic surface");
 
       hr = d3d9Device->CreateOffscreenPlainSurface(
@@ -393,8 +397,6 @@ namespace dxvk {
         Logger::err("DDrawCommonSurface::InitializeD3D9: Failed to create offscreen plain surface");
         return hr;
       }
-    } else {
-      Logger::warn("DDrawCommonSurface::InitializeD3D9: Skipping initialization of unknown surface");
     }
 
     return DD_OK;

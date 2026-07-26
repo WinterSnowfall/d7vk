@@ -32,12 +32,10 @@ namespace dxvk {
 
     static void ReleaseMaterialHandle(D3DMATERIALHANDLE handle);
 
+    d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType(d3d9::D3DFORMAT backBufferFormat) const;
+
     static D3DMATERIALHANDLE GetNextMaterialHandle() {
       return ++s_materialHandle;
-    }
-
-    void SetD3D9Interface(Com<d3d9::IDirect3D9>&& d3d9Intf) {
-      m_d3d9Intf = d3d9Intf;
     }
 
     d3d9::IDirect3D9* GetD3D9Interface() const {
