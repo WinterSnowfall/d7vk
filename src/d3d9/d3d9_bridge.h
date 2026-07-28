@@ -76,6 +76,13 @@ IDxvkD3D8Bridge : public IUnknown {
    * \param [in] Params bool value to be used
    */
   virtual HRESULT SetLegacyLightsState(bool legacyLightsState) = 0;
+
+  /**
+   * \brief Updates the alternate pixel center state in D3D9
+   *
+   * \param [in] Params bool value to be used
+   */
+  virtual HRESULT SetAlternatePixelCenter(bool alternatePixelCenter) = 0;
 };
 
 /**
@@ -157,6 +164,8 @@ namespace dxvk {
     HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh);
 
     HRESULT SetLegacyLightsState(bool legacyLightsState);
+
+    HRESULT SetAlternatePixelCenter(bool alternatePixelCenter);
 
   private:
 

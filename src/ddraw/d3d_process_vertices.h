@@ -883,10 +883,10 @@ namespace dxvk {
         if (likely(pvData->outFVF & D3DFVF_XYZRHW))
           outPosition[3] = rhw;
 
-        // Hack for Resident Evil quad alignment problem
-        if (unlikely(options->vertexOffset != 0.0f)) {
-          outPosition[0] += options->vertexOffset;
-          outPosition[1] += options->vertexOffset;
+        // Alternate pixel center workaround for the Resident Evil quad alignment problem
+        if (unlikely(options->alternatePixelCenter == AlternatePixelCenter::Legacy)) {
+          outPosition[0] -= 0.5f;
+          outPosition[1] -= 0.5f;
         }
       }
 

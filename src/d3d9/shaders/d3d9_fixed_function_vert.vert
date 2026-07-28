@@ -401,6 +401,11 @@ Vertex transformVertex() {
     result.coord = in_Position0;
     result.normal = in_Normal0.xyz;
 
+    if (isAlternatePixelCenterEnabled()) {
+        result.coord.x -= 0.5;
+        result.coord.y -= 0.5;
+    }
+
     if (blendMode() == D3D9FF_VertexBlendMode_Tween) {
         result.coord = mix(result.coord, in_Position1, data.TweenFactor);
         result.normal = mix(result.normal, in_Normal1.xyz, data.TweenFactor);

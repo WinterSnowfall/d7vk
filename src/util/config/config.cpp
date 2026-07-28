@@ -2051,9 +2051,11 @@ namespace dxvk {
     { R"(\\OVERSEER\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
-    /* Resident Evil 2                            */
+    /* Resident Evil 2                            *
+     * Fixes black lines in the background image  */
     { R"(\\(ClaireU|LeonU)\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.alternatePixelCenter",       "True" },
     }} },
 
     /**********************************************/
@@ -2063,7 +2065,7 @@ namespace dxvk {
     /* Resident Evil                              *
      * Fixes black lines in the background image  */
     { R"(\\ResidentEvil\.exe$)", {{
-      { "ddraw.vertexOffset",               "-0.5" },
+      { "ddraw.alternatePixelCenter",     "Legacy" },
     }} },
     /* Star Trek: Starfleet Academy               */
     { R"(\\sfad3d\.exe$)", {{

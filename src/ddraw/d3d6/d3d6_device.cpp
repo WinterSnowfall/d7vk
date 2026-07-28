@@ -75,6 +75,9 @@ namespace dxvk {
     // Update D3D9 legacy light state
     m_bridge->SetLegacyLightsState(true);
 
+    // Update D3D9 alternate pixel center
+    m_bridge->SetAlternatePixelCenter(d3dOptions->alternatePixelCenter == AlternatePixelCenter::Enabled);
+
     if (m_commonD3DDevice->GetOrigin() == nullptr)
       m_commonD3DDevice->SetOrigin(this);
 

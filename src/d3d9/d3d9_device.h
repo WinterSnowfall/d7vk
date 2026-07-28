@@ -1465,6 +1465,13 @@ namespace dxvk {
       return D3D_OK;
     }
 
+    HRESULT SetAlternatePixelCenter(bool alternatePixelCenter) {
+      if (m_specData.setAlternatePixelCenter(alternatePixelCenter))
+        m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
+
+      return D3D_OK;
+    }
+
     HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh) {
       if (m_pushData.ffps.colorKeyLow != colorKeyLow) {
         m_pushData.ffps.colorKeyLow = colorKeyLow;

@@ -118,6 +118,11 @@ bool isLegacyLightingEnabled() {
     return bitfieldExtract(unused_spec7, 8, 1) != 0;
 }
 
+// Checks whether alternate pixel center is enabled
+bool isAlternatePixelCenterEnabled() {
+    return bitfieldExtract(unused_spec7, 16, 1) != 0;
+}
+
 vec4 decodeD3DColor(uint color) {
     return unpackUnorm4x8(color).bgra;
 }

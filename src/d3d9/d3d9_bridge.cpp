@@ -116,6 +116,10 @@ namespace dxvk {
     return m_device->SetLegacyLightsState(legacyLightsState);
   }
 
+  HRESULT DxvkD3D8Bridge::SetAlternatePixelCenter(bool alternatePixelCenter) {
+    return m_device->SetAlternatePixelCenter(alternatePixelCenter);
+  }
+
   DxvkD3D8InterfaceBridge::DxvkD3D8InterfaceBridge(D3D9InterfaceEx* pObject)
     : m_interface(pObject) {
   }

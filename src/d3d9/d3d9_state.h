@@ -151,7 +151,8 @@ namespace dxvk {
     // Spec ID 7: Reserved.
     bool colorKeyEnable = false;
     bool useLegacyLights = false;
-    uint16_t spec7Pad = 0u;
+    bool useAlternatePixelCenter = false;
+    uint8_t spec7Pad = 0u;
 
     // Spec ID 8..11: Texture stage ops for fixed function.
     // Each stage is packed as follows:
@@ -207,6 +208,10 @@ namespace dxvk {
 
     bool setLegacyLights(bool legacyLightsState) {
       return set(useLegacyLights, legacyLightsState);
+    }
+
+    bool setAlternatePixelCenter(bool alternatePixelCenter) {
+      return set(useAlternatePixelCenter, alternatePixelCenter);
     }
 
     bool setFogMode(bool enable, bool zFog, D3DFOGMODE vertexFog, D3DFOGMODE pixelFog) {
