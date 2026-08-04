@@ -1491,6 +1491,7 @@ namespace dxvk {
     /* Empire Earth / Art of Conquest             *
      * Works around in-game flickering            */
     { R"(\\(Empire Earth|EE-AOC)\.exe$)", {{
+      { "d3d9.cachedWriteOnlyBuffers",      "True" },
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.legacyPresentGuard",       "Strict" },
     }} },
