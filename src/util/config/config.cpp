@@ -1773,6 +1773,11 @@ namespace dxvk {
     { R"(\\Sonic World DX\.exe$)", {{
       { "ddraw.managedVertexBuffers",       "True" },
     }} },
+    /* Discord Times                              */
+    { R"(\\DiscordTimes\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.emulateFrontBuffer",         "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
@@ -1978,6 +1983,11 @@ namespace dxvk {
     { R"(\\Mech3\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.emulateFrontBuffer",         "True" },
+    }} },
+    /* Crimson Skies - Fixes occasional missing   *
+     * loading screens and main menu flickering   */
+    { R"(\\CRIMSON\.(EXE|ICD)$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
     }} },
 
     /**********************************************/
