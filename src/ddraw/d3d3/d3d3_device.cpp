@@ -622,7 +622,7 @@ namespace dxvk {
 
                 ProcessVerticesData pvData;
                 pvData.inData = buf + executeData->dwVertexOffset + pv.wStart * sizeof(D3DVERTEX);
-                pvData.inFVF = doLighting ? D3DFVF_VERTEX : D3DFVF_LVERTEX;
+                pvData.inFVF = op == D3DPROCESSVERTICES_TRANSFORMLIGHT ? D3DFVF_VERTEX : D3DFVF_LVERTEX;
                 pvData.inStride = sizeof(D3DVERTEX);
                 pvData.outData = buf + executeData->dwHVertexOffset + pv.wDest * sizeof(D3DTLVERTEX);
                 pvData.outFVF = D3DFVF_TLVERTEX;
