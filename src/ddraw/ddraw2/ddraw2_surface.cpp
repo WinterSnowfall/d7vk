@@ -282,12 +282,24 @@ namespace dxvk {
 
     attachedSurf->SetParentSurface(this);
 
+    hr = attachedSurf->GetCommonSurface()->RefreshSurfaceDescripton(false);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("DDrawSurface2::AddAttachedSurface: Failed to retrieve updated attachment surface desc");
+      return hr;
+    }
+
     if (likely(attachedSurf->GetCommonSurface()->IsDepthStencil())) {
       m_depthStencil = attachedSurf;
     // If a flippable surface is attached, mark it as the next flippable surface
     } else if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable())) {
       DDrawSurface* attachedSurfParent = attachedSurf->GetCommonSurface()->GetDDSurface();
       m_parent->SetNextFlippable(attachedSurfParent);
+    }
+
+    hr = m_commonSurf->RefreshSurfaceDescripton(false);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("DDrawSurface2::AddAttachedSurface: Failed to retrieve updated target surface desc");
+      return hr;
     }
 
     return DD_OK;
@@ -456,9 +468,9 @@ namespace dxvk {
     }
 
     if (lpDDSAttachedSurface == nullptr) {
-      HRESULT hrProxy = m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
-      if (unlikely(FAILED(hrProxy)))
-        return hrProxy;
+      HRESULT hr = m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
+      if (unlikely(FAILED(hr)))
+        return hr;
 
       // If lpDDSAttachedSurface is NULL, then all surfaces are detached
       m_depthStencil = nullptr;
@@ -474,12 +486,23 @@ namespace dxvk {
 
     attachedSurf->SetParentSurface(nullptr);
 
+    hr = attachedSurf->GetCommonSurface()->RefreshSurfaceDescripton(false);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("DDrawSurface2::DeleteAttachedSurface: Failed to retrieve updated attachment surface desc");
+      return hr;
+    }
+
     if (likely(m_depthStencil == attachedSurf)) {
       m_depthStencil = nullptr;
     // Clear the next flippable surface or flippable surface detachment
-    } else if (unlikely(attachedSurf->GetCommonSurface()->IsBackBufferOrFlippable() &&
-                        attachedSurf->GetCommonSurface()->GetDDSurface() == m_parent->GetNextFlippable())) {
+    } else if (unlikely(m_parent->GetNextFlippable() == attachedSurf->GetCommonSurface()->GetDDSurface())) {
       m_parent->SetNextFlippable(nullptr);
+    }
+
+    hr = m_commonSurf->RefreshSurfaceDescripton(false);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("DDrawSurface2::DeleteAttachedSurface: Failed to retrieve updated target surface desc");
+      return hr;
     }
 
     return DD_OK;
