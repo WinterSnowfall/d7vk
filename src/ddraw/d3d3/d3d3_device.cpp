@@ -214,6 +214,9 @@ namespace dxvk {
     const D3DTEXTUREHANDLE handle1 = commonTex1->GetTextureHandle();
     const D3DTEXTUREHANDLE handle2 = commonTex2->GetTextureHandle();
 
+    if (unlikely(!handle1 || !handle2))
+      return DDERR_INVALIDPARAMS;
+
     DDrawCommonInterface::ReleaseTextureHandle(handle1);
     DDrawCommonInterface::ReleaseTextureHandle(handle2);
 
