@@ -158,6 +158,21 @@ namespace dxvk {
     if (unlikely(riid == __uuidof(IDirectDrawColorControl))) {
       return E_NOINTERFACE;
     }
+    // The standard way of creating a new D3D3 device. Forward the call
+    // onto the base IDirectDrawSurface object, which we keep a reference to.
+    if (unlikely(riid == IID_IDirect3DHALDevice  || riid == IID_IDirect3DRGBDevice  ||
+                 riid == IID_IDirect3DMMXDevice  || riid == IID_IDirect3DRampDevice ||
+                 riid == IID_WineD3DDevice)) {
+      // Surfaces which have been queried from an IDirectDrawSurface7
+      // object are unable to create a D3D3 device on this legacy path
+      if (unlikely(m_commonSurf->GetDD7Surface() == m_commonSurf->GetOrigin()))
+        return E_NOINTERFACE;
+
+      if (likely(m_commonSurf->GetDDSurface() != nullptr))
+        return m_commonSurf->GetDDSurface()->QueryInterface(riid, ppvObject);
+
+      return E_NOINTERFACE;
+    }
     if (unlikely(riid == __uuidof(IUnknown)
               || riid == __uuidof(IDirectDrawSurface))) {
       if (m_commonSurf->GetDDSurface() != nullptr)
