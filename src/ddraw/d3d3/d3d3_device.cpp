@@ -50,6 +50,9 @@ namespace dxvk {
         Logger::warn("D3D3Device: Force enabling AA");
         device9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
       }
+
+      // D3DRENDERSTATE_COLORKEYENABLE defaults to TRUE on a D3D3 device
+      m_commonD3DDevice->SetColorKeyEnable(TRUE);
     } else {
       device9 = m_commonD3DDevice->GetD3D9Device();
       // Very important, otherwise the depth stencil isn't dirtied on draws
@@ -1018,6 +1021,7 @@ namespace dxvk {
       case D3DRENDERSTATE_FOGTABLEEND:
       case D3DRENDERSTATE_FOGTABLEDENSITY:
       //case D3DRENDERSTATE_STIPPLEENABLE:
+      //case D3DRENDERSTATE_COLORKEYENABLE: // Apparently can be toggled in D3D3 as well
       //case D3DRENDERSTATE_STIPPLEPATTERN00:
       //case D3DRENDERSTATE_STIPPLEPATTERN01:
       //case D3DRENDERSTATE_STIPPLEPATTERN02:
@@ -1286,6 +1290,27 @@ namespace dxvk {
       case D3DRENDERSTATE_STIPPLEENABLE:
         return D3D_OK;
 
+      // Technically, this doesn't exist in D3D3, but some Wine tests appear to suggest
+      // it can be toggled even with execute buffers, so handle it anyway...
+      case D3DRENDERSTATE_COLORKEYENABLE: {
+        m_commonD3DDevice->SetColorKeyEnable(dwRenderState);
+
+        const D3DTEXTUREHANDLE currentTextureHandle = m_commonD3DDevice->GetCurrentTextureHandle();
+        DDrawSurface* surface = currentTextureHandle != 0 ?
+                                DDrawCommonInterface::GetSurfaceFromTextureHandle(currentTextureHandle) : nullptr;
+        // Color keying is always enabled on RGB devices, regardless of D3DRENDERSTATE_COLORKEYENABLE
+        const bool colorKeyEnable = !m_commonD3DDevice->IsHALOrTNLHALDevice() || dwRenderState;
+        const bool validColorKey = surface != nullptr ? surface->GetCommonSurface()->HasValidColorKey() : false;
+        m_bridge->SetColorKeyState(colorKeyEnable && validColorKey);
+        if (colorKeyEnable && validColorKey) {
+          DDCOLORKEY normalizedColorKey = surface->GetCommonSurface()->GetColorKeyNormalized();
+          m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
+                                normalizedColorKey.dwColorSpaceHighValue);
+        }
+
+        return D3D_OK;
+      }
+
       // Tests have shown age accurate GPUs didn't offer support for stippling at all
       case D3DRENDERSTATE_STIPPLEPATTERN00:
       case D3DRENDERSTATE_STIPPLEPATTERN01:
@@ -1551,10 +1576,11 @@ namespace dxvk {
         device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
       }
 
-      // D3D3 enables color key transparency globally
+      // Color keying is always enabled on RGB devices, regardless of D3DRENDERSTATE_COLORKEYENABLE
+      const bool colorKeyEnable = !m_commonD3DDevice->IsHALOrTNLHALDevice() || m_commonD3DDevice->GetColorKeyEnable();
       const bool validColorKey = commonSurface->HasValidColorKey();
-      m_bridge->SetColorKeyState(validColorKey);
-      if (validColorKey) {
+      m_bridge->SetColorKeyState(colorKeyEnable && validColorKey);
+      if (colorKeyEnable && validColorKey) {
         DDCOLORKEY normalizedColorKey = commonSurface->GetColorKeyNormalized();
         m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
                               normalizedColorKey.dwColorSpaceHighValue);
