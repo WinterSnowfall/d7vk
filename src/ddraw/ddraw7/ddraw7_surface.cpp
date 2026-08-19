@@ -404,9 +404,9 @@ namespace dxvk {
     }
 
     if (lpDDSAttachedSurface == nullptr) {
-      HRESULT hrProxy = m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
-      if (unlikely(FAILED(hrProxy)))
-        return hrProxy;
+      HRESULT hr = m_proxy->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
+      if (unlikely(FAILED(hr)))
+        return hr;
 
       // If lpDDSAttachedSurface is NULL, then all surfaces are detached
       m_depthStencil = nullptr;
