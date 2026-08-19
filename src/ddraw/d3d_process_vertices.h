@@ -936,8 +936,6 @@ namespace dxvk {
     float fogStart, fogEnd, fogDensity;
     BOOL isEnabledFogRange, isEnabledLighting, isEnabledSpecular, isEnabledNormalizeNormals, isEnabledLocalViewer;
     D3DCOLOR ambientStateColor;
-    // In D3D7 it's quite possible no material is set, even though lighting is enabled
-    d3d9::D3DMATERIAL9 material9 = { };
 
     d3d9Device->GetRenderState(d3d9::D3DRS_FOGVERTEXMODE, reinterpret_cast<DWORD*>(&fogVertexMode));
     const bool isEnabledFog = fogVertexMode != D3DFOG_NONE;
@@ -958,8 +956,9 @@ namespace dxvk {
       d3d9Device->GetRenderState(d3d9::D3DRS_NORMALIZENORMALS, reinterpret_cast<DWORD*>(&isEnabledNormalizeNormals));
       d3d9Device->GetRenderState(d3d9::D3DRS_LOCALVIEWER, reinterpret_cast<DWORD*>(&isEnabledLocalViewer));
     }
-    d3d9Device->GetMaterial(&material9);
 
+    d3d9::D3DMATERIAL9 material9;
+    d3d9Device->GetMaterial(&material9);
     const float materialPower = useLighting && isEnabledSpecular ? material9.Power : 0.0f;
 
     static constexpr D3DCOLORVALUE defaultAmbientColorValue = {0.0f, 0.0f, 0.0f, 0.0f};
