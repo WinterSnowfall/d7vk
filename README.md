@@ -40,7 +40,6 @@ Then this is your lucky day, because through the efforts of [pythonlover02](http
 > - Color key transparency
 > - Dynamic (application-controlled) FSAA states
 > - 8-bit R3G3B2 surfaces
-> - Fixed function alternate pixel center handling
 
 ### Will DXVK's D3D9 config options, such as frame rate limits, work with D7VK?
 
