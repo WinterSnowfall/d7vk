@@ -38,6 +38,10 @@ namespace dxvk {
     if (unlikely(lpData == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    // Not validated by native for GetExecuteData() calls
+    //if (unlikely(lpData->dwSize != sizeof(D3DEXECUTEDATA)))
+      //return DDERR_INVALIDPARAMS;
+
     *lpData = m_executeData;
 
     return D3D_OK;
@@ -90,15 +94,13 @@ namespace dxvk {
     if (unlikely(lpData->dwSize != sizeof(D3DEXECUTEDATA)))
       return DDERR_INVALIDPARAMS;
 
-    // The checks below will protect against a m_buffer.size() of 0
+    // Not validated by native, thus the call will succeed even if the buffer size is insufficient
     if (unlikely(lpData->dwInstructionOffset + lpData->dwInstructionLength > m_buffer.size()))
-      return DDERR_INVALIDPARAMS;
-
+      Logger::warn("D3D3ExecuteBuffer::SetExecuteData: Instruction length exceeds buffer size");
     if (unlikely(lpData->dwVertexOffset + lpData->dwVertexCount * sizeof(D3DVERTEX) > m_buffer.size()))
-      return DDERR_INVALIDPARAMS;
-
+      Logger::warn("D3D3ExecuteBuffer::SetExecuteData: Vertex count exceeds buffer size");
     if (unlikely(lpData->dwHVertexOffset + lpData->dwVertexCount * sizeof(D3DTLVERTEX) > m_buffer.size()))
-      return DDERR_INVALIDPARAMS;
+      Logger::warn("D3D3ExecuteBuffer::SetExecuteData: Vertex count exceeds buffer size");
 
     m_executeData = *lpData;
 
