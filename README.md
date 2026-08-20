@@ -37,7 +37,6 @@ Then this is your lucky day, because through the efforts of [pythonlover02](http
 
 > [!WARNING]
 > Support for the following D3D7/6/5/3 features is missing in the now ancient DXVK-Sarek backend:
-> - Color key transparency
 > - Dynamic (application-controlled) FSAA states
 > - 8-bit R3G3B2 surfaces
 
