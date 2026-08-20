@@ -624,12 +624,18 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYENABLE: {
         m_commonD3DDevice->SetColorKeyEnable(dwRenderState);
 
-        const bool validColorKey = m_textures[0] != nullptr ? m_textures[0]->GetCommonSurface()->HasValidColorKey() : false;
-        m_bridge->SetColorKeyState(dwRenderState && validColorKey);
-        if (dwRenderState && validColorKey) {
-          DDCOLORKEY normalizedColorKey = m_textures[0]->GetCommonSurface()->GetColorKeyNormalized();
-          m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
-                                normalizedColorKey.dwColorSpaceHighValue);
+        for (uint8_t stage = 0; stage < ddrawCaps::TextureStageCount; stage++) {
+          if (m_textures[stage] == nullptr)
+            continue;
+
+          const bool validColorKey = m_textures[stage]->GetCommonSurface()->HasValidColorKey();
+          m_bridge->SetColorKeyState(stage, dwRenderState && validColorKey);
+
+          if (dwRenderState && validColorKey) {
+            const DDCOLORKEY* normalizedColorKey = m_textures[stage]->GetCommonSurface()->GetColorKeyNormalized();
+            m_bridge->SetColorKey(stage, normalizedColorKey->dwColorSpaceLowValue,
+                                  normalizedColorKey->dwColorSpaceHighValue);
+          }
         }
 
         return D3D_OK;
@@ -1294,9 +1300,7 @@ namespace dxvk {
 
       if (likely(m_textures[stage] != nullptr)) {
         m_textures[stage] = nullptr;
-
-        if (likely(stage == 0))
-          m_bridge->SetColorKeyState(false);
+        m_bridge->SetColorKeyState(stage, false);
       }
 
       return D3D_OK;
@@ -1343,15 +1347,14 @@ namespace dxvk {
         }
 
         if (likely(tex9 != nullptr)) {
-          if (likely(stage == 0)) {
-            const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
-            const bool validColorKey = commonSurface->HasValidColorKey();
-            m_bridge->SetColorKeyState(colorKeyEnable && validColorKey);
-            if (colorKeyEnable && validColorKey) {
-              DDCOLORKEY normalizedColorKey = commonSurface->GetColorKeyNormalized();
-              m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
-                                    normalizedColorKey.dwColorSpaceHighValue);
-            }
+          const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
+          const bool validColorKey = commonSurface->HasValidColorKey();
+          m_bridge->SetColorKeyState(stage, colorKeyEnable && validColorKey);
+
+          if (colorKeyEnable && validColorKey) {
+            const DDCOLORKEY* normalizedColorKey = commonSurface->GetColorKeyNormalized();
+            m_bridge->SetColorKey(stage, normalizedColorKey->dwColorSpaceLowValue,
+                                  normalizedColorKey->dwColorSpaceHighValue);
           }
         }
 
@@ -1367,10 +1370,14 @@ namespace dxvk {
           return hr;
         }
 
-        if (likely(stage == 0)) {
-          const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
-          const bool validColorKey = commonSurface->HasValidColorKey();
-          if (unlikely(colorKeyEnable && validColorKey))
+        const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
+        const bool validColorKey = commonSurface->HasValidColorKey();
+        m_bridge->SetColorKeyState(stage, false);
+
+        if (unlikely(colorKeyEnable && validColorKey)) {
+          static bool s_cubeTextureColorKeyWarningShown;
+
+          if (!std::exchange(s_cubeTextureColorKeyWarningShown, true))
             Logger::warn("D3D7Device::SetTexture: Unsupported use of cube texture color key");
         }
 
