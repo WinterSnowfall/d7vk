@@ -1433,7 +1433,21 @@ namespace dxvk {
         : GetHelper(m_state.psConsts);
     }
 
-    HRESULT SetColorKeyState(bool colorKeyState) {
+    // To simplify the implementation, disregard all but stage 0. The only known
+    // use of multi-stage color keying is in Arx Fatalis, but it, thankfully,
+    // relies on pure black color key transparency for all texture stages.
+    HRESULT SetColorKeyState(DWORD stage, bool colorKeyState) {
+      if (unlikely(stage != 0)) {
+        if (unlikely(colorKeyState)) {
+          static bool s_textureStageColorKeyWarningShown;
+
+          if (!std::exchange(s_textureStageColorKeyWarningShown, true))
+            Logger::warn("D3D9Device:SetColorKeyState: Unsupported use of non-stage 0 color keying");
+        }
+
+        return D3D_OK;
+      }
+
       if (m_specData.setColorKeyEnable(colorKeyState))
         m_dirty.set(D3D9DeviceDirtyFlag::SpecializationEntries);
 
@@ -1454,7 +1468,13 @@ namespace dxvk {
       return D3D_OK;
     }
 
-    HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh) {
+    // To simplify the implementation, disregard all but stage 0. The only known
+    // use of multi-stage color keying is in Arx Fatalis, but it, thankfully,
+    // relies on pure black color key transparency for all texture stages.
+    HRESULT SetColorKey(DWORD stage, DWORD colorKeyLow, DWORD colorKeyHigh) {
+      if (unlikely(stage != 0))
+        return D3D_OK;
+
       if (m_pushData.ffps.colorKeyLow != colorKeyLow) {
         m_pushData.ffps.colorKeyLow = colorKeyLow;
         m_dirty.set(D3D9DeviceDirtyFlag::PushDataFfps);

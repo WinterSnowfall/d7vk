@@ -69,28 +69,31 @@ IDxvkLegacyD3DDeviceBridge : public IUnknown {
   /**
    * \brief Updates the color key transparency state in D3D9
    *
-   * \param [in] Params bool value to be used
+   * \param [in] stage DWORD texture stage to be used
+   * \param [in] colorKeyState bool value to be used
    */
-  virtual HRESULT SetColorKeyState(bool colorKeyState) = 0;
+  virtual HRESULT SetColorKeyState(DWORD stage, bool colorKeyState) = 0;
 
   /**
    * \brief Updates the color key transparency value in D3D9
    *
-   * \param [in] Params DWORD, DWORD low and high values to be used
+   * \param [in] stage DWORD texture stage to be used
+   * \param [in] colorKeyLow DWORD low color key range boundary
+   * \param [in] colorKeyHigh DWORR high color key range boundary
    */
-  virtual HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh) = 0;
+  virtual HRESULT SetColorKey(DWORD stage, DWORD colorKeyLow, DWORD colorKeyHigh) = 0;
 
   /**
    * \brief Updates the legacy light state in D3D9
    *
-   * \param [in] Params bool value to be used
+   * \param [in] legacyLightsState bool value to be used
    */
   virtual HRESULT SetLegacyLightsState(bool legacyLightsState) = 0;
 
   /**
    * \brief Updates the alternate pixel center state in D3D9
    *
-   * \param [in] Params bool value to be used
+   * \param [in] alternatePixelCenter bool value to be used
    */
   virtual HRESULT SetAlternatePixelCenter(bool alternatePixelCenter) = 0;
 };
@@ -154,9 +157,9 @@ namespace dxvk {
 
     HRESULT ResetSwapChain(D3DPRESENT_PARAMETERS* Params);
 
-    HRESULT SetColorKeyState(bool colorKeyState);
+    HRESULT SetColorKeyState(DWORD stage, bool colorKeyState);
 
-    HRESULT SetColorKey(DWORD colorKeyLow, DWORD colorKeyHigh);
+    HRESULT SetColorKey(DWORD stage, DWORD colorKeyLow, DWORD colorKeyHigh);
 
     HRESULT SetLegacyLightsState(bool legacyLightsState);
 
