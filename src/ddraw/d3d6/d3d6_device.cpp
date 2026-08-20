@@ -1067,9 +1067,6 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        if (unlikely(surface4 == nullptr))
-          m_bridge->SetColorKeyState(false);
-
         return D3D_OK;
       }
 
@@ -1299,14 +1296,19 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYENABLE: {
         m_commonD3DDevice->SetColorKeyEnable(dwRenderState);
 
-        DDrawCommonSurface* commonSurf = m_textures[0] != nullptr ?
-                                         m_textures[0]->GetCommonTexture()->GetCommonSurface() : nullptr;
-        const bool validColorKey = commonSurf != nullptr ? commonSurf->HasValidColorKey() : false;
-        m_bridge->SetColorKeyState(dwRenderState && validColorKey);
-        if (dwRenderState && validColorKey) {
-          DDCOLORKEY normalizedColorKey = commonSurf->GetColorKeyNormalized();
-          m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
-                                normalizedColorKey.dwColorSpaceHighValue);
+        for (uint8_t stage = 0; stage < ddrawCaps::TextureStageCount; stage++) {
+          if (m_textures[stage] == nullptr)
+            continue;
+
+          DDrawCommonSurface* commonSurf = m_textures[stage]->GetCommonTexture()->GetCommonSurface();
+          const bool validColorKey = commonSurf != nullptr ? commonSurf->HasValidColorKey() : false;
+          m_bridge->SetColorKeyState(stage, dwRenderState && validColorKey);
+
+          if (dwRenderState && validColorKey) {
+            const DDCOLORKEY* normalizedColorKey = commonSurf->GetColorKeyNormalized();
+            m_bridge->SetColorKey(stage, normalizedColorKey->dwColorSpaceLowValue,
+                                  normalizedColorKey->dwColorSpaceHighValue);
+          }
         }
 
         return D3D_OK;
@@ -1922,9 +1924,7 @@ namespace dxvk {
 
       if (likely(m_textures[stage] != nullptr)) {
         m_textures[stage] = nullptr;
-
-        if (likely(stage == 0))
-          m_bridge->SetColorKeyState(false);
+        m_bridge->SetColorKeyState(stage, false);
       }
 
       return D3D_OK;
@@ -1976,15 +1976,16 @@ namespace dxvk {
           const DWORD textureOp = commonSurface->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_SELECTARG2;
           device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
         }
+      }
 
-        const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
-        const bool validColorKey = commonSurface->HasValidColorKey();
-        m_bridge->SetColorKeyState(colorKeyEnable && validColorKey);
-        if (colorKeyEnable && validColorKey) {
-          DDCOLORKEY normalizedColorKey = commonSurface->GetColorKeyNormalized();
-          m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
-                                normalizedColorKey.dwColorSpaceHighValue);
-        }
+      const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
+      const bool validColorKey = commonSurface->HasValidColorKey();
+      m_bridge->SetColorKeyState(stage, colorKeyEnable && validColorKey);
+
+      if (colorKeyEnable && validColorKey) {
+        const DDCOLORKEY* normalizedColorKey = commonSurface->GetColorKeyNormalized();
+        m_bridge->SetColorKey(stage, normalizedColorKey->dwColorSpaceLowValue,
+                              normalizedColorKey->dwColorSpaceHighValue);
       }
     }
 
@@ -2187,8 +2188,10 @@ namespace dxvk {
         return hr;
       }
 
-      if (likely(m_commonD3DDevice->GetCurrentTextureHandle() != 0))
+      if (likely(m_commonD3DDevice->GetCurrentTextureHandle() != 0)) {
         m_commonD3DDevice->SetCurrentTextureHandle(0);
+        m_bridge->SetColorKeyState(0, false);
+      }
 
       return D3D_OK;
     }
@@ -2231,11 +2234,12 @@ namespace dxvk {
 
       const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
       const bool validColorKey = commonSurface->HasValidColorKey();
-      m_bridge->SetColorKeyState(colorKeyEnable && validColorKey);
+      m_bridge->SetColorKeyState(0, colorKeyEnable && validColorKey);
+
       if (colorKeyEnable && validColorKey) {
-        DDCOLORKEY normalizedColorKey = commonSurface->GetColorKeyNormalized();
-        m_bridge->SetColorKey(normalizedColorKey.dwColorSpaceLowValue,
-                              normalizedColorKey.dwColorSpaceHighValue);
+        const DDCOLORKEY* normalizedColorKey = commonSurface->GetColorKeyNormalized();
+        m_bridge->SetColorKey(0, normalizedColorKey->dwColorSpaceLowValue,
+                              normalizedColorKey->dwColorSpaceHighValue);
       }
     }
 
