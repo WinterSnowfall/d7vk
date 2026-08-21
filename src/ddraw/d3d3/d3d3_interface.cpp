@@ -328,8 +328,8 @@ namespace dxvk {
     lpD3DFRD3.dwSize = sizeof(D3DFINDDEVICERESULT3);
 
     if (lpD3DFDS->dwFlags & D3DFDS_GUID) {
+      // IID_IDirect3DMMXDevice returns DDERR_NOTFOUND in D3D3
       if (lpD3DFDS->guid == IID_IDirect3DRGBDevice ||
-          lpD3DFDS->guid == IID_IDirect3DMMXDevice ||
           lpD3DFDS->guid == IID_IDirect3DRampDevice) {
         lpD3DFRD3.guid = IID_IDirect3DRGBDevice;
         lpD3DFRD3.ddHwDesc = descRGB_HAL;
@@ -338,8 +338,10 @@ namespace dxvk {
         lpD3DFRD3.guid = IID_IDirect3DHALDevice;
         lpD3DFRD3.ddHwDesc = descHAL_HAL;
         lpD3DFRD3.ddSwDesc = descHAL_HEL;
+      } else if (lpD3DFDS->guid == IID_IDirect3DMMXDevice) {
+        return DDERR_NOTFOUND;
       } else {
-        Logger::err(str::format("D3D3Interface::FindDevice: Unknown device type: ", lpD3DFDS->guid));
+        Logger::warn(str::format("D3D3Interface::FindDevice: Unknown device type: ", lpD3DFDS->guid));
         return DDERR_NOTFOUND;
       }
 
