@@ -196,9 +196,22 @@ namespace dxvk {
       if (unlikely(m_commonSurf->GetDD7Surface() == m_commonSurf->GetOrigin()))
         return E_NOINTERFACE;
 
-      HRESULT hr = CreateDeviceInternal(riid, ppvObject);
-      if (unlikely(FAILED(hr)))
-        return E_NOINTERFACE;
+      // Tests show that a surface can't be used to create more than a device
+      // at a time, and esentially that the surface IS the device in such cases...
+      if (m_device3 == nullptr) {
+        HRESULT hr = CreateDeviceInternal(riid, ppvObject);
+        if (unlikely(FAILED(hr)))
+          return E_NOINTERFACE;
+      // TODO: What happens when a device with a different riid than the existing one
+      // is requested on the same surface? Is the old one released and a new one created?
+      // We could potentially handle such corner cases transparently, by recreating only
+      // the D3D9 device as per the new request and binding it to the same object, though
+      // I don't actually expect this to be much of a problem in practice.
+      } else if (unlikely(m_device3->GetCommonD3DDevice()->GetDeviceGUID() != riid)) {
+        Logger::warn("DDrawSurface::QueryInterface: Query with mismatched device GUID");
+      }
+
+      *ppvObject = m_device3.ref();
 
       return S_OK;
     }
@@ -1268,18 +1281,16 @@ namespace dxvk {
     }
 
     try{
-      Com<D3D3Device> device3 = new D3D3Device(nullptr, this, rclsidOverride, &params,
-                                               std::move(device9), deviceCreationFlags9);
+      m_device3 = new D3D3Device(nullptr, this, rclsidOverride, &params,
+                                 std::move(device9), deviceCreationFlags9);
 
       // Set the common device on the common interface
-      m_commonIntf->SetCommonD3DDevice(device3->GetCommonD3DDevice());
+      m_commonIntf->SetCommonD3DDevice(m_device3->GetCommonD3DDevice());
       // Now that we have a valid common D3D device on the DDraw interface,
       // we can initialize the render target and depth stencil (if any)
-      hr = device3->InitializeRTAndDS();
+      hr = m_device3->InitializeRTAndDS();
       if (unlikely(FAILED(hr)))
         return hr;
-
-      *ppvObject = device3.ref();
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;
