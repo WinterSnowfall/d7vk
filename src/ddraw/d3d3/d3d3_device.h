@@ -95,7 +95,7 @@ namespace dxvk {
     }
 
     DDrawSurface* GetRenderTarget() const {
-      return m_rt.ptr();
+      return m_rt;
     }
 
     DDrawSurface* GetDepthStencil() const {
@@ -141,7 +141,8 @@ namespace dxvk {
 
     D3DDEVICEDESC3                  m_desc;
 
-    Com<DDrawSurface>               m_rt;
+    // In D3D3, the RT is the parent of the device
+    DDrawSurface*                   m_rt;
     Com<DDrawSurface, false>        m_ds;
 
     Com<D3D3Viewport>               m_currentViewport;
