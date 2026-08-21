@@ -153,8 +153,10 @@ namespace dxvk {
     D3DMATRIXHANDLE                 m_viewHandle       = 0;
     D3DMATRIXHANDLE                 m_projectionHandle = 0;
 
-    std::atomic<D3DMATRIXHANDLE>    m_matrixHandle     = 0;
-    std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> m_matrices;
+    // Tests have indicated that once created, matrix handles are
+    // shared across all devices, regardless of their relation
+    static std::atomic<D3DMATRIXHANDLE> s_matrixHandle;
+    static inline std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> s_matrices;
 
   };
 
