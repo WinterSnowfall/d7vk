@@ -16,6 +16,8 @@
 
 namespace dxvk {
 
+  std::atomic<D3DMATRIXHANDLE> D3D3Device::s_matrixHandle = 0;
+
   D3D3Device::D3D3Device(
         D3DCommonDevice* commonD3DDevice,
         DDrawSurface* pParent,
@@ -144,8 +146,7 @@ namespace dxvk {
 
       // Apparently all of these should return a reference to the parent surface
       if (riid == IID_IDirect3DHALDevice  || riid == IID_IDirect3DRGBDevice  ||
-          riid == IID_IDirect3DMMXDevice  || riid == IID_IDirect3DRampDevice ||
-          riid == IID_WineD3DDevice) {
+          riid == IID_IDirect3DRampDevice || riid == IID_WineD3DDevice) {
         *ppvObject = ref(m_parent);
         return S_OK;
       }
@@ -781,12 +782,12 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D3Device::CreateMatrix(D3DMATRIXHANDLE *matrix) {
     D3DDeviceLock lock = LockDevice();
 
-    m_matrixHandle++;
-    m_matrices.emplace(std::piecewise_construct,
-                       std::forward_as_tuple(m_matrixHandle),
+    D3DMATRIXHANDLE matrixHandle = ++s_matrixHandle;
+    s_matrices.emplace(std::piecewise_construct,
+                       std::forward_as_tuple(matrixHandle),
                        std::forward_as_tuple(D3DMATRIX()));
 
-    *matrix = m_matrixHandle;
+    *matrix = matrixHandle;
 
     return D3D_OK;
   }
@@ -797,9 +798,9 @@ namespace dxvk {
     if (unlikely(matrix == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    auto matrixIter = m_matrices.find(handle);
+    auto matrixIter = s_matrices.find(handle);
 
-    if (likely(matrixIter != m_matrices.end())) {
+    if (likely(matrixIter != s_matrices.end())) {
       matrixIter->second = *matrix;
     } else {
       Logger::warn("D3D3Device::SetMatrix: Matrix not found");
@@ -832,9 +833,9 @@ namespace dxvk {
     if (unlikely(matrix == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    auto matrixIter = m_matrices.find(handle);
+    auto matrixIter = s_matrices.find(handle);
 
-    if (likely(matrixIter != m_matrices.end())) {
+    if (likely(matrixIter != s_matrices.end())) {
       *matrix = matrixIter->second;
     } else {
       Logger::warn(str::format("D3D3Device::GetMatrix: Matrix not found: ", handle));
@@ -847,10 +848,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D3Device::DeleteMatrix(D3DMATRIXHANDLE D3DMatHandle) {
     D3DDeviceLock lock = LockDevice();
 
-    auto matrixIter = m_matrices.find(D3DMatHandle);
+    auto matrixIter = s_matrices.find(D3DMatHandle);
 
-    if (likely(matrixIter != m_matrices.end())) {
-      m_matrices.erase(matrixIter);
+    if (likely(matrixIter != s_matrices.end())) {
+      s_matrices.erase(matrixIter);
     } else {
       Logger::warn("D3D3Device::DeleteMatrix: Matrix not found");
       return DDERR_INVALIDPARAMS;
