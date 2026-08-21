@@ -96,23 +96,25 @@ namespace dxvk {
       m_commonD3DDevice->SetOrigin(nullptr);
   }
 
-  // Interlocked refcount with the origin device
+  // Interlocked refcount with the origin device, or
+  // the parent RT surface, in case of a pure D3D3 device
   ULONG STDMETHODCALLTYPE D3D3Device::AddRef() {
     IUnknown* origin = m_commonD3DDevice->GetOrigin();
     if (unlikely(origin != nullptr && origin != this)) {
       return origin->AddRef();
     } else {
-      return ComObjectClamp::AddRef();
+      return m_parent->AddRef();
     }
   }
 
-  // Interlocked refcount with the origin device
+  // Interlocked refcount with the origin device, or
+  // the parent RT surface, in case of a pure D3D3 device
   ULONG STDMETHODCALLTYPE D3D3Device::Release() {
     IUnknown* origin = m_commonD3DDevice->GetOrigin();
     if (unlikely(origin != nullptr && origin != this)) {
       return origin->Release();
     } else {
-      return ComObjectClamp::Release();
+      return m_parent->Release();
     }
   }
 
