@@ -17,6 +17,8 @@
 
 namespace dxvk {
 
+  class D3D3Device;
+
   /**
   * \brief IDirectDrawSurface interface implementation
   */
@@ -209,6 +211,8 @@ namespace dxvk {
     DDrawCommonInterface*     m_commonIntf    = nullptr;
 
     DDrawSurface*             m_parentSurf    = nullptr;
+
+    Com<D3D3Device, false>    m_device3;
 
     Com<D3D3Texture, false>   m_texture3;
     Com<D3D5Texture, false>   m_texture5;
