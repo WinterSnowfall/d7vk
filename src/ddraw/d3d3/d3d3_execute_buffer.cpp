@@ -94,13 +94,19 @@ namespace dxvk {
     if (unlikely(lpData->dwSize != sizeof(D3DEXECUTEDATA)))
       return DDERR_INVALIDPARAMS;
 
-    // Not validated by native, thus the call will succeed even if the buffer size is insufficient
-    if (unlikely(lpData->dwInstructionOffset + lpData->dwInstructionLength > m_buffer.size()))
-      Logger::warn("D3D3ExecuteBuffer::SetExecuteData: Instruction length exceeds buffer size");
-    if (unlikely(lpData->dwVertexOffset + lpData->dwVertexCount * sizeof(D3DVERTEX) > m_buffer.size()))
-      Logger::warn("D3D3ExecuteBuffer::SetExecuteData: Vertex count exceeds buffer size");
-    if (unlikely(lpData->dwHVertexOffset + lpData->dwVertexCount * sizeof(D3DTLVERTEX) > m_buffer.size()))
-      Logger::warn("D3D3ExecuteBuffer::SetExecuteData: Vertex count exceeds buffer size");
+    const size_t instructionSize = lpData->dwInstructionOffset + lpData->dwInstructionLength;
+    const size_t vertexSize      = lpData->dwVertexOffset + lpData->dwVertexCount * sizeof(D3DVERTEX);
+    const size_t hVertexSize     = lpData->dwHVertexOffset + lpData->dwVertexCount * sizeof(D3DTLVERTEX);
+    const size_t bufferSize      = m_buffer.size();
+
+    // Not validated by native, thus the call will succeed even if the buffer size is insufficient.
+    // Incoming sends a lot of such junk calls, but apparently doesn't blow up because of it.
+    if (unlikely(instructionSize > bufferSize || vertexSize > bufferSize || hVertexSize > bufferSize)) {
+      static bool s_bufferSizeWarningShow;
+
+      if (!std::exchange(s_bufferSizeWarningShow, true))
+        Logger::warn("D3D3ExecuteBuffer::SetExecuteData: Buffer size is insufficient for specified data");
+    }
 
     m_executeData = *lpData;
 
