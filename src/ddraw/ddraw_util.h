@@ -16,10 +16,103 @@ namespace dxvk {
     std::vector<uint8_t> vertexData;
   };
 
-  struct VertexStreamInfo {
-    D3DPRIMITIVETYPE d3dpt;
-    D3DVERTEXTYPE d3dvt;
-    DWORD dwFlags = 0;
+  struct VertexStream {
+  private:
+    bool          initialized = false;
+    D3DVERTEXTYPE cvt         = D3DVERTEXTYPE(0);
+
+  public:
+    D3DPRIMITIVETYPE d3dpt   = D3DPRIMITIVETYPE(0);
+    D3DVERTEXTYPE    d3dvt   = D3DVERTEXTYPE(0);
+    DWORD            dwFlags = 0;
+
+    union {
+      std::vector<D3DVERTEX>* vertex;
+      std::vector<D3DLVERTEX>* lvertex;
+      std::vector<D3DTLVERTEX>* tlvertex;
+    } stream = { nullptr };
+
+    VertexStream() = default;
+    // Don't allow copies, since they aren't handled
+    VertexStream(const VertexStream&) = delete;
+    VertexStream& operator=(const VertexStream&) = delete;
+
+    bool isInitialized() const {
+      return initialized;
+    }
+
+    void initialize() {
+      if (likely(cvt != D3DVERTEXTYPE(0))) {
+        if (likely(cvt == d3dvt)) {
+          switch (cvt) {
+            case D3DVT_VERTEX:
+              stream.vertex->clear();
+              break;
+            case D3DVT_LVERTEX:
+              stream.lvertex->clear();
+              break;
+            case D3DVT_TLVERTEX:
+              stream.tlvertex->clear();
+              break;
+            default:
+              break;
+          }
+
+          initialized = true;
+
+          return;
+        }
+
+        release();
+      }
+
+      switch (d3dvt) {
+        default:
+        case D3DVT_VERTEX:
+          stream.vertex = new std::vector<D3DVERTEX>();
+          cvt = D3DVT_VERTEX;
+          break;
+        case D3DVT_LVERTEX:
+          stream.lvertex = new std::vector<D3DLVERTEX>();
+          cvt = D3DVT_LVERTEX;
+          break;
+        case D3DVT_TLVERTEX:
+          stream.tlvertex = new std::vector<D3DTLVERTEX>();
+          cvt = D3DVT_TLVERTEX;
+          break;
+      }
+
+      initialized = true;
+    }
+
+    void reset() {
+      d3dpt   = D3DPRIMITIVETYPE(0);
+      d3dvt   = D3DVERTEXTYPE(0);
+      dwFlags = 0;
+
+      initialized = false;
+    }
+
+    void release() {
+      switch (cvt) {
+        case D3DVT_VERTEX:
+          delete stream.vertex;
+          break;
+        case D3DVT_LVERTEX:
+          delete stream.lvertex;
+          break;
+        case D3DVT_TLVERTEX:
+          delete stream.tlvertex;
+          break;
+        default:
+          break;
+      }
+      cvt = D3DVERTEXTYPE(0);
+    }
+
+    ~VertexStream() {
+      release();
+    }
   };
 
   inline bool IsValidDDrawCapsSize(DWORD size) {
