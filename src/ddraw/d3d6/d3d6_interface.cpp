@@ -283,8 +283,11 @@ namespace dxvk {
         lpD3DFDR->guid = IID_IDirect3DHALDevice;
         lpD3DFDR->ddHwDesc = descHAL_HAL;
         lpD3DFDR->ddSwDesc = descHAL_HEL;
+      } else if (lpD3DFDS->guid == IID_IDirect3DRampDevice
+              || lpD3DFDS->guid == IID_IDirect3DMMXDevice) {
+        return DDERR_NOTFOUND;
       } else {
-        Logger::err(str::format("D3D6Interface::FindDevice: Unknown device type: ", lpD3DFDS->guid));
+        Logger::warn(str::format("D3D6Interface::FindDevice: Unknown device type: ", lpD3DFDS->guid));
         return DDERR_NOTFOUND;
       }
     } else if (lpD3DFDS->dwFlags & D3DFDS_HARDWARE) {

@@ -190,8 +190,7 @@ namespace dxvk {
     // The standard way of creating a new D3D3 device. Outside of RAMP, MMX, RGB and HAL,
     // some applications (e.g. Dark Rift) query for Wine's advertised custom device IID.
     if (riid == IID_IDirect3DHALDevice  || riid == IID_IDirect3DRGBDevice  ||
-        riid == IID_IDirect3DMMXDevice  || riid == IID_IDirect3DRampDevice ||
-        riid == IID_WineD3DDevice) {
+        riid == IID_IDirect3DRampDevice || riid == IID_WineD3DDevice) {
       // Surfaces which have been queried from an IDirectDrawSurface7
       // object are unable to create a D3D3 device on this legacy path
       if (unlikely(m_commonSurf->GetDD7Surface() == m_commonSurf->GetOrigin()))

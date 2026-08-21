@@ -335,7 +335,7 @@ namespace dxvk {
         lpD3DFRD2.ddHwDesc = descHAL_HAL;
         lpD3DFRD2.ddSwDesc = descHAL_HEL;
       } else {
-        Logger::err(str::format("D3D5Interface::FindDevice: Unknown device type: ", lpD3DFDS->guid));
+        Logger::warn(str::format("D3D5Interface::FindDevice: Unknown device type: ", lpD3DFDS->guid));
         return DDERR_NOTFOUND;
       }
 
