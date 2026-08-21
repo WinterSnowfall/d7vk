@@ -181,10 +181,7 @@ namespace dxvk {
     D3DMATRIX                       m_projectionMatrix = { };
     const D3DMATRIX*                m_legacyProjection = nullptr;
 
-    VertexStreamInfo                m_vertexStreamInfo;
-    std::vector<D3DVERTEX>          m_vertexStream;
-    std::vector<D3DLVERTEX>         m_lvertexStream;
-    std::vector<D3DTLVERTEX>        m_tlvertexStream;
+    VertexStream                    m_vertexStream;
 
   };
 
