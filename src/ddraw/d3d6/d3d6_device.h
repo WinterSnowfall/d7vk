@@ -209,10 +209,7 @@ namespace dxvk {
     D3DMATRIX                       m_projectionMatrix   = { };
     const D3DMATRIX*                m_legacyProjection   = nullptr;
 
-    VertexStreamInfo                m_vertexStreamInfo;
-    std::vector<D3DVERTEX>          m_vertexStream;
-    std::vector<D3DLVERTEX>         m_lvertexStream;
-    std::vector<D3DTLVERTEX>        m_tlvertexStream;
+    VertexStream                    m_vertexStream;
 
     // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
     std::array<Com<D3D5Texture, false>, ddrawCaps::TextureStageCount> m_textures;
