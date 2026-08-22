@@ -22,7 +22,7 @@ namespace dxvk {
       if (hDDraw == nullptr) {
         // Determine the system directory path
         char loadPath[MAX_PATH] = { };
-        UINT returnLength = ::GetSystemDirectoryA(loadPath, MAX_PATH);
+        const uint32_t returnLength = ::GetSystemDirectoryA(loadPath, MAX_PATH);
         if (unlikely(!returnLength))
           return nullptr;
 
@@ -44,7 +44,7 @@ namespace dxvk {
             return nullptr;
 
           void* pvData = nullptr;
-          UINT iLenData = 0u;
+          uint32_t iLenData = 0u;
           // DXVK/D7VK will use the English UK encoding, so simply skip
           // the check if nothing is returned (pvData will be nullptr)
           ::VerQueryValueA(versionInfo.data(), "\\StringFileInfo\\080904B0\\ProductName", &pvData, &iLenData);

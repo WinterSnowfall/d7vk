@@ -216,6 +216,7 @@ namespace dxvk {
 
     GUID                        m_deviceGUID;
     uint32_t                    m_totalMemory         = 0;
+
     D3DMATERIALHANDLE           m_materialHandle      = 0;
     D3DTEXTUREHANDLE            m_textureHandle       = 0;
 

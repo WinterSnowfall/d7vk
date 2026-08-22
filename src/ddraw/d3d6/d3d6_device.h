@@ -185,11 +185,11 @@ namespace dxvk {
       }
     }
 
-    bool                            m_alphaOpSet         = false;
+    bool                            m_alphaOpSet       = false;
 
     Com<D3DCommonDevice>            m_commonD3DDevice;
 
-    DDrawCommonInterface*           m_commonIntf         = nullptr;
+    DDrawCommonInterface*           m_commonIntf       = nullptr;
 
     Com<IDxvkLegacyD3DDeviceBridge> m_bridge;
 
@@ -206,8 +206,8 @@ namespace dxvk {
     Com<D3D6Viewport>               m_currentViewport;
     std::vector<Com<D3D6Viewport>>  m_viewports;
 
-    D3DMATRIX                       m_projectionMatrix   = { };
-    const D3DMATRIX*                m_legacyProjection   = nullptr;
+    D3DMATRIX                       m_projectionMatrix = { };
+    const D3DMATRIX*                m_legacyProjection = nullptr;
 
     VertexStream                    m_vertexStream;
 
