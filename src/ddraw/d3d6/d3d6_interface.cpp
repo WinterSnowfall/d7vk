@@ -491,7 +491,7 @@ namespace dxvk {
 
     InitReturnPtr(lpD3DVertexBuffer);
 
-    *lpD3DVertexBuffer = ref(new D3D6VertexBuffer(this, dwFlags, lpVBDesc));
+    *lpD3DVertexBuffer = ref(new D3D6VertexBuffer(nullptr, this, lpVBDesc, dwFlags));
 
     return D3D_OK;
   }
