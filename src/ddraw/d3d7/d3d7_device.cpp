@@ -56,8 +56,8 @@ namespace dxvk {
     // Common D3D9 index buffers
     static constexpr DWORD Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 
-    for (uint8_t ibIndex = 0; ibIndex < ddrawCaps::IndexBufferCount ; ibIndex++) {
-      const UINT ibSize = ddrawCaps::IndexCount[ibIndex] * sizeof(WORD);
+    for (uint32_t ibIndex = 0; ibIndex < ddrawCaps::IndexBufferCount ; ibIndex++) {
+      const uint32_t ibSize = ddrawCaps::IndexCount[ibIndex] * sizeof(WORD);
 
       HRESULT hr = device9->CreateIndexBuffer(ibSize, Usage, d3d9::D3DFMT_INDEX16,
                                               d3d9::D3DPOOL_DEFAULT, &m_ib9[ibIndex], nullptr);
@@ -624,7 +624,7 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYENABLE: {
         m_commonD3DDevice->SetColorKeyEnable(dwRenderState);
 
-        for (uint8_t stage = 0; stage < ddrawCaps::TextureStageCount; stage++) {
+        for (DWORD stage = 0; stage < ddrawCaps::TextureStageCount; stage++) {
           if (m_textures[stage] == nullptr)
             continue;
 
