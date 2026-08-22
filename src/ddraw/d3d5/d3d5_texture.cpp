@@ -16,18 +16,16 @@ namespace dxvk {
         IUnknown* pParent,
         bool isD3D6Texture)
     : DDrawWrappedObject<IUnknown, IDirect3DTexture2>(pParent, std::move(proxyTexture))
-    , m_commonTex ( commonTex )
-    , m_commonIntf ( commonSurf->GetCommonInterface() ) {
+    , m_commonTex  ( commonTex )
+    , m_commonIntf ( commonSurf->GetCommonInterface() )
+    // D3D5Texture is shared between D3D5/6, however textures used in a D3D6 context
+    // typically come from an IDirectDrawSurface4 parent. This isn't a hard requirement,
+    // but is true in the vast majority of cases, so use the distinction for logging purposes.
+    , m_objectType ( isD3D6Texture ? "D3D6Texture" : "D3D5Texture" ) {
     if (m_commonTex == nullptr)
       m_commonTex = new D3DCommonTexture(commonSurf);
 
     m_commonTex->SetD3D5Texture(this);
-
-    // D3D5Texture is shared between D3D5/6, however textures used in a D3D6 context
-    // typically come from an IDirectDrawSurface4 parent. This isn't a hard requirement,
-    // but is true in the vast majority of cases, so use the distinction for logging purposes.
-    if (isD3D6Texture)
-      m_objectType = "D3D6Texture";
   }
 
   D3D5Texture::~D3D5Texture() {
@@ -123,6 +121,10 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D5Texture::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2) {
     Com<D3D5Texture> d3d5Texture = static_cast<D3D5Texture*>(lpD3DTexture2);
+
+    // Fast skip
+    if (unlikely(d3d5Texture == this))
+      return D3D_OK;
 
     // IDirect3DTexture2 is guaranteed to have a IDirectDrawSurface4 parent,
     // because we create and cache one ourselves on creation if it doesn't exist
