@@ -33,7 +33,7 @@ namespace dxvk {
 
   private:
 
-    DDrawCommonSurface* m_commonSurf   = nullptr;
+    DDrawCommonSurface* m_commonSurf = nullptr;
 
   };
 
