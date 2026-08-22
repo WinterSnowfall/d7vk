@@ -83,7 +83,7 @@ namespace dxvk {
     const bool clipped = (flags & D3DTRANSFORM_CLIPPED) && !(flags & D3DTRANSFORM_UNCLIPPED);
 
     if (clipped)
-      *offscreen = UINT_MAX;
+      *offscreen = std::numeric_limits<uint32_t>::max();
     else
       *offscreen = 0;
 

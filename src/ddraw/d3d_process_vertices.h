@@ -18,7 +18,7 @@ namespace dxvk {
     bool doExtents;
     bool doNotCopyData;
     bool isLegacy;
-    uint16_t vertexCount;
+    uint32_t vertexCount;
     size_t inStride;
     size_t outStride;
     DWORD inFVF;
@@ -398,10 +398,10 @@ namespace dxvk {
     tmp[3][0] = m->_41; tmp[3][1] = m->_42; tmp[3][2] = m->_43; tmp[3][3] = m->_44;
     tmp[3][4] = 0.0f;   tmp[3][5] = 0.0f;   tmp[3][6] = 0.0f;   tmp[3][7] = 1.0f;
 
-    for (int i = 0; i < 4; ++i) {
-      int max_row = i;
+    for (uint32_t i = 0; i < 4; ++i) {
+      uint32_t max_row = i;
       float max_val = std::fabs(tmp[i][i]);
-      for (int k = i + 1; k < 4; ++k) {
+      for (uint32_t k = i + 1; k < 4; ++k) {
         const float val = std::fabs(tmp[k][i]);
         if (val > max_val) {
           max_val = val;
@@ -413,20 +413,20 @@ namespace dxvk {
         return;
 
       if (max_row != i) {
-        for (int j = 0; j < 8; ++j) {
+        for (uint32_t j = 0; j < 8; ++j) {
           std::swap(tmp[i][j], tmp[max_row][j]);
         }
       }
 
       const float pivot = tmp[i][i];
-      for (int j = i; j < 8; ++j) {
+      for (uint32_t j = i; j < 8; ++j) {
         tmp[i][j] /= pivot;
       }
 
-      for (int k = 0; k < 4; ++k) {
+      for (uint32_t k = 0; k < 4; ++k) {
         if (k != i) {
           const float factor = tmp[k][i];
-          for (int j = 0; j < 8; ++j) {
+          for (uint32_t j = 0; j < 8; ++j) {
             tmp[k][j] -= factor * tmp[i][j];
           }
         }
@@ -1006,7 +1006,7 @@ namespace dxvk {
       }
     }
 
-    for (uint16_t t = 0; t < pvData->vertexCount; t++) {
+    for (uint32_t t = 0; t < pvData->vertexCount; t++) {
       uint8_t* inPtr = pvData->inData + t * pvData->inStride;
       uint8_t* outPtr = pvData->outData + t * pvData->outStride;
 

@@ -76,12 +76,12 @@ namespace dxvk {
 
   private:
 
-    Com<d3d9::IDirect3D9> m_d3d9Intf       = nullptr;
+    Com<d3d9::IDirect3D9> m_d3d9Intf = nullptr;
 
-    D3D7Interface*        m_d3d7Intf       = nullptr;
-    D3D6Interface*        m_d3d6Intf       = nullptr;
-    D3D5Interface*        m_d3d5Intf       = nullptr;
-    D3D3Interface*        m_d3d3Intf       = nullptr;
+    D3D7Interface*        m_d3d7Intf = nullptr;
+    D3D6Interface*        m_d3d6Intf = nullptr;
+    D3D5Interface*        m_d3d5Intf = nullptr;
+    D3D3Interface*        m_d3d3Intf = nullptr;
 
     // Tests have indicated that once created, material handles are shared across
     // all devices and D3D interfaces, regardless of their relation

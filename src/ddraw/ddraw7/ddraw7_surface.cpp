@@ -1260,7 +1260,7 @@ namespace dxvk {
       case D3D9SurfaceType::CubeTexture: {
         // In theory we won't know which faces have been generated,
         // so check them one by one, and upload as needed
-        const uint16_t mipCount    = m_commonSurf->GetMipCount();
+        const uint32_t mipCount    = m_commonSurf->GetMipCount();
         const bool     isDXTFormat = m_commonSurf->IsDXTFormat();
         if (likely(m_cubeMapSurfaces[0] != nullptr)) {
           BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), m_cubeMapSurfaces[0], mipCount, isDXTFormat);
