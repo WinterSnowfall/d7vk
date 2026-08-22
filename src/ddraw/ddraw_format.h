@@ -991,6 +991,12 @@ namespace dxvk {
   }
 
   inline DDCOLORKEY GetColorChannel(DWORD pixel, DWORD mask) {
+    DDCOLORKEY colorKey = { };
+
+    // Fast abort, otherwise we end up dividing by 0
+    if (unlikely(mask == 0))
+      return colorKey;
+
     uint32_t shift = 0;
     DWORD cmask = mask;
     while ((cmask & 1) == 0) {
@@ -1010,7 +1016,6 @@ namespace dxvk {
     const DWORD max = (1 << bits) - 1;
     const float cvalue = static_cast<float>(value) * 255.0f / static_cast<float>(max);
 
-    DDCOLORKEY colorKey = { };
     colorKey.dwColorSpaceLowValue  = static_cast<DWORD>(std::max(0.0f, floorf(cvalue - 0.5f)));
     colorKey.dwColorSpaceHighValue = static_cast<DWORD>(std::min(255.0f, floorf(cvalue + 0.5f)));
 
@@ -1026,8 +1031,9 @@ namespace dxvk {
     DDCOLORKEY b = GetColorChannel(colorKey, fmt->dwBBitMask);
     DDCOLORKEY g = GetColorChannel(colorKey, fmt->dwGBitMask);
     DDCOLORKEY r = GetColorChannel(colorKey, fmt->dwRBitMask);
+    static constexpr DDCOLORKEY DefaultAlphaColorKey = { 255u, 255u };
     DDCOLORKEY a = (fmt->dwFlags & DDPF_ALPHAPIXELS) ? GetColorChannel(colorKey, fmt->dwRGBAlphaBitMask)
-                                                     : DDCOLORKEY{255,255};
+                                                     : DefaultAlphaColorKey;
 
     rgbColorKey.dwColorSpaceLowValue  = b.dwColorSpaceLowValue |
                                        (g.dwColorSpaceLowValue << 8) |
