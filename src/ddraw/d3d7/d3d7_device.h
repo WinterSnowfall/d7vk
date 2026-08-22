@@ -181,7 +181,7 @@ namespace dxvk {
 
     Com<D3DCommonDevice>            m_commonD3DDevice;
 
-    DDrawCommonInterface*           m_commonIntf            = nullptr;
+    DDrawCommonInterface*           m_commonIntf     = nullptr;
 
     Com<IDxvkLegacyD3DDeviceBridge> m_bridge;
 
@@ -197,9 +197,9 @@ namespace dxvk {
     std::unordered_map<DWORD, d3d9::D3DLIGHT9> m_lights;
     std::unordered_map<DWORD, BOOL>            m_lightsStates;
 
-    D3D7StateBlock*                 m_recorder              = nullptr;
-    DWORD                           m_recorderHandle        = 0;
-    DWORD                           m_handle                = 0;
+    D3D7StateBlock*                 m_recorder       = nullptr;
+    DWORD                           m_recorderHandle = 0;
+    DWORD                           m_handle         = 0;
     std::unordered_map<DWORD, D3D7StateBlock> m_stateBlocks;
 
     std::array<Com<d3d9::IDirect3DIndexBuffer9>, ddrawCaps::IndexBufferCount> m_ib9;

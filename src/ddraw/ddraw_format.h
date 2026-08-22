@@ -690,10 +690,10 @@ namespace dxvk {
   // the mip chain, since the dwMipMapCount number may or may not be accurate. I am
   // guessing it was intended more as a hint, not necessarily a set number.
   template <typename SurfaceType, typename DescType>
-  inline uint16_t DetermineMipMapCount(SurfaceType* surface) {
+  inline uint32_t DetermineMipMapCount(SurfaceType* surface) {
     SurfaceType* mipMap = surface;
     DescType mipDesc;
-    uint16_t mipCount = 1;
+    uint32_t mipCount = 1u;
 
     while (mipMap != nullptr) {
       SurfaceType* parentSurface = mipMap;
@@ -774,7 +774,7 @@ namespace dxvk {
   inline void BlitToD3D9CubeMap(
         d3d9::IDirect3DCubeTexture9* cubeTex9,
         IDirectDrawSurface7* surface,
-        const uint16_t mipLevels,
+        const uint32_t mipLevels,
         const bool isDXTFormat) {
     DDSURFACEDESC2 desc;
     desc.dwSize = sizeof(DDSURFACEDESC2);
@@ -783,7 +783,7 @@ namespace dxvk {
     IDirectDrawSurface7* mipMap = surface;
     IDirectDrawSurface7* parentSurface;
 
-    for (uint16_t i = 0; i < mipLevels; i++) {
+    for (uint32_t i = 0; i < mipLevels; i++) {
       d3d9::D3DLOCKED_RECT rect9mip;
       // D3DLOCK_DISCARD will get ignored for MANAGED/SYSTEMMEM, but will work on DEFAULT
       HRESULT hr9 = cubeTex9->LockRect(face, i, &rect9mip, NULL, D3DLOCK_DISCARD);
@@ -836,12 +836,12 @@ namespace dxvk {
   inline void BlitToD3D9Texture(
         d3d9::IDirect3DTexture9* texture9,
         SurfaceType* surface,
-        const uint16_t mipLevels,
+        const uint32_t mipLevels,
         const bool isDXTFormat) {
     SurfaceType* mipMap = surface;
     SurfaceType* parentSurface;
 
-    for (uint16_t i = 0; i < mipLevels; i++) {
+    for (uint32_t i = 0; i < mipLevels; i++) {
       d3d9::D3DLOCKED_RECT rect9mip;
       // D3DLOCK_DISCARD will get ignored for MANAGED/SYSTEMMEM, but will work on DEFAULT
       HRESULT hr9 = texture9->LockRect(i, &rect9mip, NULL, D3DLOCK_DISCARD);
