@@ -559,9 +559,6 @@ namespace dxvk {
                       (m_desc.dwFlags & DDSD_WIDTH) ? m_desc.dwWidth  : 0;
       m_rect.bottom = (m_desc2.dwFlags & DDSD_HEIGHT) ? m_desc2.dwHeight :
                       (m_desc.dwFlags & DDSD_HEIGHT) ? m_desc.dwHeight : 0;
-      // refresh normalized color key range (if present)
-      static constexpr DDCOLORKEY DefaultColorKey = { 0u, 0u };
-      m_ckNormalized = HasValidColorKey() ? UpdateColorKeyNormalized() : DefaultColorKey;
       if (refreshFormat) {
         const d3d9::D3DFORMAT format9 = ConvertFormat((m_desc2.dwFlags & DDSD_PIXELFORMAT) ? m_desc2.ddpfPixelFormat : m_desc.ddpfPixelFormat);
         // warn if a format change is detected on an already initialized surface
@@ -569,6 +566,10 @@ namespace dxvk {
           Logger::warn("DDrawCommonSurface::RefreshStaticDescData: Surface format has changed post initialization");
         m_format9 = format9;
       }
+      // refresh normalized color key range (if present)
+      static constexpr DDCOLORKEY DefaultColorKey = { 0u, 0u };
+      // ignore normalized color key calculations on P8 surfaces
+      m_ckNormalized = HasValidColorKey() && m_format9 != d3d9::D3DFMT_P8 ? UpdateColorKeyNormalized() : DefaultColorKey;
     }
 
     inline DDCOLORKEY UpdateColorKeyNormalized() const {
