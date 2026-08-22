@@ -48,7 +48,7 @@ namespace dxvk {
 
     DDrawCommonInterface* m_commonIntf = nullptr;
 
-    const char*           m_objectType = "D3D5Texture";
+    const char*           m_objectType = nullptr;
 
   };
 

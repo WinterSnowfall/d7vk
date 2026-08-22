@@ -345,7 +345,7 @@ namespace dxvk {
 
     InitReturnPtr(ppVertexBuffer);
 
-    *ppVertexBuffer = ref(new D3D7VertexBuffer(this, desc));
+    *ppVertexBuffer = ref(new D3D7VertexBuffer(nullptr, this, desc));
 
     return D3D_OK;
   }
