@@ -1748,22 +1748,23 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     Com<D3D6VertexBuffer> vb6 = static_cast<D3D6VertexBuffer*>(vb);
-
-    if (unlikely(vb6->GetDevice() != this)) {
-      Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Invalid vertex buffer parent device");
-      return DDERR_GENERIC;
-    }
+    D3DCommonBuffer* commonBuffer = vb6->GetCommonBuffer();
 
     if (unlikely(vb6->IsLocked())) {
       Logger::err("D3D6Device::DrawPrimitiveVB: Buffer is locked");
       return D3DERR_VERTEXBUFFERLOCKED;
     }
 
+    if (unlikely(m_commonD3DDevice != commonBuffer->GetCommonD3DDevice())) {
+      Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Invalid vertex buffer parent device");
+      return DDERR_GENERIC;
+    }
+
     DDrawDirtySurfaceUpload();
 
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    const DWORD fvf = vb6->GetFVF();
+    const DWORD fvf = commonBuffer->GetFVF();
     const bool isTransformed = fvf & D3DFVF_XYZRHW;
     const bool useLighting = !(flags & D3DDP_DONOTLIGHT) &&
                               (fvf & D3DFVF_NORMAL) &&
@@ -1775,7 +1776,7 @@ namespace dxvk {
       HandlePreDrawLegacyProjection(device9, flags);
 
     device9->SetFVF(fvf);
-    device9->SetStreamSource(0, vb6->GetD3D9VertexBuffer(), 0, vb6->GetStride());
+    device9->SetStreamSource(0, commonBuffer->GetD3D9VertexBuffer(), 0, commonBuffer->GetStride());
     HRESULT hr = device9->DrawPrimitive(
                       d3d9::D3DPRIMITIVETYPE(primitive_type),
                       start_vertex,
@@ -1808,15 +1809,16 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     Com<D3D6VertexBuffer> vb6 = static_cast<D3D6VertexBuffer*>(vb);
-
-    if (unlikely(vb6->GetDevice() != this)) {
-      Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Invalid vertex buffer parent device");
-      return DDERR_GENERIC;
-    }
+    D3DCommonBuffer* commonBuffer = vb6->GetCommonBuffer();
 
     if (unlikely(vb6->IsLocked())) {
       Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Buffer is locked");
       return D3DERR_VERTEXBUFFERLOCKED;
+    }
+
+    if (unlikely(m_commonD3DDevice != commonBuffer->GetCommonD3DDevice())) {
+      Logger::err("D3D6Device::DrawIndexedPrimitiveVB: Invalid vertex buffer parent device");
+      return DDERR_GENERIC;
     }
 
     if (unlikely(index_count > ddrawCaps::MaxIndexCount)) {
@@ -1828,7 +1830,7 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    const DWORD fvf = vb6->GetFVF();
+    const DWORD fvf = commonBuffer->GetFVF();
     const bool isTransformed = fvf & D3DFVF_XYZRHW;
     const bool useLighting = !(flags & D3DDP_DONOTLIGHT) &&
                               (fvf & D3DFVF_NORMAL) &&
@@ -1856,12 +1858,12 @@ namespace dxvk {
 
     device9->SetIndices(ib9);
     device9->SetFVF(fvf);
-    device9->SetStreamSource(0, vb6->GetD3D9VertexBuffer(), 0, vb6->GetStride());
+    device9->SetStreamSource(0, commonBuffer->GetD3D9VertexBuffer(), 0, commonBuffer->GetStride());
     HRESULT hr = device9->DrawIndexedPrimitive(
                       d3d9::D3DPRIMITIVETYPE(primitive_type),
                       0,
                       0,
-                      vb6->GetNumVertices(),
+                      commonBuffer->GetNumVertices(),
                       0,
                       GetPrimitiveCount(primitive_type, index_count));
 
