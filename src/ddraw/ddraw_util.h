@@ -12,7 +12,7 @@
 namespace dxvk {
 
   struct PackedVertexBuffer {
-    UINT stride;
+    size_t stride;
     std::vector<uint8_t> vertexData;
   };
 
@@ -312,15 +312,15 @@ namespace dxvk {
     return size;
   }
 
-  inline UINT GetPrimitiveCount(D3DPRIMITIVETYPE PrimitiveType, DWORD VertexCount) {
+  inline uint32_t GetPrimitiveCount(D3DPRIMITIVETYPE PrimitiveType, DWORD VertexCount) {
     switch (PrimitiveType) {
-      case D3DPT_POINTLIST:     return static_cast<UINT>(VertexCount);
-      case D3DPT_LINELIST:      return static_cast<UINT>(VertexCount / 2);
-      case D3DPT_LINESTRIP:     return static_cast<UINT>(VertexCount - 1);
+      case D3DPT_POINTLIST:     return static_cast<uint32_t>(VertexCount);
+      case D3DPT_LINELIST:      return static_cast<uint32_t>(VertexCount / 2);
+      case D3DPT_LINESTRIP:     return static_cast<uint32_t>(VertexCount - 1);
       default:
-      case D3DPT_TRIANGLELIST:  return static_cast<UINT>(VertexCount / 3);
-      case D3DPT_TRIANGLESTRIP: return static_cast<UINT>(VertexCount - 2);
-      case D3DPT_TRIANGLEFAN:   return static_cast<UINT>(VertexCount - 2);
+      case D3DPT_TRIANGLELIST:  return static_cast<uint32_t>(VertexCount / 3);
+      case D3DPT_TRIANGLESTRIP: return static_cast<uint32_t>(VertexCount - 2);
+      case D3DPT_TRIANGLEFAN:   return static_cast<uint32_t>(VertexCount - 2);
     }
   }
 
