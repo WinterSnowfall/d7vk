@@ -142,7 +142,7 @@ namespace dxvk {
     D3DDEVICEDESC3                  m_desc;
 
     // In D3D3, the RT is the parent of the device
-    DDrawSurface*                   m_rt;
+    DDrawSurface*                   m_rt               = nullptr;
     Com<DDrawSurface, false>        m_ds;
 
     Com<D3D3Viewport>               m_currentViewport;
