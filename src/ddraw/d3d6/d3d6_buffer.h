@@ -4,6 +4,7 @@
 #include "../ddraw_child_object.h"
 
 #include "../ddraw_common_interface.h"
+#include "../d3d_common_buffer.h"
 
 #include "d3d6_interface.h"
 #include "d3d6_device.h"
@@ -15,9 +16,10 @@ namespace dxvk {
   public:
 
     D3D6VertexBuffer(
+          D3DCommonBuffer* commonBuffer,
           D3D6Interface* pParent,
-          DWORD creationFlags,
-          D3DVERTEXBUFFERDESC* pDesc);
+          D3DVERTEXBUFFERDESC* pDesc,
+          DWORD creationFlags);
 
     ~D3D6VertexBuffer();
 
@@ -33,57 +35,19 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE Optimize(LPDIRECT3DDEVICE3 lpD3DDevice, DWORD dwFlags);
 
-    HRESULT InitializeD3D9();
-
-    void RefreshD3DDevice();
-
-    bool IsInitialized() const {
-      return m_vb9 != nullptr;
-    }
-
-    d3d9::IDirect3DVertexBuffer9* GetD3D9VertexBuffer() const {
-      return m_vb9.ptr();
-    }
-
-    DWORD GetFVF() const {
-      return m_desc.dwFVF;
-    }
-
-    DWORD GetStride() const {
-      return m_stride;
-    }
-
-    DWORD GetNumVertices() const {
-      return m_size / m_stride;
+    D3DCommonBuffer* GetCommonBuffer() const {
+      return m_commonBuffer.ptr();
     }
 
     bool IsLocked() const {
       return m_locked;
     }
 
-    D3D6Device* GetDevice() const {
-      return m_d3d6Device;
-    }
-
   private:
 
-    inline bool IsOptimized() const {
-      return m_desc.dwCaps & D3DVBCAPS_OPTIMIZED;
-    }
+    std::atomic<bool>    m_locked = false;
 
-    std::atomic<bool>                 m_locked        = false;
-
-    DDrawCommonInterface*             m_commonIntf    = nullptr;
-
-    DWORD                             m_creationFlags = 0;
-    D3DVERTEXBUFFERDESC               m_desc;
-
-    UINT                              m_stride        = 0;
-    UINT                              m_size          = 0;
-
-    D3D6Device*                       m_d3d6Device    = nullptr;
-
-    Com<d3d9::IDirect3DVertexBuffer9> m_vb9;
+    Com<D3DCommonBuffer> m_commonBuffer;
 
   };
 
