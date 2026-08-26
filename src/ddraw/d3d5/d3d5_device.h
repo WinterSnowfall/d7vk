@@ -175,6 +175,8 @@ namespace dxvk {
     Com<DDrawSurface>               m_rt;
     Com<DDrawSurface, false>        m_ds;
 
+    Com<DDrawSurface, false>        m_texture;
+
     Com<D3D5Viewport>               m_currentViewport;
     std::vector<Com<D3D5Viewport>>  m_viewports;
 

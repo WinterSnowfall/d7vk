@@ -2199,6 +2199,7 @@ namespace dxvk {
       }
 
       if (likely(m_commonD3DDevice->GetCurrentTextureHandle() != 0)) {
+        m_texture = nullptr;
         m_commonD3DDevice->SetCurrentTextureHandle(0);
         m_bridge->SetColorKeyState(0, false);
       }
@@ -2253,6 +2254,7 @@ namespace dxvk {
       }
     }
 
+    m_texture = surface;
     m_commonD3DDevice->SetCurrentTextureHandle(textureHandle);
 
     return D3D_OK;
