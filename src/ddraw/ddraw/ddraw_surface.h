@@ -148,16 +148,8 @@ namespace dxvk {
       return m_texture3.ptr();
     }
 
-    void SetD3D3Texture(D3D3Texture* texture3) {
-      m_texture3 = texture3;
-    }
-
     D3D5Texture* GetD3D5Texture() const {
       return m_texture5.ptr();
-    }
-
-    void SetD3D5Texture(D3D5Texture* texture5) {
-      m_texture5 = texture5;
     }
 
     void SetAttachedDepthStencil(Com<DDrawSurface>&& depthStencil) {

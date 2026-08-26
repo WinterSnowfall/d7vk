@@ -126,7 +126,7 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        m_texture3 = new D3D3Texture(m_texture6 != nullptr ? m_texture6->GetCommonTexture() : nullptr,
+        m_texture3 = new D3D3Texture(m_texture5 != nullptr ? m_texture5->GetCommonTexture() : nullptr,
                                      m_commonSurf.ptr(), std::move(ppvProxyObject), this);
       }
 
@@ -135,18 +135,18 @@ namespace dxvk {
       return S_OK;
     }
     if (unlikely(riid == __uuidof(IDirect3DTexture2))) {
-      if (unlikely(m_texture6 == nullptr)) {
+      if (unlikely(m_texture5 == nullptr)) {
         Com<IDirect3DTexture2> ppvProxyObject;
         HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
         if (unlikely(FAILED(hr)))
           return hr;
 
         // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
-        m_texture6 = new D3D5Texture(m_texture3 != nullptr ? m_texture3->GetCommonTexture() : nullptr,
+        m_texture5 = new D3D5Texture(m_texture3 != nullptr ? m_texture3->GetCommonTexture() : nullptr,
                                      m_commonSurf.ptr(), std::move(ppvProxyObject), this, true);
       }
 
-      *ppvObject = m_texture6.ref();
+      *ppvObject = m_texture5.ref();
 
       return S_OK;
     }

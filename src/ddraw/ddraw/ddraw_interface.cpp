@@ -235,7 +235,7 @@ namespace dxvk {
       // may crash in case they find that's not the case
       if (unlikely((lpDDSurfaceDesc->ddpfPixelFormat.dwFlags == (DDPF_BUMPDUDV | DDPF_BUMPLUMINANCE))
                 && (lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY))) {
-        Logger::warn("DDrawInterface::CreateSurface: Video memory DDPF_BUMPLUMINANCE surface");
+        Logger::debug("DDrawInterface::CreateSurface: Video memory DDPF_BUMPLUMINANCE surface");
         lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY &
                                            ~DDSCAPS_LOCALVIDMEM &
                                            ~DDSCAPS_NONLOCALVIDMEM;
