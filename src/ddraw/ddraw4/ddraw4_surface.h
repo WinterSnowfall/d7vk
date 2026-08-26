@@ -202,7 +202,7 @@ namespace dxvk {
 
     Com<D3D3Texture, false> m_texture3;
     // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
-    Com<D3D5Texture, false> m_texture6;
+    Com<D3D5Texture, false> m_texture5;
 
     DDraw4Surface*          m_nextFlippable = nullptr;
 
