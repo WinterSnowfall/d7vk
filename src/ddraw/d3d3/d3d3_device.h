@@ -145,6 +145,8 @@ namespace dxvk {
     DDrawSurface*                   m_rt               = nullptr;
     Com<DDrawSurface, false>        m_ds;
 
+    Com<DDrawSurface, false>        m_texture;
+
     Com<D3D3Viewport>               m_currentViewport;
     std::vector<Com<D3D3Viewport>>  m_viewports;
 
