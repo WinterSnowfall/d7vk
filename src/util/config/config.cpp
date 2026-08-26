@@ -1829,9 +1829,11 @@ namespace dxvk {
     { R"(\\(KISS.*|Psycho.*)\\client\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
     }} },
-    /* Enemy Engaged: Apache vs Havoc             */
+    /* Enemy Engaged: Apache vs Havoc             *
+     * Works around slow buffer access patterns   */
     { R"(\\aphavoc\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.forceSWVP",                  "True" },
     }} },
     /* Star Trek: Starfleet Command               *
      * Works around in-game flickering            */
@@ -1986,6 +1988,12 @@ namespace dxvk {
     { R"(\\CRIMSON\.(EXE|ICD)$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
+    /* F/A-18E Super Hornet - Works around        *
+     * main menu flickers on return from gameplay */
+    { R"(\\F18\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.emulateFrontBuffer",         "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */
@@ -2078,6 +2086,13 @@ namespace dxvk {
     { R"(\\(ClaireU|LeonU)\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.alternatePixelCenter",       "True" },
+    }} },
+    /* Frogger: He's Back!                        *
+     * Typically capped to 25 FPS, however it     *
+     * runs without a frame limit and exhibits    *
+     * accelerated animations on some menus       */
+    { R"(\\frogger\.exe$)", {{
+      { "d3d9.maxFrameRate",                 "-25" },
     }} },
 
     /**********************************************/

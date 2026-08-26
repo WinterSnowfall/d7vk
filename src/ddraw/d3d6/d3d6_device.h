@@ -203,6 +203,9 @@ namespace dxvk {
     Com<DDraw4Surface>              m_rt;
     Com<DDraw4Surface, false>       m_ds;
 
+    // Only for the legacy D3DTEXTUREHANDLE texture path
+    Com<DDraw4Surface, false>       m_texture;
+
     Com<D3D6Viewport>               m_currentViewport;
     std::vector<Com<D3D6Viewport>>  m_viewports;
 
