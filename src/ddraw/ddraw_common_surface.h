@@ -42,10 +42,6 @@ namespace dxvk {
       return S_OK;
     }
 
-    IUnknown* GetShadowSurfaceProxied();
-
-    DDrawCommonSurface* GetShadowCommonSurface();
-
     HRESULT RefreshSurfaceDescripton(const bool refreshFormat);
 
     void RefreshD3D9Device();
@@ -58,10 +54,6 @@ namespace dxvk {
 
     bool IsInitialized() const {
       return m_surface9 != nullptr;
-    }
-
-    void SetCommonD3DDevice(D3DCommonDevice* commonD3DDevice) {
-      m_commonD3DDevice = commonD3DDevice;
     }
 
     D3DCommonDevice* GetCommonD3DDevice() const {
