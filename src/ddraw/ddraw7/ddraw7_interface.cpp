@@ -260,36 +260,9 @@ namespace dxvk {
     try{
       Com<DDraw7Surface> surface7 = new DDraw7Surface(nullptr, std::move(ddraw7SurfaceProxied), this, nullptr, true);
 
-      if (unlikely(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)) {
-        m_commonIntf->SetPrimarySurface(surface7->GetCommonSurface());
-
-        // Shadow surface creation for the primary surface
-        // (it needs to be based on the same incoming desc)
-        if (m_commonIntf->GetOptions()->forceLegacyPresent &&
-           !surface7->GetCommonSurface()->SkipD3D9Operations()) {
-          DDSURFACEDESC2 shadowDesc = *lpDDSurfaceDesc;
-          const DDSURFACEDESC2* primaryDesc = surface7->GetCommonSurface()->GetDesc2();
-
-          shadowDesc.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE & ~DDSCAPS_COMPLEX & ~DDSCAPS_FLIP;
-          shadowDesc.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
-          shadowDesc.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
-          // Dimensions aren't specified in the incoming desc,
-          // but are explicitly needed for non-primary surfaces
-          shadowDesc.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
-          shadowDesc.dwWidth  = primaryDesc->dwWidth;
-          shadowDesc.dwHeight = primaryDesc->dwHeight;
-
-          Com<IDirectDrawSurface7> ddraw7SurfaceShadow;
-          hr = m_proxy->CreateSurface(&shadowDesc, &ddraw7SurfaceShadow, pUnkOuter);
-          if (unlikely(FAILED(hr))) {
-            Logger::warn("DDraw7Interface::CreateSurface: Failed to create shadow surface");
-          } else {
-            Com<DDraw7Surface> shadowSurf = new DDraw7Surface(nullptr, std::move(ddraw7SurfaceShadow),
-                                                              this, nullptr, false);
-            surface7->SetShadowSurface(std::move(shadowSurf));
-          }
-        }
-      }
+      DDrawCommonSurface* commonSurf = surface7->GetCommonSurface();
+      if (unlikely(commonSurf->IsPrimarySurface()))
+        m_commonIntf->SetPrimarySurface(commonSurf);
 
       *lplpDDSurface = surface7.ref();
     } catch (const DxvkError& e) {

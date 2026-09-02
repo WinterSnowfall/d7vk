@@ -63,26 +63,25 @@ namespace dxvk {
       m_originSurf = m_parent;
     }
 
-    // Retrieve and cache the shadow surface
-    if (likely(m_shadowSurf == nullptr)) {
-      IUnknown* shadowSurfaceProxiedOrigin = m_commonSurf->GetShadowSurfaceProxied();
-      if (likely(shadowSurfaceProxiedOrigin != nullptr)) {
-        Com<IDirectDrawSurface2> shadowSurfProxy;
-        HRESULT hr = shadowSurfaceProxiedOrigin->QueryInterface(__uuidof(IDirectDrawSurface2),
-                                                                reinterpret_cast<void**>(&shadowSurfProxy));
+    // Create an offscreen plain shadow surface in system memory, if needed
+    if (unlikely(m_commonSurf->IsPrimarySurface() &&
+                 m_commonIntf->GetOptions()->forceLegacyPresent &&
+                 m_parent != nullptr &&
+                !m_commonSurf->SkipD3D9Operations())) {
+      // For IDirectDrawSurface2, we'll use the parent's shadow surface as reference
+      IDirectDrawSurface* ddrawSurfaceShadow = m_parent->GetShadowSurfaceProxied();
+      if (likely(ddrawSurfaceShadow != nullptr)) {
+        Com<IDirectDrawSurface2> ddraw2SurfaceShadow;
+        HRESULT hr = ddrawSurfaceShadow->QueryInterface(__uuidof(IDirectDrawSurface2),
+                                                        reinterpret_cast<void**>(&ddraw2SurfaceShadow));
         if (unlikely(FAILED(hr))) {
-          throw DxvkError("DDraw2Surface: ERROR! Failed to retrieve the shadow surface!");
+          Logger::warn("DDraw2Surface: Failed to create shadow surface");
         } else {
-          if (shadowSurfProxy != nullptr) {
-            try {
-              m_shadowSurf = new DDraw2Surface(m_commonSurf->GetShadowCommonSurface(), std::move(shadowSurfProxy),
-                                               m_commonSurf->GetDDSurface(), nullptr);
-            } catch (const DxvkError& e) {
-              Logger::err(e.message());
-              throw DxvkError("DDraw2Surface: ERROR! Failed to create the shadow surface!");
-            }
-          }
+          m_shadowSurf = new DDraw2Surface(nullptr, std::move(ddraw2SurfaceShadow),
+                                           m_parent, nullptr);
         }
+      } else {
+        Logger::warn("DDraw2Surface: No shadow surface present on parent");
       }
     }
 
