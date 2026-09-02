@@ -58,6 +58,30 @@ namespace dxvk {
       }
     }
 
+    // Create an offscreen plain shadow surface in system memory, if needed
+    if (unlikely(m_commonSurf->IsPrimarySurface() &&
+                 m_commonIntf->GetOptions()->forceLegacyPresent &&
+                 m_parent != nullptr &&
+                !m_commonSurf->SkipD3D9Operations())) {
+      const DDSURFACEDESC2* surfaceDesc = m_commonSurf->GetDesc2();
+
+      DDSURFACEDESC2 shadowDesc = { };
+      shadowDesc.dwSize = sizeof(DDSURFACEDESC2);
+      shadowDesc.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
+      shadowDesc.dwWidth = surfaceDesc->dwWidth;
+      shadowDesc.dwHeight = surfaceDesc->dwHeight;
+      shadowDesc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_3DDEVICE | DDSCAPS_SYSTEMMEMORY;
+
+      Com<IDirectDrawSurface7> ddraw7SurfaceShadow;
+      HRESULT hr = m_parent->GetProxied()->CreateSurface(&shadowDesc, &ddraw7SurfaceShadow, NULL);
+      if (unlikely(FAILED(hr))) {
+        Logger::warn("DDraw7Surface: Failed to create shadow surface");
+      } else {
+        m_shadowSurf = new DDraw7Surface(nullptr, std::move(ddraw7SurfaceShadow),
+                                         m_parent, nullptr, false);
+      }
+    }
+
     DDrawCommonInterface::AddWrappedSurface(this);
 
     m_commonSurf->SetDD7Surface(this);

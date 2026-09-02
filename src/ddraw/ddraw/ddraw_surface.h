@@ -111,15 +111,20 @@ namespace dxvk {
 
     void DownloadSurfaceData();
 
-    void SetShadowSurface(Com<DDrawSurface>&& shadowSurf) {
-      m_shadowSurf = shadowSurf;
-    }
-
-    DDrawSurface* GetShadowSurface() const {
-      return m_shadowSurf.ptr();
+    IDirectDrawSurface* GetShadowSurfaceProxied() const {
+      return m_shadowSurf != nullptr ? m_shadowSurf->GetProxied() : nullptr;
     }
 
     IDirectDrawSurface* GetShadowOrProxied() {
+      // Non-renderable surfaces will never have shadow surfaces, nor will
+      // they be at risk of copying back invalid D3D9 surface data
+      if (!m_commonSurf->Is3DSurface())
+        return m_proxy.ptr();
+
+      // Though this call can be avoided on common paths, we can end up in situations
+      // where a device is released in between surface operations like locks/unlocks,
+      // such as is the case with 3DMark 2000, and as a result may copy back invalid
+      // D3D9 surface data unless we validate/refresh the device pointer regularly
       d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->GetRefreshedD3D9Device();
 
       if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr))
