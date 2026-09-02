@@ -277,36 +277,9 @@ namespace dxvk {
       // Surfaces created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
       Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied), this, nullptr, false);
 
-      if (unlikely(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)) {
-        m_commonIntf->SetPrimarySurface(surface->GetCommonSurface());
-
-        // Shadow surface creation for the primary surface
-        // (it needs to be based on the same incoming desc)
-        if (m_commonIntf->GetOptions()->forceLegacyPresent &&
-           !surface->GetCommonSurface()->SkipD3D9Operations()) {
-          DDSURFACEDESC shadowDesc = *lpDDSurfaceDesc;
-          const DDSURFACEDESC* primaryDesc = surface->GetCommonSurface()->GetDesc();
-
-          shadowDesc.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE & ~DDSCAPS_COMPLEX & ~DDSCAPS_FLIP;
-          shadowDesc.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
-          shadowDesc.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
-          // Dimensions aren't specified in the incoming desc,
-          // but are explicitly needed for non-primary surfaces
-          shadowDesc.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
-          shadowDesc.dwWidth  = primaryDesc->dwWidth;
-          shadowDesc.dwHeight = primaryDesc->dwHeight;
-
-          Com<IDirectDrawSurface> ddrawSurfaceShadow;
-          hr = m_proxy->CreateSurface(&shadowDesc, &ddrawSurfaceShadow, pUnkOuter);
-          if (unlikely(FAILED(hr))) {
-            Logger::warn("DDrawInterface::CreateSurface: Failed to create shadow surface");
-          } else {
-            Com<DDrawSurface> shadowSurf = new DDrawSurface(nullptr, std::move(ddrawSurfaceShadow),
-                                                            this, nullptr, false);
-            surface->SetShadowSurface(std::move(shadowSurf));
-          }
-        }
-      }
+      DDrawCommonSurface* commonSurf = surface->GetCommonSurface();
+      if (unlikely(commonSurf->IsPrimarySurface()))
+        m_commonIntf->SetPrimarySurface(commonSurf);
 
       *lplpDDSurface = surface.ref();
     } catch (const DxvkError& e) {
