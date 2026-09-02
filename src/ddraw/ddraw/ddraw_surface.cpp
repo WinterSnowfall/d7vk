@@ -61,6 +61,30 @@ namespace dxvk {
       }
     }
 
+    // Create an offscreen plain shadow surface in system memory, if needed
+    if (unlikely(m_commonSurf->IsPrimarySurface() &&
+                 m_commonIntf->GetOptions()->forceLegacyPresent &&
+                 m_parent != nullptr &&
+                !m_commonSurf->SkipD3D9Operations())) {
+      const DDSURFACEDESC* surfaceDesc = m_commonSurf->GetDesc();
+
+      DDSURFACEDESC shadowDesc = { };
+      shadowDesc.dwSize = sizeof(DDSURFACEDESC);
+      shadowDesc.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
+      shadowDesc.dwWidth = surfaceDesc->dwWidth;
+      shadowDesc.dwHeight = surfaceDesc->dwHeight;
+      shadowDesc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_3DDEVICE | DDSCAPS_SYSTEMMEMORY;
+
+      Com<IDirectDrawSurface> ddrawSurfaceShadow;
+      HRESULT hr = m_parent->GetProxied()->CreateSurface(&shadowDesc, &ddrawSurfaceShadow, NULL);
+      if (unlikely(FAILED(hr))) {
+        Logger::warn("DDrawSurface: Failed to create shadow surface");
+      } else {
+        m_shadowSurf = new DDrawSurface(nullptr, std::move(ddrawSurfaceShadow),
+                                        m_parent, nullptr, false);
+      }
+    }
+
     DDrawCommonInterface::AddWrappedSurface(this);
 
     m_commonSurf->SetDDSurface(this);
@@ -1189,6 +1213,11 @@ namespace dxvk {
     if (unlikely(hWnd == nullptr)) {
       Logger::debug("DDrawSurface::CreateDeviceInternal: HWND is NULL");
     }
+
+    // Clean up any previous device use, otherwise we can end up blitting
+    // on stale images from D3D9, as is observed in the case of 3DMark 2000.
+    // This is only relevant in the context of later swapchain resets.
+    m_commonSurf->RefreshD3D9Device();
 
     HRESULT hrRT = m_commonSurf->ValidateRTUsage(isHALDevice, true);
     if (unlikely(FAILED(hrRT)))
