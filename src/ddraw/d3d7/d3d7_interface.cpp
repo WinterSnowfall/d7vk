@@ -223,12 +223,17 @@ namespace dxvk {
       rt7 = static_cast<DDraw7Surface*>(surface);
     }
 
+    // Clean up any previous device use, otherwise we can end up blitting
+    // on stale images from D3D9, as is observed in the case of 3DMark 2000.
+    // This is only relevant in the context of later swapchain resets.
+    rt7->GetCommonSurface()->RefreshD3D9Device();
+
     HRESULT hrRT = rt7->GetCommonSurface()->ValidateRTUsage7(isHALOrTNLHALDevice, true);
     if (unlikely(FAILED(hrRT)))
       return hrRT;
 
     Com<IDirect3DDevice7> d3d7DeviceProxy;
-    HRESULT hr = m_proxy->CreateDevice(rclsidOverride, rt7->GetShadowOrProxied(), &d3d7DeviceProxy);
+    HRESULT hr = m_proxy->CreateDevice(rclsidOverride, rt7->GetProxied(), &d3d7DeviceProxy);
     if (unlikely(FAILED(hr))) {
       Logger::warn("D3D7Interface::CreateDevice: Failed to create the proxy device");
       return hr;
