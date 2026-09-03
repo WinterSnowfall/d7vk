@@ -186,6 +186,14 @@ namespace dxvk {
     InitReturnPtr(lplpDDSurface);
 
     if (likely(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)) {
+      // Disabling support for overlays fixes issues with intro
+      // video playback in games such as NFS: Porsche Unleashed
+      if (unlikely((lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_OVERLAY)
+                 && !m_commonIntf->GetOptions()->supportOverlays)) {
+        Logger::info("DDraw7Interface::CreateSurface: Overlay support is disabled, skipping");
+        return DDERR_UNSUPPORTED;
+      }
+
       // Because we are removing the DDSCAPS_WRITEONLY flag below, we need
       // to first validate the combinations that would otherwise cause issues
       HRESULT hr = ValidateSurfaceFlags(lpDDSurfaceDesc);
