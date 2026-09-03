@@ -1515,6 +1515,7 @@ namespace dxvk {
      * drastically improves draw performance      */
     { R"(\\Armada\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.systemMemoryShadow",        "False" },
       { "ddraw.legacyPresentGuard",       "Strict" },
       { "ddraw.forceSWVP",                  "True" },
     }} },
@@ -1727,10 +1728,6 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.autoGenMipMaps",             "True" },
       { "ddraw.supportD16",                "False" },
-    }} },
-    /* Space Pirates and Zombies                  */
-    { R"(\\SpazGame\.exe$)", {{
-      { "ddraw.forceLegacyPresent",         "True" },
     }} },
     /* Evolva - Fixes character camera flickers   */
     { R"(\\Evolva\.exe$)", {{

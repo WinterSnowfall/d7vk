@@ -128,7 +128,7 @@ namespace dxvk {
     IDirectDrawSurface4* GetShadowOrProxied() {
       // Non-renderable surfaces will never have shadow surfaces, nor will
       // they be at risk of copying back invalid D3D9 surface data
-      if (!m_commonSurf->Is3DSurface())
+      if (!m_commonSurf->IsRenderTarget())
         return m_proxy.ptr();
 
       // Though this call can be avoided on common paths, we can end up in situations
