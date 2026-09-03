@@ -29,6 +29,7 @@ namespace dxvk {
     this->legacyDeviceNames      = config.getOption<bool>   ("ddraw.legacyDeviceNames",      false);
     this->nonLocalVideoMemory    = config.getOption<bool>   ("ddraw.nonLocalVideoMemory",     true);
     this->robustTextureLifeCycle = config.getOption<bool>   ("ddraw.robustTextureLifeCycle", false);
+    this->supportOverlays        = config.getOption<bool>   ("ddraw.supportOverlays",         true);
     this->apitraceMode           = config.getOption<bool>   ("ddraw.apitraceMode",           false);
 
     std::string alternatePixelCenterStr = Config::toLower(config.getOption<std::string>("ddraw.alternatePixelCenter", "false"));
