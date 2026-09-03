@@ -73,7 +73,13 @@ namespace dxvk {
       shadowDesc.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
       shadowDesc.dwWidth = surfaceDesc->dwWidth;
       shadowDesc.dwHeight = surfaceDesc->dwHeight;
-      shadowDesc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_3DDEVICE | DDSCAPS_SYSTEMMEMORY;
+      shadowDesc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_3DDEVICE;
+
+      // Creating the shadow surface in system memory speeds up our own uploads/downloads,
+      // however it might cause stuttering or regress performance if WineD3D performs
+      // optimized GPU-to-GPU blitting on the primary surface, e.g. Star Trek: Armada
+      if (likely(m_commonIntf->GetOptions()->systemMemoryShadow))
+        shadowDesc.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 
       Com<IDirectDrawSurface> ddrawSurfaceShadow;
       HRESULT hr = m_parent->GetProxied()->CreateSurface(&shadowDesc, &ddrawSurfaceShadow, NULL);
