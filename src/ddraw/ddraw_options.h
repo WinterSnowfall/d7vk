@@ -106,6 +106,9 @@ namespace dxvk {
     /// Be adamant about keeping all texture backing surfaces alive
     bool robustTextureLifeCycle;
 
+    /// Allow the creation of overlay surfaces
+    bool supportOverlays;
+
     /// Extends features and relaxes validations to enable apitrace debugging
     bool apitraceMode;
 

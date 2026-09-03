@@ -1649,8 +1649,11 @@ namespace dxvk {
     }} },
     /* Need for Speed: Porsche Unleashed          *
      * Fixes missing mip maps on car models       *
-     * and Z-fighting with projected lights       */
+     * and Z-fighting with projected lights.      *
+     * Disabling overlay support makes the intro  *
+     * videos play back properly.                 */
     { R"(\\(Porsche|nfs5)\.exe$)", {{
+      { "ddraw.supportOverlays",           "False" },
       { "ddraw.autoGenMipMaps",             "True" },
       { "ddraw.useD16forD24X8",             "True" },
     }} },
