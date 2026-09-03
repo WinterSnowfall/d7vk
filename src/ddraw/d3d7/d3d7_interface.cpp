@@ -359,6 +359,25 @@ namespace dxvk {
     if (unlikely(lpEnumCallback == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    d3d9::IDirect3D9* d3d9Intf = m_commonD3DIntf->GetD3D9Interface();
+
+    // Check for actual depth format support on the adapter, as some ARM/Android drivers might be iffy
+    const bool supportsD16   = SUCCEEDED(d3d9Intf->CheckDeviceFormat(0, d3d9::D3DDEVTYPE_HAL,
+                                                                     d3d9::D3DFMT_X8R8G8B8, // Adapter format, shouldn't matter here
+                                                                     D3DUSAGE_DEPTHSTENCIL,
+                                                                     d3d9::D3DRTYPE_SURFACE,
+                                                                     d3d9::D3DFMT_D16));
+    const bool supportsD24X8 = SUCCEEDED(d3d9Intf->CheckDeviceFormat(0, d3d9::D3DDEVTYPE_HAL,
+                                                                     d3d9::D3DFMT_X8R8G8B8, // Adapter format, shouldn't matter here
+                                                                     D3DUSAGE_DEPTHSTENCIL,
+                                                                     d3d9::D3DRTYPE_SURFACE,
+                                                                     d3d9::D3DFMT_D24X8));
+    const bool supportsD24S8 = SUCCEEDED(d3d9Intf->CheckDeviceFormat(0, d3d9::D3DDEVTYPE_HAL,
+                                                                     d3d9::D3DFMT_X8R8G8B8, // Adapter format, shouldn't matter here
+                                                                     D3DUSAGE_DEPTHSTENCIL,
+                                                                     d3d9::D3DRTYPE_SURFACE,
+                                                                     d3d9::D3DFMT_D24S8));
+
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     // There are just 3 supported depth stencil formats to worry about
@@ -366,7 +385,7 @@ namespace dxvk {
     DDPIXELFORMAT depthFormat;
     HRESULT hr;
 
-    if (likely(d3dOptions->supportD16)) {
+    if (likely(d3dOptions->supportD16 && supportsD16)) {
       depthFormat = GetZBufferFormat(d3d9::D3DFMT_D16);
       hr = lpEnumCallback(&depthFormat, lpContext);
       if (unlikely(hr != D3DENUMRET_OK))
@@ -376,24 +395,30 @@ namespace dxvk {
     // Apparently some games expect D3DFMT_D24X8 to have a 24-bit
     // dwZBufferBitDepth, so we have to enumerate both variants.
     // According to Wine tests, Windows Vista and newer also enumerate both.
-    depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
-    depthFormat.dwZBufferBitDepth = 24;
-    hr = lpEnumCallback(&depthFormat, lpContext);
-    if (unlikely(hr != D3DENUMRET_OK))
-      return D3D_OK;
+    if (likely(supportsD24X8)) {
+      depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
+      depthFormat.dwZBufferBitDepth = 24;
+      hr = lpEnumCallback(&depthFormat, lpContext);
+      if (unlikely(hr != D3DENUMRET_OK))
+        return D3D_OK;
+    }
 
     // Expendable relies on having only the 24-bit dwZBufferBitDepth variant
     // of D3DFMT_D24X8 enumerated in order to have working projected shadows
     if (likely(d3dOptions->support32BitDepth)) {
-      depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
-      hr = lpEnumCallback(&depthFormat, lpContext);
-      if (unlikely(hr != D3DENUMRET_OK))
-        return D3D_OK;
+      if (likely(supportsD24X8)) {
+        depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24X8);
+        hr = lpEnumCallback(&depthFormat, lpContext);
+        if (unlikely(hr != D3DENUMRET_OK))
+          return D3D_OK;
+      }
 
-      depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24S8);
-      hr = lpEnumCallback(&depthFormat, lpContext);
-      if (unlikely(hr != D3DENUMRET_OK))
-        return D3D_OK;
+      if (likely(supportsD24S8)) {
+        depthFormat = GetZBufferFormat(d3d9::D3DFMT_D24S8);
+        hr = lpEnumCallback(&depthFormat, lpContext);
+        if (unlikely(hr != D3DENUMRET_OK))
+          return D3D_OK;
+      }
     }
 
     return D3D_OK;
