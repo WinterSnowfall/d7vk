@@ -69,15 +69,17 @@ namespace dxvk {
                  m_parent != nullptr &&
                 !m_commonSurf->SkipD3D9Operations())) {
       // For IDirectDrawSurface3, we'll use the parent's shadow surface as reference
-      IDirectDrawSurface* ddrawSurfaceShadow = m_parent->GetShadowSurfaceProxied();
-      if (likely(ddrawSurfaceShadow != nullptr)) {
+      DDrawSurface* parentShadowSurface = m_parent->GetShadowSurface();
+      if (likely(parentShadowSurface != nullptr)) {
+        IDirectDrawSurface* ddrawSurfaceShadow = parentShadowSurface->GetProxied();
         Com<IDirectDrawSurface3> ddraw3SurfaceShadow;
         HRESULT hr = ddrawSurfaceShadow->QueryInterface(__uuidof(IDirectDrawSurface3),
                                                         reinterpret_cast<void**>(&ddraw3SurfaceShadow));
         if (unlikely(FAILED(hr))) {
           Logger::warn("DDraw3Surface: Failed to create shadow surface");
         } else {
-          m_shadowSurf = new DDraw3Surface(nullptr, std::move(ddraw3SurfaceShadow),
+          m_shadowSurf = new DDraw3Surface(parentShadowSurface->GetCommonSurface(),
+                                           std::move(ddraw3SurfaceShadow),
                                            m_parent, nullptr);
         }
       } else {
