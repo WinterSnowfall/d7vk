@@ -73,6 +73,9 @@ namespace dxvk {
     /// Blits back to the proxied flippable surface and back again for presentation
     bool forceLegacyPresent;
 
+    /// Creates shadow surfaces in system memory, which usually speeds up locking but might cause issues
+    bool systemMemoryShadow;
+
     /// Explicitly flip the RT swapchain, even if the primary surface is not part of it
     bool forceRTFlip;
 
