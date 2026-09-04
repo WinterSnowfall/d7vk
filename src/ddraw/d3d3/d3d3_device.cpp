@@ -502,8 +502,10 @@ namespace dxvk {
 
     uint8_t* ptr = buf + executeData->dwInstructionOffset;
 
+    bool processInstruction = true;
+
     // We can't rely on executeData->dwInstructionLength being correct.
-    while (true) {
+    while (processInstruction) {
       D3DINSTRUCTION* instruction = reinterpret_cast<D3DINSTRUCTION*>(ptr);
       ptr += sizeof(D3DINSTRUCTION);
       uint8_t* operation = ptr;
@@ -615,6 +617,9 @@ namespace dxvk {
 
             switch (op) {
               case D3DPROCESSVERTICES_COPY: {
+                // Dark Vengeance doesn't provide a dwVertexCount, so set one if needed
+                if (unlikely(!executeData->dwVertexCount))
+                  executeData->dwVertexCount = pv.dwCount;
                 memcpy(&hVertexBuffer[pv.wDest], &vertexBuffer[pv.wStart], sizeof(D3DTLVERTEX) * pv.dwCount);
                 break;
               }
@@ -738,10 +743,11 @@ namespace dxvk {
           ptr += instruction->bSize * instruction->wCount;
           break;
         }
-        default:
+        default: {
           Logger::err(str::format("D3D3Device::Execute: Unknown opcode encountered: ", static_cast<uint32_t>(instruction->bOpcode)));
-          ptr += instruction->bSize * instruction->wCount;
+          processInstruction = false;
           break;
+        }
       }
     }
 
