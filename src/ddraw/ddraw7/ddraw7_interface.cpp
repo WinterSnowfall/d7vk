@@ -352,20 +352,27 @@ namespace dxvk {
 
     hr = DDENUMRET_OK;
 
-    auto surfaceIt = attachedSurfaces.begin();
-    while (surfaceIt != attachedSurfaces.end() && hr == DDENUMRET_OK) {
-      Com<IDirectDrawSurface7> surface7 = surfaceIt->surface7;
+    for (auto& attachedSurface : attachedSurfaces) {
+      if (likely(hr == DDENUMRET_OK)) {
+        Com<IDirectDrawSurface7> surface7 = attachedSurface.surface7;
+        Com<DDraw7Surface> ddraw7Surface;
+        try {
+          ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7), this, nullptr, false);
 
-      Com<DDraw7Surface> ddraw7Surface;
-      try {
-        ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7), this, nullptr, false);
-      } catch (const DxvkError& e) {
-        Logger::err(e.message());
-        return DDERR_GENERIC;
+          hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &attachedSurface.desc2, lpContext);
+        } catch (const DxvkError& e) {
+          Logger::warn("DDraw7Interface::EnumSurfaces: Failed to create wrapped surface");
+          Logger::warn(e.message());
+        }
+      } else if (likely(attachedSurface.surface7 != nullptr)) {
+        // "If the DDENUMSURFACES_CANBECREATED flag is set, this method attempts to
+        //  temporarily create a surface that meets the search criterion."
+        // "When using the DDENUMSURFACES_DOESEXIST flag, an enumerated
+        //  surface's reference count is incremented."
+        // Docs suggest the surface refcounts are increased in both cases,
+        // so handle this, should the application send DDENUMRET_CANCEL.
+        attachedSurface.surface7->Release();
       }
-      hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &surfaceIt->desc2, lpContext);
-
-      ++surfaceIt;
     }
 
     return DD_OK;
