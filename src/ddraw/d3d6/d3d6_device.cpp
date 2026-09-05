@@ -508,7 +508,7 @@ namespace dxvk {
 
     DDraw4Surface* rt6 = static_cast<DDraw4Surface*>(surface);
 
-    HRESULT hr = rt6->GetCommonSurface()->ValidateRTUsage(m_commonD3DDevice->IsHALOrTNLHALDevice(), false);
+    HRESULT hr = rt6->GetCommonSurface()->ValidateRTUsage(m_commonD3DDevice->IsHALOrTNLHALDevice(), false, false);
     if (unlikely(FAILED(hr)))
       return hr;
 
