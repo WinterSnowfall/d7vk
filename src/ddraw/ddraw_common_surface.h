@@ -430,9 +430,11 @@ namespace dxvk {
     }
 
     // D3D6 and earlier RT usage validations
-    HRESULT ValidateRTUsage(bool isHALDevice, bool isDeviceCreation) const {
-      // Render targets require the DDSCAPS_3DDEVICE flag
-      if (unlikely(!Is3DSurface())) {
+    HRESULT ValidateRTUsage(bool isHALDevice, bool isDeviceCreation, bool isLegacySurface) const {
+      // Render targets typically require the DDSCAPS_3DDEVICE flag,
+      // however it appears D3D3/D3D5 RTs are exempt from this validation,
+      // or rather the flag isn't strictly required on an IDirectDrawSurface object
+      if (unlikely(!isLegacySurface && !Is3DSurface())) {
         Logger::err("DDrawCommonSurface::ValidateRTUsage: Missing DDSCAPS_3DDEVICE");
         return DDERR_INVALIDCAPS;
       }
