@@ -383,9 +383,9 @@ namespace dxvk {
     // This is only relevant in the context of later swapchain resets.
     rt4->GetCommonSurface()->RefreshD3D9Device();
 
-    HRESULT hrRT = rt4->GetCommonSurface()->ValidateRTUsage(isHALDevice, true);
-    if (unlikely(FAILED(hrRT)))
-      return hrRT;
+    HRESULT hr = rt4->GetCommonSurface()->ValidateRTUsage(isHALDevice, true, false);
+    if (unlikely(FAILED(hr)))
+      return hr;
 
     DDSURFACEDESC2 desc;
     desc.dwSize = sizeof(DDSURFACEDESC2);
@@ -455,7 +455,7 @@ namespace dxvk {
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
     Com<d3d9::IDirect3DDevice9> device9;
-    HRESULT hr = m_commonD3DIntf->GetD3D9Interface()->CreateDevice(
+    hr = m_commonD3DIntf->GetD3D9Interface()->CreateDevice(
       D3DADAPTER_DEFAULT,
       d3d9::D3DDEVTYPE_HAL,
       hWnd,
