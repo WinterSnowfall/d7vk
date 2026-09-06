@@ -58,10 +58,11 @@ namespace dxvk {
       }
     }
 
+    DDraw7Interface* ddraw7Intf = m_commonIntf->GetDD7Interface();
     // Create an offscreen plain shadow surface in system memory, if needed
     if (unlikely(m_commonSurf->IsPrimarySurface() &&
                  m_commonIntf->GetOptions()->forceLegacyPresent &&
-                 m_parent != nullptr &&
+                 ddraw7Intf != nullptr &&
                 !m_commonSurf->SkipD3D9Operations())) {
       const DDSURFACEDESC2* surfaceDesc = m_commonSurf->GetDesc2();
 
@@ -79,12 +80,12 @@ namespace dxvk {
         shadowDesc.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 
       Com<IDirectDrawSurface7> ddraw7SurfaceShadow;
-      HRESULT hr = m_parent->GetProxied()->CreateSurface(&shadowDesc, &ddraw7SurfaceShadow, NULL);
+      HRESULT hr = ddraw7Intf->GetProxied()->CreateSurface(&shadowDesc, &ddraw7SurfaceShadow, NULL);
       if (unlikely(FAILED(hr))) {
         Logger::warn("DDraw7Surface: Failed to create shadow surface");
       } else {
         m_shadowSurf = new DDraw7Surface(nullptr, std::move(ddraw7SurfaceShadow),
-                                         m_parent, nullptr, false);
+                                         ddraw7Intf, nullptr, false);
       }
     }
 
@@ -129,7 +130,7 @@ namespace dxvk {
       m_depthStencil->SetParentSurface(nullptr);
 
     // Release all public references on all attached surfaces
-    for (auto & attachedSurface : m_attachedSurfaces) {
+    for (auto& attachedSurface : m_attachedSurfaces) {
       attachedSurface.second->SetParentSurface(nullptr);
       uint32_t attachedRef;
       do {
@@ -482,7 +483,8 @@ namespace dxvk {
           if (unlikely(m_depthStencil != nullptr && surface7.ptr() == m_depthStencil->GetProxied())) {
             hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->desc2, lpContext);
           } else {
-            Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7), m_parent, this, false);
+            Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7),
+                                                                 m_commonIntf->GetDD7Interface(), this, false);
             m_attachedSurfaces.emplace(std::piecewise_construct,
                                        std::forward_as_tuple(ddraw7Surface->GetProxied()),
                                        std::forward_as_tuple(ddraw7Surface.ref()));
@@ -626,7 +628,8 @@ namespace dxvk {
         if (unlikely(m_depthStencil != nullptr && surface.ptr() == m_depthStencil->GetProxied())) {
           *lplpDDAttachedSurface = m_depthStencil.ref();
         } else {
-          Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface), m_parent, this, false);
+          Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface),
+                                                               m_commonIntf->GetDD7Interface(), this, false);
           m_attachedSurfaces.emplace(std::piecewise_construct,
                                      std::forward_as_tuple(ddraw7Surface->GetProxied()),
                                      std::forward_as_tuple(ddraw7Surface.ref()));
@@ -980,12 +983,12 @@ namespace dxvk {
 
     InitReturnPtr(lplpDD);
 
-    if (unlikely(m_parent == nullptr)) {
+    if (unlikely(m_commonIntf->GetDD7Interface() == nullptr)) {
       Logger::err("DDraw7Surface::GetDDInterface: Found no valid parent interface");
       return DDERR_NOTFOUND;
     }
 
-    *lplpDD = ref(m_parent);
+    *lplpDD = ref(m_commonIntf->GetDD7Interface());
 
     return DD_OK;
   }
@@ -1222,7 +1225,8 @@ namespace dxvk {
 
     Com<IDirectDrawSurface7> faceProxied = surf;
     try {
-      face7 = new DDraw7Surface(nullptr, std::move(faceProxied), m_parent, this, false);
+      face7 = new DDraw7Surface(nullptr, std::move(faceProxied),
+                                m_commonIntf->GetDD7Interface(), this, false);
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       Logger::err("InitializeAndAttachCubeFace: Failed to create wrapped cube face surface");

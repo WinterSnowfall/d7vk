@@ -140,17 +140,22 @@ namespace dxvk {
 
     DDraw2Surface* GetAttachedDepthStencil() {
       // Fast path, since in most cases we already store the required surface
-      if (likely(m_depthStencil.ptr() != nullptr))
+      if (likely(m_depthStencil != nullptr))
         return m_depthStencil.ptr();
 
       DDSCAPS caps;
       caps.dwCaps = DDSCAPS_ZBUFFER;
-      IDirectDrawSurface2* surface = nullptr;
-      HRESULT hr = GetAttachedSurface(&caps, &surface);
+      Com<IDirectDrawSurface2> depthStencil;
+      HRESULT hr = m_proxy->GetAttachedSurface(&caps, &depthStencil);
       if (unlikely(FAILED(hr)))
         return nullptr;
 
-      m_depthStencil = reinterpret_cast<DDraw2Surface*>(surface);
+      try {
+        m_depthStencil = new DDraw2Surface(nullptr, std::move(depthStencil), m_parent, this);
+      } catch (const DxvkError& e) {
+        Logger::err("DDraw2Surface::GetAttachedDepthStencil: Failed to create wrapped surface");
+        Logger::err(e.message());
+      }
 
       return m_depthStencil.ptr();
     }

@@ -109,7 +109,7 @@ namespace dxvk {
       m_depthStencil->SetParentSurface(nullptr);
 
     // Release all public references on all attached surfaces
-    for (auto & attachedSurface : m_attachedSurfaces) {
+    for (auto& attachedSurface : m_attachedSurfaces) {
       attachedSurface.second->SetParentSurface(nullptr);
       uint32_t attachedRef;
       do {
