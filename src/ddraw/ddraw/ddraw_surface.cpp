@@ -61,10 +61,11 @@ namespace dxvk {
       }
     }
 
+    DDrawInterface* ddrawIntf = m_commonIntf->GetDDInterface();
     // Create an offscreen plain shadow surface in system memory, if needed
     if (unlikely(m_commonSurf->IsPrimarySurface() &&
                  m_commonIntf->GetOptions()->forceLegacyPresent &&
-                 m_parent != nullptr &&
+                 ddrawIntf != nullptr &&
                 !m_commonSurf->SkipD3D9Operations())) {
       const DDSURFACEDESC* surfaceDesc = m_commonSurf->GetDesc();
 
@@ -82,12 +83,12 @@ namespace dxvk {
         shadowDesc.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 
       Com<IDirectDrawSurface> ddrawSurfaceShadow;
-      HRESULT hr = m_parent->GetProxied()->CreateSurface(&shadowDesc, &ddrawSurfaceShadow, NULL);
+      HRESULT hr = ddrawIntf->GetProxied()->CreateSurface(&shadowDesc, &ddrawSurfaceShadow, NULL);
       if (unlikely(FAILED(hr))) {
         Logger::warn("DDrawSurface: Failed to create shadow surface");
       } else {
         m_shadowSurf = new DDrawSurface(nullptr, std::move(ddrawSurfaceShadow),
-                                        m_parent, nullptr, false);
+                                        ddrawIntf, nullptr, false);
       }
     }
 
@@ -129,7 +130,7 @@ namespace dxvk {
       m_depthStencil->SetParentSurface(nullptr);
 
     // Release all public references on all attached surfaces
-    for (auto & attachedSurface : m_attachedSurfaces) {
+    for (auto& attachedSurface : m_attachedSurfaces) {
       attachedSurface.second->SetParentSurface(nullptr);
       uint32_t attachedRef;
       do {
@@ -616,7 +617,8 @@ namespace dxvk {
           if (unlikely(m_depthStencil != nullptr && surface.ptr() == m_depthStencil->GetProxied())) {
             hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->desc, lpContext);
           } else {
-            Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), m_parent, this, false);
+            Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface),
+                                                              m_commonIntf->GetDDInterface(), this, false);
             m_attachedSurfaces.emplace(std::piecewise_construct,
                                        std::forward_as_tuple(ddrawSurface->GetProxied()),
                                        std::forward_as_tuple(ddrawSurface.ref()));
@@ -725,7 +727,8 @@ namespace dxvk {
         if (unlikely(m_depthStencil != nullptr && surface.ptr() == m_depthStencil->GetProxied())) {
           *lplpDDAttachedSurface = m_depthStencil.ref();
         } else {
-          Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface), m_parent, this, false);
+          Com<DDrawSurface> ddrawSurface = new DDrawSurface(nullptr, std::move(surface),
+                                                            m_commonIntf->GetDDInterface(), this, false);
           m_attachedSurfaces.emplace(std::piecewise_construct,
                                      std::forward_as_tuple(ddrawSurface->GetProxied()),
                                      std::forward_as_tuple(ddrawSurface.ref()));
