@@ -6,10 +6,14 @@
 #include "../ddraw_common_interface.h"
 #include "../d3d_common_buffer.h"
 
+#include "../../util/sync/sync_scoped.h"
+
 #include "d3d6_interface.h"
 #include "d3d6_device.h"
 
 namespace dxvk {
+
+  using D3DDeviceLock = sync::ScopedDeviceGuard;
 
   class D3D6VertexBuffer final : public DDrawChildObject<D3D6Interface, IDirect3DVertexBuffer> {
 
