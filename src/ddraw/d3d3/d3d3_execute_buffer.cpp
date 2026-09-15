@@ -1,7 +1,5 @@
 #include "d3d3_execute_buffer.h"
 
-#include "../d3d_multithread.h"
-
 namespace dxvk {
 
   D3D3ExecuteBuffer::D3D3ExecuteBuffer(D3D3Device* pParent, D3DEXECUTEBUFFERDESC* pDesc)

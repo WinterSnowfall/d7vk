@@ -3,8 +3,6 @@
 #include "d3d7_device.h"
 #include "d3d7_buffer.h"
 
-#include "../d3d_multithread.h"
-
 #include "../ddraw7/ddraw7_interface.h"
 #include "../ddraw7/ddraw7_surface.h"
 
