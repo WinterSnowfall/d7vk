@@ -3,11 +3,15 @@
 #include "../ddraw_include.h"
 #include "../ddraw_child_object.h"
 
+#include "../../util/sync/sync_scoped.h"
+
 #include "d3d3_device.h"
 
 #include <vector>
 
 namespace dxvk {
+
+  using D3DDeviceLock = sync::ScopedDeviceGuard;
 
   class D3D3ExecuteBuffer final : public DDrawChildObject<D3D3Device, IDirect3DExecuteBuffer> {
 
