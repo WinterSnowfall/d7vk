@@ -25,7 +25,6 @@ ddraw_src = [
   'd3d_common_texture.cpp',
   'd3d_common_viewport.cpp',
   'd3d_light.cpp',
-  'd3d_multithread.cpp',
   'd3d3/d3d3_device.cpp',
   'd3d3/d3d3_execute_buffer.cpp',
   'd3d3/d3d3_interface.cpp',
