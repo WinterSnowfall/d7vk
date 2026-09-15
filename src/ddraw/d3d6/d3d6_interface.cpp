@@ -6,7 +6,6 @@
 #include "d3d6_viewport.h"
 
 #include "../d3d_light.h"
-#include "../d3d_multithread.h"
 
 #include "../d3d3/d3d3_interface.h"
 #include "../d3d5/d3d5_interface.h"
