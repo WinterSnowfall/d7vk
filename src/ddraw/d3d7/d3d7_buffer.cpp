@@ -5,7 +5,6 @@
 #include "../ddraw_util.h"
 
 #include "../d3d_process_vertices.h"
-#include "../d3d_multithread.h"
 
 #include <vector>
 

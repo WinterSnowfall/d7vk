@@ -9,9 +9,9 @@
 #include "../d3d_common_device.h"
 #include "../d3d_light.h"
 
-#include "../d3d_multithread.h"
-
 #include "../../d3d9/d3d9_bridge.h"
+
+#include "../../util/sync/sync_scoped.h"
 
 #include "d3d7_interface.h"
 
@@ -24,6 +24,9 @@ namespace dxvk {
   class DDrawCommonInterface;
   class DDraw7Surface;
   class D3D7StateBlock;
+
+  using D3DMultithread = sync::ScopedDeviceLock;
+  using D3DDeviceLock  = sync::ScopedDeviceGuard;
 
   /**
   * \brief D3D7 device implementation
@@ -150,7 +153,7 @@ namespace dxvk {
     }
 
     D3DDeviceLock LockDevice() {
-      return m_multithread.AcquireLock();
+      return m_multithread.acquire();
     }
 
     DDraw7Surface* GetRenderTarget() const {
