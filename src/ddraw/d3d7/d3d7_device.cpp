@@ -1045,16 +1045,18 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     d3d9::D3DVIEWPORT9 viewport9;
-    if (SUCCEEDED(m_commonD3DDevice->GetD3D9Device()->GetViewport(&viewport9))) {
-      clip_status->dwFlags = D3DCLIPSTATUS_EXTENTS2;
-      clip_status->dwStatus = 0;
-      clip_status->minx = viewport9.X;
-      clip_status->maxx = viewport9.X + viewport9.Width;
-      clip_status->miny = viewport9.Y;
-      clip_status->maxy = viewport9.Y + viewport9.Height;
-      clip_status->minz = 0;
-      clip_status->maxz = 0;
-    }
+    HRESULT hr = m_commonD3DDevice->GetD3D9Device()->GetViewport(&viewport9);
+    if (unlikely(FAILED(hr)))
+      return DDERR_INVALIDPARAMS;
+
+    clip_status->dwFlags = D3DCLIPSTATUS_EXTENTS2;
+    clip_status->dwStatus = 0u;
+    clip_status->minx = viewport9.X;
+    clip_status->maxx = viewport9.X + viewport9.Width;
+    clip_status->miny = viewport9.Y;
+    clip_status->maxy = viewport9.Y + viewport9.Height;
+    clip_status->minz = 0.0f;
+    clip_status->maxz = 0.0f;
 
     return D3D_OK;
   }
@@ -1075,7 +1077,7 @@ namespace dxvk {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
     // Transform strided vertex data to a standard vertex buffer stream
-    PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
+    PackedVertexBuffer pvb = TransformStridedToUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
 
     device9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = device9->DrawPrimitiveUP(
@@ -1110,7 +1112,7 @@ namespace dxvk {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
     // Transform strided vertex data to a standard vertex buffer stream
-    PackedVertexBuffer pvb = TransformStridedtoUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
+    PackedVertexBuffer pvb = TransformStridedToUP(dwVertexTypeDesc, lpVertexArray, dwVertexCount);
 
     device9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = device9->DrawIndexedPrimitiveUP(
@@ -1463,31 +1465,35 @@ namespace dxvk {
 
   // This is a precursor of our ol' D3D8 pal CopyRects
   HRESULT STDMETHODCALLTYPE D3D7Device::Load(IDirectDrawSurface7 *dst_surface, POINT *dst_point, IDirectDrawSurface7 *src_surface, RECT *src_rect, DWORD flags) {
-    if (dst_surface == nullptr || src_surface == nullptr)
+    if (unlikely(dst_surface == nullptr || src_surface == nullptr))
       return DDERR_INVALIDPARAMS;
-
-    DDraw7Surface* ddraw7SurfaceSrc = nullptr;
-    DDraw7Surface* ddraw7SurfaceDst = nullptr;
 
     if (unlikely(!DDrawCommonInterface::IsWrappedSurface(src_surface))) {
       Logger::err("D3D7Device::Load: Unwrapped surface source");
       return DDERR_UNSUPPORTED;
     }
 
-    const RECT* sourceFullSurfaceRect = nullptr;
-    ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
-    ddraw7SurfaceSrc->DownloadSurfaceData();
-    sourceFullSurfaceRect = ddraw7SurfaceSrc->GetCommonSurface()->GetFullSurfaceRect();
-
     if (unlikely(!DDrawCommonInterface::IsWrappedSurface(dst_surface))) {
       Logger::err("D3D7Device::Load: Unwrapped surface destination");
       return DDERR_UNSUPPORTED;
     }
 
-    ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
+    DDraw7Surface* ddraw7SurfaceSrc = static_cast<DDraw7Surface*>(src_surface);
+    DDrawCommonSurface* srcCommonSurf = ddraw7SurfaceSrc->GetCommonSurface();
+
+    DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
+    DDrawCommonSurface* dstCommonSurf = ddraw7SurfaceDst->GetCommonSurface();
+
+    // "The source and destination surface pointers must point to top-level surfaces."
+    if (unlikely(srcCommonSurf->IsMipSublevel() || dstCommonSurf->IsMipSublevel()))
+      return DDERR_INVALIDPARAMS;
+
+    ddraw7SurfaceSrc->DownloadSurfaceData();
+
+    const RECT* sourceFullSurfaceRect = srcCommonSurf->GetFullSurfaceRect();
     if ((dst_point == nullptr || (dst_point->x == 0 && dst_point->y == 0)) &&
-        ddraw7SurfaceDst->GetCommonSurface()->IsFullSurfaceLock(src_rect, sourceFullSurfaceRect)) {
-      ddraw7SurfaceDst->GetCommonSurface()->UnDirtyD3D9Surface();
+        dstCommonSurf->IsFullSurfaceLock(src_rect, sourceFullSurfaceRect)) {
+      dstCommonSurf->UnDirtyD3D9Surface();
     } else {
       ddraw7SurfaceDst->DownloadSurfaceData();
     }
@@ -1497,7 +1503,6 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    DDrawCommonSurface* dstCommonSurf = ddraw7SurfaceDst->GetCommonSurface();
     hr = dstCommonSurf->RefreshSurfaceDescripton(true);
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::Load: Failed to refresh surface description");
