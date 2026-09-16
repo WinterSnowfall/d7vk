@@ -115,7 +115,6 @@ namespace dxvk {
     if (unlikely(!(dwVertexOp & D3DVOP_TRANSFORM)))
       return DDERR_INVALIDPARAMS;
 
-    D3D6Device* device6 = static_cast<D3D6Device*>(lpD3DDevice);
     D3D6VertexBuffer* srcBuffer6 = static_cast<D3D6VertexBuffer*>(lpSrcBuffer);
 
     D3DCommonBuffer* srcCommonBuffer = srcBuffer6->GetCommonBuffer();
@@ -134,6 +133,8 @@ namespace dxvk {
       if (unlikely(FAILED(hrInit)))
         return hrInit;
     }
+
+    D3D6Device* device6 = static_cast<D3D6Device*>(lpD3DDevice);
 
     if (unlikely(m_commonBuffer->GetCommonD3DDevice()->GetD3D6Device() != device6)) {
       Logger::err("D3D6VertexBuffer::ProcessVertices: Invalid device");

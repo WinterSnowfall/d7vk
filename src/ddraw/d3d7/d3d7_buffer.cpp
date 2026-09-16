@@ -117,7 +117,6 @@ namespace dxvk {
     if (unlikely(!(dwVertexOp & D3DVOP_TRANSFORM)))
       return DDERR_INVALIDPARAMS;
 
-    D3D7Device* device7 = static_cast<D3D7Device*>(lpD3DDevice);
     D3D7VertexBuffer* srcBuffer7 = static_cast<D3D7VertexBuffer*>(lpSrcBuffer);
 
     D3DCommonBuffer* srcCommonBuffer = srcBuffer7->GetCommonBuffer();
@@ -136,6 +135,8 @@ namespace dxvk {
       if (unlikely(FAILED(hrInit)))
         return hrInit;
     }
+
+    D3D7Device* device7 = static_cast<D3D7Device*>(lpD3DDevice);
 
     if (unlikely(m_commonBuffer->GetCommonD3DDevice()->GetD3D7Device() != device7)) {
       Logger::err("D3D7VertexBuffer::ProcessVertices: Invalid device");
@@ -219,15 +220,14 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7VertexBuffer::ProcessVerticesStrided(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags) {
-    Logger::warn("!!! D3D7VertexBuffer::ProcessVerticesStrided: Stub");
-
     if (unlikely(!dwCount))
       return D3D_OK;
 
     if (unlikely(lpD3DDevice == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D7Device* device7 = static_cast<D3D7Device*>(lpD3DDevice);
+    if (unlikely(!(dwVertexOp & D3DVOP_TRANSFORM)))
+      return DDERR_INVALIDPARAMS;
 
     // Check and initialize the destination buffer (this buffer)
     m_commonBuffer->RefreshD3DDevice();
@@ -237,6 +237,8 @@ namespace dxvk {
         return hrInit;
     }
 
+    D3D7Device* device7 = static_cast<D3D7Device*>(lpD3DDevice);
+
     if (unlikely(m_commonBuffer->GetCommonD3DDevice()->GetD3D7Device() != device7)) {
       Logger::err("D3D7VertexBuffer::ProcessVerticesStrided: Invalid device");
       return DDERR_GENERIC;
@@ -244,9 +246,57 @@ namespace dxvk {
 
     D3DDeviceLock lock = device7->LockDevice();
 
-    //d3d9::IDirect3DDevice9* device9 = device7->GetCommonD3DDevice()->GetD3D9Device();
+    d3d9::IDirect3DVertexBuffer9* dstBuffer9 = m_commonBuffer->GetD3D9VertexBuffer();
+    d3d9::IDirect3DDevice9* device9 = device7->GetCommonD3DDevice()->GetD3D9Device();
 
-    // TODO: lpVertexArray needs to be transformed into a non-strided vertex buffer stream
+    // TODO: Using legacy FVF may not be correct here, however, since we have
+    // no known use case to test this with, it will have to do for the moment
+    const DWORD srcFVF = dwVertexOp & D3DVOP_LIGHT ? D3DFVF_VERTEX : D3DFVF_LVERTEX;
+    // Transform strided vertex data to a standard vertex buffer stream
+    PackedVertexBuffer pvb = TransformStridedToUP(srcFVF, lpVertexArray, dwCount);
+
+    const D3DOptions* d3dOptions = m_commonBuffer->GetCommonInterface()->GetOptions();
+
+    // Ignore d3dOptions->cpuProcessVertices here, as we can't
+    // leverage GPU-side processing without a temporary vertex buffer
+    uint8_t *outData = nullptr;
+
+    const DWORD dstStride = m_commonBuffer->GetStride();
+    HRESULT hr = dstBuffer9->Lock(dwDestIndex * dstStride, dwCount * dstStride, reinterpret_cast<void**>(&outData), 0);
+    if (unlikely(FAILED(hr))) {
+      Logger::err("D3D7VertexBuffer::ProcessVertices: Failed to lock destination buffer");
+      return D3DERR_VERTEXBUFFERLOCKED;
+    }
+
+    const bool doLighting = dwVertexOp & D3DVOP_LIGHT;
+
+    ProcessVerticesData pvData;
+    pvData.inData = pvb.vertexData.data();
+    pvData.inFVF = srcFVF;
+    pvData.inStride = pvb.stride;
+    pvData.outData = outData;
+    pvData.outFVF = m_commonBuffer->GetFVF();
+    pvData.outStride = dstStride;
+    pvData.vertexCount = dwCount;
+    pvData.correction = nullptr;
+    pvData.dsStatus = nullptr;
+    pvData.doLighting = doLighting;
+    pvData.doClipping = dwVertexOp & D3DVOP_CLIP;
+    pvData.doNotCopyData = dwFlags & D3DPV_DONOTCOPYDATA;
+    pvData.doExtents = true;
+    pvData.isLegacy = false;
+
+    std::vector<d3d9::D3DLIGHT9> lights9;
+    if (doLighting) {
+      device7->GetD3D9ActiveLights(&lights9);
+      pvData.lights = &lights9;
+    } else {
+      pvData.lights = nullptr;
+    }
+
+    ProcessVerticesSW(device9, d3dOptions, &pvData);
+
+    dstBuffer9->Unlock();
 
     return D3D_OK;
   }

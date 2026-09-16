@@ -348,6 +348,10 @@ namespace dxvk {
           || m_desc.ddsCaps.dwCaps   & DDSCAPS_MIPMAP;
     }
 
+    bool IsMipSublevel() const {
+      return m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL;
+    }
+
     bool IsCubeMap() const {
       return m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP;
     }
