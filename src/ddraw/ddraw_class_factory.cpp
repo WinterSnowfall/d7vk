@@ -27,8 +27,10 @@ namespace dxvk {
     return m_createInstance(pUnkOuter, riid, ppvObject);
   }
 
+  // Allegedly used for cacheing/keeping queried objects in memory. Docs state:
+  // "Most clients do not need to call this method. It is provided only for those clients
+  //  that require special performance in creating multiple instances of their objects."
   HRESULT STDMETHODCALLTYPE DDrawClassFactory::LockServer(BOOL fLock) {
-    Logger::warn("!!! DDrawClassFactory::LockServer: Stub");
     return S_OK;
   }
 
