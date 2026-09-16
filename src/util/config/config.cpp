@@ -2004,6 +2004,10 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.emulateFrontBuffer",         "True" },
     }} },
+    /* Mortyr - Accelerated physics above 40 FPS  */
+    { R"(\\Mortyr\.exe$)", {{
+      { "d3d9.maxFrameRate",                  "40" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */

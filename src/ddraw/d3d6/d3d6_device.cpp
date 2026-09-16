@@ -1618,16 +1618,18 @@ namespace dxvk {
       return DDERR_INVALIDPARAMS;
 
     d3d9::D3DVIEWPORT9 viewport9;
-    if (SUCCEEDED(m_commonD3DDevice->GetD3D9Device()->GetViewport(&viewport9))) {
-      clip_status->dwFlags = D3DCLIPSTATUS_EXTENTS2;
-      clip_status->dwStatus = 0;
-      clip_status->minx = viewport9.X;
-      clip_status->maxx = viewport9.X + viewport9.Width;
-      clip_status->miny = viewport9.Y;
-      clip_status->maxy = viewport9.Y + viewport9.Height;
-      clip_status->minz = 0;
-      clip_status->maxz = 0;
-    }
+    HRESULT hr = m_commonD3DDevice->GetD3D9Device()->GetViewport(&viewport9);
+    if (unlikely(FAILED(hr)))
+      return DDERR_INVALIDPARAMS;
+
+    clip_status->dwFlags = D3DCLIPSTATUS_EXTENTS2;
+    clip_status->dwStatus = 0u;
+    clip_status->minx = viewport9.X;
+    clip_status->maxx = viewport9.X + viewport9.Width;
+    clip_status->miny = viewport9.Y;
+    clip_status->maxy = viewport9.Y + viewport9.Height;
+    clip_status->minz = 0.0f;
+    clip_status->maxz = 0.0f;
 
     return D3D_OK;
   }
@@ -1648,7 +1650,7 @@ namespace dxvk {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
     // Transform strided vertex data to a standard vertex buffer stream
-    PackedVertexBuffer pvb = TransformStridedtoUP(fvf, strided_data, vertex_count);
+    PackedVertexBuffer pvb = TransformStridedToUP(fvf, strided_data, vertex_count);
 
     const bool isTransformed = fvf & D3DFVF_XYZRHW;
     const bool useLighting = !(flags & D3DDP_DONOTLIGHT) &&
@@ -1698,7 +1700,7 @@ namespace dxvk {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
     // Transform strided vertex data to a standard vertex buffer stream
-    PackedVertexBuffer pvb = TransformStridedtoUP(fvf, strided_data, vertex_count);
+    PackedVertexBuffer pvb = TransformStridedToUP(fvf, strided_data, vertex_count);
 
     const bool isTransformed = fvf & D3DFVF_XYZRHW;
     const bool useLighting = !(flags & D3DDP_DONOTLIGHT) &&
