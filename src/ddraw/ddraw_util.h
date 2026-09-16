@@ -324,7 +324,7 @@ namespace dxvk {
     }
   }
 
-  inline PackedVertexBuffer TransformStridedtoUP(
+  inline PackedVertexBuffer TransformStridedToUP(
         DWORD dwFVF,
         LPD3DDRAWPRIMITIVESTRIDEDDATA lpVBStrided,
         DWORD dwNumVertices) {
