@@ -617,14 +617,22 @@ namespace dxvk {
 
             switch (op) {
               case D3DPROCESSVERTICES_COPY: {
+                UpdateExecuteBufferStatus(&executeData->dsStatus, false,
+                                          pv.dwFlags & D3DPROCESSVERTICES_UPDATEEXTENTS);
+
                 // Dark Vengeance doesn't provide a dwVertexCount, so set one if needed
                 if (unlikely(!executeData->dwVertexCount))
                   executeData->dwVertexCount = pv.dwCount;
+
                 memcpy(&hVertexBuffer[pv.wDest], &vertexBuffer[pv.wStart], sizeof(D3DTLVERTEX) * pv.dwCount);
                 break;
               }
               case D3DPROCESSVERTICES_TRANSFORM:
               case D3DPROCESSVERTICES_TRANSFORMLIGHT: {
+                const bool doClipping = (flags & D3DEXECUTE_CLIPPED) && !(flags & D3DEXECUTE_UNCLIPPED);
+                UpdateExecuteBufferStatus(&executeData->dsStatus, doClipping,
+                                          pv.dwFlags & D3DPROCESSVERTICES_UPDATEEXTENTS);
+
                 // "If the rendering device does not have a material assigned to it, the Direct3D lighting engine is disabled."
                 const bool doLighting = op == D3DPROCESSVERTICES_TRANSFORMLIGHT &&
                                         m_commonD3DDevice->GetCurrentMaterialHandle() != 0;
@@ -640,11 +648,8 @@ namespace dxvk {
                 pvData.outStride = sizeof(D3DTLVERTEX);
                 pvData.vertexCount = pv.dwCount;
                 pvData.correction = commonViewport->GetLegacyProjectionMatrix(0);
-                pvData.dsStatus = &executeData->dsStatus;
                 pvData.doLighting = doLighting;
-                pvData.doClipping = (flags & D3DEXECUTE_CLIPPED) && !(flags & D3DEXECUTE_UNCLIPPED);
                 pvData.doNotCopyData = pv.dwFlags & D3DPROCESSVERTICES_NOCOLOR;
-                pvData.doExtents = pv.dwFlags & D3DPROCESSVERTICES_UPDATEEXTENTS;
                 pvData.isLegacy = true;
 
                 std::vector<d3d9::D3DLIGHT9> lights9;
