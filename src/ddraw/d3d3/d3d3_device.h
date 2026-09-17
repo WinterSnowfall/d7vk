@@ -134,6 +134,23 @@ namespace dxvk {
         m_commonIntf->SetCommonD3DDevice(m_commonD3DDevice.ptr());
     }
 
+    inline void UpdateExecuteBufferStatus(D3DSTATUS* dsStatus, const bool doClipping, const bool doExtents) {
+      // We don't perform any clipping
+      if (doClipping && (dsStatus->dwFlags & D3DSETSTATUS_STATUS)) {
+        dsStatus->dwFlags &= ~D3DSETSTATUS_STATUS;
+        dsStatus->dwStatus = 0u;
+      }
+      if (doExtents) {
+        const d3d9::D3DVIEWPORT9* viewport9 = m_currentViewport->GetCommonViewport()->GetD3D9Viewport();
+
+        dsStatus->dwFlags |= D3DSETSTATUS_EXTENTS;
+        dsStatus->drExtent.x1 = viewport9->X;
+        dsStatus->drExtent.y1 = viewport9->Y;
+        dsStatus->drExtent.x2 = viewport9->X + viewport9->Width;
+        dsStatus->drExtent.y2 = viewport9->Y + viewport9->Height;
+      }
+    }
+
     Com<D3DCommonDevice>            m_commonD3DDevice;
 
     DDrawCommonInterface*           m_commonIntf       = nullptr;

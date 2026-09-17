@@ -14,8 +14,6 @@ namespace dxvk {
 
   struct ProcessVerticesData {
     bool doLighting;
-    bool doClipping;
-    bool doExtents;
     bool doNotCopyData;
     bool isLegacy;
     uint32_t vertexCount;
@@ -26,7 +24,6 @@ namespace dxvk {
     uint8_t* inData;
     uint8_t* outData;
     const D3DMATRIX* correction;
-    D3DSTATUS* dsStatus;
     std::vector<d3d9::D3DLIGHT9>* lights;
   };
 
@@ -910,22 +907,6 @@ namespace dxvk {
     const float viewport9HalfWidth  = static_cast<float>(viewport9.Width)  * 0.5f;
     const float viewport9HalfHeight = static_cast<float>(viewport9.Height) * 0.5f;
     const float viewport9ZDelta     = viewport9.MaxZ - viewport9.MinZ;
-    const DWORD viewport9Right      = viewport9.X + viewport9.Width;
-    const DWORD viewport9Bottom     = viewport9.Y + viewport9.Height;
-
-    if (pvData->doClipping) {
-      if (pvData->dsStatus != nullptr && (pvData->dsStatus->dwFlags & D3DSETSTATUS_STATUS)) {
-        pvData->dsStatus->dwFlags = 0;
-        pvData->dsStatus->dwStatus = 0;
-        if (pvData->doExtents) {
-          pvData->dsStatus->dwFlags |= D3DSETSTATUS_EXTENTS;
-          pvData->dsStatus->drExtent.x1 = viewport9.X;
-          pvData->dsStatus->drExtent.y1 = viewport9.Y;
-          pvData->dsStatus->drExtent.x2 = viewport9Right;
-          pvData->dsStatus->drExtent.y2 = viewport9Bottom;
-        }
-      }
-    }
 
     const bool needsCorrection = pvData->isLegacy && pvData->correction != nullptr;
     const D3DMATRIX wv         = D3DMatrixMultiply4x4(world9, view9);

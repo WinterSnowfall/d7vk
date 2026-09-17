@@ -2106,6 +2106,11 @@ namespace dxvk {
     /* D3D3 GAMES                                 */
     /**********************************************/
 
+    /* Forsaken                                   *
+     * Fixes missing loading screen backgrounds   */
+    { R"(\\ForsakenHW\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+    }} },
     /* Resident Evil                              *
      * Fixes black lines in the background image  */
     { R"(\\ResidentEvil\.exe$)", {{
