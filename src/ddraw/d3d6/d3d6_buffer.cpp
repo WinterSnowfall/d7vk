@@ -187,11 +187,8 @@ namespace dxvk {
       pvData.outStride = dstStride;
       pvData.vertexCount = dwCount;
       pvData.correction = commonViewport->GetLegacyProjectionMatrix(0);
-      pvData.dsStatus = nullptr;
       pvData.doLighting = doLighting;
-      pvData.doClipping = dwVertexOp & D3DVOP_CLIP;
       pvData.doNotCopyData = dwFlags & D3DPV_DONOTCOPYDATA;
-      pvData.doExtents = true;
       pvData.isLegacy = true;
 
       std::vector<d3d9::D3DLIGHT9> lights9;
