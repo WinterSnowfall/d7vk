@@ -182,11 +182,8 @@ namespace dxvk {
       pvData.outStride = dstStride;
       pvData.vertexCount = dwCount;
       pvData.correction = nullptr;
-      pvData.dsStatus = nullptr;
       pvData.doLighting = doLighting;
-      pvData.doClipping = dwVertexOp & D3DVOP_CLIP;
       pvData.doNotCopyData = dwFlags & D3DPV_DONOTCOPYDATA;
-      pvData.doExtents = true;
       pvData.isLegacy = false;
 
       std::vector<d3d9::D3DLIGHT9> lights9;
@@ -279,11 +276,8 @@ namespace dxvk {
     pvData.outStride = dstStride;
     pvData.vertexCount = dwCount;
     pvData.correction = nullptr;
-    pvData.dsStatus = nullptr;
     pvData.doLighting = doLighting;
-    pvData.doClipping = dwVertexOp & D3DVOP_CLIP;
     pvData.doNotCopyData = dwFlags & D3DPV_DONOTCOPYDATA;
-    pvData.doExtents = true;
     pvData.isLegacy = false;
 
     std::vector<d3d9::D3DLIGHT9> lights9;
