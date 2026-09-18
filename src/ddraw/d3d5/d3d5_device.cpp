@@ -1007,15 +1007,16 @@ namespace dxvk {
 
       // Replacement for later implemented SetTexture calls
       case D3DRENDERSTATE_TEXTUREHANDLE: {
-        DDrawSurface* surface = nullptr;
+        D3DCommonTexture* commonTex = nullptr;
 
         if (likely(dwRenderState != 0)) {
-          surface = DDrawCommonInterface::GetSurfaceFromTextureHandle(dwRenderState);
+          commonTex = DDrawCommonInterface::GetCommonTextureFromTextureHandle(dwRenderState);
+          DDrawSurface* surface = commonTex != nullptr ? commonTex->GetDDSurface() : nullptr;
           if (unlikely(surface == nullptr))
             return DDERR_INVALIDPARAMS;
         }
 
-        HRESULT hr = SetTextureInternal(surface, dwRenderState);
+        HRESULT hr = SetTextureInternal(commonTex, dwRenderState);
         if (unlikely(FAILED(hr)))
           return hr;
 
@@ -1254,13 +1255,13 @@ namespace dxvk {
         m_commonD3DDevice->SetColorKeyEnable(dwRenderState);
 
         const D3DTEXTUREHANDLE currentTextureHandle = m_commonD3DDevice->GetCurrentTextureHandle();
-        DDrawSurface* surface = currentTextureHandle != 0 ?
-                                DDrawCommonInterface::GetSurfaceFromTextureHandle(currentTextureHandle) : nullptr;
-        const bool validColorKey = surface != nullptr ? surface->GetCommonSurface()->HasValidColorKey() : false;
+        D3DCommonTexture* commonTex = currentTextureHandle != 0 ?
+                                      DDrawCommonInterface::GetCommonTextureFromTextureHandle(currentTextureHandle) : nullptr;
+        const bool validColorKey = commonTex != nullptr ? commonTex->GetCommonSurface()->HasValidColorKey() : false;
         m_bridge->SetColorKeyState(0, dwRenderState && validColorKey);
 
         if (dwRenderState && validColorKey) {
-          const DDCOLORKEY* normalizedColorKey = surface->GetCommonSurface()->GetColorKeyNormalized();
+          const DDCOLORKEY* normalizedColorKey = commonTex->GetCommonSurface()->GetColorKeyNormalized();
           m_bridge->SetColorKey(0, normalizedColorKey->dwColorSpaceLowValue,
                                 normalizedColorKey->dwColorSpaceHighValue);
         }
@@ -1628,34 +1629,32 @@ namespace dxvk {
     // Bound texture(s)
     const D3DTEXTUREHANDLE texHandle = m_commonD3DDevice->GetCurrentTextureHandle();
     if (likely(texHandle != 0)) {
-      DDrawSurface* tex = DDrawCommonInterface::GetSurfaceFromTextureHandle(texHandle);
+      D3DCommonTexture* commonTex = DDrawCommonInterface::GetCommonTextureFromTextureHandle(texHandle);
+      DDrawSurface* tex = commonTex != nullptr ? commonTex->GetDDSurface() : nullptr;
       if (likely(tex != nullptr))
         tex->InitializeOrUploadD3D9();
     }
   }
 
-  inline HRESULT D3D5Device::SetTextureInternal(DDrawSurface* surface, DWORD textureHandle) {
-    HRESULT hr;
-
+  inline HRESULT D3D5Device::SetTextureInternal(D3DCommonTexture* commonTex, DWORD textureHandle) {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
     // Unbinding texture stages
-    if (surface == nullptr) {
-      hr = device9->SetTexture(0, nullptr);
+    if (commonTex == nullptr) {
+      HRESULT hr = device9->SetTexture(0, nullptr);
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D5Device::SetTextureInternal: Failed to unbind D3D9 texture");
         return hr;
       }
 
-      if (likely(m_commonD3DDevice->GetCurrentTextureHandle() != 0)) {
-        m_texture = nullptr;
-        m_commonD3DDevice->SetCurrentTextureHandle(0);
-        m_bridge->SetColorKeyState(0, false);
-      }
+      m_texture = nullptr;
+      m_commonD3DDevice->SetCurrentTextureHandle(0);
+      m_bridge->SetColorKeyState(0, false);
 
       return D3D_OK;
     }
 
+    DDrawSurface* surface = commonTex->GetDDSurface();
     DDrawCommonSurface* commonSurface = surface->GetCommonSurface();
 
     // If textures have been used on a different device, they
@@ -1663,7 +1662,7 @@ namespace dxvk {
     if (unlikely(commonSurface->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
       commonSurface->DirtyDDrawSurface();
 
-    hr = surface->InitializeOrUploadD3D9();
+    HRESULT hr = surface->InitializeOrUploadD3D9();
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D5Device::SetTextureInternal: Failed to initialize/upload D3D9 texture");
       return hr;

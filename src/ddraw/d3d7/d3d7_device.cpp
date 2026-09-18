@@ -1292,20 +1292,16 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    HRESULT hr;
-
     // Unbinding texture stages
     if (surface == nullptr) {
-      hr = device9->SetTexture(stage, nullptr);
+      HRESULT hr = device9->SetTexture(stage, nullptr);
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D7Device::SetTexture: Failed to unbind D3D9 texture");
         return hr;
       }
 
-      if (likely(m_textures[stage] != nullptr)) {
-        m_textures[stage] = nullptr;
-        m_bridge->SetColorKeyState(stage, false);
-      }
+      m_textures[stage] = nullptr;
+      m_bridge->SetColorKeyState(stage, false);
 
       return D3D_OK;
     }
@@ -1317,7 +1313,6 @@ namespace dxvk {
     }
 
     DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
-
     DDrawCommonSurface* commonSurface = surface7->GetCommonSurface();
 
     // If textures have been used on a different device, they
@@ -1325,7 +1320,7 @@ namespace dxvk {
     if (unlikely(commonSurface->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
       commonSurface->DirtyDDrawSurface();
 
-    hr = surface7->InitializeOrUploadD3D9();
+    HRESULT hr = surface7->InitializeOrUploadD3D9();
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::SetTexture: Failed to initialize/upload D3D9 texture");
       return hr;

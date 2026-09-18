@@ -1063,15 +1063,16 @@ namespace dxvk {
       // "Texture handle for use when rendering with the IDirect3DDevice2 or earlier interfaces."
       // Note: This is actually used by Grandia II, but with IDirectDrawSurface4 objects...
       case D3DRENDERSTATE_TEXTUREHANDLE: {
-        DDraw4Surface* surface4 = nullptr;
+        D3DCommonTexture* commonTex = nullptr;
 
         if (likely(dwRenderState != 0)) {
-          surface4 = DDrawCommonInterface::GetSurface4FromTextureHandle(dwRenderState);
+          commonTex = DDrawCommonInterface::GetCommonTextureFromTextureHandle(dwRenderState);
+          DDraw4Surface* surface4 = commonTex != nullptr ? commonTex->GetDD4Surface() : nullptr;
           if (unlikely(surface4 == nullptr))
             return DDERR_INVALIDPARAMS;
         }
 
-        HRESULT hr = SetTextureInternal(surface4, dwRenderState);
+        HRESULT hr = SetTextureInternal(commonTex, dwRenderState);
         if (unlikely(FAILED(hr)))
           return hr;
 
@@ -1924,27 +1925,23 @@ namespace dxvk {
 
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
-    HRESULT hr;
-
     // Unbinding texture stages
     if (texture == nullptr) {
-      hr = device9->SetTexture(stage, nullptr);
+      HRESULT hr = device9->SetTexture(stage, nullptr);
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D6Device::SetTexture: Failed to unbind D3D9 texture");
         return hr;
       }
 
-      if (likely(m_textures[stage] != nullptr)) {
-        m_textures[stage] = nullptr;
-        m_bridge->SetColorKeyState(stage, false);
-      }
+      m_textures[stage] = nullptr;
+      m_bridge->SetColorKeyState(stage, false);
 
       return D3D_OK;
     }
 
     // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
-    D3D5Texture* texture6 = static_cast<D3D5Texture*>(texture);
-    DDraw4Surface* surface4 = texture6->GetCommonTexture()->GetDD4Surface();
+    D3D5Texture* texture5 = static_cast<D3D5Texture*>(texture);
+    DDraw4Surface* surface4 = texture5->GetCommonTexture()->GetDD4Surface();
 
     // Shouldn't ever happen, but play it safe
     if (unlikely(surface4 == nullptr)) {
@@ -1959,14 +1956,14 @@ namespace dxvk {
     if (unlikely(commonSurface->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
       commonSurface->DirtyDDrawSurface();
 
-    hr = surface4->InitializeOrUploadD3D9();
+    HRESULT hr = surface4->InitializeOrUploadD3D9();
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::SetTexture: Failed to initialize/upload D3D9 texture");
       return hr;
     }
 
     // Don't fast skip, since color key might change
-    //if (unlikely(m_textures[stage] == texture6))
+    //if (unlikely(m_textures[stage] == texture5))
       //return D3D_OK;
 
     d3d9::IDirect3DTexture9* tex9 = commonSurface->GetD3D9Texture();
@@ -2001,7 +1998,7 @@ namespace dxvk {
       }
     }
 
-    m_textures[stage] = texture6;
+    m_textures[stage] = texture5;
 
     return D3D_OK;
   }
@@ -2187,36 +2184,33 @@ namespace dxvk {
     }
   }
 
-  inline HRESULT D3D6Device::SetTextureInternal(DDraw4Surface* surface, DWORD textureHandle) {
-    HRESULT hr;
-
+  inline HRESULT D3D6Device::SetTextureInternal(D3DCommonTexture* commonTex, DWORD textureHandle) {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
     // Unbinding texture stages
-    if (surface == nullptr) {
-      hr = device9->SetTexture(0, nullptr);
+    if (commonTex == nullptr) {
+      HRESULT hr = device9->SetTexture(0, nullptr);
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D6Device::SetTextureInternal: Failed to unbind D3D9 texture");
         return hr;
       }
 
-      if (likely(m_commonD3DDevice->GetCurrentTextureHandle() != 0)) {
-        m_texture = nullptr;
-        m_commonD3DDevice->SetCurrentTextureHandle(0);
-        m_bridge->SetColorKeyState(0, false);
-      }
+      m_textures[0] = nullptr;
+      m_commonD3DDevice->SetCurrentTextureHandle(0);
+      m_bridge->SetColorKeyState(0, false);
 
       return D3D_OK;
     }
 
-    DDrawCommonSurface* commonSurface = surface->GetCommonSurface();
+    DDraw4Surface* surface4 = commonTex->GetDD4Surface();
+    DDrawCommonSurface* commonSurface = surface4->GetCommonSurface();
 
     // If textures have been used on a different device, they
     // will get their D3D9 object reinitialized at this point
     if (unlikely(commonSurface->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
       commonSurface->DirtyDDrawSurface();
 
-    hr = surface->InitializeOrUploadD3D9();
+    HRESULT hr = surface4->InitializeOrUploadD3D9();
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D6Device::SetTextureInternal: Failed to initialize/upload D3D9 texture");
       return hr;
@@ -2256,7 +2250,7 @@ namespace dxvk {
       }
     }
 
-    m_texture = surface;
+    m_textures[0] = commonTex->GetD3D5Texture();
     m_commonD3DDevice->SetCurrentTextureHandle(textureHandle);
 
     return D3D_OK;
