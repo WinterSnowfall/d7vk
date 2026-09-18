@@ -332,15 +332,15 @@ namespace dxvk {
     pvb.stride = GetFVFSize(dwFVF);
     pvb.vertexData.resize(pvb.stride * dwNumVertices);
 
-    const DWORD dwNumTextures = (dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+    const size_t positionSize  = GetFVFPositionSize(dwFVF);
+    const DWORD  dwNumTextures = (dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 
     for (DWORD i = 0; i < dwNumVertices; i++) {
       uint8_t* ptr = pvb.vertexData.data() + i * pvb.stride;
 
       if ((dwFVF & D3DFVF_POSITION_MASK) && lpVBStrided->position.lpvData) {
-        const size_t size = GetFVFPositionSize(dwFVF);
-        memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->position.lpvData) + i * lpVBStrided->position.dwStride, size);
-        ptr += size;
+        memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->position.lpvData) + i * lpVBStrided->position.dwStride, positionSize);
+        ptr += positionSize;
       }
 
       if ((dwFVF & D3DFVF_NORMAL) && lpVBStrided->normal.lpvData) {
