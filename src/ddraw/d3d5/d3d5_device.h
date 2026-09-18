@@ -19,6 +19,7 @@
 namespace dxvk {
 
   class D3DCommonDevice;
+  class D3DCommonTexture;
   class DDrawCommonInterface;
   class DDrawSurface;
   class DDrawInterface;
@@ -138,10 +139,10 @@ namespace dxvk {
 
     inline void DDrawDirtySurfaceUpload();
 
-    inline HRESULT SetTextureInternal(DDrawSurface* surface, DWORD textureHandle);
+    inline HRESULT SetTextureInternal(D3DCommonTexture* commonTex, DWORD textureHandle);
 
     inline void RefreshLastUsedDevice() {
-      if (unlikely(m_commonIntf->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
+      if (unlikely(m_commonD3DDevice != m_commonIntf->GetCommonD3DDevice()))
         m_commonIntf->SetCommonD3DDevice(m_commonD3DDevice.ptr());
     }
 
