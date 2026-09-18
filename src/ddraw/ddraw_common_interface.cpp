@@ -145,26 +145,15 @@ namespace dxvk {
     }
   }
 
-  DDraw4Surface* DDrawCommonInterface::GetSurface4FromTextureHandle(D3DTEXTUREHANDLE handle) {
+  D3DCommonTexture* DDrawCommonInterface::GetCommonTextureFromTextureHandle(D3DTEXTUREHANDLE handle) {
     auto texturesIter = s_textures.find(handle);
 
     if (unlikely(texturesIter == s_textures.end())) {
-      Logger::warn(str::format("DDrawCommonInterface::GetSurface4FromTextureHandle: Invalid handle: ", handle));
+      Logger::warn(str::format("DDrawCommonInterface::GetCommonTextureFromTextureHandle: Invalid handle: ", handle));
       return nullptr;
     }
 
-    return texturesIter->second->GetDD4Surface();
-  }
-
-  DDrawSurface* DDrawCommonInterface::GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle) {
-    auto texturesIter = s_textures.find(handle);
-
-    if (unlikely(texturesIter == s_textures.end())) {
-      Logger::warn(str::format("DDrawCommonInterface::GetSurfaceFromTextureHandle: Invalid handle: ", handle));
-      return nullptr;
-    }
-
-    return texturesIter->second->GetDDSurface();
+    return texturesIter->second;
   }
 
 }
