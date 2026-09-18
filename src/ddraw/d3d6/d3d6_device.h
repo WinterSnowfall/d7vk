@@ -163,10 +163,10 @@ namespace dxvk {
 
     inline void DDrawDirtySurfaceUpload();
 
-    inline HRESULT SetTextureInternal(DDraw4Surface* surface, DWORD textureHandle);
+    inline HRESULT SetTextureInternal(D3DCommonTexture* commonTex, DWORD textureHandle);
 
     inline void RefreshLastUsedDevice() {
-      if (unlikely(m_commonIntf->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
+      if (unlikely(m_commonD3DDevice != m_commonIntf->GetCommonD3DDevice()))
         m_commonIntf->SetCommonD3DDevice(m_commonD3DDevice.ptr());
     }
 
@@ -205,9 +205,6 @@ namespace dxvk {
 
     Com<DDraw4Surface>              m_rt;
     Com<DDraw4Surface, false>       m_ds;
-
-    // Only for the legacy D3DTEXTUREHANDLE texture path
-    Com<DDraw4Surface, false>       m_texture;
 
     Com<D3D6Viewport>               m_currentViewport;
     std::vector<Com<D3D6Viewport>>  m_viewports;
