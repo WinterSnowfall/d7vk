@@ -20,9 +20,6 @@ namespace dxvk {
   class DDraw2Interface;
   class DDrawInterface;
 
-  class DDraw4Surface;
-  class DDrawSurface;
-
   class DDrawCommonInterface : public ComObjectClamp<IUnknown> {
 
   public:
@@ -68,9 +65,7 @@ namespace dxvk {
 
     static void RemoveWrappedSurface(IDirectDrawSurface7* surface);
 
-    static DDraw4Surface* GetSurface4FromTextureHandle(D3DTEXTUREHANDLE handle);
-
-    static DDrawSurface* GetSurfaceFromTextureHandle(D3DTEXTUREHANDLE handle);
+    static D3DCommonTexture* GetCommonTextureFromTextureHandle(D3DTEXTUREHANDLE handle);
 
     static D3DTEXTUREHANDLE GetNextTextureHandle() {
       return ++s_textureHandle;

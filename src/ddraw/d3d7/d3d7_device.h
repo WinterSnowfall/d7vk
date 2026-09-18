@@ -178,7 +178,7 @@ namespace dxvk {
     inline bool ShouldRecord() const { return m_recorder != nullptr; }
 
     inline void RefreshLastUsedDevice() {
-      if (unlikely(m_commonIntf->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
+      if (unlikely(m_commonD3DDevice != m_commonIntf->GetCommonD3DDevice()))
         m_commonIntf->SetCommonD3DDevice(m_commonD3DDevice.ptr());
     }
 
