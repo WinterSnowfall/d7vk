@@ -703,7 +703,6 @@ namespace dxvk {
         }
         case D3DOP_STATETRANSFORM: {
           D3DSTATE* state = reinterpret_cast<D3DSTATE*>(operation);
-          D3DMATRIX matrix;
 
           for (uint16_t i = 0; i < instruction->wCount; i++) {
             const D3DSTATE& s = state[i];
@@ -711,18 +710,25 @@ namespace dxvk {
             if (unlikely(s.dwArg[0] == 0))
               continue;
 
+            D3DMATRIX matrix;
             HRESULT hr = GetMatrix(s.dwArg[0], &matrix);
             if (unlikely(FAILED(hr)))
               continue;
 
             hr = device9->SetTransform(ConvertTransformState(s.dtstTransformStateType), &matrix);
             if (likely(SUCCEEDED(hr))) {
-              if (s.dtstTransformStateType == D3DTRANSFORMSTATE_WORLD) {
-                m_worldHandle = s.dwArg[0];
-              } else if (s.dtstTransformStateType == D3DTRANSFORMSTATE_VIEW) {
-                m_viewHandle = s.dwArg[0];
-              } else if (s.dtstTransformStateType == D3DTRANSFORMSTATE_PROJECTION) {
-                m_projectionHandle = s.dwArg[0];
+              switch (s.dtstTransformStateType) {
+                case D3DTRANSFORMSTATE_WORLD:
+                  m_worldHandle = s.dwArg[0];
+                  break;
+                case D3DTRANSFORMSTATE_VIEW:
+                  m_viewHandle = s.dwArg[0];
+                  break;
+                case D3DTRANSFORMSTATE_PROJECTION:
+                  m_projectionHandle = s.dwArg[0];
+                  break;
+                default:
+                  break;
               }
             } else {
               Logger::warn("D3D3Device::Execute: Failed to set D3D9 transform");
@@ -936,7 +942,8 @@ namespace dxvk {
     // Bound texture(s)
     const D3DTEXTUREHANDLE texHandle = m_commonD3DDevice->GetCurrentTextureHandle();
     if (likely(texHandle != 0)) {
-      DDrawSurface* tex = DDrawCommonInterface::GetSurfaceFromTextureHandle(texHandle);
+      D3DCommonTexture* commonTex = DDrawCommonInterface::GetCommonTextureFromTextureHandle(texHandle);
+      DDrawSurface* tex = commonTex != nullptr ? commonTex->GetDDSurface() : nullptr;
       if (likely(tex != nullptr))
         tex->InitializeOrUploadD3D9();
     }
@@ -1072,15 +1079,16 @@ namespace dxvk {
 
       // Replacement for later implemented SetTexture calls
       case D3DRENDERSTATE_TEXTUREHANDLE: {
-        DDrawSurface* surface = nullptr;
+        D3DCommonTexture* commonTex = nullptr;
 
         if (likely(dwRenderState != 0)) {
-          surface = DDrawCommonInterface::GetSurfaceFromTextureHandle(dwRenderState);
+          commonTex = DDrawCommonInterface::GetCommonTextureFromTextureHandle(dwRenderState);
+          DDrawSurface* surface = commonTex != nullptr ? commonTex->GetDDSurface() : nullptr;
           if (unlikely(surface == nullptr))
             return DDERR_INVALIDPARAMS;
         }
 
-        HRESULT hr = SetTextureInternal(surface, dwRenderState);
+        HRESULT hr = SetTextureInternal(commonTex, dwRenderState);
         if (unlikely(FAILED(hr)))
           return hr;
 
@@ -1310,14 +1318,14 @@ namespace dxvk {
         m_commonD3DDevice->SetColorKeyEnable(dwRenderState);
 
         const D3DTEXTUREHANDLE currentTextureHandle = m_commonD3DDevice->GetCurrentTextureHandle();
-        DDrawSurface* surface = currentTextureHandle != 0 ?
-                                DDrawCommonInterface::GetSurfaceFromTextureHandle(currentTextureHandle) : nullptr;
+        D3DCommonTexture* commonTex = currentTextureHandle != 0 ?
+                                      DDrawCommonInterface::GetCommonTextureFromTextureHandle(currentTextureHandle) : nullptr;
         // Color keying is always enabled on RGB devices, regardless of D3DRENDERSTATE_COLORKEYENABLE
         const bool colorKeyEnable = !m_commonD3DDevice->IsHALOrTNLHALDevice() || dwRenderState;
-        const bool validColorKey = surface != nullptr ? surface->GetCommonSurface()->HasValidColorKey() : false;
+        const bool validColorKey = commonTex != nullptr ? commonTex->GetCommonSurface()->HasValidColorKey() : false;
         m_bridge->SetColorKeyState(0, colorKeyEnable && validColorKey);
         if (colorKeyEnable && validColorKey) {
-          const DDCOLORKEY* normalizedColorKey = surface->GetCommonSurface()->GetColorKeyNormalized();
+          const DDCOLORKEY* normalizedColorKey = commonTex->GetCommonSurface()->GetColorKeyNormalized();
           m_bridge->SetColorKey(0, normalizedColorKey->dwColorSpaceLowValue,
                                 normalizedColorKey->dwColorSpaceHighValue);
         }
@@ -1400,9 +1408,9 @@ namespace dxvk {
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
 
-      if (SUCCEEDED(hr)) {
+      if (likely(SUCCEEDED(hr))) {
         UpdateSurfaceDirtyTracking(true, m_commonD3DDevice->IsDepthWriteEnabled(), true);
-        m_stats.dwTrianglesDrawn += std::max<DWORD>(vertices.size() / 3, 0u);
+        m_stats.dwTrianglesDrawn += vertices.size() / 3;
       } else {
         Logger::err(str::format("D3D3Device::Execute: D3DOP_TRIANGLE failed to draw vertices: ", vertices.size()));
       }
@@ -1436,9 +1444,9 @@ namespace dxvk {
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
 
-      if (SUCCEEDED(hr)) {
+      if (likely(SUCCEEDED(hr))) {
         UpdateSurfaceDirtyTracking(true, m_commonD3DDevice->IsDepthWriteEnabled(), true);
-        m_stats.dwLinesDrawn += std::max<DWORD>(vertices.size() / 2, 0u);
+        m_stats.dwLinesDrawn += vertices.size() / 2;
       } else {
         Logger::err(str::format("D3D3Device::Execute: D3DOP_LINE failed to draw vertices: ", vertices.size()));
       }
@@ -1473,9 +1481,9 @@ namespace dxvk {
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
 
-      if (SUCCEEDED(hr)) {
+      if (likely(SUCCEEDED(hr))) {
         UpdateSurfaceDirtyTracking(true, m_commonD3DDevice->IsDepthWriteEnabled(), true);
-        m_stats.dwPointsDrawn += static_cast<DWORD>(vertices.size());
+        m_stats.dwPointsDrawn += vertices.size();
       } else {
         Logger::err(str::format("D3D3Device::Execute: D3DOP_POINT failed to draw vertices: ", vertices.size()));
       }
@@ -1510,9 +1518,9 @@ namespace dxvk {
            vertices.data(),
            GetFVFSize(D3DFVF_TLVERTEX));
 
-      if (SUCCEEDED(hr)) {
+      if (likely(SUCCEEDED(hr))) {
         UpdateSurfaceDirtyTracking(true, m_commonD3DDevice->IsDepthWriteEnabled(), true);
-        m_stats.dwSpansDrawn += std::max<DWORD>(vertices.size() - 1, 0u);
+        m_stats.dwSpansDrawn += vertices.size() - 1;
       } else {
         Logger::err(str::format("D3D3Device::Execute: D3DOP_SPAN failed to draw vertices: ", vertices.size()));
       }
@@ -1525,38 +1533,36 @@ namespace dxvk {
     for (uint16_t i = 0; i < count; i++) {
       const D3DTEXTURELOAD& tl = textureLoad[i];
 
-      DDrawSurface* destSurf = DDrawCommonInterface::GetSurfaceFromTextureHandle(tl.hDestTexture);
-      DDrawSurface* srcSurf = DDrawCommonInterface::GetSurfaceFromTextureHandle(tl.hSrcTexture);
-      if (destSurf != nullptr && srcSurf != nullptr) {
-        destSurf->GetD3D3Texture()->Load(srcSurf->GetD3D3Texture());
+      D3DCommonTexture* destCommonTex = DDrawCommonInterface::GetCommonTextureFromTextureHandle(tl.hDestTexture);
+      D3DCommonTexture* srcCommonTex = DDrawCommonInterface::GetCommonTextureFromTextureHandle(tl.hSrcTexture);
+
+      if (likely(destCommonTex != nullptr && srcCommonTex != nullptr)) {
+        destCommonTex->GetD3D3Texture()->Load(srcCommonTex->GetD3D3Texture());
       } else {
         Logger::warn("D3D3Device::Execute: D3DOP_TEXTURELOAD source or/and destination texture is null");
       }
     }
   }
 
-  inline HRESULT D3D3Device::SetTextureInternal(DDrawSurface* surface, DWORD textureHandle) {
-    HRESULT hr;
-
+  inline HRESULT D3D3Device::SetTextureInternal(D3DCommonTexture* commonTex, DWORD textureHandle) {
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
 
     // Unbinding texture stages
-    if (surface == nullptr) {
-      hr = device9->SetTexture(0, nullptr);
+    if (commonTex == nullptr) {
+      HRESULT hr = device9->SetTexture(0, nullptr);
       if (unlikely(FAILED(hr))) {
         Logger::err("D3D3Device::SetTextureInternal: Failed to unbind D3D9 texture");
         return hr;
       }
 
-      if (likely(m_commonD3DDevice->GetCurrentTextureHandle() != 0)) {
-        m_texture = nullptr;
-        m_commonD3DDevice->SetCurrentTextureHandle(0);
-        m_bridge->SetColorKeyState(0, false);
-      }
+      m_texture = nullptr;
+      m_commonD3DDevice->SetCurrentTextureHandle(0);
+      m_bridge->SetColorKeyState(0, false);
 
       return D3D_OK;
     }
 
+    DDrawSurface* surface = commonTex->GetDDSurface();
     DDrawCommonSurface* commonSurface = surface->GetCommonSurface();
 
     // If textures have been used on a different device, they
@@ -1564,7 +1570,7 @@ namespace dxvk {
     if (unlikely(commonSurface->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
       commonSurface->DirtyDDrawSurface();
 
-    hr = surface->InitializeOrUploadD3D9();
+    HRESULT hr = surface->InitializeOrUploadD3D9();
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D3Device::SetTextureInternal: Failed to initialize/upload D3D9 texture");
       return hr;
