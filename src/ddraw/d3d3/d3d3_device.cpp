@@ -1238,14 +1238,27 @@ namespace dxvk {
           //  replace the alpha values in the colors that would have been used with no texturing;
           //  if the texture does not contain an alpha component, alpha values at the vertices
           //  in the source are interpolated between vertices."
-          case D3DTBLEND_MODULATE:
+          case D3DTBLEND_MODULATE: {
             device9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG1, D3DTA_TEXTURE);
             device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
             device9->SetTextureStageState(0, d3d9::D3DTSS_COLOROP,   D3DTOP_MODULATE);
-            device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
+            //device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, D3DTOP_SELECTARG2);
             device9->SetTextureStageState(0, d3d9::D3DTSS_COLORARG2, D3DTA_CURRENT);
             device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAARG2, D3DTA_CURRENT);
+
+            // The blend mode getting changed to MODULATE while a texture is set can
+            // affect alpha blending and will need to trigger a reevaluation each time.
+            // Z.A.R. in particular depends on this to properly use water texture alpha.
+            if (m_texture != nullptr) {
+              DDrawCommonSurface* commonSurface = m_texture->GetCommonSurface();
+              const DWORD textureOp = commonSurface->IsAlphaFormat() ? D3DTOP_SELECTARG1 : D3DTOP_SELECTARG2;
+              device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, textureOp);
+            } else {
+              device9->SetTextureStageState(0, d3d9::D3DTSS_ALPHAOP, D3DTOP_SELECTARG2);
+            }
+
             break;
+          }
           // "In this mode, the RGB and alpha values of the texture are blended with the colors
           //  that would have been used with no texturing, according to the following formulas [...]"
           case D3DTBLEND_DECALALPHA:
