@@ -2,10 +2,15 @@
 
 #include "ddraw_include.h"
 
+#include "d3d_viewport.h"
+
+#include <vector>
+
 namespace dxvk {
 
   class DDrawCommonSurface;
   class DDrawCommonInterface;
+
   class D3DCommonInterface;
 
   class DDraw7Surface;
@@ -51,6 +56,12 @@ namespace dxvk {
     bool IsCurrentRenderTarget(DDrawCommonSurface* commonSurface) const;
 
     void UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface);
+
+    HRESULT AddViewportCommon(D3DViewport *viewport);
+
+    HRESULT DeleteViewportCommon(D3DViewport* viewport);
+
+    HRESULT NextViewportCommon(D3DViewport* viewport, D3DViewport** nextViewport, DWORD flags);
 
     void SetDepthWriteEnabled(bool isDepthWriteEnabled) {
       m_isDepthWriteEnabled = isDepthWriteEnabled;
@@ -153,6 +164,14 @@ namespace dxvk {
       return m_params9.MultiSampleType;
     }
 
+    void SetCurrentViewportInternal(D3DViewport* currentViewport) {
+      m_currentViewport = currentViewport;
+    }
+
+    D3DViewport* GetCurrentViewportInternal() const {
+      return m_currentViewport.ptr();
+    }
+
     DWORD GetD3D9CreationFlags() const {
       return m_creationFlags9;
     }
@@ -207,43 +226,46 @@ namespace dxvk {
 
   private:
 
-    bool                        m_inScene             = false;
+    bool                          m_inScene             = false;
     // D3DRENDERSTATE_ZWRITEENABLE, defaults to TRUE.
     // Used only for D3D9 depth stencil surface dirtying.
-    bool                        m_isDepthWriteEnabled = true;
+    bool                          m_isDepthWriteEnabled = true;
 
-    DDrawCommonInterface*       m_commonIntf          = nullptr;
+    DDrawCommonInterface*         m_commonIntf          = nullptr;
 
-    GUID                        m_deviceGUID;
-    uint32_t                    m_totalMemory         = 0;
+    GUID                          m_deviceGUID;
+    uint32_t                      m_totalMemory         = 0u;
 
-    D3DMATERIALHANDLE           m_materialHandle      = 0;
-    D3DTEXTUREHANDLE            m_textureHandle       = 0;
+    D3DMATERIALHANDLE             m_materialHandle      = 0u;
+    D3DTEXTUREHANDLE              m_textureHandle       = 0u;
 
     // D3DRENDERSTATE_COLORKEYENABLE
-    DWORD                       m_colorKeyEnable      = FALSE;
+    DWORD                         m_colorKeyEnable      = FALSE;
     // D3DRENDERSTATE_COLORKEYBLENDENABLE
-    DWORD                       m_colorKeyBlendEnable = FALSE;
+    DWORD                         m_colorKeyBlendEnable = FALSE;
     // D3DRENDERSTATE_ANTIALIAS
-    DWORD                       m_antialias           = D3DANTIALIAS_NONE;
+    DWORD                         m_antialias           = D3DANTIALIAS_NONE;
     // D3DRENDERSTATE_LINEPATTERN
-    D3DLINEPATTERN              m_linePattern         = { };
+    D3DLINEPATTERN                m_linePattern         = { };
     // D3DRENDERSTATE_TEXTUREMAPBLEND
-    DWORD                       m_textureMapBlend     = D3DTBLEND_MODULATE;
+    DWORD                         m_textureMapBlend     = D3DTBLEND_MODULATE;
 
-    d3d9::D3DPRESENT_PARAMETERS m_params9;
-    DWORD                       m_creationFlags9      = 0;
+    d3d9::D3DPRESENT_PARAMETERS   m_params9;
+    DWORD                         m_creationFlags9      = 0u;
 
-    Com<d3d9::IDirect3DDevice9> m_device9;
+    Com<D3DViewport>              m_currentViewport;
+    std::vector<Com<D3DViewport>> m_viewports;
 
-    D3D7Device*                 m_device7             = nullptr;
-    D3D6Device*                 m_device6             = nullptr;
-    D3D5Device*                 m_device5             = nullptr;
-    D3D3Device*                 m_device3             = nullptr;
+    Com<d3d9::IDirect3DDevice9>   m_device9;
+
+    D3D7Device*                   m_device7             = nullptr;
+    D3D6Device*                   m_device6             = nullptr;
+    D3D5Device*                   m_device5             = nullptr;
+    D3D3Device*                   m_device3             = nullptr;
 
     // Track the origin device, as in the device
     // that gets created through a CreateDevice call
-    IUnknown*                   m_origin              = nullptr;
+    IUnknown*                     m_origin              = nullptr;
 
   };
 

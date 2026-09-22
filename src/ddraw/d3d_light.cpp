@@ -1,8 +1,6 @@
 #include "d3d_light.h"
 
-#include "d3d3/d3d3_viewport.h"
-#include "d3d5/d3d5_viewport.h"
-#include "d3d6/d3d6_viewport.h"
+#include "d3d_viewport.h"
 
 namespace dxvk {
 
@@ -21,8 +19,8 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    if (likely(riid == __uuidof(IUnknown) ||
-               riid == __uuidof(IDirect3DLight))) {
+    if (likely(riid == __uuidof(IUnknown)
+            || riid == __uuidof(IDirect3DLight))) {
       *ppvObject = ref(this);
       return S_OK;
     }
@@ -99,18 +97,9 @@ namespace dxvk {
     // D3DLIGHT structure lights are, apparently, considered to be active by default
     m_isActive            = isD3DLight2 ? (m_flags & D3DLIGHT_ACTIVE) : true;
 
-    D3DCommonViewport* commonViewport = nullptr;
-    if (m_viewport6 != nullptr) {
-      commonViewport = m_viewport6->GetCommonViewport();
-    } else if (m_viewport5 != nullptr) {
-      commonViewport = m_viewport5->GetCommonViewport();
-    } else if (m_viewport3 != nullptr) {
-      commonViewport = m_viewport3->GetCommonViewport();
-    }
-
     // Update the D3D9 light directly if it's actively being used
-    if (commonViewport != nullptr && commonViewport->IsCurrentViewport())
-      commonViewport->ApplyAndActivateLight(this);
+    if (m_viewport != nullptr && m_viewport->IsCurrentViewport())
+      m_viewport->ApplyAndActivateLight(this);
 
     return D3D_OK;
   }
