@@ -20,6 +20,11 @@ namespace dxvk {
       m_palette->SetCommonSurface(nullptr);
   }
 
+  HRESULT STDMETHODCALLTYPE DDrawCommonSurface::QueryInterface(REFIID riid, void** ppvObject) {
+    *ppvObject = ref(this);
+    return S_OK;
+  }
+
   HRESULT DDrawCommonSurface::RefreshSurfaceDescripton(const bool refreshFormat) {
     if (m_surf7 != nullptr) {
       DDSURFACEDESC2 desc2;
