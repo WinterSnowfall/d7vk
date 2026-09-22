@@ -199,7 +199,7 @@ namespace dxvk {
         }
 
         m_texture5 = new D3D5Texture(m_texture3 != nullptr ? m_texture3->GetCommonTexture() : nullptr,
-                                     m_commonSurf.ptr(), std::move(ppvProxyObject), this, false);
+                                     m_commonSurf.ptr(), std::move(ppvProxyObject), this);
       }
 
       *ppvObject = m_texture5.ref();

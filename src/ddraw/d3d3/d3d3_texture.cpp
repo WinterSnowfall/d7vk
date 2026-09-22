@@ -1,8 +1,6 @@
 #include "d3d3_texture.h"
 
-#include "../ddraw_common_interface.h"
 #include "../ddraw_common_surface.h"
-#include "../d3d_common_texture.h"
 
 #include "../ddraw/ddraw_surface.h"
 
@@ -14,8 +12,7 @@ namespace dxvk {
         Com<IDirect3DTexture>&& proxyTexture,
         IUnknown* pParent)
     : DDrawWrappedObject<IUnknown, IDirect3DTexture>(pParent, std::move(proxyTexture))
-    , m_commonTex ( commonTex )
-    , m_commonIntf ( commonSurf->GetCommonInterface() ) {
+    , m_commonTex ( commonTex ) {
     if (m_commonTex == nullptr)
       m_commonTex = new D3DCommonTexture(commonSurf);
 
@@ -78,33 +75,11 @@ namespace dxvk {
     return E_NOINTERFACE;
   }
 
-  // Frogger gets texture handles from IDirect3DTexture objects and uses them in calls on a IDirect3DDevice2
   HRESULT STDMETHODCALLTYPE D3D3Texture::GetHandle(LPDIRECT3DDEVICE lpDirect3DDevice, LPD3DTEXTUREHANDLE lpHandle) {
     if (unlikely(lpDirect3DDevice == nullptr || lpHandle == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    DDrawCommonSurface* commonSurf = m_commonTex->GetCommonSurface();
-
-    if (unlikely(!commonSurf->IsTexture())) {
-      // The Sims tries to get a handle from a surface which wasn't created with the DDSCAPS_TEXTURE flag,
-      // so manually flag it as a texture before we initialize its D3D9 object
-      if (likely(!commonSurf->IsInitialized())) {
-        m_commonTex->GetCommonSurface()->MarkWithTextureHandle();
-      // If for some reason this happens after it's initialized, there's nothing we can do but log an error
-      } else {
-        Logger::err("D3D3Texture::GetHandle: Parent surface isn't a texture");
-      }
-    }
-
-    if (!m_commonTex->GetTextureHandle()) {
-      const D3DTEXTUREHANDLE nextHandle = DDrawCommonInterface::GetNextTextureHandle();
-      m_commonTex->SetTextureHandle(nextHandle);
-      DDrawCommonInterface::EmplaceTexture(m_commonTex.ptr(), nextHandle);
-    }
-
-    *lpHandle = m_commonTex->GetTextureHandle();
-
-    return D3D_OK;
+    return m_commonTex->GetHandleCommon(lpHandle);
   }
 
   // Docs state: "This method only affects the legacy ramp device.
