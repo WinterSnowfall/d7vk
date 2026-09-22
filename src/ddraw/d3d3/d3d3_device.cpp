@@ -955,19 +955,18 @@ namespace dxvk {
     switch (dwLightStateType) {
       case D3DLIGHTSTATE_MATERIAL: {
         if (unlikely(!dwLightState)) {
-          m_commonD3DDevice->SetCurrentMaterialHandle(dwLightState);
           static constexpr d3d9::D3DMATERIAL9 DefaultMaterial9 = { };
           device9->SetMaterial(&DefaultMaterial9);
+          m_commonD3DDevice->SetCurrentMaterialHandle(dwLightState);
           return D3D_OK;
         }
 
-        d3d9::D3DMATERIAL9* material9 = D3DCommonInterface::GetCommonMaterialFromHandle(dwLightState)->GetD3D9Material();
-        if (unlikely(material9 == nullptr))
+        D3DCommonMaterial* commonMaterial = D3DCommonInterface::GetCommonMaterialFromHandle(dwLightState);
+        if (unlikely(commonMaterial == nullptr))
           return DDERR_INVALIDPARAMS;
 
+        device9->SetMaterial(commonMaterial->GetD3D9Material());
         m_commonD3DDevice->SetCurrentMaterialHandle(dwLightState);
-        //Logger::debug(str::format("D3D3Device::SetLightStateInternal: Applying material nr. ", dwLightState, " to D3D9"));
-        device9->SetMaterial(material9);
 
         break;
       }

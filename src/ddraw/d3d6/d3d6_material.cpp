@@ -43,65 +43,30 @@ namespace dxvk {
     return E_NOINTERFACE;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Material::SetMaterial(D3DMATERIAL *data) {
+  HRESULT STDMETHODCALLTYPE D3D6Material::SetMaterial(D3DMATERIAL* data) {
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
     if (unlikely(!data->dwSize))
       return DDERR_INVALIDPARAMS;
 
-    d3d9::D3DMATERIAL9* material9 = m_commonMaterial->GetD3D9Material();
-
-    material9->Diffuse  = data->dcvDiffuse;
-    material9->Ambient  = data->dcvAmbient;
-    material9->Specular = data->dcvSpecular;
-    material9->Emissive = data->dcvEmissive;
-    material9->Power    = data->dvPower;
-
-    m_commonMaterial->DirtyMaterialColor();
-
-    // Update the D3D9 material directly if it's actively being used
     D3DCommonDevice* commonDevice = m_parent->GetCommonInterface()->GetCommonD3DDevice();
-    if (likely(commonDevice != nullptr)) {
-      const D3DMATERIALHANDLE handle        = m_commonMaterial->GetMaterialHandle();
-      const D3DMATERIALHANDLE currentHandle = commonDevice->GetCurrentMaterialHandle();
-      if (handle && currentHandle == handle) {
-        //Logger::debug(str::format("D3D6Material::SetMaterial: Applying material nr. ", handle, " to D3D9"));
-        commonDevice->GetD3D9Device()->SetMaterial(material9);
-      }
-    }
 
-    return D3D_OK;
+    return m_commonMaterial->SetMaterialCommon(data, commonDevice);
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Material::GetMaterial(D3DMATERIAL *data) {
+  HRESULT STDMETHODCALLTYPE D3D6Material::GetMaterial(D3DMATERIAL* data) {
     if (unlikely(data == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    d3d9::D3DMATERIAL9* material9 = m_commonMaterial->GetD3D9Material();
-
-    data->dcvDiffuse  = material9->Diffuse;
-    data->dcvAmbient  = material9->Ambient;
-    data->dcvSpecular = material9->Specular;
-    data->dcvEmissive = material9->Emissive;
-    data->dvPower     = material9->Power;
-
-    return D3D_OK;
+    return m_commonMaterial->GetMaterialCommon(data);
   }
 
-  HRESULT STDMETHODCALLTYPE D3D6Material::GetHandle(IDirect3DDevice3 *device, D3DMATERIALHANDLE *handle) {
+  HRESULT STDMETHODCALLTYPE D3D6Material::GetHandle(IDirect3DDevice3* device, D3DMATERIALHANDLE* handle) {
     if (unlikely(device == nullptr || handle == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if(!m_commonMaterial->GetMaterialHandle()) {
-      const D3DMATERIALHANDLE nextHandle = D3DCommonInterface::GetNextMaterialHandle();
-      m_commonMaterial->SetMaterialHandle(nextHandle);
-      D3DCommonInterface::EmplaceMaterial(m_commonMaterial.ptr(), nextHandle);
-    }
-
-    *handle = m_commonMaterial->GetMaterialHandle();
-
-    return D3D_OK;
+    return m_commonMaterial->GetHandleCommon(handle);
   }
 
 }
