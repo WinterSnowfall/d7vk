@@ -19,11 +19,11 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
-    HRESULT STDMETHODCALLTYPE SetMaterial(D3DMATERIAL *data);
+    HRESULT STDMETHODCALLTYPE SetMaterial(D3DMATERIAL* data);
 
-    HRESULT STDMETHODCALLTYPE GetMaterial(D3DMATERIAL *data);
+    HRESULT STDMETHODCALLTYPE GetMaterial(D3DMATERIAL* data);
 
-    HRESULT STDMETHODCALLTYPE GetHandle(IDirect3DDevice2 *device, D3DMATERIALHANDLE *handle);
+    HRESULT STDMETHODCALLTYPE GetHandle(IDirect3DDevice2* device, D3DMATERIALHANDLE* handle);
 
     D3DCommonMaterial* GetCommonMaterial() const {
       return m_commonMaterial.ptr();
