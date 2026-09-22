@@ -38,6 +38,11 @@ namespace dxvk {
       m_commonIntf->SetCommonD3DDevice(nullptr);
   }
 
+  HRESULT STDMETHODCALLTYPE D3DCommonDevice::QueryInterface(REFIID riid, void** ppvObject) {
+    *ppvObject = ref(this);
+    return S_OK;
+  }
+
   D3DCommonInterface* D3DCommonDevice::GetCommonD3DInterface() const {
     if (m_device7 != nullptr) {
       return m_device7->GetParent() != nullptr ? m_device7->GetParent()->GetCommonD3DInterface() : nullptr;
@@ -129,6 +134,24 @@ namespace dxvk {
     } else if (m_device3 != nullptr) {
       m_device3->UpdateSurfaceDirtyTracking(dirtyRenderTarget, dirtyDepthStencil, dirtyPrimarySurface);
     }
+  }
+
+  HRESULT D3DCommonDevice::GetClipStatusCommon(D3DCLIPSTATUS* clip_status) {
+    d3d9::D3DVIEWPORT9 viewport9;
+    HRESULT hr = m_device9->GetViewport(&viewport9);
+    if (unlikely(FAILED(hr)))
+      return DDERR_INVALIDPARAMS;
+
+    clip_status->dwFlags = D3DCLIPSTATUS_EXTENTS2;
+    clip_status->dwStatus = 0u;
+    clip_status->minx = viewport9.X;
+    clip_status->maxx = viewport9.X + viewport9.Width;
+    clip_status->miny = viewport9.Y;
+    clip_status->maxy = viewport9.Y + viewport9.Height;
+    clip_status->minz = 0.0f;
+    clip_status->maxz = 0.0f;
+
+    return D3D_OK;
   }
 
   HRESULT D3DCommonDevice::AddViewportCommon(D3DViewport *viewport) {

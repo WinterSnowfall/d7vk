@@ -18,6 +18,11 @@ namespace dxvk {
   D3DCommonBuffer::~D3DCommonBuffer() {
   }
 
+  HRESULT STDMETHODCALLTYPE D3DCommonBuffer::QueryInterface(REFIID riid, void** ppvObject) {
+    *ppvObject = ref(this);
+    return S_OK;
+  }
+
   HRESULT D3DCommonBuffer::InitializeD3D9() {
     // Can't create anything without a valid device
     if (unlikely(m_commonD3DDevice == nullptr)) {

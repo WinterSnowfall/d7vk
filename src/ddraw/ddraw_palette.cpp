@@ -26,8 +26,8 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    if (likely(riid == __uuidof(IUnknown) ||
-               riid == __uuidof(IDirectDrawPalette))) {
+    if (likely(riid == __uuidof(IUnknown)
+            || riid == __uuidof(IDirectDrawPalette))) {
       *ppvObject = ref(this);
       return S_OK;
     }
