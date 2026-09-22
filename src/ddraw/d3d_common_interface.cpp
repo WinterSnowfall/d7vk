@@ -26,7 +26,7 @@ namespace dxvk {
     return materialsIter->second;
   }
 
-  void D3DCommonInterface::EmplaceMaterial(D3DCommonMaterial* commonMaterial, D3DMATERIALHANDLE handle) {
+  void D3DCommonInterface::EmplaceMaterial(D3DMATERIALHANDLE handle, D3DCommonMaterial* commonMaterial) {
     s_materials.emplace(std::piecewise_construct,
                         std::forward_as_tuple(handle),
                         std::forward_as_tuple(commonMaterial));
