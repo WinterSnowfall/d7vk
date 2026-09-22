@@ -136,8 +136,8 @@ namespace dxvk {
       return m_proxy->QueryInterface(riid, ppvObject);
     }
 
-    if (likely(riid == __uuidof(IUnknown) ||
-               riid == __uuidof(IDirectDraw4))) {
+    if (likely(riid == __uuidof(IUnknown)
+            || riid == __uuidof(IDirectDraw4))) {
       *ppvObject = ref(this);
       return S_OK;
     }

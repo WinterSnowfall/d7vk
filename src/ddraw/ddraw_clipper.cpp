@@ -28,8 +28,8 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    if (likely(riid == __uuidof(IUnknown) ||
-               riid == __uuidof(IDirectDrawClipper))) {
+    if (likely(riid == __uuidof(IUnknown)
+            || riid == __uuidof(IDirectDrawClipper))) {
       *ppvObject = ref(this);
       return S_OK;
     }
