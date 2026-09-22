@@ -47,8 +47,6 @@ namespace dxvk {
 
     Com<D3DCommonTexture> m_commonTex;
 
-    DDrawCommonInterface* m_commonIntf = nullptr;
-
   };
 
 }
