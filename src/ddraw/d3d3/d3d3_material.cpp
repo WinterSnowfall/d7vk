@@ -1,7 +1,6 @@
 #include "d3d3_material.h"
 
 #include "d3d3_interface.h"
-#include "d3d3_viewport.h"
 
 #include "../d3d_common_device.h"
 

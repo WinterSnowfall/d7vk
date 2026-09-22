@@ -4,8 +4,6 @@
 #include "ddraw_options.h"
 #include "ddraw_caps.h"
 
-#include "d3d_common_viewport.h"
-
 #include <algorithm>
 #include <utility>
 #include <vector>

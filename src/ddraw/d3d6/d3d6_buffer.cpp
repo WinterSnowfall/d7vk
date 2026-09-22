@@ -176,7 +176,7 @@ namespace dxvk {
                               (srcCommonBuffer->GetFVF() & D3DFVF_NORMAL) &&
                               device6->GetCommonD3DDevice()->GetCurrentMaterialHandle() != 0;
 
-      D3DCommonViewport* commonViewport = device6->GetCurrentViewportInternal()->GetCommonViewport();
+      D3DViewport* currentViewport = device6->GetCommonD3DDevice()->GetCurrentViewportInternal();
 
       ProcessVerticesData pvData;
       pvData.inData = inData;
@@ -186,14 +186,14 @@ namespace dxvk {
       pvData.outFVF = m_commonBuffer->GetFVF();
       pvData.outStride = dstStride;
       pvData.vertexCount = dwCount;
-      pvData.correction = commonViewport->GetLegacyProjectionMatrix(0);
+      pvData.correction = currentViewport->GetLegacyProjectionMatrix(0);
       pvData.doLighting = doLighting;
       pvData.doNotCopyData = dwFlags & D3DPV_DONOTCOPYDATA;
       pvData.isLegacy = true;
 
       std::vector<d3d9::D3DLIGHT9> lights9;
       if (doLighting) {
-        commonViewport->GetD3D9ActiveLights(&lights9);
+        currentViewport->GetD3D9ActiveLights(&lights9);
         pvData.lights = &lights9;
       } else {
         pvData.lights = nullptr;
@@ -212,9 +212,9 @@ namespace dxvk {
       D3DMATRIX projectionMatrix;
       const D3DMATRIX* legacyProjection = nullptr;
 
-      D3DCommonViewport* commonViewport = device6->GetCurrentViewportInternal()->GetCommonViewport();
-      if (likely(commonViewport != nullptr)) {
-        legacyProjection = commonViewport->GetLegacyProjectionMatrix(0);
+      D3DViewport* currentViewport = device6->GetCommonD3DDevice()->GetCurrentViewportInternal();
+      if (likely(currentViewport != nullptr)) {
+        legacyProjection = currentViewport->GetLegacyProjectionMatrix(0);
 
         if (legacyProjection != nullptr) {
           //Logger::debug("D3D6Device: Applying legacy projection");
