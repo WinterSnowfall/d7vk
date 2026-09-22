@@ -16,8 +16,8 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    if (likely(riid == __uuidof(IUnknown) ||
-               riid == __uuidof(IDirect3DExecuteBuffer))) {
+    if (likely(riid == __uuidof(IUnknown)
+            || riid == __uuidof(IDirect3DExecuteBuffer))) {
       *ppvObject = ref(this);
       return S_OK;
     }

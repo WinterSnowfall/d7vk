@@ -34,10 +34,7 @@ namespace dxvk {
 
     ~D3DCommonDevice();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
-      *ppvObject = this;
-      return S_OK;
-    }
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
     D3DCommonInterface* GetCommonD3DInterface() const;
 
@@ -57,7 +54,9 @@ namespace dxvk {
 
     void UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface);
 
-    HRESULT AddViewportCommon(D3DViewport *viewport);
+    HRESULT GetClipStatusCommon(D3DCLIPSTATUS* clip_status);
+
+    HRESULT AddViewportCommon(D3DViewport* viewport);
 
     HRESULT DeleteViewportCommon(D3DViewport* viewport);
 

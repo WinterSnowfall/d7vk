@@ -113,8 +113,8 @@ namespace dxvk {
       return E_NOINTERFACE;
     }
 
-    if (likely(riid == __uuidof(IUnknown) ||
-               riid == __uuidof(IDirect3DDevice7))) {
+    if (likely(riid == __uuidof(IUnknown)
+            || riid == __uuidof(IDirect3DDevice7))) {
       *ppvObject = ref(this);
       return S_OK;
     }
@@ -1044,21 +1044,7 @@ namespace dxvk {
     if (unlikely(clip_status == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    d3d9::D3DVIEWPORT9 viewport9;
-    HRESULT hr = m_commonD3DDevice->GetD3D9Device()->GetViewport(&viewport9);
-    if (unlikely(FAILED(hr)))
-      return DDERR_INVALIDPARAMS;
-
-    clip_status->dwFlags = D3DCLIPSTATUS_EXTENTS2;
-    clip_status->dwStatus = 0u;
-    clip_status->minx = viewport9.X;
-    clip_status->maxx = viewport9.X + viewport9.Width;
-    clip_status->miny = viewport9.Y;
-    clip_status->maxy = viewport9.Y + viewport9.Height;
-    clip_status->minz = 0.0f;
-    clip_status->maxz = 0.0f;
-
-    return D3D_OK;
+    return m_commonD3DDevice->GetClipStatusCommon(clip_status);
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Device::DrawPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, DWORD dwFlags) {

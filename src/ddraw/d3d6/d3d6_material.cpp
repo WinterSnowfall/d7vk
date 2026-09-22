@@ -31,8 +31,8 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    if (likely(riid == __uuidof(IUnknown) ||
-               riid == __uuidof(IDirect3DMaterial3))) {
+    if (likely(riid == __uuidof(IUnknown)
+            || riid == __uuidof(IDirect3DMaterial3))) {
       *ppvObject = ref(this);
       return S_OK;
     }

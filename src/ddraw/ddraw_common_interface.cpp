@@ -21,6 +21,11 @@ namespace dxvk {
   DDrawCommonInterface::~DDrawCommonInterface() {
   }
 
+  HRESULT STDMETHODCALLTYPE DDrawCommonInterface::QueryInterface(REFIID riid, void** ppvObject) {
+    *ppvObject = ref(this);
+    return S_OK;
+  }
+
   D3D3Interface* DDrawCommonInterface::GetOrCreateD3D3Interface() {
     if (likely(m_d3d3Intf != nullptr))
       return m_d3d3Intf;
