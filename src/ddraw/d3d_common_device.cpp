@@ -13,6 +13,8 @@
 #include "d3d5/d3d5_device.h"
 #include "d3d3/d3d3_device.h"
 
+#include <algorithm>
+
 namespace dxvk {
 
   D3DCommonDevice::D3DCommonDevice(
@@ -27,6 +29,11 @@ namespace dxvk {
   }
 
   D3DCommonDevice::~D3DCommonDevice() {
+    // Dissasociate every bound viewport from this device
+    for (auto viewport : m_viewports) {
+      viewport->SetCommonD3DDevice(nullptr);
+    }
+
     if (m_commonIntf->GetCommonD3DDevice() == this)
       m_commonIntf->SetCommonD3DDevice(nullptr);
   }
@@ -122,6 +129,51 @@ namespace dxvk {
     } else if (m_device3 != nullptr) {
       m_device3->UpdateSurfaceDirtyTracking(dirtyRenderTarget, dirtyDepthStencil, dirtyPrimarySurface);
     }
+  }
+
+  HRESULT D3DCommonDevice::AddViewportCommon(D3DViewport *viewport) {
+    auto it = std::find(m_viewports.begin(), m_viewports.end(), viewport);
+    if (unlikely(it != m_viewports.end())) {
+      Logger::warn("D3DCommonDevice::AddViewportCommon: Pre-existing viewport found");
+    } else {
+      m_viewports.push_back(viewport);
+      viewport->SetCommonD3DDevice(this);
+    }
+
+    return D3D_OK;
+  }
+
+  HRESULT D3DCommonDevice::DeleteViewportCommon(D3DViewport* viewport) {
+    auto it = std::find(m_viewports.begin(), m_viewports.end(), viewport);
+    if (likely(it != m_viewports.end())) {
+      viewport->SetCommonD3DDevice(nullptr);
+      // Clear the current viewport if it is deleted from the device
+      if (m_currentViewport == viewport)
+        m_currentViewport = nullptr;
+      m_viewports.erase(it);
+    } else {
+      Logger::warn("D3DCommonDevice::DeleteViewportCommon: Viewport not found");
+    }
+
+    return D3D_OK;
+  }
+
+  HRESULT D3DCommonDevice::NextViewportCommon(D3DViewport* viewport, D3DViewport** nextViewport, DWORD flags) {
+    if (flags & D3DNEXT_HEAD) {
+      if (likely(m_viewports.size() > 0))
+        *nextViewport = m_viewports.front().ref();
+    } else if (flags & D3DNEXT_NEXT) {
+      if (unlikely(nextViewport == nullptr))
+        return DDERR_INVALIDPARAMS;
+
+      if (likely(m_viewports.size() > 0))
+        Logger::warn("D3DCommonDevice::NextViewportCommon: Unimplemented D3DNEXT_NEXT flag");
+    } else if (flags & D3DNEXT_TAIL) {
+      if (likely(m_viewports.size() > 0))
+        *nextViewport = m_viewports.back().ref();
+    }
+
+    return D3D_OK;
   }
 
 }

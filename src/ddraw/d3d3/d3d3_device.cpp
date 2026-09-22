@@ -1,5 +1,6 @@
 #include "d3d3_device.h"
 
+#include "../d3d_viewport.h"
 #include "../d3d_common_material.h"
 #include "../d3d_common_texture.h"
 #include "../ddraw_common_interface.h"
@@ -11,8 +12,6 @@
 #include "../d3d6/d3d6_device.h"
 #include "../d3d5/d3d5_device.h"
 #include "../d3d_process_vertices.h"
-
-#include <algorithm>
 
 namespace dxvk {
 
@@ -84,11 +83,6 @@ namespace dxvk {
   }
 
   D3D3Device::~D3D3Device() {
-    // Dissasociate every bound viewport from this device
-    for (auto viewport : m_viewports) {
-      viewport->GetCommonViewport()->SetD3D3Device(nullptr);
-    }
-
     if (m_commonD3DDevice->GetD3D3Device() == this)
       m_commonD3DDevice->SetD3D3Device(nullptr);
 
@@ -255,17 +249,9 @@ namespace dxvk {
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
+    D3DViewport* d3dViewport = static_cast<D3DViewport*>(viewport);
 
-    auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d3Viewport);
-    if (unlikely(it != m_viewports.end())) {
-      Logger::warn("D3D3Device::AddViewport: Pre-existing viewport found");
-    } else {
-      m_viewports.push_back(d3d3Viewport);
-      d3d3Viewport->GetCommonViewport()->SetD3D3Device(this);
-    }
-
-    return D3D_OK;
+    return m_commonD3DDevice->AddViewportCommon(d3dViewport);
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::DeleteViewport(IDirect3DViewport *viewport) {
@@ -274,20 +260,9 @@ namespace dxvk {
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
+    D3DViewport* d3dViewport = static_cast<D3DViewport*>(viewport);
 
-    auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d3Viewport);
-    if (likely(it != m_viewports.end())) {
-      d3d3Viewport->GetCommonViewport()->SetD3D3Device(nullptr);
-      // Clear the current viewport if it is deleted from the device
-      if (m_currentViewport.ptr() == d3d3Viewport)
-        m_currentViewport = nullptr;
-      m_viewports.erase(it);
-    } else {
-      Logger::warn("D3D3Device::DeleteViewport: Viewport not found");
-    }
-
-    return D3D_OK;
+    return m_commonD3DDevice->DeleteViewportCommon(d3dViewport);
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::NextViewport(IDirect3DViewport *lpDirect3DViewport, IDirect3DViewport **lplpAnotherViewport, DWORD flags) {
@@ -298,21 +273,10 @@ namespace dxvk {
 
     InitReturnPtr(lplpAnotherViewport);
 
-    if (flags & D3DNEXT_HEAD) {
-      if (likely(m_viewports.size() > 0))
-        *lplpAnotherViewport = m_viewports.front().ref();
-    } else if (flags & D3DNEXT_NEXT) {
-      if (unlikely(lpDirect3DViewport == nullptr))
-        return DDERR_INVALIDPARAMS;
+    D3DViewport*  d3dViewport = static_cast<D3DViewport*>(lpDirect3DViewport);
+    D3DViewport** d3dNextViewport = reinterpret_cast<D3DViewport**>(lplpAnotherViewport);
 
-      if (likely(m_viewports.size() > 0))
-        Logger::warn("D3D3Device::NextViewport: Unimplemented D3DNEXT_NEXT flag");
-    } else if (flags & D3DNEXT_TAIL) {
-      if (likely(m_viewports.size() > 0))
-        *lplpAnotherViewport = m_viewports.back().ref();
-    }
-
-    return D3D_OK;
+    return m_commonD3DDevice->NextViewportCommon(d3dViewport, d3dNextViewport, flags);
   }
 
   HRESULT STDMETHODCALLTYPE D3D3Device::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK cb, void *ctx) {
@@ -469,29 +433,27 @@ namespace dxvk {
 
     d3d3ExecuteBuffer->SetExecutedState(true);
 
-    D3D3Viewport* d3d3Viewport = static_cast<D3D3Viewport*>(viewport);
+    D3DViewport* d3dViewport = static_cast<D3DViewport*>(viewport);
+    D3DViewport* currentViewport = m_commonD3DDevice->GetCurrentViewportInternal();
 
-    if (unlikely(m_currentViewport != d3d3Viewport)) {
-      D3DCommonViewport* commonViewport = d3d3Viewport->GetCommonViewport();
-
+    if (unlikely(currentViewport != d3dViewport)) {
       // Validate that the viewport is attached to this (common) device
-      if (unlikely(m_commonD3DDevice != commonViewport->GetCommonD3DDevice()))
+      if (unlikely(m_commonD3DDevice != d3dViewport->GetCommonD3DDevice()))
         return DDERR_INVALIDPARAMS;
 
-      if (likely(m_currentViewport != nullptr)) {
-        D3DCommonViewport* currentCommonViewport = m_currentViewport->GetCommonViewport();
+      if (likely(currentViewport != nullptr)) {
         // Shouldn't be necessary, but play it safe, as there is some potential
         // for improper behavior if we skip deactivation during D3D5/6 interop
-        if (currentCommonViewport->HasLights())
-          currentCommonViewport->DeactivateLights();
-        currentCommonViewport->SetIsCurrentViewport(false);
+        if (currentViewport->HasLights())
+          currentViewport->DeactivateLights();
+        currentViewport->SetIsCurrentViewport(false);
       }
 
-      m_currentViewport = d3d3Viewport;
+      m_commonD3DDevice->SetCurrentViewportInternal(d3dViewport);
 
-      commonViewport->SetIsCurrentViewport(true);
-      if (likely(commonViewport->IsViewportSet()))
-        commonViewport->ApplyViewport();
+      d3dViewport->SetIsCurrentViewport(true);
+      if (likely(d3dViewport->IsViewportSet()))
+        d3dViewport->ApplyViewport();
     }
 
     D3DEXECUTEDATA* executeData = d3d3ExecuteBuffer->GetExecuteDataInternal();
@@ -637,7 +599,7 @@ namespace dxvk {
                 const bool doLighting = op == D3DPROCESSVERTICES_TRANSFORMLIGHT &&
                                         m_commonD3DDevice->GetCurrentMaterialHandle() != 0;
 
-                D3DCommonViewport* commonViewport = m_currentViewport->GetCommonViewport();
+                D3DViewport* currentViewport = m_commonD3DDevice->GetCurrentViewportInternal();
 
                 ProcessVerticesData pvData;
                 pvData.inData = buf + executeData->dwVertexOffset + pv.wStart * sizeof(D3DVERTEX);
@@ -647,14 +609,14 @@ namespace dxvk {
                 pvData.outFVF = D3DFVF_TLVERTEX;
                 pvData.outStride = sizeof(D3DTLVERTEX);
                 pvData.vertexCount = pv.dwCount;
-                pvData.correction = commonViewport->GetLegacyProjectionMatrix(0);
+                pvData.correction = currentViewport->GetLegacyProjectionMatrix(0);
                 pvData.doLighting = doLighting;
                 pvData.doNotCopyData = pv.dwFlags & D3DPROCESSVERTICES_NOCOLOR;
                 pvData.isLegacy = true;
 
                 std::vector<d3d9::D3DLIGHT9> lights9;
                 if (doLighting) {
-                  commonViewport->GetD3D9ActiveLights(&lights9);
+                  currentViewport->GetD3D9ActiveLights(&lights9);
                   pvData.lights = &lights9;
                 } else {
                   pvData.lights = nullptr;
