@@ -71,7 +71,7 @@ namespace dxvk {
       return ++s_textureHandle;
     }
 
-    static void EmplaceTexture(D3DCommonTexture* commonTex, D3DTEXTUREHANDLE handle) {
+    static void EmplaceTexture(D3DTEXTUREHANDLE handle, D3DCommonTexture* commonTex) {
       s_textures.emplace(std::piecewise_construct,
                          std::forward_as_tuple(handle),
                          std::forward_as_tuple(commonTex));
