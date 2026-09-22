@@ -60,8 +60,9 @@ namespace dxvk {
     if (unlikely(lpDesc == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC)))
-      return DDERR_INVALIDPARAMS;
+    // Not validated by native for Lock() calls
+    //if (unlikely(lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC)))
+      //return DDERR_INVALIDPARAMS;
 
     if (unlikely(m_locked))
       return D3DERR_EXECUTE_LOCKED;
