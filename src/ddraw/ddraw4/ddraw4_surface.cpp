@@ -174,7 +174,7 @@ namespace dxvk {
 
         // D3D5Texture (aka IDirect3DTexture2) is shared between D3D5 and D3D6
         m_texture5 = new D3D5Texture(m_texture3 != nullptr ? m_texture3->GetCommonTexture() : nullptr,
-                                     m_commonSurf.ptr(), std::move(ppvProxyObject), this, true);
+                                     m_commonSurf.ptr(), std::move(ppvProxyObject), this);
       }
 
       *ppvObject = m_texture5.ref();
