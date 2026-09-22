@@ -404,8 +404,9 @@ namespace dxvk {
 
     InitReturnPtr(buffer);
 
-    if (unlikely(desc->dwSize != sizeof(D3DEXECUTEBUFFERDESC)))
-      return DDERR_INVALIDPARAMS;
+    // Not validated by native during execute buffer creation
+    //if (unlikely(desc->dwSize != sizeof(D3DEXECUTEBUFFERDESC)))
+      //return DDERR_INVALIDPARAMS;
 
     // "The D3DEXECUTEBUFFERDESC structure describes the execute buffer to be created.
     //  At a minimum, the application must specify the size required."
