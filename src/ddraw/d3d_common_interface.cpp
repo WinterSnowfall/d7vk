@@ -13,6 +13,11 @@ namespace dxvk {
   D3DCommonInterface::~D3DCommonInterface() {
   }
 
+  HRESULT STDMETHODCALLTYPE D3DCommonInterface::QueryInterface(REFIID riid, void** ppvObject) {
+    *ppvObject = ref(this);
+    return S_OK;
+  }
+
   D3DCommonMaterial* D3DCommonInterface::GetCommonMaterialFromHandle(D3DMATERIALHANDLE handle) {
     if (unlikely(handle == 0))
       return nullptr;
