@@ -1,5 +1,6 @@
 #include "d3d6_device.h"
 
+#include "../d3d_viewport.h"
 #include "../d3d_common_material.h"
 #include "../ddraw_common_interface.h"
 
@@ -10,8 +11,6 @@
 
 #include "../ddraw/ddraw_surface.h"
 #include "../ddraw4/ddraw4_surface.h"
-
-#include <algorithm>
 
 namespace dxvk {
 
@@ -93,11 +92,6 @@ namespace dxvk {
   }
 
   D3D6Device::~D3D6Device() {
-    // Dissasociate every bound viewport from this device
-    for (auto viewport : m_viewports) {
-      viewport->GetCommonViewport()->SetD3D6Device(nullptr);
-    }
-
     if (m_commonD3DDevice->GetD3D6Device() == this)
       m_commonD3DDevice->SetD3D6Device(nullptr);
 
@@ -237,17 +231,9 @@ namespace dxvk {
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
+    D3DViewport* d3dViewport = static_cast<D3DViewport*>(viewport);
 
-    auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d6Viewport);
-    if (unlikely(it != m_viewports.end())) {
-      Logger::warn("D3D6Device::AddViewport: Pre-existing viewport found");
-    } else {
-      m_viewports.push_back(d3d6Viewport);
-      d3d6Viewport->GetCommonViewport()->SetD3D6Device(this);
-    }
-
-    return D3D_OK;
+    return m_commonD3DDevice->AddViewportCommon(d3dViewport);
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::DeleteViewport(IDirect3DViewport3 *viewport) {
@@ -256,20 +242,9 @@ namespace dxvk {
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    D3D6Viewport* d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
+    D3DViewport* d3dViewport = static_cast<D3DViewport*>(viewport);
 
-    auto it = std::find(m_viewports.begin(), m_viewports.end(), d3d6Viewport);
-    if (likely(it != m_viewports.end())) {
-      d3d6Viewport->GetCommonViewport()->SetD3D6Device(nullptr);
-      // Clear the current viewport if it is deleted from the device
-      if (m_currentViewport.ptr() == d3d6Viewport)
-        m_currentViewport = nullptr;
-      m_viewports.erase(it);
-    } else {
-      Logger::warn("D3D6Device::DeleteViewport: Viewport not found");
-    }
-
-    return D3D_OK;
+    return m_commonD3DDevice->DeleteViewportCommon(d3dViewport);
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::NextViewport(IDirect3DViewport3 *lpDirect3DViewport, IDirect3DViewport3 **lplpAnotherViewport, DWORD flags) {
@@ -280,21 +255,10 @@ namespace dxvk {
 
     InitReturnPtr(lplpAnotherViewport);
 
-    if (flags & D3DNEXT_HEAD) {
-      if (likely(m_viewports.size() > 0))
-        *lplpAnotherViewport = m_viewports.front().ref();
-    } else if (flags & D3DNEXT_NEXT) {
-      if (unlikely(lpDirect3DViewport == nullptr))
-        return DDERR_INVALIDPARAMS;
+    D3DViewport*  d3dViewport = static_cast<D3DViewport*>(lpDirect3DViewport);
+    D3DViewport** d3dNextViewport = reinterpret_cast<D3DViewport**>(lplpAnotherViewport);
 
-      if (likely(m_viewports.size() > 0))
-        Logger::warn("D3D6Device::NextViewport: Unimplemented D3DNEXT_NEXT flag");
-    } else if (flags & D3DNEXT_TAIL) {
-      if (likely(m_viewports.size() > 0))
-        *lplpAnotherViewport = m_viewports.back().ref();
-    }
-
-    return D3D_OK;
+    return m_commonD3DDevice->NextViewportCommon(d3dViewport, d3dNextViewport, flags);
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Device::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK cb, void *ctx) {
@@ -448,31 +412,29 @@ namespace dxvk {
     if (unlikely(viewport == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    Com<D3D6Viewport> d3d6Viewport = static_cast<D3D6Viewport*>(viewport);
+    D3DViewport* d3dViewport = static_cast<D3DViewport*>(viewport);
+    D3DViewport* currentViewport = m_commonD3DDevice->GetCurrentViewportInternal();
 
-    if (unlikely(m_currentViewport == d3d6Viewport))
+    if (unlikely(currentViewport == d3dViewport))
       return D3D_OK;
 
-    D3DCommonViewport* commonViewport = d3d6Viewport->GetCommonViewport();
-
     // Validate that the viewport is attached to this (common) device
-    if (unlikely(m_commonD3DDevice != commonViewport->GetCommonD3DDevice()))
+    if (unlikely(m_commonD3DDevice != d3dViewport->GetCommonD3DDevice()))
       return DDERR_INVALIDPARAMS;
 
-    if (likely(m_currentViewport != nullptr)) {
-      D3DCommonViewport* currentCommonViewport = m_currentViewport->GetCommonViewport();
-      if (currentCommonViewport->HasLights())
-        currentCommonViewport->DeactivateLights();
-      currentCommonViewport->SetIsCurrentViewport(false);
+    if (likely(currentViewport != nullptr)) {
+      if (currentViewport->HasLights())
+        currentViewport->DeactivateLights();
+      currentViewport->SetIsCurrentViewport(false);
     }
 
-    m_currentViewport = d3d6Viewport.ptr();
+    m_commonD3DDevice->SetCurrentViewportInternal(d3dViewport);
 
-    commonViewport->SetIsCurrentViewport(true);
-    if (likely(commonViewport->IsViewportSet()))
-      commonViewport->ApplyViewport();
-    if (commonViewport->HasLights())
-      commonViewport->ApplyAndActivateLights();
+    d3dViewport->SetIsCurrentViewport(true);
+    if (likely(d3dViewport->IsViewportSet()))
+      d3dViewport->ApplyViewport();
+    if (d3dViewport->HasLights())
+      d3dViewport->ApplyAndActivateLights();
 
     return D3D_OK;
   }
@@ -484,13 +446,15 @@ namespace dxvk {
     if (unlikely(viewport == nullptr))
       return D3DERR_NOCURRENTVIEWPORT;
 
+    D3DViewport* currentViewport = m_commonD3DDevice->GetCurrentViewportInternal();
+
     // Current viewport is checked before initializing the return pointer
-    if (unlikely(m_currentViewport == nullptr))
+    if (unlikely(currentViewport == nullptr))
       return D3DERR_NOCURRENTVIEWPORT;
 
     InitReturnPtr(viewport);
 
-    *viewport = m_currentViewport.ref();
+    *viewport = ref(currentViewport);
 
     return D3D_OK;
   }

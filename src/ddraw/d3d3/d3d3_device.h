@@ -11,7 +11,6 @@
 #include "../../util/sync/sync_scoped.h"
 
 #include "d3d3_interface.h"
-#include "d3d3_viewport.h"
 
 #include <vector>
 #include <unordered_map>
@@ -106,10 +105,6 @@ namespace dxvk {
       return m_ds.ptr();
     }
 
-    D3D3Viewport* GetCurrentViewportInternal() const {
-      return m_currentViewport.ptr();
-    }
-
   private:
 
     inline void DDrawDirtySurfaceUpload();
@@ -142,7 +137,8 @@ namespace dxvk {
         dsStatus->dwStatus = 0u;
       }
       if (doExtents) {
-        const d3d9::D3DVIEWPORT9* viewport9 = m_currentViewport->GetCommonViewport()->GetD3D9Viewport();
+        D3DViewport* currentViewport = m_commonD3DDevice->GetCurrentViewportInternal();
+        const d3d9::D3DVIEWPORT9* viewport9 = currentViewport->GetD3D9Viewport();
 
         dsStatus->dwFlags |= D3DSETSTATUS_EXTENTS;
         dsStatus->drExtent.x1 = viewport9->X;
@@ -167,9 +163,6 @@ namespace dxvk {
     Com<DDrawSurface, false>        m_ds;
 
     Com<DDrawSurface, false>        m_texture;
-
-    Com<D3D3Viewport>               m_currentViewport;
-    std::vector<Com<D3D3Viewport>>  m_viewports;
 
     D3DSTATS                        m_stats            = { };
 
