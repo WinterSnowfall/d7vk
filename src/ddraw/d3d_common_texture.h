@@ -3,12 +3,12 @@
 #include "ddraw_include.h"
 #include "ddraw_format.h"
 
-#include "ddraw_common_interface.h"
 #include "ddraw_common_surface.h"
 
 namespace dxvk {
 
   class DDrawSurface;
+  class DDraw4Surface;
 
   class D3D5Texture;
   class D3D3Texture;
@@ -21,10 +21,9 @@ namespace dxvk {
 
     ~D3DCommonTexture();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
-      *ppvObject = this;
-      return S_OK;
-    }
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+
+    HRESULT GetHandleCommon(LPD3DTEXTUREHANDLE lpHandle);
 
     DDrawCommonSurface* GetCommonSurface() const {
       return m_commonSurf;
@@ -66,7 +65,7 @@ namespace dxvk {
 
     DDrawCommonSurface* m_commonSurf    = nullptr;
 
-    D3DTEXTUREHANDLE    m_textureHandle = 0;
+    D3DTEXTUREHANDLE    m_textureHandle = 0u;
 
     D3D5Texture*        m_texture5      = nullptr;
     D3D3Texture*        m_texture3      = nullptr;
