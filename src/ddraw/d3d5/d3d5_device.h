@@ -12,7 +12,6 @@
 #include "../../util/sync/sync_scoped.h"
 
 #include "d3d5_interface.h"
-#include "d3d5_viewport.h"
 
 #include <vector>
 
@@ -131,10 +130,6 @@ namespace dxvk {
       return m_ds.ptr();
     }
 
-    D3D5Viewport* GetCurrentViewportInternal() const {
-      return m_currentViewport.ptr();
-    }
-
   private:
 
     inline void DDrawDirtySurfaceUpload();
@@ -147,8 +142,10 @@ namespace dxvk {
     }
 
     inline void HandlePreDrawLegacyProjection(d3d9::IDirect3DDevice9* device9, DWORD drawFlags) {
-      if (likely(m_currentViewport != nullptr)) {
-        m_legacyProjection = m_currentViewport->GetCommonViewport()->GetLegacyProjectionMatrix(drawFlags);
+      D3DViewport* currentViewport = m_commonD3DDevice->GetCurrentViewportInternal();
+
+      if (likely(currentViewport != nullptr)) {
+        m_legacyProjection = currentViewport->GetLegacyProjectionMatrix(drawFlags);
 
         if (m_legacyProjection != nullptr) {
           device9->GetTransform(d3d9::D3DTS_PROJECTION, &m_projectionMatrix);
@@ -180,9 +177,6 @@ namespace dxvk {
     Com<DDrawSurface, false>        m_ds;
 
     Com<DDrawSurface, false>        m_texture;
-
-    Com<D3D5Viewport>               m_currentViewport;
-    std::vector<Com<D3D5Viewport>>  m_viewports;
 
     D3DMATRIX                       m_projectionMatrix = { };
     const D3DMATRIX*                m_legacyProjection = nullptr;

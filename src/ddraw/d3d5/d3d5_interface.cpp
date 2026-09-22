@@ -2,9 +2,9 @@
 
 #include "d3d5_device.h"
 #include "d3d5_material.h"
-#include "d3d5_viewport.h"
 
 #include "../d3d_light.h"
+#include "../d3d_viewport.h"
 
 #include "../d3d3/d3d3_interface.h"
 #include "../d3d6/d3d6_interface.h"
@@ -272,7 +272,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D5Interface::CreateViewport(LPDIRECT3DVIEWPORT2 *lplpD3DViewport, IUnknown *pUnkOuter) {
     InitReturnPtr(lplpD3DViewport);
 
-    *lplpD3DViewport = ref(new D3D5Viewport(nullptr, this));
+    *lplpD3DViewport = ref(new D3DViewport(this));
 
     return D3D_OK;
   }
