@@ -5,9 +5,7 @@
 
 namespace dxvk {
 
-  class D3D6Viewport;
-  class D3D5Viewport;
-  class D3D3Viewport;
+  class D3DViewport;
 
   class D3DLight final : public DDrawChildObject<IUnknown, IDirect3DLight> {
 
@@ -29,20 +27,12 @@ namespace dxvk {
       return &m_light9;
     }
 
-    void SetViewport6(D3D6Viewport* viewport6) {
-      m_viewport6 = viewport6;
-    }
-
-    void SetViewport5(D3D5Viewport* viewport5) {
-      m_viewport5 = viewport5;
-    }
-
-    void SetViewport3(D3D3Viewport* viewport3) {
-      m_viewport3 = viewport3;
+    void SetViewport(D3DViewport* viewport) {
+      m_viewport = viewport;
     }
 
     bool HasViewport() const {
-      return m_viewport6 != nullptr || m_viewport5 != nullptr || m_viewport3 != nullptr;
+      return m_viewport != nullptr;
     }
 
     bool IsActive() const {
@@ -63,9 +53,7 @@ namespace dxvk {
 
     DWORD            m_flags           = 0;
 
-    D3D6Viewport*    m_viewport6       = nullptr;
-    D3D5Viewport*    m_viewport5       = nullptr;
-    D3D3Viewport*    m_viewport3       = nullptr;
+    D3DViewport*     m_viewport        = nullptr;
 
     d3d9::D3DLIGHT9  m_light9          = { };
 
