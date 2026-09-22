@@ -217,8 +217,8 @@ namespace dxvk {
     commonTex1->SetTextureHandle(handle2);
     commonTex2->SetTextureHandle(handle1);
 
-    DDrawCommonInterface::EmplaceTexture(commonTex1, handle2);
-    DDrawCommonInterface::EmplaceTexture(commonTex2, handle1);
+    DDrawCommonInterface::EmplaceTexture(handle2, commonTex1);
+    DDrawCommonInterface::EmplaceTexture(handle1, commonTex2);
 
     return D3D_OK;
   }

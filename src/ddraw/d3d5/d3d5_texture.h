@@ -21,8 +21,7 @@ namespace dxvk {
           DDrawCommonSurface* commonSurf,
           Com<IDirect3DTexture2>&& proxyTexture,
           // This can be either an IDirectDrawSurface or an IDirectDrawSurface4
-          IUnknown* pParent,
-          bool isD3D6Texture);
+          IUnknown* pParent);
 
     ~D3D5Texture();
 
@@ -45,10 +44,6 @@ namespace dxvk {
   private:
 
     Com<D3DCommonTexture> m_commonTex;
-
-    DDrawCommonInterface* m_commonIntf = nullptr;
-
-    const char*           m_objectType = nullptr;
 
   };
 
