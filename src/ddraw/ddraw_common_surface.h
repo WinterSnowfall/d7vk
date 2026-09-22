@@ -37,10 +37,7 @@ namespace dxvk {
 
     ~DDrawCommonSurface();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
-      *ppvObject = this;
-      return S_OK;
-    }
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
     HRESULT RefreshSurfaceDescripton(const bool refreshFormat);
 

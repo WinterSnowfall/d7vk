@@ -352,8 +352,8 @@ namespace dxvk {
       return E_NOINTERFACE;
     }
 
-    if (likely(riid == __uuidof(IUnknown) ||
-               riid == __uuidof(IDirectDrawSurface))) {
+    if (likely(riid == __uuidof(IUnknown)
+            || riid == __uuidof(IDirectDrawSurface))) {
       *ppvObject = ref(this);
       return S_OK;
     }

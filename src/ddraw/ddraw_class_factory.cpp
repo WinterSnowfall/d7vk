@@ -15,11 +15,14 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    if (riid == __uuidof(IUnknown) || riid == __uuidof(IClassFactory)) {
+    if (likely(riid == __uuidof(IUnknown)
+            || riid == __uuidof(IClassFactory))) {
       *ppvObject = ref(this);
       return S_OK;
     }
 
+    Logger::warn("DDrawClassFactory::QueryInterface: Unknown interface query");
+    Logger::warn(str::format(riid));
     return E_NOINTERFACE;
   }
 
