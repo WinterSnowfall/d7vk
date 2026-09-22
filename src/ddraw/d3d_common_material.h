@@ -2,9 +2,9 @@
 
 #include "ddraw_include.h"
 
-#include "d3d_common_interface.h"
-
 namespace dxvk {
+
+  class D3DCommonDevice;
 
   class D3D6Material;
   class D3D5Material;
@@ -18,25 +18,16 @@ namespace dxvk {
 
     ~D3DCommonMaterial();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
-      *ppvObject = this;
-      return S_OK;
-    }
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
-    d3d9::D3DMATERIAL9* GetD3D9Material() {
+    HRESULT SetMaterialCommon(D3DMATERIAL* data, D3DCommonDevice* commonDevice);
+
+    HRESULT GetMaterialCommon(D3DMATERIAL* data);
+
+    HRESULT GetHandleCommon(D3DMATERIALHANDLE* handle);
+
+    const d3d9::D3DMATERIAL9* GetD3D9Material() const {
       return &m_material9;
-    }
-
-    void DirtyMaterialColor() {
-      m_dirtyColor = true;
-    }
-
-    void SetMaterialHandle(D3DMATERIALHANDLE materialHandle) {
-      m_materialHandle = materialHandle;
-    }
-
-    D3DMATERIALHANDLE GetMaterialHandle() const {
-      return m_materialHandle;
     }
 
     D3DCOLOR GetMaterialColor() {
@@ -77,7 +68,7 @@ namespace dxvk {
 
     bool               m_dirtyColor     = false;
 
-    D3DMATERIALHANDLE  m_materialHandle = 0;
+    D3DMATERIALHANDLE  m_materialHandle = 0u;
 
     D3DCOLOR           m_materialColor  = D3DCOLOR_ARGB(0, 0, 0, 0);
 
