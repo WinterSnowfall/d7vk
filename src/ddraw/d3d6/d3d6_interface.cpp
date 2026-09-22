@@ -109,8 +109,8 @@ namespace dxvk {
       return S_OK;
     }
 
-    if (likely(riid == __uuidof(IUnknown) ||
-               riid == __uuidof(IDirect3D3))) {
+    if (likely(riid == __uuidof(IUnknown)
+            || riid == __uuidof(IDirect3D3))) {
       *ppvObject = ref(this);
       return S_OK;
     }
