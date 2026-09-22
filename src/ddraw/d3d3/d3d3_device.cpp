@@ -153,8 +153,8 @@ namespace dxvk {
       return m_parent->QueryInterface(riid, ppvObject);
     }
 
-    if (likely(riid == __uuidof(IUnknown) ||
-               riid == __uuidof(IDirect3DDevice))) {
+    if (likely(riid == __uuidof(IUnknown)
+            || riid == __uuidof(IDirect3DDevice))) {
       *ppvObject = ref(this);
       return S_OK;
     }
