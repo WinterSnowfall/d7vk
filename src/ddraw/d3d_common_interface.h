@@ -28,7 +28,7 @@ namespace dxvk {
 
     static D3DCommonMaterial* GetCommonMaterialFromHandle(D3DMATERIALHANDLE handle);
 
-    static void EmplaceMaterial(D3DCommonMaterial* commonMaterial, D3DMATERIALHANDLE handle);
+    static void EmplaceMaterial(D3DMATERIALHANDLE handle, D3DCommonMaterial* commonMaterial);
 
     static void ReleaseMaterialHandle(D3DMATERIALHANDLE handle);
 
