@@ -28,10 +28,7 @@ namespace dxvk {
 
     ~DDrawCommonInterface();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
-      *ppvObject = this;
-      return S_OK;
-    }
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
     D3D3Interface* GetOrCreateD3D3Interface();
 

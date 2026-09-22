@@ -21,10 +21,7 @@ namespace dxvk {
 
     ~D3DCommonInterface();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
-      *ppvObject = this;
-      return S_OK;
-    }
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
     static D3DCommonMaterial* GetCommonMaterialFromHandle(D3DMATERIALHANDLE handle);
 
