@@ -706,6 +706,8 @@ namespace dxvk {
   inline void ProcessVerticesInput(
         bool doNotCopyData, DWORD dwFVF, uint8_t *ptr, PositionArray& position, D3DVECTOR** normals,
         TexCoordArray& texCoords, D3DCOLOR** diffuse, D3DCOLOR** specular) {
+    static_assert(D3DFVF_POSITION_MASK == 0x00E);
+
     if (uint8_t type = (dwFVF & D3DFVF_POSITION_MASK)) {
       switch (type) {
         case D3DFVF_XYZ:
@@ -788,6 +790,8 @@ namespace dxvk {
   inline void ProcessVerticesOutput(
         DWORD dwFVF, uint8_t* ptr, const PositionArray& position, const D3DVECTOR* normals,
         TexCoordArray* texCoords, const D3DCOLOR* diffuse, const D3DCOLOR* specular) {
+    static_assert(D3DFVF_POSITION_MASK == 0x00E);
+
     if (uint8_t type = (dwFVF & D3DFVF_POSITION_MASK)) {
       switch (type) {
         case D3DFVF_XYZ:
@@ -878,28 +882,16 @@ namespace dxvk {
     }
 
     d3d9::D3DVIEWPORT9 viewport9;
-    D3DMATRIX world9, view9, projection9;
-
     HRESULT hr = d3d9Device->GetViewport(&viewport9);
     if (unlikely(FAILED(hr))) {
       Logger::err("ProcessVerticesSW: Failed to get D3D9 viewport");
       return;
     }
-    hr = d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_WORLD), &world9);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("ProcessVerticesSW: Failed to get D3D9 world transform");
-      return;
-    }
-    hr = d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_VIEW), &view9);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("ProcessVerticesSW: Failed to get D3D9 view transform");
-      return;
-    }
-    hr = d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_PROJECTION), &projection9);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("ProcessVerticesSW: Failed to get D3D9 projection transform");
-      return;
-    }
+
+    D3DMATRIX world9, view9, projection9;
+    d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_WORLD), &world9);
+    d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_VIEW), &view9);
+    d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_PROJECTION), &projection9);
 
     // Precalculate a few static viewport factors, to save on per-vertex cycles
     const float viewport9HalfWidth  = static_cast<float>(viewport9.Width)  * 0.5f;
