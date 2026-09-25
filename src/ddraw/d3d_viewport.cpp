@@ -27,7 +27,7 @@ namespace dxvk {
 
   D3DViewport::~D3DViewport() {
     // Dissasociate every bound light from this viewport
-    for (auto light : m_lights) {
+    for (auto& light : m_lights) {
       light->SetViewport(nullptr);
     }
   }
@@ -99,16 +99,16 @@ namespace dxvk {
     if (m_commonD3DDevice->GetD3D3Device() == nullptr) {
       // Use the full surface rect, since it is surface version agnostic
       const RECT* surfRect = m_commonD3DDevice->GetCommonRenderTarget()->GetFullSurfaceRect();
-      // D3D6 will fail when setting a viewport that's outside of the
-      // current render target, though that works in D3D9
+      // D3D6/5 will fail when setting a viewport that's outside
+      // of the current render target, though that works in D3D9
       HRESULT hr = ValidateViewportRT(data->dwX, data->dwY, data->dwWidth, data->dwHeight,
                                       surfRect->right, surfRect->bottom);
       if (unlikely(FAILED(hr)))
         return hr;
     }
 
-    // The docs state: "The method ignores the values in the dvMaxX, dvMaxY,
-    // dvMinZ, and dvMaxZ members.", which appears correct.
+    // The docs state: "The method ignores the values in the dvMaxX,
+    // dvMaxY, dvMinZ, and dvMaxZ members.", which appears correct
     m_viewport9.X      = data->dwX;
     m_viewport9.Y      = data->dwY;
     m_viewport9.Width  = data->dwWidth;
@@ -124,7 +124,7 @@ namespace dxvk {
     m_legacyClip.z = 0.0f;
 
     m_isViewportSet   = true;
-    // Also dirty legacy projection
+    // Also dirty the legacy projection
     m_dirtyProjection = true;
 
     if (m_isCurrentViewport)
@@ -153,7 +153,8 @@ namespace dxvk {
     else
       *offscreen = 0;
 
-    // When vertex_count = 0 native apparently returns success even when data->lpIn/data->lpOut are null, otherwise crash
+    // When vertex_count = 0, native apparently returns success even
+    // when data->lpIn/data->lpOut are null, otherwise crash
     if (unlikely(vertex_count == 0))
       return D3D_OK;
 
@@ -185,22 +186,9 @@ namespace dxvk {
     }
 
     D3DMATRIX world9, view9, projection9;
-    HRESULT hr;
-    hr = d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_WORLD), &world9);
-    if (FAILED(hr)) {
-      Logger::err("D3DViewport::TransformVertices: failed to get D3D9 world transform");
-      return DDERR_GENERIC;
-    }
-    hr = d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_VIEW), &view9);
-    if (FAILED(hr)) {
-      Logger::err("D3DViewport::TransformVertices: failed to get D3D9 view transform");
-      return DDERR_GENERIC;
-    }
-    hr = d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_PROJECTION), &projection9);
-    if (FAILED(hr)) {
-      Logger::err("D3DViewport::TransformVertices: failed to get D3D9 projection transform");
-      return DDERR_GENERIC;
-    }
+    d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_WORLD), &world9);
+    d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_VIEW), &view9);
+    d3d9Device->GetTransform(ConvertTransformState(D3DTRANSFORMSTATE_PROJECTION), &projection9);
 
     // Precalculate a few static viewport factors, to save on per-vertex cycles
     const float viewport9HalfWidth  = static_cast<float>(m_viewport9.Width)  * 0.5f;
@@ -221,7 +209,7 @@ namespace dxvk {
 
       const Vector4 h = wvp * Vector4({in.x, in.y, in.z, 1.0f});
 
-      auto outH = data->lpHOut;
+      D3DHVERTEX* outH = data->lpHOut;
       if (outH != nullptr && clipped) {
         outH[t].dwFlags = 0;
         if (h.x > h.w)
@@ -350,7 +338,6 @@ namespace dxvk {
       if (likely(rt != nullptr)) {
         // If this isn't a full surface clear, we need to first upload the DDraw surface
         if (unlikely(count > 1 || !rt->IsFullSurfaceLock(reinterpret_cast<RECT*>(rects), nullptr))) {
-          //Logger::debug("D3DViewport::Clear: Partial render target clear");
           // Use a common surface helper, because we want to handle all
           // possible surface interfaces that may be alive at this time
           rt->InitializeOrUploadD3D9();
@@ -362,7 +349,6 @@ namespace dxvk {
       if (likely(ds != nullptr)) {
         // If this isn't a full surface clear, we need to first upload the DDraw surface
         if (unlikely(count > 1 || !ds->IsFullSurfaceLock(reinterpret_cast<RECT*>(rects), nullptr))) {
-          //Logger::debug("D3DViewport::Clear: Partial depth stencil clear");
           // Use a common surface helper, because we want to handle all
           // possible surface interfaces that may be alive at this time
           ds->InitializeOrUploadD3D9();
@@ -514,8 +500,8 @@ namespace dxvk {
     if (likely(m_commonD3DDevice->GetD3D3Device() == nullptr)) {
       // Use the full surface rect, since it is surface version agnostic
       const RECT* surfRect = m_commonD3DDevice->GetCommonRenderTarget()->GetFullSurfaceRect();
-      // D3D6 will fail when setting a viewport that's outside of the
-      // current render target, though that works in D3D9
+      // D3D6/5 will fail when setting a viewport that's outside
+      // of the current render target, though that works in D3D9
       HRESULT hr = ValidateViewportRT(data->dwX, data->dwY, data->dwWidth, data->dwHeight,
                                       surfRect->right, surfRect->bottom);
       if (unlikely(FAILED(hr)))
@@ -537,7 +523,7 @@ namespace dxvk {
     m_legacyClip.z = -data->dvMinZ / (data->dvMaxZ - data->dvMinZ);
 
     m_isViewportSet   = true;
-    // Also dirty legacy projection on any viewport updates
+    // Also dirty the legacy projection
     m_dirtyProjection = true;
 
     if (m_isCurrentViewport)
@@ -590,7 +576,6 @@ namespace dxvk {
       if (likely(rt != nullptr)) {
         // If this isn't a full surface clear, we need to first upload the DDraw surface
         if (unlikely(count > 1 || !rt->IsFullSurfaceLock(reinterpret_cast<RECT*>(rects), nullptr))) {
-          //Logger::debug("D3DViewport::Clear2: Partial render target clear");
           // Use a common surface helper, because we want to handle all
           // possible surface interfaces that may be alive at this time
           rt->InitializeOrUploadD3D9();
@@ -602,7 +587,6 @@ namespace dxvk {
       if (likely(ds != nullptr)) {
         // If this isn't a full surface clear, we need to first upload the DDraw surface
         if (unlikely(count > 1 || !ds->IsFullSurfaceLock(reinterpret_cast<RECT*>(rects), nullptr))) {
-          //Logger::debug("D3DViewport::Clear2: Partial depth stencil clear");
           // Use a common surface helper, because we want to handle all
           // possible surface interfaces that may be alive at this time
           ds->InitializeOrUploadD3D9();
@@ -655,7 +639,7 @@ namespace dxvk {
   }
 
   void D3DViewport::DeactivateLights() {
-    for (auto light : m_lights) {
+    for (auto& light : m_lights) {
       if (light->IsActive())
         DeactivateLight(light.ptr());
     }
@@ -665,14 +649,14 @@ namespace dxvk {
     d3d9::IDirect3DDevice9* d3d9Device = m_commonD3DDevice->GetD3D9Device();
 
     const DWORD light9Index = light->GetIndex();
-    //Logger::debug(str::format("D3DViewport::DeactivateLight: Disabling light nr. ", light9Index));
+
     HRESULT hr = d3d9Device->LightEnable(light9Index, FALSE);
     if (unlikely(FAILED(hr)))
       Logger::err("D3DViewport::DeactivateLight: Failed D3D9 LightEnable call");
   }
 
   void D3DViewport::ApplyAndActivateLights() {
-    for (auto light : m_lights)
+    for (auto& light : m_lights)
       ApplyAndActivateLight(light.ptr());
   }
 
@@ -685,12 +669,10 @@ namespace dxvk {
       Logger::err("D3DViewport::ApplyAndActivateLight: Failed D3D9 SetLight call");
 
     if (light->IsActive()) {
-      //Logger::debug(str::format("D3DViewport::ApplyAndActivateLight: Enabling D3D9 light nr. ", light9Index));
       hr = d3d9Device->LightEnable(light9Index, TRUE);
       if (unlikely(FAILED(hr)))
         Logger::err("D3DViewport::ApplyAndActivateLight: Failed D3D9 LightEnable call (TRUE)");
     } else {
-      //Logger::debug(str::format("D3DViewport::ApplyAndActivateLight: Disabling D3D9 light nr. ", light9Index));
       hr = d3d9Device->LightEnable(light9Index, FALSE);
       if (unlikely(FAILED(hr)))
         Logger::err("D3DViewport::ApplyAndActivateLight: Failed D3D9 LightEnable call (FALSE)");
