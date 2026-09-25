@@ -85,12 +85,6 @@ interface DECLSPEC_UUID("B0AB3B61-33D7-11D1-A981-00C04FD7B174") IDirect3DViewpor
 #undef DIRECT3D_VERSION
 #undef D3D_SDK_VERSION
 
-#undef D3DCS_ALL            // parentheses added in D3D9
-#undef D3DFVF_POSITION_MASK // changed from 0x00E to 0x400E in D3D9
-#undef D3DFVF_RESERVED2     // reduced from 4 to 2 in DX9
-
-#undef D3DSP_REGNUM_MASK    // changed from 0x00000FFF to 0x000007FF in D3D9
-
 
 #if defined(__MINGW32__) || defined(__GNUC__)
 
@@ -179,11 +173,11 @@ __CRT_UUID_DECL(d3d9::IDirect3DDevice9Ex,          0xB18B10CE, 0x2649, 0x405A, 0
 #include "../util/util_string.h"
 
 
-// redefine needed D3D macros
+// Redefined in D3D9, but we need the D3D8 and earlier value
 #undef  D3DFVF_POSITION_MASK
-#define D3DFVF_POSITION_MASK 0x00E
+#define D3DFVF_POSITION_MASK       0x00E
 
-// defined in MinGW headers, but not in MSVC headers...
+// Defined in MinGW headers, but not in MSVC headers...
 #ifndef D3DLIGHTCAPS_PARALLELPOINT
 #define D3DLIGHTCAPS_PARALLELPOINT 0x00000008
 #endif
@@ -278,10 +272,5 @@ namespace dxvk {
 
   static constexpr GUID GUID_IMediaStream         = { 0xB502D1BD, 0x9A57, 0x11D0, {0x8F, 0xDE, 0x00, 0xC0, 0x4F, 0xD9, 0x18, 0x9D} };
   static constexpr GUID GUID_IAMMediaStream       = { 0xBEBE595D, 0x9A6F, 0x11D0, {0x8F, 0xDE, 0x00, 0xC0, 0x4F, 0xD9, 0x18, 0x9D} };
-
-  struct DDrawModeSize {
-    DWORD width;
-    DWORD height;
-  };
 
 }
