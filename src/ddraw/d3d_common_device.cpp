@@ -30,7 +30,7 @@ namespace dxvk {
 
   D3DCommonDevice::~D3DCommonDevice() {
     // Dissasociate every bound viewport from this device
-    for (auto viewport : m_viewports) {
+    for (auto& viewport : m_viewports) {
       viewport->SetCommonD3DDevice(nullptr);
     }
 

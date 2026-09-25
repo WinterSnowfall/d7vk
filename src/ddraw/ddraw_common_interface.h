@@ -8,6 +8,11 @@
 
 namespace dxvk {
 
+  struct DDrawModeSize {
+    DWORD width;
+    DWORD height;
+  };
+
   class D3DCommonDevice;
   class D3DCommonTexture;
 
