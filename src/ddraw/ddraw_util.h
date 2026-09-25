@@ -234,6 +234,8 @@ namespace dxvk {
   inline size_t GetFVFPositionSize(DWORD fvf) {
     size_t size = 0;
 
+    static_assert(D3DFVF_POSITION_MASK == 0x00E);
+
     switch (fvf & D3DFVF_POSITION_MASK) {
       case D3DFVF_XYZ:
         size += 3 * sizeof(FLOAT);
@@ -337,6 +339,8 @@ namespace dxvk {
 
     for (DWORD i = 0; i < dwNumVertices; i++) {
       uint8_t* ptr = pvb.vertexData.data() + i * pvb.stride;
+
+      static_assert(D3DFVF_POSITION_MASK == 0x00E);
 
       if ((dwFVF & D3DFVF_POSITION_MASK) && lpVBStrided->position.lpvData) {
         memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->position.lpvData) + i * lpVBStrided->position.dwStride, positionSize);
