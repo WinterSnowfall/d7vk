@@ -133,7 +133,7 @@ namespace dxvk {
     }
 
     void GetD3D9ActiveLights(std::vector<d3d9::D3DLIGHT9>* lights9) {
-      for (auto light : m_lights) {
+      for (auto& light : m_lights) {
         if (light->IsActive())
           lights9->push_back(*light->GetD3D9Light());
       }
@@ -141,12 +141,12 @@ namespace dxvk {
 
   private:
 
-    bool               m_isBackgroundDepthSet  = false;
-    bool               m_isBackgroundDepth4Set = false;
+    bool               m_isCurrentViewport     = false;
 
     bool               m_isViewportSet         = false;
-    bool               m_isCurrentViewport     = false;
     bool               m_isMaterialSet         = false;
+    bool               m_isBackgroundDepthSet  = false;
+    bool               m_isBackgroundDepth4Set = false;
 
     // Legacy projection state
     bool               m_isIdentityMatrix      = false;
