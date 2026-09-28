@@ -840,14 +840,23 @@ namespace dxvk {
         device9->GetSamplerState(0, d3d9::D3DSAMP_ADDRESSV, lpdwRenderState);
         return D3D_OK;
 
-      case D3DRENDERSTATE_MIPMAPLODBIAS:
-        device9->GetSamplerState(0, d3d9::D3DSAMP_MIPMAPLODBIAS, lpdwRenderState);
+      case D3DRENDERSTATE_MIPMAPLODBIAS: {
+        const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+        if (unlikely(d3dOptions->inverseLodBiasScale)) {
+          DWORD lodBias = 0;
+          device9->GetSamplerState(0, d3d9::D3DSAMP_MIPMAPLODBIAS, &lodBias);
+          const float fLodBias = bit::cast<float>(lodBias);
+          *lpdwRenderState = bit::cast<DWORD>(-fLodBias);
+        } else {
+          device9->GetSamplerState(0, d3d9::D3DSAMP_MIPMAPLODBIAS, lpdwRenderState);
+        }
         return D3D_OK;
+      }
 
       case D3DRENDERSTATE_ZBIAS: {
-        DWORD bias = 0;
-        device9->GetRenderState(d3d9::D3DRS_DEPTHBIAS, &bias);
-        *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(bias) * ddrawCaps::ZBIAS_SCALE_INV);
+        DWORD zBias = 0;
+        device9->GetRenderState(d3d9::D3DRS_DEPTHBIAS, &zBias);
+        *lpdwRenderState = static_cast<DWORD>(bit::cast<float>(zBias) * ddrawCaps::ZBIAS_SCALE_INV);
         return D3D_OK;
       }
 
@@ -1312,9 +1321,16 @@ namespace dxvk {
         device9->SetSamplerState(0, d3d9::D3DSAMP_ADDRESSV, dwRenderState);
         return D3D_OK;
 
-      case D3DRENDERSTATE_MIPMAPLODBIAS:
-        device9->SetSamplerState(0, d3d9::D3DSAMP_MIPMAPLODBIAS, dwRenderState);
+      case D3DRENDERSTATE_MIPMAPLODBIAS: {
+        const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+        if (unlikely(d3dOptions->inverseLodBiasScale)) {
+          const float fLodBias = bit::cast<float>(dwRenderState);
+          device9->SetSamplerState(0, d3d9::D3DSAMP_MIPMAPLODBIAS, bit::cast<DWORD>(-fLodBias));
+        } else {
+          device9->SetSamplerState(0, d3d9::D3DSAMP_MIPMAPLODBIAS, dwRenderState);
+        }
         return D3D_OK;
+      }
 
       case D3DRENDERSTATE_ZBIAS:
         State9         = d3d9::D3DRS_DEPTHBIAS;
