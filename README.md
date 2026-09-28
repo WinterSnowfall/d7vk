@@ -1,9 +1,12 @@
 ﻿# D7VK
 
-A Vulkan-based translation layer for Direct3D 7, 6, 5 and 3 which allows running 3D applications on Linux using Wine. It uses DXVK's D3D9 backend as well as Wine's DDraw implementation (or the Windows native DDraw) and acts as a proxy between the two, providing a minimal D3D7/6/5/3-on-D3D9 implementation.
+A Vulkan-based translation layer for Direct3D 7, 6, 5 and 3, which allows running 3D applications on Linux using Wine. It uses a modified version of DXVK's D3D9 Vulkan backend as well as Wine's DDraw implementation, or the Windows native DDraw implementation, and acts as a proxy between the two.
 
 > [!IMPORTANT]
 > D3D retained-mode applications are NOT supported, since the project only aims to implement immediate-mode.
+
+> [!TIP]
+> There is no benefit to using D7VK with DirectDraw-only (2D accelerated) games, as calls will simply be proxied to the underlying DDraw implementation. Projects such as [cnc-ddraw](https://github.com/FunkyFr3sh/cnc-ddraw) may also be helpful in such cases, should Wine/Windows exibit issues.
 
 > [!NOTE]
 > D3D7/6/5/3 support is also available in [DXVK-Sarek](https://github.com/pythonlover02/DXVK-Sarek), in case you are using older graphics hardware.

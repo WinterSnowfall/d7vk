@@ -103,6 +103,9 @@ namespace dxvk {
     /// Expose the D3DDEVCAPS_TEXTURENONLOCALVIDMEM device cap
     bool nonLocalVideoMemory;
 
+    /// Inverses the effect of LOD bias values, as per early D3D documentation
+    bool inverseLodBiasScale;
+
     /// Be adamant about keeping all texture backing surfaces alive
     bool robustTextureLifeCycle;
 
