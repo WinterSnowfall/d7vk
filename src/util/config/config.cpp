@@ -1778,6 +1778,10 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.emulateFrontBuffer",         "True" },
     }} },
+    /* Rage Rally - Works around gamma issues     */
+    { R"(\\Rage Rally\\rally\.exe$)", {{
+      { "ddraw.ignoreGammaRamp",            "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
@@ -2100,6 +2104,12 @@ namespace dxvk {
      * accelerated animations on some menus       */
     { R"(\\frogger\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-25" },
+    }} },
+    /* Redline Racer                              *
+     * Fixes texture LOD issues caused by the     *
+     * game resorting to a high positive bias     */
+    { R"(\\rlr_d3d\.exe$)", {{
+      { "ddraw.inverseLodBiasScale",        "True" },
     }} },
 
     /**********************************************/
