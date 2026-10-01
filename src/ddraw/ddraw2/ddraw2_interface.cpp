@@ -573,24 +573,27 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw2Interface::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags) {
     Logger::debug(str::format("DDraw2Interface::SetDisplayMode: ", dwWidth, "x", dwHeight, ":", dwBPP, "@", dwRefreshRate));
 
-    HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
-    if (unlikely(FAILED(hr)))
-      return hr;
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
-    DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();
-
-    if (likely(ps != nullptr)) {
-      hr = ps->RefreshSurfaceDescripton(true);
+    if (likely(!d3dOptions->ignoreDisplayModes)) {
+      HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
       if (unlikely(FAILED(hr)))
-        Logger::warn("DDraw2Interface::SetDisplayMode: Failed to update primary surface desc");
+        return hr;
+
+      DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();
+
+      if (likely(ps != nullptr)) {
+        hr = ps->RefreshSurfaceDescripton(true);
+        if (unlikely(FAILED(hr)))
+          Logger::warn("DDraw2Interface::SetDisplayMode: Failed to update primary surface desc");
+      }
     }
 
-    if (likely(m_commonIntf->GetOptions()->backBufferResize)) {
+    if (likely(d3dOptions->backBufferResize)) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
       if (exclusiveMode) {
-        Logger::debug("DDraw2Interface::SetDisplayMode: Exclusive full-screen present mode in use");
         DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
         if (modeSize->width != dwWidth || modeSize->height != dwHeight) {
           modeSize->width  = dwWidth;
