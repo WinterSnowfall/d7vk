@@ -67,8 +67,14 @@ namespace dxvk {
     /// Process vertices on the CPU, instead of relaying to D3D9
     bool cpuProcessVertices;
 
+    /// Ignore any display mode setting done by the application
+    bool ignoreDisplayModes;
+
     /// Resize the back buffer size to screen size when needed
     bool backBufferResize;
+
+    /// Preserve the current aspect ratio during back buffer resize
+    bool preserveAspectRatio;
 
     /// Blits back to the proxied flippable surface and back again for presentation
     bool forceLegacyPresent;

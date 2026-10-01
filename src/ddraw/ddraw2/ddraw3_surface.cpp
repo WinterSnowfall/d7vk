@@ -349,7 +349,8 @@ namespace dxvk {
 
         if (sourceSurfOrig == renderTarget) {
           renderTarget->InitializeOrUploadD3D9();
-          d3d9Device->Present(NULL, NULL, NULL, NULL);
+          const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+          d3d9Device->Present(NULL, presentRect, NULL, NULL);
           return DD_OK;
         }
       }
@@ -374,7 +375,8 @@ namespace dxvk {
                                  false : true;
       if (shouldPresent) {
         InitializeOrUploadD3D9();
-        d3d9Device->Present(NULL, NULL, NULL, NULL);
+        const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+        d3d9Device->Present(NULL, presentRect, NULL, NULL);
       }
     }
 
@@ -426,7 +428,8 @@ namespace dxvk {
 
         if (sourceSurfOrig == renderTarget) {
           renderTarget->InitializeOrUploadD3D9();
-          d3d9Device->Present(NULL, NULL, NULL, NULL);
+          const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+          d3d9Device->Present(NULL, presentRect, NULL, NULL);
           return DD_OK;
         }
       }
@@ -451,7 +454,8 @@ namespace dxvk {
                                  false : true;
       if (shouldPresent) {
         InitializeOrUploadD3D9();
-        d3d9Device->Present(NULL, NULL, NULL, NULL);
+        const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+        d3d9Device->Present(NULL, presentRect, NULL, NULL);
       }
     }
 
@@ -573,7 +577,8 @@ namespace dxvk {
         InitializeOrUploadD3D9();
       }
 
-      d3d9Device->Present(NULL, NULL, NULL, NULL);
+      const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+      d3d9Device->Present(NULL, presentRect, NULL, NULL);
 
     } else {
       if (overrideSurf == nullptr) {
@@ -789,7 +794,8 @@ namespace dxvk {
                                    false : true;
         if (shouldPresent) {
           InitializeOrUploadD3D9();
-          d3d9Device->Present(NULL, NULL, NULL, NULL);
+          const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+          d3d9Device->Present(NULL, presentRect, NULL, NULL);
         }
       }
     }
@@ -910,7 +916,8 @@ namespace dxvk {
                                      false : true;
           if (shouldPresent) {
             InitializeOrUploadD3D9();
-            d3d9Device->Present(NULL, NULL, NULL, NULL);
+            const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+            d3d9Device->Present(NULL, presentRect, NULL, NULL);
           }
         }
       }
