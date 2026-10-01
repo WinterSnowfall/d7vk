@@ -1429,6 +1429,21 @@ namespace dxvk {
     }
   }
 
+  inline void GetPresentRect(RECT* presentRect, DWORD width, DWORD height, DWORD modeWidth, DWORD modeHeight) {
+    // We can't know what odd resolutions we get, so acount for any width/height ratio
+    const float scaleRatioX = static_cast<float>(width) / static_cast<float>(modeWidth);
+    const float scaleRatioY = static_cast<float>(height) / static_cast<float>(modeHeight);
+    const float scaleRatio = std::min(scaleRatioX, scaleRatioY);
+
+    const DWORD actualWidth  = static_cast<float>(modeWidth) * scaleRatio;
+    const DWORD actualHeight = static_cast<float>(modeHeight) * scaleRatio;
+
+    presentRect->left   = static_cast<float>(width - actualWidth) * 0.5f;
+    presentRect->top    = static_cast<float>(height - actualHeight) * 0.5f;
+    presentRect->right  = presentRect->left + actualWidth;
+    presentRect->bottom = presentRect->top + actualHeight;
+  }
+
   inline Matrix4 MatrixD3DTo4(const D3DMATRIX* m) {
     Matrix4 r;
 
