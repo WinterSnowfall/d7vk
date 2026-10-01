@@ -466,7 +466,8 @@ namespace dxvk {
                                  false : true;
       if (shouldPresent) {
         InitializeOrUploadD3D9();
-        d3d9Device->Present(NULL, NULL, NULL, NULL);
+        const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+        d3d9Device->Present(NULL, presentRect, NULL, NULL);
       }
     }
 
@@ -513,7 +514,8 @@ namespace dxvk {
 
         if (sourceSurface == renderTarget) {
           renderTarget->InitializeOrUploadD3D9();
-          d3d9Device->Present(NULL, NULL, NULL, NULL);
+          const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+          d3d9Device->Present(NULL, presentRect, NULL, NULL);
           return DD_OK;
         }
       }
@@ -538,7 +540,8 @@ namespace dxvk {
                                  false : true;
       if (shouldPresent) {
         InitializeOrUploadD3D9();
-        d3d9Device->Present(NULL, NULL, NULL, NULL);
+        const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+        d3d9Device->Present(NULL, presentRect, NULL, NULL);
       }
     }
 
@@ -694,7 +697,8 @@ namespace dxvk {
         InitializeOrUploadD3D9();
       }
 
-      d3d9Device->Present(NULL, NULL, NULL, NULL);
+      const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+      d3d9Device->Present(NULL, presentRect, NULL, NULL);
 
     } else {
       if (overrideSurf == nullptr) {
@@ -911,7 +915,8 @@ namespace dxvk {
                                    false : true;
         if (shouldPresent) {
           InitializeOrUploadD3D9();
-          d3d9Device->Present(NULL, NULL, NULL, NULL);
+          const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+          d3d9Device->Present(NULL, presentRect, NULL, NULL);
         }
       }
     }
@@ -1032,7 +1037,8 @@ namespace dxvk {
                                      false : true;
           if (shouldPresent) {
             InitializeOrUploadD3D9();
-            d3d9Device->Present(NULL, NULL, NULL, NULL);
+            const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+            d3d9Device->Present(NULL, presentRect, NULL, NULL);
           }
         }
       }
@@ -1234,8 +1240,11 @@ namespace dxvk {
 
     const DDSURFACEDESC* desc = m_commonSurf->GetDesc();
 
+    RECT presentRect = { };
+    bool aspectRatioCorrection = false;
+
     DWORD backBufferWidth  = desc->dwWidth;
-    DWORD BackBufferHeight = desc->dwHeight;
+    DWORD backBufferHeight = desc->dwHeight;
 
     if (likely(d3dOptions->backBufferResize)) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
@@ -1247,8 +1256,14 @@ namespace dxvk {
         if ((modeSize->width  && modeSize->width  < desc->dwWidth)
          || (modeSize->height && modeSize->height < desc->dwHeight)) {
           Logger::info("DDrawSurface::CreateDeviceInternal: Enforcing mode dimensions");
+
           backBufferWidth  = modeSize->width;
-          BackBufferHeight = modeSize->height;
+          backBufferHeight = modeSize->height;
+
+          if (likely(d3dOptions->preserveAspectRatio)) {
+            GetPresentRect(&presentRect, desc->dwWidth, desc->dwHeight, modeSize->width, modeSize->height);
+            aspectRatioCorrection = true;
+          }
         }
       }
     }
@@ -1289,7 +1304,7 @@ namespace dxvk {
 
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = backBufferWidth;
-    params.BackBufferHeight   = BackBufferHeight;
+    params.BackBufferHeight   = backBufferHeight;
     params.BackBufferFormat   = backBufferFormat;
     params.BackBufferCount    = backBufferCount;
     params.MultiSampleType    = multiSampleType;
@@ -1329,6 +1344,9 @@ namespace dxvk {
       hr = m_device3->InitializeRTAndDS();
       if (unlikely(FAILED(hr)))
         return hr;
+
+      if (aspectRatioCorrection)
+        m_device3->GetCommonD3DDevice()->SetPresentRect(&presentRect);
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;
