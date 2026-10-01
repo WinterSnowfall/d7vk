@@ -467,8 +467,11 @@ namespace dxvk {
     desc.dwSize = sizeof(DDSURFACEDESC);
     lpDDS->GetSurfaceDesc(&desc);
 
+    RECT presentRect = { };
+    bool aspectRatioCorrection = false;
+
     DWORD backBufferWidth  = desc.dwWidth;
-    DWORD BackBufferHeight = desc.dwHeight;
+    DWORD backBufferHeight = desc.dwHeight;
 
     if (likely(d3dOptions->backBufferResize)) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
@@ -480,8 +483,14 @@ namespace dxvk {
         if ((modeSize->width  && modeSize->width  < desc.dwWidth)
          || (modeSize->height && modeSize->height < desc.dwHeight)) {
           Logger::info("D3D5Interface::CreateDevice: Enforcing mode dimensions");
+
           backBufferWidth  = modeSize->width;
-          BackBufferHeight = modeSize->height;
+          backBufferHeight = modeSize->height;
+
+          if (likely(d3dOptions->preserveAspectRatio)) {
+            GetPresentRect(&presentRect, desc.dwWidth, desc.dwHeight, modeSize->width, modeSize->height);
+            aspectRatioCorrection = true;
+          }
         }
       }
     }
@@ -513,7 +522,7 @@ namespace dxvk {
 
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = backBufferWidth;
-    params.BackBufferHeight   = BackBufferHeight;
+    params.BackBufferHeight   = backBufferHeight;
     params.BackBufferFormat   = backBufferFormat;
     params.BackBufferCount    = backBufferCount;
     params.MultiSampleType    = multiSampleType; // Controlled through D3DRENDERSTATE_ANTIALIAS
@@ -553,6 +562,9 @@ namespace dxvk {
       hr = device5->InitializeRTAndDS();
       if (unlikely(FAILED(hr)))
         return hr;
+
+      if (aspectRatioCorrection)
+        device5->GetCommonD3DDevice()->SetPresentRect(&presentRect);
 
       *lplpD3DDevice = device5.ref();
     } catch (const DxvkError& e) {
