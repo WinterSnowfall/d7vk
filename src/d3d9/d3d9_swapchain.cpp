@@ -1358,11 +1358,15 @@ namespace dxvk {
       dstRect = *pDestRect;
     }
 
-    m_partialCopy =
-       dstRect.left != 0
-    || dstRect.top != 0
-    || dstRect.right  - dstRect.left != LONG(width)
-    || dstRect.bottom - dstRect.top  != LONG(height);
+    // We always want a full copy on Present() in D3D7 and earlier,
+    // since that is potentially needed for aspect ratio correction
+    if (!m_parent->IsD3DCompatibile(D3DCompatibility::D3D7)) {
+      m_partialCopy =
+        dstRect.left != 0
+      || dstRect.top != 0
+      || dstRect.right  - dstRect.left != LONG(width)
+      || dstRect.bottom - dstRect.top  != LONG(height);
+    }
 
     m_swapchainExtent = { width, height };
     m_dstRect = dstRect;
