@@ -99,6 +99,23 @@ namespace dxvk {
       return m_totalMemory;
     }
 
+    void SetPresentRect(RECT* presentRect) {
+      if (likely(presentRect != nullptr))
+        m_presentRect = *presentRect;
+
+      if (m_presentRect.left != 0 || m_presentRect.top != 0 ||
+          m_presentRect.right != 0 || m_presentRect.bottom != 0) {
+        m_aspectRatioCorrection = true;
+      }
+    }
+
+    const RECT* GetPresentRect() const {
+      if (!m_aspectRatioCorrection)
+        return nullptr;
+
+      return &m_presentRect;
+    }
+
     D3DMATERIALHANDLE GetCurrentMaterialHandle() const {
       return m_materialHandle;
     }
@@ -225,46 +242,50 @@ namespace dxvk {
 
   private:
 
-    bool                          m_inScene             = false;
+    bool                          m_inScene               = false;
     // D3DRENDERSTATE_ZWRITEENABLE, defaults to TRUE.
     // Used only for D3D9 depth stencil surface dirtying.
-    bool                          m_isDepthWriteEnabled = true;
+    bool                          m_isDepthWriteEnabled   = true;
+    bool                          m_aspectRatioCorrection = false;
 
-    DDrawCommonInterface*         m_commonIntf          = nullptr;
+    DDrawCommonInterface*         m_commonIntf            = nullptr;
 
     GUID                          m_deviceGUID;
-    uint32_t                      m_totalMemory         = 0u;
+    uint32_t                      m_totalMemory           = 0u;
 
-    D3DMATERIALHANDLE             m_materialHandle      = 0u;
-    D3DTEXTUREHANDLE              m_textureHandle       = 0u;
+    // Used for aspect ratio correction on back buffer resize
+    RECT                          m_presentRect           = { };
+
+    D3DMATERIALHANDLE             m_materialHandle        = 0u;
+    D3DTEXTUREHANDLE              m_textureHandle         = 0u;
 
     // D3DRENDERSTATE_COLORKEYENABLE
-    DWORD                         m_colorKeyEnable      = FALSE;
+    DWORD                         m_colorKeyEnable        = FALSE;
     // D3DRENDERSTATE_COLORKEYBLENDENABLE
-    DWORD                         m_colorKeyBlendEnable = FALSE;
+    DWORD                         m_colorKeyBlendEnable   = FALSE;
     // D3DRENDERSTATE_ANTIALIAS
-    DWORD                         m_antialias           = D3DANTIALIAS_NONE;
+    DWORD                         m_antialias             = D3DANTIALIAS_NONE;
     // D3DRENDERSTATE_LINEPATTERN
-    D3DLINEPATTERN                m_linePattern         = { };
+    D3DLINEPATTERN                m_linePattern           = { };
     // D3DRENDERSTATE_TEXTUREMAPBLEND
-    DWORD                         m_textureMapBlend     = D3DTBLEND_MODULATE;
+    DWORD                         m_textureMapBlend       = D3DTBLEND_MODULATE;
 
     d3d9::D3DPRESENT_PARAMETERS   m_params9;
-    DWORD                         m_creationFlags9      = 0u;
+    DWORD                         m_creationFlags9        = 0u;
 
     Com<D3DViewport>              m_currentViewport;
     std::vector<Com<D3DViewport>> m_viewports;
 
     Com<d3d9::IDirect3DDevice9>   m_device9;
 
-    D3D7Device*                   m_device7             = nullptr;
-    D3D6Device*                   m_device6             = nullptr;
-    D3D5Device*                   m_device5             = nullptr;
-    D3D3Device*                   m_device3             = nullptr;
+    D3D7Device*                   m_device7               = nullptr;
+    D3D6Device*                   m_device6               = nullptr;
+    D3D5Device*                   m_device5               = nullptr;
+    D3D3Device*                   m_device3               = nullptr;
 
     // Track the origin device, as in the device
     // that gets created through a CreateDevice call
-    IUnknown*                     m_origin              = nullptr;
+    IUnknown*                     m_origin                = nullptr;
 
   };
 
