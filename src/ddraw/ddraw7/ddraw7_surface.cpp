@@ -1059,17 +1059,26 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetPriority(DWORD prio) {
     m_commonSurf->RefreshD3D9Device();
 
-    if (unlikely(!m_commonSurf->IsInitialized()))
-      return m_proxy->SetPriority(prio);
-
+    // Docs: "This method succeeds only on managed textures."
     if (unlikely(!m_commonSurf->IsManaged()))
       return DDERR_INVALIDOBJECT;
 
-    HRESULT hr = m_proxy->SetPriority(prio);
-    if (unlikely(FAILED(hr)))
-      return hr;
+    if (unlikely(!m_commonSurf->IsTexture() && !m_commonSurf->IsCubeMap()))
+      return DDERR_INVALIDOBJECT;
 
-    m_commonSurf->GetD3D9Surface()->SetPriority(prio);
+    m_commonSurf->SetPriority(prio);
+
+    // Defer setting the priority until we have a D3D9 texture
+    if (unlikely(!m_commonSurf->IsInitialized()))
+      return DD_OK;
+
+    if (m_commonSurf->GetD3D9Texture() != nullptr) {
+      m_commonSurf->GetD3D9Texture()->SetPriority(prio);
+    } else if (m_commonSurf->GetD3D9CubeTexture() != nullptr) {
+      m_commonSurf->GetD3D9CubeTexture()->SetPriority(prio);
+    } else {
+      return DDERR_INVALIDOBJECT;
+    }
 
     return DD_OK;
   }
@@ -1077,16 +1086,13 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetPriority(LPDWORD prio) {
     m_commonSurf->RefreshD3D9Device();
 
-    if (unlikely(!m_commonSurf->IsInitialized()))
-      return m_proxy->GetPriority(prio);
-
     if (unlikely(prio == nullptr))
       return DDERR_INVALIDPARAMS;
 
     if (unlikely(!m_commonSurf->IsManaged()))
       return DDERR_INVALIDOBJECT;
 
-    *prio = m_commonSurf->GetD3D9Surface()->GetPriority();
+    *prio = m_commonSurf->GetPriority();
 
     return DD_OK;
   }
@@ -1094,22 +1100,25 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::SetLOD(DWORD lod) {
     m_commonSurf->RefreshD3D9Device();
 
-    if (unlikely(!m_commonSurf->IsInitialized()))
-      return m_proxy->SetLOD(lod);
-
+    // Docs: "This method succeeds only on managed textures."
     if (unlikely(!m_commonSurf->IsManaged()))
       return DDERR_INVALIDOBJECT;
 
-    HRESULT hr = m_proxy->SetLOD(lod);
-    if (unlikely(FAILED(hr)))
-      return hr;
+    if (unlikely(!m_commonSurf->IsTexture() && !m_commonSurf->IsCubeMap()))
+      return DDERR_INVALIDOBJECT;
 
+    m_commonSurf->SetLOD(lod);
+
+    // Defer setting the LOD until we have a D3D9 texture
+    if (unlikely(!m_commonSurf->IsInitialized()))
+      return DD_OK;
+
+    // Docs: "This method succeeds only on managed textures."
     if (m_commonSurf->GetD3D9Texture() != nullptr) {
       m_commonSurf->GetD3D9Texture()->SetLOD(lod);
     } else if (m_commonSurf->GetD3D9CubeTexture() != nullptr) {
       m_commonSurf->GetD3D9CubeTexture()->SetLOD(lod);
     } else {
-      Logger::warn("DDraw7Surface::SetLOD: Failed to set D3D9 LOD");
       return DDERR_INVALIDOBJECT;
     }
 
@@ -1119,23 +1128,13 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DDraw7Surface::GetLOD(LPDWORD lod) {
     m_commonSurf->RefreshD3D9Device();
 
-    if (unlikely(!m_commonSurf->IsInitialized()))
-      return m_proxy->GetLOD(lod);
-
     if (unlikely(lod == nullptr))
       return DDERR_INVALIDPARAMS;
 
     if (unlikely(!m_commonSurf->IsManaged()))
       return DDERR_INVALIDOBJECT;
 
-    if (likely(m_commonSurf->GetD3D9Texture() != nullptr)) {
-      *lod = m_commonSurf->GetD3D9Texture()->GetLOD();
-    } else if (m_commonSurf->GetD3D9CubeTexture() != nullptr) {
-      *lod = m_commonSurf->GetD3D9CubeTexture()->GetLOD();
-    } else {
-      Logger::warn("DDraw7Surface::GetLOD: Failed to get D3D9 LOD");
-      return DDERR_INVALIDOBJECT;
-    }
+    *lod = m_commonSurf->GetLOD();
 
     return DD_OK;
   }

@@ -186,6 +186,13 @@ namespace dxvk {
         }
         // Always attach the positive X face to this surface
         m_cubeMap9->GetCubeMapSurface(d3d9::D3DCUBEMAP_FACE_POSITIVE_X, 0, &m_surface9);
+
+        // Propagate any preexisting LOD and priority
+        if (unlikely(m_lod != 0))
+          m_cubeMap9->SetLOD(m_lod);
+        if (unlikely(m_priority != 0))
+          m_cubeMap9->SetPriority(m_priority);
+
         break;
       }
       case D3D9SurfaceType::Texture: {
@@ -200,6 +207,13 @@ namespace dxvk {
         }
         // Attach level 0 to this surface
         m_texture9->GetSurfaceLevel(0, &m_surface9);
+
+        // Propagate any preexisting LOD and priority
+        if (unlikely(m_lod != 0))
+          m_texture9->SetLOD(m_lod);
+        if (unlikely(m_priority != 0))
+          m_texture9->SetPriority(m_priority);
+
         break;
       }
       case D3D9SurfaceType::DepthStencil: {
