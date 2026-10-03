@@ -182,6 +182,22 @@ namespace dxvk {
       m_backBufferIndex = index + 1;
     }
 
+    void SetLOD(DWORD lod) {
+      m_lod = lod;
+    }
+
+    DWORD GetLOD() const {
+      return m_lod;
+    }
+
+    void SetPriority(DWORD priority) {
+      m_priority = priority;
+    }
+
+    DWORD GetPriority() const {
+      return m_priority;
+    }
+
     bool IsDDrawSurfaceDirty() const {
       return m_dirtyDDraw;
     }
@@ -594,6 +610,9 @@ namespace dxvk {
 
     uint32_t                         m_mipCount         = 1;
     uint32_t                         m_backBufferIndex  = 0;
+
+    DWORD                            m_lod              = 0;
+    DWORD                            m_priority         = 0;
 
     DDSURFACEDESC                    m_desc             = { };
     DDSURFACEDESC2                   m_desc2            = { };
