@@ -1239,11 +1239,9 @@ namespace dxvk {
 
     const DDSURFACEDESC* desc = m_commonSurf->GetDesc();
 
-    RECT presentRect = { };
-    bool aspectRatioCorrection = false;
-
     DWORD backBufferWidth  = desc->dwWidth;
     DWORD backBufferHeight = desc->dwHeight;
+    RECT presentRect = { };
 
     if (likely(d3dOptions->backBufferResize)) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
@@ -1261,7 +1259,8 @@ namespace dxvk {
 
           if (likely(d3dOptions->preserveAspectRatio)) {
             GetCenteredRect(&presentRect, desc->dwWidth, desc->dwHeight, modeSize->width, modeSize->height);
-            aspectRatioCorrection = true;
+          } else {
+            GetStretchedRect(&presentRect, desc->dwWidth, desc->dwHeight);
           }
         }
       }
@@ -1344,8 +1343,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      if (aspectRatioCorrection)
-        m_device3->GetCommonD3DDevice()->SetPresentRect(&presentRect);
+      m_device3->GetCommonD3DDevice()->SetPresentRect(&presentRect);
     } catch (const DxvkError& e) {
       Logger::err(e.message());
       return DDERR_GENERIC;
