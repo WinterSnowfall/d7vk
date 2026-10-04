@@ -1429,6 +1429,13 @@ namespace dxvk {
     }
   }
 
+  inline void GetStretchedRect(RECT* stretchedRect, DWORD width, DWORD height) {
+    stretchedRect->left   = 0u;
+    stretchedRect->top    = 0u;
+    stretchedRect->right  = width;
+    stretchedRect->bottom = height;
+  }
+
   inline void GetCenteredRect(RECT* scaledRect, DWORD width, DWORD height, DWORD modeWidth, DWORD modeHeight) {
     // We can't know what odd resolutions we get, so acount for any width/height ratio
     const float scaleRatioX = static_cast<float>(width) / static_cast<float>(modeWidth);
