@@ -58,7 +58,7 @@ namespace dxvk {
     return DD_OK;
   }
 
-  void DDrawCommonSurface::RefreshD3D9Device() {
+  void DDrawCommonSurface::RefreshD3DDevice() {
     D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
 
     if (unlikely(m_commonD3DDevice != commonD3DDevice)) {
@@ -73,7 +73,7 @@ namespace dxvk {
   }
 
   d3d9::IDirect3DDevice9* DDrawCommonSurface::GetRefreshedD3D9Device() {
-    RefreshD3D9Device();
+    RefreshD3DDevice();
 
     if (likely(m_commonD3DDevice != nullptr))
       return m_commonD3DDevice->GetD3D9Device();
