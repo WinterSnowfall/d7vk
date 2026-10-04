@@ -103,9 +103,11 @@ namespace dxvk {
       if (likely(presentRect != nullptr))
         m_presentRect = *presentRect;
 
-      if (m_presentRect.left != 0 || m_presentRect.top != 0 ||
-          m_presentRect.right != 0 || m_presentRect.bottom != 0) {
+      if (likely(m_presentRect.left != 0 || m_presentRect.top != 0 ||
+                 m_presentRect.right != 0 || m_presentRect.bottom != 0)) {
         m_aspectRatioCorrection = true;
+      } else {
+        m_aspectRatioCorrection = false;
       }
     }
 

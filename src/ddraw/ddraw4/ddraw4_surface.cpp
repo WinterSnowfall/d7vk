@@ -368,8 +368,7 @@ namespace dxvk {
 
         if (sourceSurface == renderTarget) {
           renderTarget->InitializeOrUploadD3D9();
-          const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
-          d3d9Device->Present(NULL, presentRect, NULL, NULL);
+          d3d9Device->Present(NULL, NULL, NULL, NULL);
           return DD_OK;
         }
       }
@@ -442,8 +441,7 @@ namespace dxvk {
 
         if (sourceSurface == renderTarget) {
           renderTarget->InitializeOrUploadD3D9();
-          const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
-          d3d9Device->Present(NULL, presentRect, NULL, NULL);
+          d3d9Device->Present(NULL, NULL, NULL, NULL);
           return DD_OK;
         }
       }
@@ -1121,7 +1119,7 @@ namespace dxvk {
     if (unlikely(m_commonSurf->SkipD3D9Operations()))
       return DD_OK;
 
-    m_commonSurf->RefreshD3D9Device();
+    m_commonSurf->RefreshD3DDevice();
 
     if (unlikely(!m_commonSurf->IsInitialized())) {
       HRESULT hr = m_commonSurf->InitializeD3D9(true);
@@ -1137,7 +1135,7 @@ namespace dxvk {
   }
 
   HRESULT DDraw4Surface::InitializeD3D9DepthStencil() {
-    m_commonSurf->RefreshD3D9Device();
+    m_commonSurf->RefreshD3DDevice();
 
     if (unlikely(!m_commonSurf->IsInitialized())) {
       HRESULT hr = m_commonSurf->InitializeD3D9(false);
@@ -1183,7 +1181,7 @@ namespace dxvk {
     // use, simply skip changing assigned surface devices during downloads. This is essentially
     // a hack, which by some miracle works well enough in some cases, though may explode in others.
     if (likely(!m_commonIntf->GetOptions()->deviceResourceSharing))
-      m_commonSurf->RefreshD3D9Device();
+      m_commonSurf->RefreshD3DDevice();
 
     // TODO: We are technically ignoring mip maps as is, though that will probably never be an issue
     if (m_commonSurf->IsD3D9SurfaceDirty() && m_commonSurf->IsInitialized()) {
