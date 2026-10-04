@@ -184,11 +184,7 @@ namespace dxvk {
 
     void SetParentSurface(DDraw4Surface* surface) {
       m_parentSurf = surface;
-
-      if (m_parentSurf != nullptr)
-        m_commonSurf->SetIsAttached(true);
-      else
-        m_commonSurf->SetIsAttached(false);
+      m_commonSurf->SetIsAttached(m_parentSurf != nullptr);
     }
 
     DDraw4Surface* GetParentSurface() const {
