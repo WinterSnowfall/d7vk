@@ -102,8 +102,8 @@ namespace dxvk {
     if (m_parent != nullptr && m_isChildObject)
       m_parent->AddRef();
 
-    // Cube map face surfaces
-    m_cubeMapSurfaces.fill(nullptr);
+    // Cube texture face surfaces
+    m_cubeTexSurfaces.fill(nullptr);
 
     //Logger::debug(str::format("DDraw7Surface: Created a new surface nr. [[7-", std::hex, this, "]]"));
 
@@ -1210,12 +1210,11 @@ namespace dxvk {
   }
 
   inline void DDraw7Surface::InitializeAndAttachCubeFace(
-        IDirectDrawSurface7* surf,
-        d3d9::IDirect3DCubeTexture9* cubeTex9,
-        d3d9::D3DCUBEMAP_FACES face) {
+        IDirectDrawSurface7* surface,
+        d3d9::IDirect3DCubeTexture9* cubeTex9) {
     Com<DDraw7Surface> face7;
 
-    Com<IDirectDrawSurface7> faceProxied = surf;
+    Com<IDirectDrawSurface7> faceProxied = surface;
     try {
       face7 = new DDraw7Surface(nullptr, std::move(faceProxied),
                                 m_commonIntf->GetDD7Interface(), this, false);
@@ -1225,6 +1224,11 @@ namespace dxvk {
     }
 
     if (likely(face7 != nullptr)) {
+      DDSURFACEDESC2 desc;
+      desc.dwSize = sizeof(DDSURFACEDESC2);
+      surface->GetSurfaceDesc(&desc);
+      const d3d9::D3DCUBEMAP_FACES face = GetCubemapFace(&desc);
+
       Com<d3d9::IDirect3DSurface9> face9;
       cubeTex9->GetCubeMapSurface(face, 0, &face9);
       face7->GetCommonSurface()->SetD3D9Surface(std::move(face9));
@@ -1242,34 +1246,30 @@ namespace dxvk {
     if (unlikely(cubeMapAttachedSurfaces.positiveX != nullptr))
       Logger::warn("DDraw7Surface::InitializeAllCubeMapSurfaces: Non-null positive X cube map face");
 
-    m_cubeMapSurfaces[0] = m_proxy.ptr();
+    m_cubeTexSurfaces[0] = m_proxy.ptr();
 
+    d3d9::IDirect3DCubeTexture9* cubeTex9 = m_commonSurf->GetD3D9CubeTexture();
     // We can't know in advance which faces have been generated,
     // so check them one by one, initialize and bind as needed
-    if (cubeMapAttachedSurfaces.negativeX != nullptr) {
-      m_cubeMapSurfaces[1] = cubeMapAttachedSurfaces.negativeX;
-      InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.negativeX, m_commonSurf->GetD3D9CubeTexture(),
-                                  d3d9::D3DCUBEMAP_FACE_NEGATIVE_X);
+    if (likely(cubeMapAttachedSurfaces.negativeX != nullptr)) {
+      m_cubeTexSurfaces[1] = cubeMapAttachedSurfaces.negativeX;
+      InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.negativeX, cubeTex9);
     }
-    if (cubeMapAttachedSurfaces.positiveY != nullptr) {
-      m_cubeMapSurfaces[2] = cubeMapAttachedSurfaces.positiveY;
-      InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.positiveY, m_commonSurf->GetD3D9CubeTexture(),
-                                  d3d9::D3DCUBEMAP_FACE_POSITIVE_Y);
+    if (likely(cubeMapAttachedSurfaces.positiveY != nullptr)) {
+      m_cubeTexSurfaces[2] = cubeMapAttachedSurfaces.positiveY;
+      InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.positiveY, cubeTex9);
     }
-    if (cubeMapAttachedSurfaces.negativeY != nullptr) {
-      m_cubeMapSurfaces[3] = cubeMapAttachedSurfaces.negativeY;
-      InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.negativeY, m_commonSurf->GetD3D9CubeTexture(),
-                                  d3d9::D3DCUBEMAP_FACE_NEGATIVE_Y);
+    if (likely(cubeMapAttachedSurfaces.negativeY != nullptr)) {
+      m_cubeTexSurfaces[3] = cubeMapAttachedSurfaces.negativeY;
+      InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.negativeY, cubeTex9);
     }
-    if (cubeMapAttachedSurfaces.positiveZ != nullptr) {
-      m_cubeMapSurfaces[4] = cubeMapAttachedSurfaces.positiveZ;
-      InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.positiveZ, m_commonSurf->GetD3D9CubeTexture(),
-                                  d3d9::D3DCUBEMAP_FACE_POSITIVE_Z);
+    if (likely(cubeMapAttachedSurfaces.positiveZ != nullptr)) {
+      m_cubeTexSurfaces[4] = cubeMapAttachedSurfaces.positiveZ;
+      InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.positiveZ, cubeTex9);
     }
-    if (cubeMapAttachedSurfaces.negativeZ != nullptr) {
-      m_cubeMapSurfaces[5] = cubeMapAttachedSurfaces.negativeZ;
-      InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.negativeZ, m_commonSurf->GetD3D9CubeTexture(),
-                                  d3d9::D3DCUBEMAP_FACE_NEGATIVE_Z);
+    if (likely(cubeMapAttachedSurfaces.negativeZ != nullptr)) {
+      m_cubeTexSurfaces[5] = cubeMapAttachedSurfaces.negativeZ;
+      InitializeAndAttachCubeFace(cubeMapAttachedSurfaces.negativeZ, cubeTex9);
     }
   }
 
@@ -1288,24 +1288,16 @@ namespace dxvk {
         // so check them one by one, and upload as needed
         const uint32_t mipCount    = m_commonSurf->GetMipCount();
         const bool     isDXTFormat = m_commonSurf->IsDXTFormat();
-        if (likely(m_cubeMapSurfaces[0] != nullptr)) {
-          BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), m_cubeMapSurfaces[0], mipCount, isDXTFormat);
+
+        d3d9::IDirect3DCubeTexture9* cubeTex9 = m_commonSurf->GetD3D9CubeTexture();
+
+        for (auto& cubeTexSurface : m_cubeTexSurfaces) {
+          if (likely(cubeTexSurface != nullptr)) {
+            BlitToD3D9CubeMap<IDirectDrawSurface7, DDSURFACEDESC2>(cubeTex9, cubeTexSurface,
+                                                                   mipCount, isDXTFormat);
+          }
         }
-        if (likely(m_cubeMapSurfaces[1] != nullptr)) {
-          BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), m_cubeMapSurfaces[1], mipCount, isDXTFormat);
-        }
-        if (likely(m_cubeMapSurfaces[2] != nullptr)) {
-          BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), m_cubeMapSurfaces[2], mipCount, isDXTFormat);
-        }
-        if (likely(m_cubeMapSurfaces[3] != nullptr)) {
-          BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), m_cubeMapSurfaces[3], mipCount, isDXTFormat);
-        }
-        if (likely(m_cubeMapSurfaces[4] != nullptr)) {
-          BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), m_cubeMapSurfaces[4], mipCount, isDXTFormat);
-        }
-        if (likely(m_cubeMapSurfaces[5] != nullptr)) {
-          BlitToD3D9CubeMap(m_commonSurf->GetD3D9CubeTexture(), m_cubeMapSurfaces[5], mipCount, isDXTFormat);
-        }
+
         break;
       }
       case D3D9SurfaceType::Texture:
