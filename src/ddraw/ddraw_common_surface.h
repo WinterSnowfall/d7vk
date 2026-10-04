@@ -41,7 +41,7 @@ namespace dxvk {
 
     HRESULT RefreshSurfaceDescripton(const bool refreshFormat);
 
-    void RefreshD3D9Device();
+    void RefreshD3DDevice();
 
     d3d9::IDirect3DDevice9* GetRefreshedD3D9Device();
 
