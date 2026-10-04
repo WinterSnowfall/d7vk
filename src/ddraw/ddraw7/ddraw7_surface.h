@@ -190,11 +190,7 @@ namespace dxvk {
 
     void SetParentSurface(DDraw7Surface* surface) {
       m_parentSurf = surface;
-
-      if (m_parentSurf != nullptr)
-        m_commonSurf->SetIsAttached(true);
-      else
-        m_commonSurf->SetIsAttached(false);
+      m_commonSurf->SetIsAttached(m_parentSurf != nullptr);
     }
 
     DDraw7Surface* GetParentSurface() const {
@@ -204,9 +200,8 @@ namespace dxvk {
   private:
 
     inline void InitializeAndAttachCubeFace(
-        IDirectDrawSurface7* surf,
-        d3d9::IDirect3DCubeTexture9* cubeTex9,
-        d3d9::D3DCUBEMAP_FACES face);
+        IDirectDrawSurface7* surface,
+        d3d9::IDirect3DCubeTexture9* cubeTex9);
 
     inline void InitializeAllCubeMapSurfaces();
 
@@ -220,7 +215,7 @@ namespace dxvk {
 
     DDraw7Surface*                      m_parentSurf    = nullptr;
 
-    std::array<IDirectDrawSurface7*, 6> m_cubeMapSurfaces;
+    std::array<IDirectDrawSurface7*, 6> m_cubeTexSurfaces;
 
     DDraw7Surface*                      m_nextFlippable = nullptr;
 
