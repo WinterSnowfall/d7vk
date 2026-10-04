@@ -2114,6 +2114,10 @@ namespace dxvk {
     { R"(\\rlr_d3d\.exe$)", {{
       { "ddraw.inverseLodBiasScale",        "True" },
     }} },
+    /* The Fifth Element                          */
+    { R"(\\(The )?Fifth.*\\Pc\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
+    }} },
 
     /**********************************************/
     /* D3D3 GAMES                                 */

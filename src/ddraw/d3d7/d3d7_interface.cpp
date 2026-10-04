@@ -224,7 +224,7 @@ namespace dxvk {
     // Clean up any previous device use, otherwise we can end up blitting
     // on stale images from D3D9, as is observed in the case of 3DMark 2000.
     // This is only relevant in the context of later swapchain resets.
-    rt7->GetCommonSurface()->RefreshD3D9Device();
+    rt7->GetCommonSurface()->RefreshD3DDevice();
 
     HRESULT hr = rt7->GetCommonSurface()->ValidateRTUsage7(isHALOrTNLHALDevice, true);
     if (unlikely(FAILED(hr)))
@@ -262,7 +262,7 @@ namespace dxvk {
           backBufferHeight = modeSize->height;
 
           if (likely(d3dOptions->preserveAspectRatio)) {
-            GetPresentRect(&presentRect, desc.dwWidth, desc.dwHeight, modeSize->width, modeSize->height);
+            GetCenteredRect(&presentRect, desc.dwWidth, desc.dwHeight, modeSize->width, modeSize->height);
             aspectRatioCorrection = true;
           }
         }
