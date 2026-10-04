@@ -216,7 +216,7 @@ namespace dxvk {
     D3DCommonDevice*                  m_commonD3DDevice    = nullptr;
 
     HWND                              m_hWnd               = nullptr;
-    DWORD                             m_cooperativeLevel   = 0;
+    DWORD                             m_cooperativeLevel   = 0u;
 
     DDrawCommonSurface*               m_ps                 = nullptr;
     DDrawModeSize                     m_modeSize           = { };

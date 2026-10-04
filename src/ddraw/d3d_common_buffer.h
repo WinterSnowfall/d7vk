@@ -87,10 +87,10 @@ namespace dxvk {
     D3DCommonDevice*                  m_commonD3DDevice = nullptr;
 
     D3DVERTEXBUFFERDESC               m_desc;
-    DWORD                             m_creationFlags   = 0;
+    DWORD                             m_creationFlags   = 0u;
 
-    DWORD                             m_stride          = 0;
-    DWORD                             m_size            = 0;
+    DWORD                             m_stride          = 0u;
+    DWORD                             m_size            = 0u;
 
     Com<d3d9::IDirect3DVertexBuffer9> m_vb9;
 
