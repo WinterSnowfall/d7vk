@@ -77,16 +77,16 @@ namespace dxvk {
       return m_texture9.ptr();
     }
 
-    void SetD3D9CubeTexture(Com<d3d9::IDirect3DCubeTexture9>&& cubeMap9) {
-      m_cubeMap9 = cubeMap9;
+    void SetD3D9CubeTexture(Com<d3d9::IDirect3DCubeTexture9>&& cubeTex9) {
+      m_cubeTex9 = cubeTex9;
     }
 
     d3d9::IDirect3DCubeTexture9* GetD3D9CubeTexture() const {
-      return m_cubeMap9.ptr();
+      return m_cubeTex9.ptr();
     }
 
     void ResetD3D9Objects() {
-      m_cubeMap9 = nullptr;
+      m_cubeTex9 = nullptr;
       m_texture9 = nullptr;
       m_surface9 = nullptr;
       // Also reset all D3D9 related tracking flags
@@ -608,11 +608,11 @@ namespace dxvk {
 
     D3DCommonDevice*                 m_commonD3DDevice  = nullptr;
 
-    uint32_t                         m_mipCount         = 1;
-    uint32_t                         m_backBufferIndex  = 0;
+    uint32_t                         m_mipCount         = 1u;
+    uint32_t                         m_backBufferIndex  = 0u;
 
-    DWORD                            m_lod              = 0;
-    DWORD                            m_priority         = 0;
+    DWORD                            m_lod              = 0u;
+    DWORD                            m_priority         = 0u;
 
     DDSURFACEDESC                    m_desc             = { };
     DDSURFACEDESC2                   m_desc2            = { };
@@ -624,7 +624,7 @@ namespace dxvk {
 
     Com<d3d9::IDirect3DSurface9>     m_surface9;
     Com<d3d9::IDirect3DTexture9>     m_texture9;
-    Com<d3d9::IDirect3DCubeTexture9> m_cubeMap9;
+    Com<d3d9::IDirect3DCubeTexture9> m_cubeTex9;
 
     d3d9::D3DFORMAT                  m_format9          = d3d9::D3DFMT_UNKNOWN;
 
