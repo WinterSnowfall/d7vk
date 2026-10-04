@@ -771,25 +771,26 @@ namespace dxvk {
     return std::max<DWORD>(1u, backBufferCount);
   }
 
+  template <typename SurfaceType, typename DescType>
   inline void BlitToD3D9CubeMap(
         d3d9::IDirect3DCubeTexture9* cubeTex9,
-        IDirectDrawSurface7* surface,
+        SurfaceType* surface,
         const uint32_t mipLevels,
         const bool isDXTFormat) {
-    DDSURFACEDESC2 desc;
-    desc.dwSize = sizeof(DDSURFACEDESC2);
+    DescType desc;
+    desc.dwSize = sizeof(DescType);
     surface->GetSurfaceDesc(&desc);
     const d3d9::D3DCUBEMAP_FACES face = GetCubemapFace(&desc);
-    IDirectDrawSurface7* mipMap = surface;
-    IDirectDrawSurface7* parentSurface;
+    SurfaceType* mipMap = surface;
+    SurfaceType* parentSurface;
 
     for (uint32_t i = 0; i < mipLevels; i++) {
       d3d9::D3DLOCKED_RECT rect9mip;
       // D3DLOCK_DISCARD will get ignored for MANAGED/SYSTEMMEM, but will work on DEFAULT
       HRESULT hr9 = cubeTex9->LockRect(face, i, &rect9mip, NULL, D3DLOCK_DISCARD);
       if (likely(SUCCEEDED(hr9))) {
-        DDSURFACEDESC2 descMip;
-        descMip.dwSize = sizeof(DDSURFACEDESC2);
+        DescType descMip;
+        descMip.dwSize = sizeof(DescType);
         HRESULT hr = mipMap->Lock(NULL, &descMip, DDLOCK_READONLY, NULL);
         if (likely(SUCCEEDED(hr))) {
           // The lock pitch of a DXT surface represents its entire size, apparently
