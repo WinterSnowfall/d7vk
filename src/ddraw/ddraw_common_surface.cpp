@@ -179,19 +179,19 @@ namespace dxvk {
         const uint32_t mipCount = usage & D3DUSAGE_AUTOGENMIPMAP ? 0 : m_mipCount;
 
         HRESULT hr = d3d9Device->CreateCubeTexture(dwWidth, mipCount, usage,
-                                                   m_format9, pool, &m_cubeMap9, nullptr);
+                                                   m_format9, pool, &m_cubeTex9, nullptr);
         if (unlikely(FAILED(hr))) {
           Logger::err("DDrawCommonSurface::InitializeD3D9: Failed to create D3D9 cube texture");
           return hr;
         }
         // Always attach the positive X face to this surface
-        m_cubeMap9->GetCubeMapSurface(d3d9::D3DCUBEMAP_FACE_POSITIVE_X, 0, &m_surface9);
+        m_cubeTex9->GetCubeMapSurface(d3d9::D3DCUBEMAP_FACE_POSITIVE_X, 0, &m_surface9);
 
         // Propagate any preexisting LOD and priority
         if (unlikely(m_lod != 0))
-          m_cubeMap9->SetLOD(m_lod);
+          m_cubeTex9->SetLOD(m_lod);
         if (unlikely(m_priority != 0))
-          m_cubeMap9->SetPriority(m_priority);
+          m_cubeTex9->SetPriority(m_priority);
 
         break;
       }
