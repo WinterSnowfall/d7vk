@@ -605,7 +605,7 @@ namespace dxvk {
       }
     }
 
-    if (likely(d3dOptions->backBufferResize)) {
+    if (d3dOptions->backBufferResize) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode

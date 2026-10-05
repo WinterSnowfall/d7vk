@@ -43,6 +43,15 @@ Then this is your lucky day, because through the efforts of [pythonlover02](http
 > - Dynamic (application-controlled) FSAA states
 > - 8-bit R3G3B2 surfaces
 
+### On Wayland all I get is a tiny picture on the top left corner of my screen, help!
+
+Unfortunately, that is a known problem on Wayland and there's no easy way to address it on our side, since some games explicitly rely on mode setting in order to work properly.
+
+The best way to address such issues is to either use Gamescope's resolution spoofing feature, Wine's virtual desktop or the "Emulate display mode changes" setting, the latter found under "Display Settings" in the Wine Control Panel.
+
+> [!TIP]
+> In case none of the above works for you, D7VK's `ddraw.backBufferResize = True` config option is also available, along with aspect ratio correction. Note however that it will NOT work properly if the application locks/blits on the back buffer, since there will be a size mismatch between the DDraw back buffer and D7VK's back buffer. This is however the only workaround we can provide under the circumstances.
+
 ### Will DXVK's D3D9 config options, such as frame rate limits, work with D7VK?
 
 Yes, because D7VK relies on DXVK's D3D9 backend, so everything ends up there anyway.
