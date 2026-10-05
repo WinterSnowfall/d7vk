@@ -70,7 +70,7 @@ namespace dxvk {
     /// Ignore any display mode setting done by the application
     bool ignoreDisplayModes;
 
-    /// Resize the back buffer size to screen size when needed
+    /// Resize the back buffer to the current display mode size
     bool backBufferResize;
 
     /// Preserve the current aspect ratio during back buffer resize
