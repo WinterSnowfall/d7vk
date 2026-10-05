@@ -245,7 +245,7 @@ namespace dxvk {
     DWORD backBufferHeight = desc.dwHeight;
     RECT presentRect = { };
 
-    if (likely(d3dOptions->backBufferResize)) {
+    if (d3dOptions->backBufferResize) {
       const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
 
       // Ignore any mode size dimensions when in windowed present mode
@@ -254,12 +254,14 @@ namespace dxvk {
         // Wayland apparently needs this for somewhat proper back buffer sizing
         if ((modeSize->width  && modeSize->width  < desc.dwWidth)
          || (modeSize->height && modeSize->height < desc.dwHeight)) {
-          Logger::info("D3D7Interface::CreateDevice: Enforcing mode dimensions");
+          Logger::warn("D3D7Interface::CreateDevice: Back buffer resizing has known limitations");
 
+          // Note: The DDraw surface will remain larger than our back buffer,
+          // which will cause issues on any locks and blits done to it...
           backBufferWidth  = modeSize->width;
           backBufferHeight = modeSize->height;
 
-          if (likely(d3dOptions->preserveAspectRatio)) {
+          if (d3dOptions->preserveAspectRatio) {
             GetCenteredRect(&presentRect, desc.dwWidth, desc.dwHeight, modeSize->width, modeSize->height);
           } else {
             GetStretchedRect(&presentRect, desc.dwWidth, desc.dwHeight);
