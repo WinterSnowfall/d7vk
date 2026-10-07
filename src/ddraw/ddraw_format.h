@@ -772,7 +772,7 @@ namespace dxvk {
   }
 
   template <typename SurfaceType, typename DescType>
-  inline void BlitToD3D9CubeMap(
+  inline void BlitToD3D9CubeTexture(
         d3d9::IDirect3DCubeTexture9* cubeTex9,
         SurfaceType* surface,
         const uint32_t mipLevels,
@@ -797,9 +797,9 @@ namespace dxvk {
           if (isDXTFormat) {
             const size_t size = static_cast<size_t>(descMip.lPitch);
             memcpy(rect9mip.pBits, descMip.lpSurface, size);
-            //Logger::debug(str::format("BlitToD3D9CubeMap: Done blitting DXT mip ", i));
+            //Logger::debug(str::format("BlitToD3D9CubeTexture: Done blitting DXT mip ", i));
           } else if (descMip.lPitch != rect9mip.Pitch) {
-            //Logger::debug(str::format("BlitToD3D9CubeMap: Incompatible mip map ", i, " pitch"));
+            //Logger::debug(str::format("BlitToD3D9CubeTexture: Incompatible mip map ", i, " pitch"));
 
             uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9mip.pBits);
             uint8_t* data7 = reinterpret_cast<uint8_t*>(descMip.lpSurface);
@@ -810,19 +810,19 @@ namespace dxvk {
               data9 += rect9mip.Pitch;
               data7 += descMip.lPitch;
             }
-            //Logger::debug(str::format("BlitToD3D9CubeMap: Done blitting mip ", i, " row by row"));
+            //Logger::debug(str::format("BlitToD3D9CubeTexture: Done blitting mip ", i, " row by row"));
           } else {
             const size_t size = static_cast<size_t>(descMip.dwHeight * descMip.lPitch);
             memcpy(rect9mip.pBits, descMip.lpSurface, size);
-            //Logger::debug(str::format("BlitToD3D9CubeMap: Done blitting mip ", i));
+            //Logger::debug(str::format("BlitToD3D9CubeTexture: Done blitting mip ", i));
           }
           mipMap->Unlock(NULL);
         } else {
-          Logger::warn(str::format("BlitToD3D9CubeMap: Failed to lock mip ", i));
+          Logger::warn(str::format("BlitToD3D9CubeTexture: Failed to lock mip ", i));
         }
         cubeTex9->UnlockRect(face, i);
       } else {
-        Logger::warn(str::format("BlitToD3D9CubeMap: Failed to lock D3D9 mip ", i));
+        Logger::warn(str::format("BlitToD3D9CubeTexture: Failed to lock D3D9 mip ", i));
       }
 
       // Skip the enumeration if we've reached the final mip

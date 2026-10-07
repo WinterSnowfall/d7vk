@@ -529,16 +529,20 @@ namespace dxvk {
 
     InitReturnPtr(lplpGDIDDSurface);
 
-    Com<IDirectDrawSurface> gdiSurface;
-    HRESULT hr = m_proxy->GetGDISurface(&gdiSurface);
+    Com<IDirectDrawSurface> gdiSurfaceProxied;
+    HRESULT hr = m_proxy->GetGDISurface(&gdiSurfaceProxied);
     if (unlikely(FAILED(hr)))
       return hr;
 
-    if (unlikely(DDrawCommonInterface::IsWrappedSurface(gdiSurface.ptr()))) {
-      *lplpGDIDDSurface = gdiSurface.ref();
+    if (unlikely(DDrawCommonInterface::IsWrappedSurface(gdiSurfaceProxied.ptr()))) {
+      *lplpGDIDDSurface = gdiSurfaceProxied.ref();
     } else {
       try {
-        *lplpGDIDDSurface = ref(new DDrawSurface(nullptr, std::move(gdiSurface), this, nullptr, false));
+        Com<DDrawSurface> gdiSurface = new DDrawSurface(nullptr, std::move(gdiSurfaceProxied),
+                                                        this, nullptr, false);
+        gdiSurface->GetCommonSurface()->SetIsGDISurface(true);
+
+        *lplpGDIDDSurface = gdiSurface.ref();
       } catch (const DxvkError& e) {
         Logger::err(e.message());
         return DDERR_GENERIC;
