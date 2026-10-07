@@ -230,6 +230,14 @@ namespace dxvk {
       return m_isAttached;
     }
 
+    void SetIsGDISurface(bool isGDISurface) {
+      m_isGDISurface = isGDISurface;
+    }
+
+    bool IsGDISurface() const {
+      return m_isGDISurface;
+    }
+
     void MarkWithTextureHandle() {
       m_hasTextureHandle = true;
     }
@@ -350,8 +358,9 @@ namespace dxvk {
       // Surfaces which aren't explicitly marked as textures are only bindable on software devices
       const bool isBindableSurface = !m_commonD3DDevice->IsHALOrTNLHALDevice() && m_hasTextureHandle;
 
-      return m_desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE
-          || m_desc.ddsCaps.dwCaps  & DDSCAPS_TEXTURE
+      return m_desc2.ddsCaps.dwCaps  & DDSCAPS_TEXTURE
+          || m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP
+          || m_desc.ddsCaps.dwCaps   & DDSCAPS_TEXTURE
           || isBindableSurface;
     }
 
@@ -365,7 +374,7 @@ namespace dxvk {
       return m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL;
     }
 
-    bool IsCubeMap() const {
+    bool IsCubeTexture() const {
       return m_desc2.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP;
     }
 
@@ -387,16 +396,6 @@ namespace dxvk {
     bool IsInVideoMemory() const {
       return m_desc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY
           || m_desc.ddsCaps.dwCaps  & DDSCAPS_VIDEOMEMORY;
-    }
-
-    bool IsInLocalVideoMemory() const {
-      return m_desc2.ddsCaps.dwCaps & DDSCAPS_LOCALVIDMEM
-          || m_desc.ddsCaps.dwCaps  & DDSCAPS_LOCALVIDMEM;
-    }
-
-    bool IsInNonLocalVideoMemory() const {
-      return m_desc2.ddsCaps.dwCaps & DDSCAPS_NONLOCALVIDMEM
-          || m_desc.ddsCaps.dwCaps  & DDSCAPS_NONLOCALVIDMEM;
     }
 
     bool IsInSystemMemory() const {
@@ -495,7 +494,7 @@ namespace dxvk {
       if (IsPrimarySurface())             type = "primary surface";
       else if (IsFrontBuffer())           type = "front buffer";
       else if (IsBackBufferOrFlippable()) type = "back buffer";
-      else if (IsCubeMap())               type = "cube texture";
+      else if (IsCubeTexture())           type = "cube texture";
       else if (IsTextureMip())            type = "texture mipmap";
       else if (IsTexture())               type = "texture";
       else if (IsDepthStencil())          type = "depth stencil";
@@ -523,42 +522,35 @@ namespace dxvk {
 
     // Note: The flag check order IS important here, as some flags take
     // priority over others when considering D3D9 surface type mappings
-    inline void DetermineD3D9SurfaceType(const bool initRenderTarget) {
-      // Primary Surface
-      if (IsPrimarySurface()) {
-        m_d3d9SurfaceType = D3D9SurfaceType::BackBuffer;
-      // Front Buffer
-      } else if (IsFrontBuffer()) {
-        m_d3d9SurfaceType = D3D9SurfaceType::BackBuffer;
-      // Back Buffer
-      } else if (IsBackBufferOrFlippable()) {
-        m_d3d9SurfaceType = D3D9SurfaceType::BackBuffer;
-      // Cube maps
-      } else if (IsCubeMap()) {
-        m_d3d9SurfaceType = D3D9SurfaceType::CubeTexture;
-      // Textures
-      } else if (IsBindableAsTexture()) {
-        m_d3d9SurfaceType = D3D9SurfaceType::Texture;
-      // Depth Stencil
-      } else if (IsDepthStencil()) {
-        m_d3d9SurfaceType = D3D9SurfaceType::DepthStencil;
-      // Overlays
-      } else if (unlikely(IsOverlay())) {
-        m_d3d9SurfaceType = D3D9SurfaceType::OffscreenPlainSurface;
-      // Offscreen Plain Surfaces
-      } else if (IsOffScreenPlainSurface()) {
-        if (unlikely(initRenderTarget)) {
-          m_d3d9SurfaceType = D3D9SurfaceType::BackBuffer;
-        } else {
-          m_d3d9SurfaceType = D3D9SurfaceType::OffscreenPlainSurface;
-        }
+    inline D3D9SurfaceType DetermineD3D9SurfaceType(const bool initRenderTarget) {
+      // Primary surface / front buffer / back buffer or flippable
+      if (IsPrimarySurface() || IsFrontBuffer() || IsBackBufferOrFlippable())
+        return D3D9SurfaceType::BackBuffer;
+      // Cube texture
+      if (IsCubeTexture())
+        return D3D9SurfaceType::CubeTexture;
+      // Texture
+      if (IsBindableAsTexture())
+        return D3D9SurfaceType::Texture;
+      // Depth stencil
+      if (IsDepthStencil())
+        return D3D9SurfaceType::DepthStencil;
+      // Overlay
+      if (unlikely(IsOverlay()))
+        return D3D9SurfaceType::OffscreenPlainSurface;
+      // Offscreen plain surface
+      if (IsOffScreenPlainSurface()) {
+        if (unlikely(initRenderTarget))
+          return D3D9SurfaceType::BackBuffer;
+
+        return D3D9SurfaceType::OffscreenPlainSurface;
       // Generic render target
-      } else if (Is3DSurface()) {
-        m_d3d9SurfaceType = D3D9SurfaceType::RenderTarget;
-      // We sometimes get generic surfaces, with only dimensions, format and placement info
-      } else {
-        m_d3d9SurfaceType = D3D9SurfaceType::OffscreenPlainSurface;
       }
+      if (Is3DSurface())
+        return D3D9SurfaceType::RenderTarget;
+
+      // We sometimes get generic surfaces, with only dimensions, format and placement info
+      return D3D9SurfaceType::OffscreenPlainSurface;
     }
 
     inline void RefreshStaticDescData(const bool refreshFormat) {
@@ -601,6 +593,7 @@ namespace dxvk {
     bool                             m_hasTextureHandle = false;
 
     bool                             m_isAttached       = false;
+    bool                             m_isGDISurface     = false;
     bool                             m_isRenderTarget   = false;
     bool                             m_isBackBufferOrFlippable = false;
 
