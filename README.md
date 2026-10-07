@@ -80,6 +80,12 @@ Should you encounter any situation in which AA support is listed as unavailable 
 
 Maybe? I'm not using Windows, so can't test it or develop it to be adapted to such situations. Its primarily intended use case is, and always will be, Wine/Linux. To that end, D7VK is pretty much aligned with upstream DXVK.
 
+### What is the project's stance on AI?
+
+D7VK is 0% vibe coded and will remain as such. Both its clever hacks and poor decisions were driven by 100% organic intelligence/stupidity, with countless hours of actual brain power and good old fashioned coding poured into it.
+
+That being said, the project isn't against issue reports covering AI-discovered bugs or even contributions where AI is used part of the process, as long as they aren't generated from scratch with AI (aka vibe coded). In particular, please don't send any AI auto-generated issue reports, because they will not be taken into consideration. Simply follow the provided issue report template.
+
 ### Will it be upstreamed to DXVK at some point?
 
 No.
