@@ -132,7 +132,7 @@ namespace dxvk {
     // Release all public references on all attached surfaces
     for (auto& attachedSurface : m_attachedSurfaces) {
       attachedSurface.second->SetParentSurface(nullptr);
-      uint32_t attachedRef;
+      uint32_t attachedRef = 0u;
       do {
         attachedRef = attachedSurface.second->Release();
       } while (attachedRef > 0);
@@ -615,14 +615,14 @@ namespace dxvk {
     if (unlikely(lpDDSCaps == nullptr || lplpDDAttachedSurface == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    InitReturnPtr(lplpDDAttachedSurface);
+
     Com<IDirectDrawSurface7> surface;
     HRESULT hr = m_proxy->GetAttachedSurface(lpDDSCaps, &surface);
     // These are rather common, as some games query expecting to get nothing in return, for
     // example it's a common use case to query the mip attach chain until nothing is returned
-    if (FAILED(hr)) {
-      *lplpDDAttachedSurface = surface.ptr();
+    if (FAILED(hr))
       return hr;
-    }
 
     try {
       auto attachedSurfaceIter = m_attachedSurfaces.find(surface.ptr());
@@ -643,7 +643,6 @@ namespace dxvk {
       }
     } catch (const DxvkError& e) {
       Logger::err(e.message());
-      *lplpDDAttachedSurface = nullptr;
       return DDERR_GENERIC;
     }
 
@@ -878,6 +877,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       Logger::err("DDraw7Surface::SetColorKey: Failed to retrieve updated surface desc");
 
+    // Color keys are used during blits so make sure the shadow surface is in sync
     if (unlikely(m_shadowSurf != nullptr)) {
       hr = m_shadowSurf->GetProxied()->SetColorKey(dwFlags, lpDDColorKey);
       if (unlikely(FAILED(hr))) {
@@ -1293,8 +1293,8 @@ namespace dxvk {
 
         for (auto& cubeTexSurface : m_cubeTexSurfaces) {
           if (likely(cubeTexSurface != nullptr)) {
-            BlitToD3D9CubeMap<IDirectDrawSurface7, DDSURFACEDESC2>(cubeTex9, cubeTexSurface,
-                                                                   mipCount, isDXTFormat);
+            BlitToD3D9CubeTexture<IDirectDrawSurface7, DDSURFACEDESC2>(cubeTex9, cubeTexSurface,
+                                                                       mipCount, isDXTFormat);
           }
         }
 
