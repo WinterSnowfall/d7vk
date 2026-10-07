@@ -101,18 +101,17 @@ namespace dxvk {
     // General surface/texture pool placement
     //
     // Early DDraw/D3D didn't make the distinction between local and
-    // non-local video memory, so also cater to sole DDSCAPS_VIDEOMEMORY surfaces
-    if (IsInLocalVideoMemory() || (IsInVideoMemory() && !IsInNonLocalVideoMemory())) {
+    // non-local (AGP GART) video memory, nor should we make it in general,
+    // because the issue of insufficient video memory is non-existent
+    if (IsInVideoMemory()) {
       pool = d3d9::D3DPOOL_DEFAULT;
-    // There's no explicit non-local video memory placement
-    // per se in D3D9, but D3DPOOL_MANAGED is close enough
-    } else if (IsManaged() || IsInNonLocalVideoMemory()) {
+    } else if (IsManaged()) {
       pool = d3d9::D3DPOOL_MANAGED;
     } else if (IsInSystemMemory()) {
       // We can't know beforehand if a texture is or isn't going to be
       // used in SetTexture() calls, and textures placed in D3DPOOL_SYSTEMMEM
-      // will not work in that context, so revert to D3DPOOL_MANAGED
-      pool = IsBindableAsTexture() || IsCubeMap() ? d3d9::D3DPOOL_MANAGED : d3d9::D3DPOOL_SYSTEMMEM;
+      // will not work in that context, so revert to using D3DPOOL_MANAGED
+      pool = IsBindableAsTexture() ? d3d9::D3DPOOL_MANAGED : d3d9::D3DPOOL_SYSTEMMEM;
     } else {
       pool = d3d9::D3DPOOL_DEFAULT;
     }
@@ -137,13 +136,13 @@ namespace dxvk {
     }
 
     // General usage flags and mip map count
-    if (IsBindableAsTexture() || IsCubeMap()) {
+    if (IsBindableAsTexture()) {
       // Needed to ensure D3DPOOL_DEFAULT textures/cubemaps are lockable
       if (pool == d3d9::D3DPOOL_DEFAULT) {
         //Logger::debug("DDrawCommonSurface::InitializeD3D9: Usage: D3DUSAGE_DYNAMIC");
         usage |= D3DUSAGE_DYNAMIC;
       }
-      // D3DUSAGE_AUTOGENMIPMAP is also invalid in D3DPOOL_SYSTEMMEM, but we fixed that earlier
+      // D3DUSAGE_AUTOGENMIPMAP is invalid in D3DPOOL_SYSTEMMEM, but we fixed that earlier
       if (unlikely(m_commonIntf->GetOptions()->autoGenMipMaps)) {
         //Logger::debug("DDrawCommonSurface::InitializeD3D9: Usage: D3DUSAGE_AUTOGENMIPMAP");
         usage |= D3DUSAGE_AUTOGENMIPMAP;
@@ -163,7 +162,7 @@ namespace dxvk {
     const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = m_commonD3DDevice->GetMultiSampleType();
     d3d9::IDirect3DDevice9* d3d9Device = m_commonD3DDevice->GetD3D9Device();
 
-    DetermineD3D9SurfaceType(initRenderTarget);
+    m_d3d9SurfaceType = DetermineD3D9SurfaceType(initRenderTarget);
 
     switch (m_d3d9SurfaceType) {
       case D3D9SurfaceType::BackBuffer: {
@@ -235,8 +234,8 @@ namespace dxvk {
         break;
       }
       case D3D9SurfaceType::RenderTarget: {
-        // Must be lockable for blitting to work. Note that D3D9 does not allow the creation of
-        // lockable RTs when using MSAA, but we have a D3D7 exception in place.
+        // Must be lockable for blitting to work. Note that D3D9 does not allow the creation
+        // of lockable RTs when using MSAA, but we have a D3D7 exception in place.
         HRESULT hr = d3d9Device->CreateRenderTarget(dwWidth, dwHeight, m_format9,
                                                     multiSampleType, usage, TRUE, &m_surface9, nullptr);
         if (unlikely(FAILED(hr))) {
