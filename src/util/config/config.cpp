@@ -2118,6 +2118,11 @@ namespace dxvk {
     { R"(\\(The )?Fifth.*\\Pc\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
+    /* X-COM: Interceptor                         *
+     * Prevents crashing on mission start         */
+    { R"(\\Interceptor\.exe$)", {{
+      { "ddraw.legacyDeviceNames",          "True" },
+    }} },
 
     /**********************************************/
     /* D3D3 GAMES                                 */
