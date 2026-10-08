@@ -60,6 +60,8 @@ namespace dxvk {
 
     HRESULT DeleteViewportCommon(D3DViewport* viewport);
 
+    void DetachViewportInternal(D3DViewport* viewport);
+
     HRESULT NextViewportCommon(D3DViewport* viewport, D3DViewport** nextViewport, DWORD flags);
 
     void SetDepthWriteEnabled(bool isDepthWriteEnabled) {
@@ -182,12 +184,10 @@ namespace dxvk {
       return m_params9.MultiSampleType;
     }
 
-    void SetCurrentViewportInternal(D3DViewport* currentViewport) {
-      m_currentViewport = currentViewport;
-    }
+    void SetCurrentViewportInternal(D3DViewport* currentViewport);
 
     D3DViewport* GetCurrentViewportInternal() const {
-      return m_currentViewport.ptr();
+      return m_currentViewport;
     }
 
     DWORD GetD3D9CreationFlags() const {
@@ -275,8 +275,8 @@ namespace dxvk {
     d3d9::D3DPRESENT_PARAMETERS   m_params9;
     DWORD                         m_creationFlags9        = 0u;
 
-    Com<D3DViewport>              m_currentViewport;
-    std::vector<Com<D3DViewport>> m_viewports;
+    D3DViewport*                  m_currentViewport = nullptr;
+    std::vector<D3DViewport*>     m_viewports;
 
     Com<d3d9::IDirect3DDevice9>   m_device9;
 

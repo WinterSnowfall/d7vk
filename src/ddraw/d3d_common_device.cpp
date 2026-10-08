@@ -30,9 +30,16 @@ namespace dxvk {
 
   D3DCommonDevice::~D3DCommonDevice() {
     // Dissasociate every bound viewport from this device
-    for (auto& viewport : m_viewports) {
+    std::vector<D3DViewport*> viewports = m_viewports;
+    D3DViewport* current = m_currentViewport;
+    for (auto viewport : viewports)
       viewport->SetCommonD3DDevice(nullptr);
-    }
+    m_viewports.clear();
+    m_currentViewport = nullptr;
+    if (current != nullptr)
+      current->Release();
+    for (auto viewport : viewports)
+      viewport->Release();
 
     if (m_commonIntf->GetCommonD3DDevice() == this)
       m_commonIntf->SetCommonD3DDevice(nullptr);
@@ -160,6 +167,7 @@ namespace dxvk {
       Logger::warn("D3DCommonDevice::AddViewportCommon: Pre-existing viewport found");
     } else {
       m_viewports.push_back(viewport);
+      viewport->AddRef();
       viewport->SetCommonD3DDevice(this);
     }
 
@@ -170,10 +178,12 @@ namespace dxvk {
     auto it = std::find(m_viewports.begin(), m_viewports.end(), viewport);
     if (likely(it != m_viewports.end())) {
       viewport->SetCommonD3DDevice(nullptr);
-      // Clear the current viewport if it is deleted from the device
-      if (m_currentViewport == viewport)
-        m_currentViewport = nullptr;
       m_viewports.erase(it);
+      if (m_currentViewport == viewport) {
+        m_currentViewport = nullptr;
+        viewport->Release();
+      }
+      viewport->Release();
     } else {
       Logger::warn("D3DCommonDevice::DeleteViewportCommon: Viewport not found");
     }
@@ -181,10 +191,29 @@ namespace dxvk {
     return D3D_OK;
   }
 
+  void D3DCommonDevice::SetCurrentViewportInternal(D3DViewport* currentViewport) {
+    if (currentViewport == m_currentViewport)
+      return;
+    if (currentViewport != nullptr)
+      currentViewport->AddRef();
+    D3DViewport* old = m_currentViewport;
+    m_currentViewport = currentViewport;
+    if (old != nullptr)
+      old->Release();
+  }
+
+  void D3DCommonDevice::DetachViewportInternal(D3DViewport* viewport) {
+    if (m_currentViewport == viewport)
+      m_currentViewport = nullptr;
+    auto it = std::find(m_viewports.begin(), m_viewports.end(), viewport);
+    if (it != m_viewports.end())
+      m_viewports.erase(it);
+  }
+
   HRESULT D3DCommonDevice::NextViewportCommon(D3DViewport* viewport, D3DViewport** nextViewport, DWORD flags) {
     if (flags & D3DNEXT_HEAD) {
       if (likely(m_viewports.size() > 0))
-        *nextViewport = m_viewports.front().ref();
+        *nextViewport = ref(m_viewports.front());
     } else if (flags & D3DNEXT_NEXT) {
       if (unlikely(nextViewport == nullptr))
         return DDERR_INVALIDPARAMS;
@@ -193,7 +222,7 @@ namespace dxvk {
         Logger::warn("D3DCommonDevice::NextViewportCommon: Unimplemented D3DNEXT_NEXT flag");
     } else if (flags & D3DNEXT_TAIL) {
       if (likely(m_viewports.size() > 0))
-        *nextViewport = m_viewports.back().ref();
+        *nextViewport = ref(m_viewports.back());
     }
 
     return D3D_OK;

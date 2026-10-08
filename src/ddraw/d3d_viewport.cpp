@@ -26,6 +26,8 @@ namespace dxvk {
   }
 
   D3DViewport::~D3DViewport() {
+    if (m_commonD3DDevice != nullptr)
+      m_commonD3DDevice->DetachViewportInternal(this);
     // Dissasociate every bound light from this viewport
     for (auto& light : m_lights) {
       light->SetViewport(nullptr);
