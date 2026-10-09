@@ -852,7 +852,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       Logger::err("DDraw2Surface::SetColorKey: Failed to retrieve updated surface desc");
 
-    // Color keys are used during blits so make sure the shadow surface is in sync
+    // Color keys are used during blits, so make sure the shadow surface is in sync
     if (unlikely(m_shadowSurf != nullptr)) {
       hr = m_shadowSurf->GetProxied()->SetColorKey(dwFlags, lpDDColorKey);
       if (unlikely(FAILED(hr))) {
