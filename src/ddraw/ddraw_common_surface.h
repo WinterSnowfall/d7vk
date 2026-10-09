@@ -243,7 +243,15 @@ namespace dxvk {
     }
 
     void SetClipper(DDrawClipper* clipper) {
-      m_clipper = clipper;
+      if (likely(m_clipper != clipper)) {
+        if (unlikely(m_clipper != nullptr))
+          m_clipper->SetCommonSurface(nullptr);
+
+        m_clipper = clipper;
+
+        if (likely(m_clipper != nullptr))
+          m_clipper->SetCommonSurface(this);
+      }
     }
 
     DDrawClipper* GetClipper() const {
@@ -354,6 +362,7 @@ namespace dxvk {
           || m_desc.ddsCaps.dwCaps  & DDSCAPS_TEXTURE;
     }
 
+    // Only called during surface intialization, when we always have a valid device
     bool IsBindableAsTexture() const {
       // Surfaces which aren't explicitly marked as textures are only bindable on software devices
       const bool isBindableSurface = !m_commonD3DDevice->IsHALOrTNLHALDevice() && m_hasTextureHandle;
@@ -412,11 +421,16 @@ namespace dxvk {
     }
 
     bool IsDXTFormat() const {
-      return m_format9 == d3d9::D3DFMT_DXT1
-          || m_format9 == d3d9::D3DFMT_DXT2
-          || m_format9 == d3d9::D3DFMT_DXT3
-          || m_format9 == d3d9::D3DFMT_DXT4
-          || m_format9 == d3d9::D3DFMT_DXT5;
+      switch (m_format9) {
+        case d3d9::D3DFMT_DXT1:
+        case d3d9::D3DFMT_DXT2:
+        case d3d9::D3DFMT_DXT3:
+        case d3d9::D3DFMT_DXT4:
+        case d3d9::D3DFMT_DXT5:
+          return true;
+        default:
+          return false;
+      }
     }
 
     // D3D7 is a bit more sane here, as always, so handle it separately
@@ -572,7 +586,7 @@ namespace dxvk {
       // refresh normalized color key range (if present)
       static constexpr DDCOLORKEY DefaultColorKey = { 0u, 0u };
       // ignore normalized color key calculations on P8 surfaces
-      m_ckNormalized = HasValidColorKey() && m_format9 != d3d9::D3DFMT_P8 ? UpdateColorKeyNormalized() : DefaultColorKey;
+      m_ckNormalized = !SkipD3D9Operations() && HasValidColorKey() ? UpdateColorKeyNormalized() : DefaultColorKey;
     }
 
     inline DDCOLORKEY UpdateColorKeyNormalized() const {

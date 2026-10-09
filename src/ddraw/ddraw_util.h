@@ -24,7 +24,7 @@ namespace dxvk {
   public:
     D3DPRIMITIVETYPE d3dpt   = D3DPRIMITIVETYPE(0);
     D3DVERTEXTYPE    d3dvt   = D3DVERTEXTYPE(0);
-    DWORD            dwFlags = 0;
+    DWORD            dwFlags = 0u;
 
     union {
       std::vector<D3DVERTEX>* vertex;
@@ -67,7 +67,6 @@ namespace dxvk {
       }
 
       switch (d3dvt) {
-        default:
         case D3DVT_VERTEX:
           stream.vertex = new std::vector<D3DVERTEX>();
           cvt = D3DVT_VERTEX;
@@ -79,6 +78,9 @@ namespace dxvk {
         case D3DVT_TLVERTEX:
           stream.tlvertex = new std::vector<D3DTLVERTEX>();
           cvt = D3DVT_TLVERTEX;
+          break;
+        default:
+          Logger::err(str::format("VertexStream: Unknown vertex type: ", d3dvt));
           break;
       }
 
@@ -116,10 +118,17 @@ namespace dxvk {
   };
 
   inline bool IsValidDDrawCapsSize(DWORD size) {
-    return size == sizeof(DDCAPS_DX7)
-        || size == sizeof(DDCAPS_DX6)
-        || size == sizeof(DDCAPS_DX5)
-        || size == sizeof(DDCAPS_DX3);
+    static_assert(sizeof(DDCAPS_DX7) == sizeof(DDCAPS_DX6));
+
+    switch (size) {
+      case sizeof(DDCAPS_DX7):
+      //case sizeof(DDCAPS_DX6):
+      case sizeof(DDCAPS_DX5):
+      case sizeof(DDCAPS_DX3):
+        return true;
+      default:
+        return false;
+    }
   }
 
   // MS, in their infinite wisdom, decided to have 3 distinct versions
@@ -128,17 +137,27 @@ namespace dxvk {
   // All 3 sizes are valid in D3D6, and the first 2 are in D3D5, but let's
   // consider them all valid and save ourselves some trouble.
   inline bool IsValidD3DDeviceDescSize(DWORD size) {
-    return size == sizeof(D3DDEVICEDESC)
-        || size == sizeof(D3DDEVICEDESC2)
-        || size == sizeof(D3DDEVICEDESC3);
+    switch (size) {
+      case sizeof(D3DDEVICEDESC):
+      case sizeof(D3DDEVICEDESC2):
+      case sizeof(D3DDEVICEDESC3):
+        return true;
+      default:
+        return false;
+    }
   }
 
   // The structures used in FindDevice calls are also affected because
   // of the above D3DDEVICEDESC jank, which is just lovely...
   inline bool IsValidFindDeviceResultSize(DWORD size) {
-    return size == sizeof(D3DFINDDEVICERESULT)
-        || size == sizeof(D3DFINDDEVICERESULT2)
-        || size == sizeof(D3DFINDDEVICERESULT3);
+    switch (size) {
+      case sizeof(D3DFINDDEVICERESULT):
+      case sizeof(D3DFINDDEVICERESULT2):
+      case sizeof(D3DFINDDEVICERESULT3):
+        return true;
+      default:
+        return false;
+    }
   }
 
   inline bool IsVSyncFlipFlag(DWORD flag) {
@@ -151,20 +170,24 @@ namespace dxvk {
   // D3D5 D3DVERTEXTYPE to D3D6 and above DWORD vertex codes
   inline DWORD ConvertVertexType(D3DVERTEXTYPE vertexType) {
     switch (vertexType) {
-      default:
       case D3DVT_VERTEX:   return D3DFVF_VERTEX;
       case D3DVT_LVERTEX:  return D3DFVF_LVERTEX;
       case D3DVT_TLVERTEX: return D3DFVF_TLVERTEX;
+      default:
+        Logger::err(str::format("ConvertVertexType: Unknown vertex type: ", vertexType));
+        return D3DFVF_VERTEX;
     }
   }
 
   // D3D6 and above DWORD vertex codes to D3D5 D3DVERTEXTYPE
   inline D3DVERTEXTYPE ConvertFVFType(DWORD fvfType) {
     switch (fvfType) {
-      default:
       case D3DFVF_VERTEX:   return D3DVT_VERTEX;
       case D3DFVF_LVERTEX:  return D3DVT_LVERTEX;
       case D3DFVF_TLVERTEX: return D3DVT_TLVERTEX;
+      default:
+        Logger::err(str::format("ConvertFVFType: Unknown FVF type: ", fvfType));
+        return D3DVT_VERTEX;
     }
   }
 
@@ -179,7 +202,7 @@ namespace dxvk {
   }
 
   inline DWORD ConvertD3DLockFlags(DWORD lockFlags, bool legacyDiscard, bool useExtendedFlags) {
-    DWORD lockFlagsD3D9 = 0;
+    DWORD lockFlagsD3D9 = 0u;
 
     // Note: D3DLOCK_DONOTWAIT is ignored on D3D9 DYNAMIC buffers,
     // and we mark nearly all buffers as DYNAMIC, but convert it anyway,
@@ -211,7 +234,7 @@ namespace dxvk {
   }
 
   inline DWORD ConvertD3DUsageFlags(DWORD usageFlags, DWORD creationFlags, d3d9::D3DPOOL pool) {
-    DWORD usageFlagsD3D9 = 0;
+    DWORD usageFlagsD3D9 = 0u;
 
     // The D3D6 docs do not mention the presence of a D3DVBCAPS_DONOTCLIP flag,
     // and only the creation flag D3DDP_DONOTCLIP is touted as being usable
@@ -232,9 +255,9 @@ namespace dxvk {
   }
 
   inline size_t GetFVFPositionSize(DWORD fvf) {
-    size_t size = 0;
-
     static_assert(D3DFVF_POSITION_MASK == 0x00E);
+
+    size_t size = 0;
 
     switch (fvf & D3DFVF_POSITION_MASK) {
       case D3DFVF_XYZ:
@@ -317,12 +340,14 @@ namespace dxvk {
   inline uint32_t GetPrimitiveCount(D3DPRIMITIVETYPE PrimitiveType, DWORD VertexCount) {
     switch (PrimitiveType) {
       case D3DPT_POINTLIST:     return static_cast<uint32_t>(VertexCount);
-      case D3DPT_LINELIST:      return static_cast<uint32_t>(VertexCount / 2);
-      case D3DPT_LINESTRIP:     return static_cast<uint32_t>(VertexCount - 1);
+      case D3DPT_LINELIST:      return static_cast<uint32_t>(VertexCount / 2u);
+      case D3DPT_LINESTRIP:     return VertexCount > 1u ? static_cast<uint32_t>(VertexCount - 1u) : 0u;
+      case D3DPT_TRIANGLELIST:  return static_cast<uint32_t>(VertexCount / 3u);
+      case D3DPT_TRIANGLESTRIP: return VertexCount > 2u ? static_cast<uint32_t>(VertexCount - 2u) : 0u;
+      case D3DPT_TRIANGLEFAN:   return VertexCount > 2u ? static_cast<uint32_t>(VertexCount - 2u) : 0u;
       default:
-      case D3DPT_TRIANGLELIST:  return static_cast<uint32_t>(VertexCount / 3);
-      case D3DPT_TRIANGLESTRIP: return static_cast<uint32_t>(VertexCount - 2);
-      case D3DPT_TRIANGLEFAN:   return static_cast<uint32_t>(VertexCount - 2);
+        Logger::err(str::format("GetPrimitiveCount: Unknown primitive type: ", PrimitiveType));
+        return 0u;
     }
   }
 
@@ -330,6 +355,8 @@ namespace dxvk {
         DWORD dwFVF,
         LPD3DDRAWPRIMITIVESTRIDEDDATA lpVBStrided,
         DWORD dwNumVertices) {
+    static_assert(D3DFVF_POSITION_MASK == 0x00E);
+
     PackedVertexBuffer pvb;
     pvb.stride = GetFVFSize(dwFVF);
     pvb.vertexData.resize(pvb.stride * dwNumVertices);
@@ -339,8 +366,6 @@ namespace dxvk {
 
     for (DWORD i = 0; i < dwNumVertices; i++) {
       uint8_t* ptr = pvb.vertexData.data() + i * pvb.stride;
-
-      static_assert(D3DFVF_POSITION_MASK == 0x00E);
 
       if ((dwFVF & D3DFVF_POSITION_MASK) && lpVBStrided->position.lpvData) {
         memcpy(ptr, static_cast<uint8_t*>(lpVBStrided->position.lpvData) + i * lpVBStrided->position.dwStride, positionSize);
@@ -397,7 +422,7 @@ namespace dxvk {
     }
   }
 
-  inline DWORD DecodeD3D7TexFilterValues(const D3DTEXTURESTAGESTATETYPE StageType, const DWORD FilterType7) {
+  inline DWORD ConvertLegacyD3DTexFilterValues(const D3DTEXTURESTAGESTATETYPE StageType, const DWORD FilterType7) {
     switch (StageType) {
       case D3DTSS_MAGFILTER:
         switch (FilterType7) {
@@ -430,7 +455,7 @@ namespace dxvk {
     }
   }
 
-  inline DWORD DecodeD3D9TexFilterValues(const D3DTEXTURESTAGESTATETYPE StageType, const DWORD FilterType9) {
+  inline DWORD ConvertD3D9TexFilterValues(const D3DTEXTURESTAGESTATETYPE StageType, const DWORD FilterType9) {
     switch (StageType) {
       case D3DTSS_MAGFILTER:
         switch (FilterType9) {
@@ -463,7 +488,7 @@ namespace dxvk {
     }
   }
 
-  inline DWORD DecodeTextureMinValues(DWORD minFilter, DWORD mipFilter) {
+  inline DWORD ConvertTextureMinValues(DWORD minFilter, DWORD mipFilter) {
     switch (minFilter) {
       case d3d9::D3DTEXF_POINT:
         switch (mipFilter) {
