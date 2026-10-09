@@ -754,7 +754,7 @@ namespace dxvk {
         DWORD mipFilter = 0;
         device9->GetSamplerState(0, d3d9::D3DSAMP_MINFILTER, &minFilter);
         device9->GetSamplerState(0, d3d9::D3DSAMP_MIPFILTER, &mipFilter);
-        *lpdwRenderState = DecodeTextureMinValues(minFilter, mipFilter);
+        *lpdwRenderState = ConvertTextureMinValues(minFilter, mipFilter);
         return D3D_OK;
       }
 

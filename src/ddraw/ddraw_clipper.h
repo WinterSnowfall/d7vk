@@ -7,6 +7,8 @@
 
 namespace dxvk {
 
+  class DDrawCommonSurface;
+
   class DDrawClipper final : public DDrawWrappedObject<IUnknown, IDirectDrawClipper> {
 
   public:
@@ -32,9 +34,15 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE GetHWnd(HWND *lphWnd);
 
+    void SetCommonSurface(DDrawCommonSurface* commonSurf) {
+      m_commonSurf = commonSurf;
+    }
+
   private:
 
     bool                  m_isInitialized = false;
+
+    DDrawCommonSurface*   m_commonSurf    = nullptr;
 
     DDrawCommonInterface* m_commonIntf    = nullptr;
 

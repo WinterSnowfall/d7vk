@@ -527,17 +527,17 @@ namespace dxvk {
 
   template <typename DescType>
   inline HRESULT ValidateSurfaceFlags(DescType* desc) {
-    const bool isOffScreenPlainSurface = desc->ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN;
-    const bool isTexture               = desc->ddsCaps.dwCaps & DDSCAPS_TEXTURE;
-    const bool isInVideoMemory         = desc->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY;
-    const bool isInSystemMemory        = desc->ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY;
-    const bool isWriteOnly             = desc->ddsCaps.dwCaps & DDSCAPS_WRITEONLY;
+    const bool isInVideoMemory  = desc->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY;
+    const bool isInSystemMemory = desc->ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY;
+    const bool isWriteOnly      = desc->ddsCaps.dwCaps & DDSCAPS_WRITEONLY;
 
-    if (unlikely(isOffScreenPlainSurface && (isInVideoMemory || isInSystemMemory))) {
+    const bool isTexture = desc->ddsCaps.dwCaps & DDSCAPS_TEXTURE;
+    if (unlikely(isTexture && (isInVideoMemory || isInSystemMemory))) {
       return isWriteOnly ? DDERR_INVALIDCAPS : DD_OK;
     }
 
-    if (unlikely(isTexture && (isInVideoMemory || isInSystemMemory))) {
+    const bool isOffScreenPlainSurface = desc->ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN;
+    if (unlikely(isOffScreenPlainSurface && (isInVideoMemory || isInSystemMemory))) {
       return isWriteOnly ? DDERR_INVALIDCAPS : DD_OK;
     }
 

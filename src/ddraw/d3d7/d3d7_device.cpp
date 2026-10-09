@@ -1399,7 +1399,7 @@ namespace dxvk {
         if (unlikely(FAILED(hr)))
           return hr;
 
-        *lpdwState = DecodeD3D9TexFilterValues(d3dTexStageStateType, dwStateProxy9);
+        *lpdwState = ConvertD3D9TexFilterValues(d3dTexStageStateType, dwStateProxy9);
 
         return D3D_OK;
       } else {
@@ -1426,7 +1426,7 @@ namespace dxvk {
     if (stateType != -1u) {
       // MAG/MIN/MIP filter enums are each different than the unified D3D9 D3DTEXTUREFILTERTYPE
       if (stateType == d3d9::D3DSAMP_MAGFILTER || stateType == d3d9::D3DSAMP_MINFILTER || stateType == d3d9::D3DSAMP_MIPFILTER) {
-        const DWORD dwState9 = DecodeD3D7TexFilterValues(d3dTexStageStateType, dwState);
+        const DWORD dwState9 = ConvertLegacyD3DTexFilterValues(d3dTexStageStateType, dwState);
         return device9->SetSamplerState(dwStage, stateType, dwState9);
       } else {
         return device9->SetSamplerState(dwStage, stateType, dwState);
