@@ -51,13 +51,13 @@ namespace dxvk {
     bool             m_isActive        = false;
     bool             m_isParallelPoint = false;
 
-    DWORD            m_flags           = 0;
+    DWORD            m_flags           = 0u;
 
     D3DViewport*     m_viewport        = nullptr;
 
     d3d9::D3DLIGHT9  m_light9          = { };
 
-    uint32_t         m_light9Index     = 0;
+    uint32_t         m_light9Index     = 0u;
     static std::atomic<uint32_t> s_light9Index;
 
   };

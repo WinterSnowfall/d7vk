@@ -1,5 +1,7 @@
 #include "ddraw_clipper.h"
 
+#include "ddraw_common_surface.h"
+
 namespace dxvk {
 
   DDrawClipper::DDrawClipper(
@@ -11,6 +13,8 @@ namespace dxvk {
   }
 
   DDrawClipper::~DDrawClipper() {
+    if (m_commonSurf != nullptr)
+      m_commonSurf->SetClipper(nullptr);
   }
 
   HRESULT STDMETHODCALLTYPE DDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags) {
@@ -71,4 +75,3 @@ namespace dxvk {
   }
 
 }
-
