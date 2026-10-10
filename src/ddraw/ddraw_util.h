@@ -160,6 +160,28 @@ namespace dxvk {
     }
   }
 
+  inline bool IsValidVertexType(D3DVERTEXTYPE vertexType) {
+    switch (vertexType) {
+      case D3DVT_VERTEX:
+      case D3DVT_LVERTEX:
+      case D3DVT_TLVERTEX:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  inline bool IsSupportedFVF(DWORD vertexType) {
+    switch (vertexType) {
+      case D3DFVF_VERTEX:
+      case D3DFVF_LVERTEX:
+      case D3DFVF_TLVERTEX:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   inline bool IsVSyncFlipFlag(DWORD flag) {
     return !(flag & DDFLIP_NOVSYNC)   ||
             (flag & DDFLIP_INTERVAL2) ||
