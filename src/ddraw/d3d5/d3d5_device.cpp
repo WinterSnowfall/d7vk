@@ -513,9 +513,7 @@ namespace dxvk {
     if (unlikely(m_vertexStream.isInitialized()))
       return DDERR_INVALIDPARAMS;
 
-    if (unlikely(dwVertexTypeDesc != D3DVT_VERTEX
-              && dwVertexTypeDesc != D3DVT_LVERTEX
-              && dwVertexTypeDesc != D3DVT_TLVERTEX)) {
+    if (unlikely(!IsValidVertexType(dwVertexTypeDesc))) {
       Logger::err(">>> D3D5Device::Begin: Invalid vertex type");
       return DDERR_INVALIDPARAMS;
     }
@@ -606,8 +604,9 @@ namespace dxvk {
     if (unlikely(lpdwRenderState == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    d3d9::D3DRENDERSTATETYPE State9 = static_cast<d3d9::D3DRENDERSTATETYPE>(dwRenderStateType);
+
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
-    d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
 
     switch (dwRenderStateType) {
       // Most render states translate 1:1 to D3D9
@@ -889,8 +888,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D5Device::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
     D3DDeviceLock lock = LockDevice();
 
+    d3d9::D3DRENDERSTATETYPE State9 = static_cast<d3d9::D3DRENDERSTATETYPE>(dwRenderStateType);
+
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
-    d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
 
     switch (dwRenderStateType) {
       // Most render states translate 1:1 to D3D9
@@ -1465,7 +1465,7 @@ namespace dxvk {
 
     device9->SetFVF(vertex_type5);
     HRESULT hr = device9->DrawPrimitiveUP(
-                      d3d9::D3DPRIMITIVETYPE(primitive_type),
+                      static_cast<d3d9::D3DPRIMITIVETYPE>(primitive_type),
                       GetPrimitiveCount(primitive_type, vertex_count),
                       vertices,
                       GetFVFSize(vertex_type5));
@@ -1513,7 +1513,7 @@ namespace dxvk {
 
     device9->SetFVF(fvf5);
     HRESULT hr = device9->DrawIndexedPrimitiveUP(
-                      d3d9::D3DPRIMITIVETYPE(primitive_type),
+                      static_cast<d3d9::D3DPRIMITIVETYPE>(primitive_type),
                       0,
                       vertex_count,
                       GetPrimitiveCount(primitive_type, index_count),

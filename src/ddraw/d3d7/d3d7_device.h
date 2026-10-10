@@ -201,8 +201,8 @@ namespace dxvk {
     std::unordered_map<DWORD, BOOL>            m_lightsStates;
 
     D3D7StateBlock*                 m_recorder       = nullptr;
-    DWORD                           m_recorderHandle = 0;
-    DWORD                           m_handle         = 0;
+    DWORD                           m_recorderHandle = 0u;
+    DWORD                           m_handle         = 0u;
     std::unordered_map<DWORD, D3D7StateBlock> m_stateBlocks;
 
     std::array<Com<d3d9::IDirect3DIndexBuffer9>, ddrawCaps::IndexBufferCount> m_ib9;

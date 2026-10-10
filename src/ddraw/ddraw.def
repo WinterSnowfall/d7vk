@@ -21,3 +21,4 @@ EXPORTS
   GetSurfaceFromDC            @20
   RegisterSpecialCase         @21
   ReleaseDDThreadLock         @22
+  
