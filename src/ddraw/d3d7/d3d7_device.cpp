@@ -501,7 +501,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D7Device::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState) {
     D3DDeviceLock lock = LockDevice();
 
-    d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
+    d3d9::D3DRENDERSTATETYPE State9 = static_cast<d3d9::D3DRENDERSTATETYPE>(dwRenderStateType);
 
     switch (dwRenderStateType) {
       // Most render states translate 1:1 to D3D9
@@ -677,7 +677,7 @@ namespace dxvk {
     if (unlikely(lpdwRenderState == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    d3d9::D3DRENDERSTATETYPE State9 = d3d9::D3DRENDERSTATETYPE(dwRenderStateType);
+    d3d9::D3DRENDERSTATETYPE State9 = static_cast<d3d9::D3DRENDERSTATETYPE>(dwRenderStateType);
 
     switch (dwRenderStateType) {
       // Most render states translate 1:1 to D3D9
@@ -982,7 +982,7 @@ namespace dxvk {
 
     device9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = device9->DrawPrimitiveUP(
-                     d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                     static_cast<d3d9::D3DPRIMITIVETYPE>(d3dptPrimitiveType),
                      GetPrimitiveCount(d3dptPrimitiveType, dwVertexCount),
                      lpvVertices,
                      GetFVFSize(dwVertexTypeDesc));
@@ -1014,7 +1014,7 @@ namespace dxvk {
 
     device9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = device9->DrawIndexedPrimitiveUP(
-                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                      static_cast<d3d9::D3DPRIMITIVETYPE>(d3dptPrimitiveType),
                       0,
                       dwVertexCount,
                       GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount),
@@ -1067,7 +1067,7 @@ namespace dxvk {
 
     device9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = device9->DrawPrimitiveUP(
-                     d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                     static_cast<d3d9::D3DPRIMITIVETYPE>(d3dptPrimitiveType),
                      GetPrimitiveCount(d3dptPrimitiveType, dwVertexCount),
                      pvb.vertexData.data(),
                      pvb.stride);
@@ -1102,7 +1102,7 @@ namespace dxvk {
 
     device9->SetFVF(dwVertexTypeDesc);
     HRESULT hr = device9->DrawIndexedPrimitiveUP(
-                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                      static_cast<d3d9::D3DPRIMITIVETYPE>(d3dptPrimitiveType),
                       0,
                       dwVertexCount,
                       GetPrimitiveCount(d3dptPrimitiveType, dwIndexCount),
@@ -1152,7 +1152,7 @@ namespace dxvk {
     device9->SetFVF(commonBuffer->GetFVF());
     device9->SetStreamSource(0, commonBuffer->GetD3D9VertexBuffer(), 0, commonBuffer->GetStride());
     HRESULT hr = device9->DrawPrimitive(
-                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                      static_cast<d3d9::D3DPRIMITIVETYPE>(d3dptPrimitiveType),
                       dwStartVertex,
                       GetPrimitiveCount(d3dptPrimitiveType, dwNumVertices));
 
@@ -1218,7 +1218,7 @@ namespace dxvk {
     device9->SetFVF(commonBuffer->GetFVF());
     device9->SetStreamSource(0, commonBuffer->GetD3D9VertexBuffer(), 0, commonBuffer->GetStride());
     HRESULT hr = device9->DrawIndexedPrimitive(
-                      d3d9::D3DPRIMITIVETYPE(d3dptPrimitiveType),
+                      static_cast<d3d9::D3DPRIMITIVETYPE>(d3dptPrimitiveType),
                       dwStartVertex,
                       0,
                       dwNumVertices,
