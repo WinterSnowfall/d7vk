@@ -178,6 +178,10 @@ __CRT_UUID_DECL(d3d9::IDirect3DDevice9Ex,          0xB18B10CE, 0x2649, 0x405A, 0
 #define D3DFVF_POSITION_MASK       0x00E
 
 // Defined in MinGW headers, but not in MSVC headers...
+#ifndef DDSGR_CALIBRATE
+#define DDSGR_CALIBRATE            0x00000001
+#endif
+
 #ifndef D3DLIGHTCAPS_PARALLELPOINT
 #define D3DLIGHTCAPS_PARALLELPOINT 0x00000008
 #endif
