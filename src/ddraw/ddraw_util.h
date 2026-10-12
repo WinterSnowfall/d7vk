@@ -276,6 +276,15 @@ namespace dxvk {
     return usageFlagsD3D9;
   }
 
+  inline DWORD ConvertGammaRampFlags(DWORD gammaRampFlags) {
+    switch (gammaRampFlags) {
+      case DDSGR_CALIBRATE:
+        return D3DSGR_CALIBRATE;
+      default:
+        return D3DSGR_NO_CALIBRATION;
+    }
+  }
+
   inline size_t GetFVFPositionSize(DWORD fvf) {
     static_assert(D3DFVF_POSITION_MASK == 0x00E);
 
