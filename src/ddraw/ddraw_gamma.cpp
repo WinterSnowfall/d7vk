@@ -58,21 +58,21 @@ namespace dxvk {
     if (unlikely(lpRampData == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    DDrawCommonInterface* commonIntf = m_commonSurf->GetCommonInterface();
+    if (unlikely(!m_isGammaRampSet)) {
+      DDrawCommonInterface* commonIntf = m_commonSurf->GetCommonInterface();
 
-    D3DCommonDevice* commonDevice = commonIntf->GetCommonD3DDevice();
+      D3DCommonDevice* commonDevice = commonIntf->GetCommonD3DDevice();
 
-    if (likely(commonDevice != nullptr)) {
-      d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
+      if (likely(commonDevice != nullptr)) {
+        d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
 
-      d3d9::D3DGAMMARAMP rampData = { };
-      d3d9Device->GetGammaRamp(0, &rampData);
-
-      // Both gamma structs are identical in content/size
-      memcpy(static_cast<void*>(lpRampData), static_cast<const void*>(&rampData), sizeof(DDGAMMARAMP));
-    } else {
-      return m_proxy->GetGammaRamp(dwFlags, lpRampData);
+        d3d9Device->GetGammaRamp(0, reinterpret_cast<d3d9::D3DGAMMARAMP*>(&m_gammaRamp));
+      } else {
+        m_proxy->GetGammaRamp(dwFlags, &m_gammaRamp);
+      }
     }
+
+    *lpRampData = m_gammaRamp;
 
     return DD_OK;
   }
@@ -81,21 +81,26 @@ namespace dxvk {
     if (unlikely(lpRampData == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    m_gammaRamp = *lpRampData;
+    m_isGammaRampSet = true;
+
     DDrawCommonInterface* commonIntf = m_commonSurf->GetCommonInterface();
 
     if (likely(!commonIntf->GetOptions()->ignoreGammaRamp)) {
       D3DCommonDevice* commonDevice = commonIntf->GetCommonD3DDevice();
 
       if (likely(commonDevice != nullptr)) {
-        d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
+        // Skip setting the gamma ramp on a non-primary surface or if we aren't in a full screen mode
+        if (likely(m_commonSurf->IsPrimarySurface()
+               && (commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE))) {
+          d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
 
-        d3d9Device->SetGammaRamp(0, D3DSGR_NO_CALIBRATION,
-                                 reinterpret_cast<const d3d9::D3DGAMMARAMP*>(lpRampData));
+          d3d9Device->SetGammaRamp(0, ConvertGammaRampFlags(dwFlags),
+                                   reinterpret_cast<d3d9::D3DGAMMARAMP*>(&m_gammaRamp));
+        }
       } else {
         return m_proxy->SetGammaRamp(dwFlags, lpRampData);
       }
-    } else {
-      Logger::info("DDrawGammaControl::SetGammaRamp: Ignoring application set gamma ramp");
     }
 
     return DD_OK;
