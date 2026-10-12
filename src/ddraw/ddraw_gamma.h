@@ -2,6 +2,7 @@
 
 #include "ddraw_include.h"
 #include "ddraw_wrapped_object.h"
+#include "ddraw_util.h"
 
 #include "ddraw_common_surface.h"
 
@@ -26,7 +27,11 @@ namespace dxvk {
 
   private:
 
-    DDrawCommonSurface* m_commonSurf = nullptr;
+    bool                m_isGammaRampSet = false;
+
+    DDGAMMARAMP         m_gammaRamp      = { };
+
+    DDrawCommonSurface* m_commonSurf     = nullptr;
 
   };
 
