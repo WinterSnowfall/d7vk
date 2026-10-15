@@ -359,7 +359,7 @@ namespace dxvk {
         try {
           ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7), this, nullptr, false);
 
-          hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &attachedSurface.desc2, lpContext);
+          hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &attachedSurface.desc, lpContext);
         } catch (const DxvkError& e) {
           Logger::warn("DDraw7Interface::EnumSurfaces: Failed to create wrapped surface");
           Logger::warn(e.message());
