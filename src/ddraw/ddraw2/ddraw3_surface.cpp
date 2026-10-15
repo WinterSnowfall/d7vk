@@ -27,11 +27,10 @@ namespace dxvk {
       throw DxvkError("DDraw3Surface: ERROR! Failed to retrieve the common interface!");
     }
 
-    if (m_commonSurf == nullptr)
+    if (unlikely(m_commonSurf == nullptr)) {
       m_commonSurf = new DDrawCommonSurface(m_commonIntf);
 
-    // Retrieve and cache the proxy surface desc
-    if (unlikely(!m_commonSurf->IsDescSet())) {
+      // Retrieve and cache the proxy surface desc
       DDSURFACEDESC desc;
       desc.dwSize = sizeof(DDSURFACEDESC);
       HRESULT hr = m_proxy->GetSurfaceDesc(&desc);
@@ -638,7 +637,8 @@ namespace dxvk {
     if (unlikely(lpDDSCaps == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *lpDDSCaps = m_commonSurf->GetDesc()->ddsCaps;
+    const DDSURFACEDESC2* surfaceDesc = m_commonSurf->GetDesc();
+    memcpy(lpDDSCaps, &surfaceDesc->ddsCaps, sizeof(DDSCAPS));
 
     return DD_OK;
   }
@@ -725,7 +725,9 @@ namespace dxvk {
     if (unlikely(lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC)))
       return DDERR_INVALIDPARAMS;
 
-    *lpDDSurfaceDesc = *m_commonSurf->GetDesc();
+    const DDSURFACEDESC2* surfaceDesc = m_commonSurf->GetDesc();
+    // DDSURFACEDESC is aligned with DDSURFACEDESC2
+    memcpy(lpDDSurfaceDesc, surfaceDesc, sizeof(DDSURFACEDESC));
 
     return DD_OK;
   }

@@ -30,20 +30,20 @@ namespace dxvk {
 
   HRESULT DDrawCommonSurface::RefreshSurfaceDescripton(const bool refreshFormat) {
     if (m_surf7 != nullptr) {
-      DDSURFACEDESC2 desc2;
-      desc2.dwSize = sizeof(DDSURFACEDESC2);
-      HRESULT hr = m_surf7->GetProxied()->GetSurfaceDesc(&desc2);
+      DDSURFACEDESC2 desc;
+      desc.dwSize = sizeof(DDSURFACEDESC2);
+      HRESULT hr = m_surf7->GetProxied()->GetSurfaceDesc(&desc);
       if (unlikely(FAILED(hr)))
         return hr;
-      m_desc2 = desc2;
+      m_desc = desc;
       RefreshStaticDescData(refreshFormat);
     } else if (m_surf4 != nullptr) {
-      DDSURFACEDESC2 desc2;
-      desc2.dwSize = sizeof(DDSURFACEDESC2);
-      HRESULT hr = m_surf4->GetProxied()->GetSurfaceDesc(&desc2);
+      DDSURFACEDESC2 desc;
+      desc.dwSize = sizeof(DDSURFACEDESC2);
+      HRESULT hr = m_surf4->GetProxied()->GetSurfaceDesc(&desc);
       if (unlikely(FAILED(hr)))
         return hr;
-      m_desc2 = desc2;
+      m_desc = desc;
       RefreshStaticDescData(refreshFormat);
     }
 
@@ -54,7 +54,8 @@ namespace dxvk {
       HRESULT hr = m_surf->GetProxied()->GetSurfaceDesc(&desc);
       if (unlikely(FAILED(hr)))
         return hr;
-      m_desc = desc;
+      // DDSURFACEDESC is aligned with DDSURFACEDESC2
+      memcpy(&m_desc, &desc, sizeof(DDSURFACEDESC));
       RefreshStaticDescData(refreshFormat);
     }
 
