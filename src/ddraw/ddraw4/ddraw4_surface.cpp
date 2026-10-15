@@ -30,19 +30,18 @@ namespace dxvk {
       throw DxvkError("DDraw4Surface: ERROR! Failed to retrieve the common interface!");
     }
 
-    if (m_commonSurf == nullptr)
+    if (m_commonSurf == nullptr) {
       m_commonSurf = new DDrawCommonSurface(m_commonIntf);
 
-    // Retrieve and cache the proxy surface desc
-    if (!m_commonSurf->IsDesc2Set()) {
-      DDSURFACEDESC2 desc2;
-      desc2.dwSize = sizeof(DDSURFACEDESC2);
-      HRESULT hr = m_proxy->GetSurfaceDesc(&desc2);
+      // Retrieve and cache the proxy surface desc
+      DDSURFACEDESC2 desc;
+      desc.dwSize = sizeof(DDSURFACEDESC2);
+      HRESULT hr = m_proxy->GetSurfaceDesc(&desc);
 
       if (unlikely(FAILED(hr))) {
         throw DxvkError("DDraw4Surface: ERROR! Failed to retrieve new surface desc!");
       } else {
-        m_commonSurf->SetDesc2(desc2);
+        m_commonSurf->SetDesc(desc);
       }
     }
 
@@ -64,7 +63,7 @@ namespace dxvk {
                  m_commonIntf->GetOptions()->forceLegacyPresent &&
                  ddraw4Intf != nullptr &&
                 !m_commonSurf->SkipD3D9Operations())) {
-      const DDSURFACEDESC2* surfaceDesc = m_commonSurf->GetDesc2();
+      const DDSURFACEDESC2* surfaceDesc = m_commonSurf->GetDesc();
 
       DDSURFACEDESC2 shadowDesc = { };
       shadowDesc.dwSize = sizeof(DDSURFACEDESC2);
@@ -545,17 +544,17 @@ namespace dxvk {
         if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
           // Return the already attached depth surface if it exists
           if (unlikely(m_depthStencil != nullptr && surface4.ptr() == m_depthStencil->GetProxied())) {
-            hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->desc2, lpContext);
+            hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->desc, lpContext);
           } else {
             Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface4),
                                                                  m_commonIntf->GetDD4Interface(), this, false);
             m_attachedSurfaces.emplace(std::piecewise_construct,
                                        std::forward_as_tuple(ddraw4Surface->GetProxied()),
                                        std::forward_as_tuple(ddraw4Surface.ref()));
-            hr = lpEnumSurfacesCallback(ddraw4Surface.ref(), &surfaceIt->desc2, lpContext);
+            hr = lpEnumSurfacesCallback(ddraw4Surface.ref(), &surfaceIt->desc, lpContext);
           }
         } else {
-          hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->desc2, lpContext);
+          hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->desc, lpContext);
         }
       } catch (const DxvkError& e) {
         Logger::err(e.message());
@@ -723,7 +722,7 @@ namespace dxvk {
     if (unlikely(lpDDSCaps == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *lpDDSCaps = m_commonSurf->GetDesc2()->ddsCaps;
+    *lpDDSCaps = m_commonSurf->GetDesc()->ddsCaps;
 
     return DD_OK;
   }
@@ -798,7 +797,7 @@ namespace dxvk {
     if (unlikely(lpDDPixelFormat == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *lpDDPixelFormat = m_commonSurf->GetDesc2()->ddpfPixelFormat;
+    *lpDDPixelFormat = m_commonSurf->GetDesc()->ddpfPixelFormat;
 
     return DD_OK;
   }
@@ -810,7 +809,7 @@ namespace dxvk {
     if (unlikely(lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC2)))
       return DDERR_INVALIDPARAMS;
 
-    *lpDDSurfaceDesc = *m_commonSurf->GetDesc2();
+    *lpDDSurfaceDesc = *m_commonSurf->GetDesc();
 
     return DD_OK;
   }

@@ -368,7 +368,7 @@ namespace dxvk {
         try {
           ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface4), this, nullptr, false);
 
-          hr = lpEnumSurfacesCallback(ddraw4Surface.ref(), &attachedSurface.desc2, lpContext);
+          hr = lpEnumSurfacesCallback(ddraw4Surface.ref(), &attachedSurface.desc, lpContext);
         } catch (const DxvkError& e) {
           Logger::warn("DDraw4Interface::EnumSurfaces: Failed to create wrapped surface");
           Logger::warn(e.message());
