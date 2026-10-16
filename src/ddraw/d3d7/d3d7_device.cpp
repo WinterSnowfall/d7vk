@@ -1320,9 +1320,9 @@ namespace dxvk {
     //if (unlikely(m_textures[stage] == surface7))
       //return D3D_OK;
 
-    const D3D9SurfaceType d3d9SurfaceType = commonSurface->GetD3D9SurfaceType();
+    const D3D9SurfaceType surfaceType9 = commonSurface->GetD3D9SurfaceType();
 
-    switch (d3d9SurfaceType) {
+    switch (surfaceType9) {
       default:
       case D3D9SurfaceType::Texture: {
         d3d9::IDirect3DTexture9* tex9 = commonSurface->GetD3D9Texture();
