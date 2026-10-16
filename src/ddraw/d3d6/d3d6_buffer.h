@@ -49,9 +49,26 @@ namespace dxvk {
 
   private:
 
-    std::atomic<bool>    m_locked = false;
+    inline void IncrementLockCounter() {
+      m_locked++;
+    }
 
-    Com<D3DCommonBuffer> m_commonBuffer;
+    inline void DecrementLockCounter() {
+      uint32_t lockedOld, locked;
+
+      do {
+        lockedOld = m_locked.load();
+        // Clamp to 0
+        if (unlikely(!lockedOld))
+          return;
+        locked = lockedOld - 1u;
+      } while (!m_locked.compare_exchange_weak(lockedOld, locked));
+    }
+
+    // There can be multiple simultaneous locks on a vertex buffer
+    std::atomic<uint32_t> m_locked = 0u;
+
+    Com<D3DCommonBuffer>  m_commonBuffer;
 
   };
 
