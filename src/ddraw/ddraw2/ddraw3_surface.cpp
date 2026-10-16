@@ -753,10 +753,6 @@ namespace dxvk {
     // For single surface locks, track the READONLY flag in order to skip dirtying
     // on Unlock(). Reset flag tracking in case of multiple simultaneous locks,
     // which are technically possible but extremely rare in practice.
-    //
-    // Note: Using lpDestRect as a key for tracking and/or matching Lock() to Unlock()
-    // calls, as the documentation suggests, isn't feasible, as there are applications
-    // which use nullptr during Lock() calls and then a non-null pointer on Unlock().
     if (likely(!m_readOnlyLock)) {
       m_readOnlyLock = (dwFlags & DDLOCK_READONLY) && !(dwFlags & DDLOCK_WRITEONLY);
     } else {
@@ -1053,9 +1049,9 @@ namespace dxvk {
 
     //Logger::debug(str::format("DDraw3Surface::UploadSurfaceData: Uploading nr. [[3-", std::hex, this, "]]"));
 
-    const D3D9SurfaceType d3d9SurfaceType = m_commonSurf->GetD3D9SurfaceType();
+    const D3D9SurfaceType surfaceType9 = m_commonSurf->GetD3D9SurfaceType();
 
-    switch (d3d9SurfaceType) {
+    switch (surfaceType9) {
       case D3D9SurfaceType::Texture:
         BlitToD3D9Texture<IDirectDrawSurface3, DDSURFACEDESC>(m_commonSurf->GetD3D9Texture(), m_proxy.ptr(),
                                                               m_commonSurf->GetMipCount(), m_commonSurf->IsDXTFormat());
