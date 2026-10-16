@@ -84,7 +84,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    m_locked = true;
+    IncrementLockCounter();
 
     return D3D_OK;
   }
@@ -93,7 +93,7 @@ namespace dxvk {
     // Ignore the unlock call if the D3D9 buffer
     // was lost since the previous Lock() call
     if (unlikely(!m_commonBuffer->IsInitialized())) {
-      m_locked = false;
+      DecrementLockCounter();
       return D3D_OK;
     }
 
@@ -102,7 +102,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return D3DERR_VERTEXBUFFERUNLOCKFAILED;
 
-    m_locked = false;
+    DecrementLockCounter();
 
     return D3D_OK;
   }
