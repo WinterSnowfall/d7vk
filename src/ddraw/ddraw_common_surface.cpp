@@ -166,9 +166,9 @@ namespace dxvk {
     const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = m_commonD3DDevice->GetMultiSampleType();
     d3d9::IDirect3DDevice9* d3d9Device = m_commonD3DDevice->GetD3D9Device();
 
-    m_d3d9SurfaceType = DetermineD3D9SurfaceType(initRenderTarget);
+    m_surfaceType9 = DetermineD3D9SurfaceType(initRenderTarget);
 
-    switch (m_d3d9SurfaceType) {
+    switch (m_surfaceType9) {
       case D3D9SurfaceType::BackBuffer: {
         HRESULT hr = d3d9Device->GetBackBuffer(0, m_backBufferIndex, d3d9::D3DBACKBUFFER_TYPE_MONO, &m_surface9);
         if (unlikely(unlikely(FAILED(hr)))) {
