@@ -164,10 +164,10 @@ namespace dxvk {
       if (likely(m_depthStencil != nullptr))
         return m_depthStencil.ptr();
 
-      DDSCAPS2 caps2;
-      caps2.dwCaps = DDSCAPS_ZBUFFER;
+      DDSCAPS2 caps;
+      caps.dwCaps = DDSCAPS_ZBUFFER;
       Com<IDirectDrawSurface4> depthStencil;
-      HRESULT hr = m_proxy->GetAttachedSurface(&caps2, &depthStencil);
+      HRESULT hr = m_proxy->GetAttachedSurface(&caps, &depthStencil);
       if (unlikely(FAILED(hr)))
         return nullptr;
 

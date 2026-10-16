@@ -90,16 +90,16 @@ namespace dxvk {
       m_texture9 = nullptr;
       m_surface9 = nullptr;
       // Also reset all D3D9 related tracking flags
-      m_d3d9SurfaceType = D3D9SurfaceType::None;
+      m_surfaceType9 = D3D9SurfaceType::None;
       m_dirtyD3D9 = false;
+    }
+
+    D3D9SurfaceType GetD3D9SurfaceType() const {
+      return m_surfaceType9;
     }
 
     d3d9::D3DFORMAT GetD3D9Format() const {
       return m_format9;
-    }
-
-    D3D9SurfaceType GetD3D9SurfaceType() const {
-      return m_d3d9SurfaceType;
     }
 
     void SetDesc(const DDSURFACEDESC& desc) {
@@ -590,7 +590,7 @@ namespace dxvk {
 
     DDCOLORKEY                       m_ckNormalized     = { };
 
-    D3D9SurfaceType                  m_d3d9SurfaceType  = D3D9SurfaceType::None;
+    D3D9SurfaceType                  m_surfaceType9     = D3D9SurfaceType::None;
     d3d9::D3DFORMAT                  m_format9          = d3d9::D3DFMT_UNKNOWN;
 
     Com<DDrawClipper>                m_clipper;
