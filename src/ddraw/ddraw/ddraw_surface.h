@@ -111,8 +111,9 @@ namespace dxvk {
 
     void DownloadSurfaceData();
 
-    DDrawSurface* GetShadowSurface() const {
-      return m_shadowSurf.ptr();
+    // Used for retrieving the IDirectDrawSurface2/3 shadow surfaces
+    IDirectDrawSurface* GetShadowSurfaceProxied() const {
+      return m_shadowSurf != nullptr ? m_shadowSurf->GetProxied() : nullptr;
     }
 
     IDirectDrawSurface* GetShadowOrProxied() {
