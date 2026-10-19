@@ -166,9 +166,9 @@ namespace dxvk {
 
     D3DSTATS                        m_stats            = { };
 
-    D3DMATRIXHANDLE                 m_worldHandle      = 0;
-    D3DMATRIXHANDLE                 m_viewHandle       = 0;
-    D3DMATRIXHANDLE                 m_projectionHandle = 0;
+    D3DMATRIXHANDLE                 m_worldHandle      = 0u;
+    D3DMATRIXHANDLE                 m_viewHandle       = 0u;
+    D3DMATRIXHANDLE                 m_projectionHandle = 0u;
 
     // Tests have indicated that once created, matrix handles are
     // shared across all devices, regardless of their relation
