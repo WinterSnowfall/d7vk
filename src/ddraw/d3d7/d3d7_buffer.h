@@ -67,7 +67,7 @@ namespace dxvk {
     }
 
     // There can be multiple simultaneous locks on a vertex buffer
-    std::atomic<uint32_t> m_locked = 0u;
+    std::atomic<uint32_t> m_locked = { 0u };
 
     Com<D3DCommonBuffer>  m_commonBuffer;
 
