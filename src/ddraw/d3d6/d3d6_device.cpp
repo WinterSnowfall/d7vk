@@ -48,7 +48,7 @@ namespace dxvk {
       device9 = m_commonD3DDevice->GetD3D9Device();
 
       if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
-        Logger::warn("D3D6Device: Force enabling AA");
+        Logger::warn("D3D6Device: Force enabling FSAA emulation may introduce artifacting");
         device9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
       }
     } else {
