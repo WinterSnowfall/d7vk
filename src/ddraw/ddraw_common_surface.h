@@ -61,6 +61,14 @@ namespace dxvk {
       return m_commonIntf.ptr();
     }
 
+    void SetCommonShadowSurface(DDrawCommonSurface* commonShadowSurf) {
+      m_commonShadowSurf = commonShadowSurf;
+    }
+
+    DDrawCommonSurface* GetCommonShadowSurface() const {
+      return m_commonShadowSurf;
+    }
+
     void SetD3D9Surface(Com<d3d9::IDirect3DSurface9>&& surface9) {
       m_surface9 = surface9;
     }
@@ -577,6 +585,8 @@ namespace dxvk {
     Com<DDrawCommonInterface>        m_commonIntf;
 
     D3DCommonDevice*                 m_commonD3DDevice  = nullptr;
+
+    DDrawCommonSurface*              m_commonShadowSurf = nullptr;
 
     uint32_t                         m_mipCount         = 1u;
     uint32_t                         m_backBufferIndex  = 0u;
