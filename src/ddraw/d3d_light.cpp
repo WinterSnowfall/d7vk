@@ -4,7 +4,7 @@
 
 namespace dxvk {
 
-  std::atomic<uint32_t> D3DLight::s_light9Index = 0;
+  std::atomic<uint32_t> D3DLight::s_light9Index = { 0u };
 
   D3DLight::D3DLight(IUnknown* pParent)
     : DDrawChildObject<IUnknown, IDirect3DLight>(pParent) {

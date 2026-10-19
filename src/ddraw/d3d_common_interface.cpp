@@ -4,7 +4,7 @@
 
 namespace dxvk {
 
-  std::atomic<D3DMATERIALHANDLE> D3DCommonInterface::s_materialHandle = 0;
+  std::atomic<D3DMATERIALHANDLE> D3DCommonInterface::s_materialHandle = { 0u };
 
   D3DCommonInterface::D3DCommonInterface()
     : m_d3d9Intf ( d3d9::Direct3DCreate9(D3D_SDK_VERSION) ) {

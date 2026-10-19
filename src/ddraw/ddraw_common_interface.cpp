@@ -12,7 +12,7 @@
 
 namespace dxvk {
 
-  std::atomic<D3DTEXTUREHANDLE> DDrawCommonInterface::s_textureHandle = 0;
+  std::atomic<D3DTEXTUREHANDLE> DDrawCommonInterface::s_textureHandle = { 0u };
 
   DDrawCommonInterface::DDrawCommonInterface(const D3DOptions& d3dOptions)
     : m_d3dOptions ( d3dOptions ) {

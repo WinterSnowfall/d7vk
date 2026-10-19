@@ -196,7 +196,7 @@ namespace dxvk {
     inline HRESULT UploadSurfaceData();
 
     bool                    m_isChildObject = false;
-    std::atomic<bool>       m_readOnlyLock  = false;
+    std::atomic<bool>       m_readOnlyLock  = { false };
 
     Com<DDrawCommonSurface> m_commonSurf;
     DDrawCommonInterface*   m_commonIntf    = nullptr;
