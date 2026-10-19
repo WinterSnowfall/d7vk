@@ -207,7 +207,12 @@ namespace dxvk {
     if (unlikely(pUnkOuter != nullptr))
       return CLASS_E_NOAGGREGATION;
 
-    IDirectDraw* ppvObjectProxy = nullptr;
+    // Apparently this also works, but I doubt is ever used in practice,
+    // since IDirectDraw7 can be requested directly in DllGetClassObject
+    if (unlikely(riid == __uuidof(IDirectDraw7)))
+      return CreateDirectDrawEx(NULL, ppvObject, riid, NULL);
+
+    Com<IDirectDraw> ppvObjectProxy;
     HRESULT hr = CreateDirectDraw(NULL, &ppvObjectProxy, NULL);
     if (unlikely(FAILED(hr)))
       return hr;
@@ -215,36 +220,28 @@ namespace dxvk {
     // ClassFactoryCreateDirectDraw can be used to construct objects
     // ranging from IDirectDraw to IDirectDraw2 and IDirectDraw4
     if (riid == __uuidof(IDirectDraw)) {
-      *ppvObject = static_cast<void*>(ppvObjectProxy);
+      *ppvObject = ppvObjectProxy.ref();
+      return S_OK;
     } else if (riid == __uuidof(IDirectDraw2)) {
-      void* directDraw2 = nullptr;
-      hr = ppvObjectProxy->QueryInterface(__uuidof(IDirectDraw2), &directDraw2);
-      if (unlikely(FAILED(hr))) {
-        ppvObjectProxy->Release();
+      Com<IDirectDraw2> directDraw2;
+      hr = ppvObjectProxy->QueryInterface(__uuidof(IDirectDraw2), reinterpret_cast<void**>(&directDraw2));
+      if (unlikely(FAILED(hr)))
         return hr;
-      }
-      *ppvObject = directDraw2;
-      ppvObjectProxy->Release();
+
+      *ppvObject = directDraw2.ref();
+      return S_OK;
     } else if (riid == __uuidof(IDirectDraw4)) {
-      void* directDraw4 = nullptr;
-      hr = ppvObjectProxy->QueryInterface(__uuidof(IDirectDraw4), &directDraw4);
-      if (unlikely(FAILED(hr))) {
-        ppvObjectProxy->Release();
+      Com<IDirectDraw4> directDraw4;
+      hr = ppvObjectProxy->QueryInterface(__uuidof(IDirectDraw4), reinterpret_cast<void**>(&directDraw4));
+      if (unlikely(FAILED(hr)))
         return hr;
-      }
-      *ppvObject = directDraw4;
-      ppvObjectProxy->Release();
-    // Apparently this also works, but I doubt is ever used in practice,
-    // since IDirectDraw7 can be requested directly in DllGetClassObject
-    } else if (riid == __uuidof(IDirectDraw7)) {
-      ppvObjectProxy->Release();
-      return CreateDirectDrawEx(NULL, ppvObject, riid, NULL);
-    } else {
-      Logger::warn(str::format(">>> ClassFactoryCreateDirectDraw: Unknown IID: ", riid));
-      return CLASS_E_CLASSNOTAVAILABLE;
+
+      *ppvObject = directDraw4.ref();
+      return S_OK;
     }
 
-    return S_OK;
+    Logger::warn(str::format(">>> ClassFactoryCreateDirectDraw: Unknown IID: ", riid));
+    return CLASS_E_CLASSNOTAVAILABLE;
   }
 
   HRESULT ClassFactoryCreateDirectDrawEx(IUnknown *pUnkOuter, REFIID riid, void **ppvObject) {
@@ -256,12 +253,11 @@ namespace dxvk {
     if (unlikely(pUnkOuter != nullptr))
       return CLASS_E_NOAGGREGATION;
 
-    if (unlikely(riid != __uuidof(IDirectDraw7))) {
-      Logger::warn(str::format(">>> ClassFactoryCreateDirectDrawEx: Unknown IID: ", riid));
-      return CLASS_E_CLASSNOTAVAILABLE;
-    }
+    if (likely(riid == __uuidof(IDirectDraw7)))
+      return CreateDirectDrawEx(NULL, ppvObject, riid, NULL);
 
-    return CreateDirectDrawEx(NULL, ppvObject, riid, NULL);
+    Logger::warn(str::format(">>> ClassFactoryCreateDirectDrawEx: Unknown IID: ", riid));
+    return CLASS_E_CLASSNOTAVAILABLE;
   }
 
   HRESULT ClassFactoryCreateDirectDrawClipper(IUnknown *pUnkOuter, REFIID riid, void **ppvObject) {
@@ -273,10 +269,11 @@ namespace dxvk {
     if (unlikely(pUnkOuter != nullptr))
       return CLASS_E_NOAGGREGATION;
 
-    if (unlikely(riid != __uuidof(IDirectDrawClipper)))
-      return CLASS_E_CLASSNOTAVAILABLE;
+    if (likely(riid == __uuidof(IDirectDrawClipper)))
+      return CreateDirectDrawClipper(0, reinterpret_cast<IDirectDrawClipper**>(ppvObject), NULL);
 
-    return CreateDirectDrawClipper(0, reinterpret_cast<IDirectDrawClipper**>(ppvObject), NULL);
+    Logger::warn(str::format(">>> ClassFactoryCreateDirectDrawClipper: Unknown IID: ", riid));
+    return CLASS_E_CLASSNOTAVAILABLE;
   }
 
 }
@@ -474,22 +471,13 @@ extern "C" {
       return E_NOINTERFACE;
 
     if (likely(rclsid == dxvk::CLSID_DirectDraw)) {
-      dxvk::DDrawClassFactory* ddrawClassFactory = new dxvk::DDrawClassFactory(dxvk::ClassFactoryCreateDirectDraw);
-
-      *ppv = ref(ddrawClassFactory);
-
+      *ppv = ref(new dxvk::DDrawClassFactory(dxvk::ClassFactoryCreateDirectDraw));
       return S_OK;
     } else if (rclsid == dxvk::CLSID_DirectDraw7) {
-      dxvk::DDrawClassFactory* ddrawClassFactory = new dxvk::DDrawClassFactory(dxvk::ClassFactoryCreateDirectDrawEx);
-
-      *ppv = ref(ddrawClassFactory);
-
+      *ppv = ref(new dxvk::DDrawClassFactory(dxvk::ClassFactoryCreateDirectDrawEx));
       return S_OK;
     } else if (rclsid == dxvk::CLSID_DirectDrawClipper) {
-      dxvk::DDrawClassFactory* ddrawClassFactory = new dxvk::DDrawClassFactory(dxvk::ClassFactoryCreateDirectDrawClipper);
-
-      *ppv = ref(ddrawClassFactory);
-
+      *ppv = ref(new dxvk::DDrawClassFactory(dxvk::ClassFactoryCreateDirectDrawClipper));
       return S_OK;
     }
 
