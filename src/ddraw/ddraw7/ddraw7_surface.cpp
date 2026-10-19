@@ -83,8 +83,11 @@ namespace dxvk {
       if (unlikely(FAILED(hr))) {
         Logger::warn("DDraw7Surface: Failed to create shadow surface");
       } else {
-        m_shadowSurf = new DDraw7Surface(nullptr, std::move(ddraw7SurfaceShadow),
+        DDrawCommonSurface* commonShadowSurf = m_commonSurf->GetCommonShadowSurface();
+        m_shadowSurf = new DDraw7Surface(commonShadowSurf, std::move(ddraw7SurfaceShadow),
                                          ddraw7Intf, nullptr, false);
+        if (commonShadowSurf == nullptr)
+          m_commonSurf->SetCommonShadowSurface(m_shadowSurf->GetCommonSurface());
       }
     }
 
