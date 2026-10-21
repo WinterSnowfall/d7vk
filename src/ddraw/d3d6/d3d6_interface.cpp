@@ -364,10 +364,8 @@ namespace dxvk {
                                rgbFallback ? IID_IDirect3DRGBDevice : rclsid;
 
     HWND hWnd = m_commonIntf->GetHWND();
-    // Needed to sometimes safely skip intro playback on legacy devices
-    if (unlikely(hWnd == nullptr)) {
+    if (unlikely(hWnd == nullptr))
       Logger::debug("D3D6Interface::CreateDevice: HWND is NULL");
-    }
 
     Com<DDraw4Surface> rt4;
     if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDS))) {
