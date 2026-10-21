@@ -179,7 +179,7 @@ namespace dxvk {
       }
       case D3D9SurfaceType::CubeTexture: {
         // Properly handle cube textures with auto-generated mip maps
-        const uint32_t mipCount = usage & D3DUSAGE_AUTOGENMIPMAP ? 0 : m_mipCount;
+        const uint32_t mipCount = usage & D3DUSAGE_AUTOGENMIPMAP ? 0u : m_mipCount;
 
         HRESULT hr = d3d9Device->CreateCubeTexture(dwWidth, mipCount, usage,
                                                    m_format9, pool, &m_cubeTex9, nullptr);
@@ -200,7 +200,7 @@ namespace dxvk {
       }
       case D3D9SurfaceType::Texture: {
         // Properly handle textures with auto-generated mip maps
-        const uint32_t mipCount = usage & D3DUSAGE_AUTOGENMIPMAP ? 0 : m_mipCount;
+        const uint32_t mipCount = usage & D3DUSAGE_AUTOGENMIPMAP ? 0u : m_mipCount;
 
         HRESULT hr = d3d9Device->CreateTexture(dwWidth, dwHeight, mipCount, usage,
                                                m_format9, pool, &m_texture9, nullptr);

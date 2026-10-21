@@ -946,11 +946,9 @@ namespace dxvk {
 
       // Retrieve a hWnd, if needed, during clipper attachment
       HWND hWnd = nullptr;
-      hr = ddrawClipper->GetProxied()->GetHWnd(&hWnd);
-      if (unlikely(FAILED(hr)))
-        return DD_OK;
-
-      m_commonIntf->SetHWND(hWnd);
+      ddrawClipper->GetProxied()->GetHWnd(&hWnd);
+      if (hWnd != nullptr)
+        m_commonIntf->SetHWND(hWnd);
     }
 
     return DD_OK;
@@ -1224,10 +1222,8 @@ namespace dxvk {
                                rgbFallback ? IID_IDirect3DRGBDevice : riid;
 
     HWND hWnd = m_commonIntf->GetHWND();
-    // Needed to sometimes safely skip intro playback on legacy devices
-    if (unlikely(hWnd == nullptr)) {
+    if (unlikely(hWnd == nullptr))
       Logger::debug("DDrawSurface::CreateDeviceInternal: HWND is NULL");
-    }
 
     // Clean up any previous device use, otherwise we can end up blitting
     // on stale images from D3D9, as is observed in the case of 3DMark 2000.

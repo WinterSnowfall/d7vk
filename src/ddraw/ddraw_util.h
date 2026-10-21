@@ -90,7 +90,7 @@ namespace dxvk {
     void reset() {
       d3dpt   = D3DPRIMITIVETYPE(0);
       d3dvt   = D3DVERTEXTYPE(0);
-      dwFlags = 0;
+      dwFlags = 0u;
 
       initialized = false;
     }
@@ -482,7 +482,7 @@ namespace dxvk {
           case D3DTFP_LINEAR:         return d3d9::D3DTEXF_LINEAR;
         }
         break;
-      default: return 0;
+      default: return 0u;
     }
   }
 
@@ -515,7 +515,7 @@ namespace dxvk {
           case d3d9::D3DTEXF_LINEAR:      return D3DTFP_LINEAR;
         }
         break;
-      default: return 0;
+      default: return 0u;
     }
   }
 
@@ -537,7 +537,7 @@ namespace dxvk {
           case d3d9::D3DTEXF_LINEAR: return D3DFILTER_LINEARMIPLINEAR;
         }
         break;
-      default: return 0;
+      default: return 0u;
     }
   }
 
@@ -1173,7 +1173,7 @@ namespace dxvk {
                               | D3DSTENCILCAPS_ZERO;
 
     desc.dwFVFCaps                = (ddrawCaps::MaxSimultaneousTextures & D3DFVFCAPS_TEXCOORDCOUNTMASK);
-                                // | D3DFVFCAPS_DONOTSTRIPELEMENTS;
+                               // | D3DFVFCAPS_DONOTSTRIPELEMENTS;
 
     desc.dwTextureOpCaps          = D3DTEXOPCAPS_ADD
                                   | D3DTEXOPCAPS_ADDSIGNED
