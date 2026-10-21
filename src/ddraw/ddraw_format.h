@@ -67,7 +67,7 @@ namespace dxvk {
       switch (fmt.dwRGBBitCount) {
         case 8:
           // R: 1110 0000
-          d3d9Format = (fmt.dwFlags & DDPF_PALETTEINDEXED8) ? d3d9::D3DFMT_P8 : d3d9::D3DFMT_R3G3B2;
+          d3d9Format = fmt.dwFlags & DDPF_PALETTEINDEXED8 ? d3d9::D3DFMT_P8 : d3d9::D3DFMT_R3G3B2;
           break;
 
         case 16:
@@ -692,9 +692,10 @@ namespace dxvk {
   template <typename SurfaceType, typename DescType>
   inline uint32_t DetermineMipMapCount(SurfaceType* surface) {
     SurfaceType* mipMap = surface;
-    DescType mipDesc;
     uint32_t mipCount = 1u;
 
+    // Don't worry about maximum supported mip map levels validation,
+    // because D3D9 will handle this for us and cap them appropriately
     while (mipMap != nullptr) {
       SurfaceType* parentSurface = mipMap;
       mipMap = nullptr;
@@ -713,27 +714,14 @@ namespace dxvk {
       if (mipMap != nullptr) {
         mipCount++;
 
-        mipDesc = { };
+        DescType mipDesc;
         mipDesc.dwSize = sizeof(DescType);
         mipMap->GetSurfaceDesc(&mipDesc);
         // Ignore multiple 1x1 mips, which apparently can get generated if the
-        // application gets the dwMipMapCount wrong vs surface dimensions.
-        if (unlikely(mipDesc.dwWidth == 1 && mipDesc.dwHeight == 1))
+        // application gets the dwMipMapCount wrong vs surface dimensions
+        if (unlikely(mipDesc.dwWidth == 1u && mipDesc.dwHeight == 1u))
           break;
       }
-    }
-
-    // Don't worry about maximum supported mip map levels validation,
-    // because D3D9 will handle this for us and cap them appropriately
-    if (mipCount > 1) {
-      //Logger::debug(str::format("DetermineMipMapCount: Found ", mipCount, " mip levels"));
-
-      DescType desc;
-      desc.dwSize = sizeof(DescType);
-      surface->GetSurfaceDesc(&desc);
-
-      if (unlikely(mipCount != desc.dwMipMapCount))
-        Logger::debug(str::format("DetermineMipMapCount: Mismatch with declared ", desc.dwMipMapCount, " mip levels"));
     }
 
     return mipCount;
@@ -741,7 +729,7 @@ namespace dxvk {
 
   template <typename SurfaceType>
   inline DWORD DetermineBackBufferCount(SurfaceType* renderTarget) {
-    DWORD backBufferCount = 0;
+    DWORD backBufferCount = 0u;
 
     SurfaceType* backBuffer = renderTarget;
 
@@ -782,12 +770,11 @@ namespace dxvk {
     surface->GetSurfaceDesc(&desc);
     const d3d9::D3DCUBEMAP_FACES face = GetCubemapFace(&desc);
     SurfaceType* mipMap = surface;
-    SurfaceType* parentSurface;
 
     for (uint32_t i = 0; i < mipLevels; i++) {
-      d3d9::D3DLOCKED_RECT rect9mip;
+      d3d9::D3DLOCKED_RECT rectMip9;
       // D3DLOCK_DISCARD will get ignored for MANAGED/SYSTEMMEM, but will work on DEFAULT
-      HRESULT hr9 = cubeTex9->LockRect(face, i, &rect9mip, NULL, D3DLOCK_DISCARD);
+      HRESULT hr9 = cubeTex9->LockRect(face, i, &rectMip9, NULL, D3DLOCK_DISCARD);
       if (likely(SUCCEEDED(hr9))) {
         DescType descMip;
         descMip.dwSize = sizeof(DescType);
@@ -796,24 +783,22 @@ namespace dxvk {
           // The lock pitch of a DXT surface represents its entire size, apparently
           if (isDXTFormat) {
             const size_t size = static_cast<size_t>(descMip.lPitch);
-            memcpy(rect9mip.pBits, descMip.lpSurface, size);
+            memcpy(rectMip9.pBits, descMip.lpSurface, size);
             //Logger::debug(str::format("BlitToD3D9CubeTexture: Done blitting DXT mip ", i));
-          } else if (descMip.lPitch != rect9mip.Pitch) {
-            //Logger::debug(str::format("BlitToD3D9CubeTexture: Incompatible mip map ", i, " pitch"));
-
-            uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9mip.pBits);
+          } else if (descMip.lPitch != rectMip9.Pitch) {
+            uint8_t* data9 = reinterpret_cast<uint8_t*>(rectMip9.pBits);
             uint8_t* data7 = reinterpret_cast<uint8_t*>(descMip.lpSurface);
 
-            const size_t copyPitch = std::min<size_t>(descMip.lPitch, rect9mip.Pitch);
+            const size_t copyPitch = std::min<size_t>(descMip.lPitch, rectMip9.Pitch);
             for (uint32_t h = 0; h < descMip.dwHeight; h++) {
               memcpy(data9, data7, copyPitch);
-              data9 += rect9mip.Pitch;
+              data9 += rectMip9.Pitch;
               data7 += descMip.lPitch;
             }
             //Logger::debug(str::format("BlitToD3D9CubeTexture: Done blitting mip ", i, " row by row"));
           } else {
             const size_t size = static_cast<size_t>(descMip.dwHeight * descMip.lPitch);
-            memcpy(rect9mip.pBits, descMip.lpSurface, size);
+            memcpy(rectMip9.pBits, descMip.lpSurface, size);
             //Logger::debug(str::format("BlitToD3D9CubeTexture: Done blitting mip ", i));
           }
           mipMap->Unlock(NULL);
@@ -827,7 +812,7 @@ namespace dxvk {
 
       // Skip the enumeration if we've reached the final mip
       if (likely(i < mipLevels - 1)) {
-        parentSurface = mipMap;
+        SurfaceType* parentSurface = mipMap;
         parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces7Callback);
       }
     }
@@ -840,12 +825,11 @@ namespace dxvk {
         const uint32_t mipLevels,
         const bool isDXTFormat) {
     SurfaceType* mipMap = surface;
-    SurfaceType* parentSurface;
 
     for (uint32_t i = 0; i < mipLevels; i++) {
-      d3d9::D3DLOCKED_RECT rect9mip;
+      d3d9::D3DLOCKED_RECT rectMip9;
       // D3DLOCK_DISCARD will get ignored for MANAGED/SYSTEMMEM, but will work on DEFAULT
-      HRESULT hr9 = texture9->LockRect(i, &rect9mip, NULL, D3DLOCK_DISCARD);
+      HRESULT hr9 = texture9->LockRect(i, &rectMip9, NULL, D3DLOCK_DISCARD);
       if (likely(SUCCEEDED(hr9))) {
         DescType descMip;
         descMip.dwSize = sizeof(DescType);
@@ -854,24 +838,22 @@ namespace dxvk {
           // The lock pitch of a DXT surface represents its entire size, apparently
           if (isDXTFormat) {
             const size_t size = static_cast<size_t>(descMip.lPitch);
-            memcpy(rect9mip.pBits, descMip.lpSurface, size);
+            memcpy(rectMip9.pBits, descMip.lpSurface, size);
             //Logger::debug(str::format("BlitToD3D9Texture: Done blitting DXT mip ", i));
-          } else if (descMip.lPitch != rect9mip.Pitch) {
-            //Logger::debug(str::format("BlitToD3D9Texture: Incompatible mip map ", i, " pitch"));
-
-            uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9mip.pBits);
+          } else if (descMip.lPitch != rectMip9.Pitch) {
+            uint8_t* data9 = reinterpret_cast<uint8_t*>(rectMip9.pBits);
             uint8_t* data7 = reinterpret_cast<uint8_t*>(descMip.lpSurface);
 
-            const size_t copyPitch = std::min<size_t>(descMip.lPitch, rect9mip.Pitch);
+            const size_t copyPitch = std::min<size_t>(descMip.lPitch, rectMip9.Pitch);
             for (uint32_t h = 0; h < descMip.dwHeight; h++) {
               memcpy(data9, data7, copyPitch);
-              data9 += rect9mip.Pitch;
+              data9 += rectMip9.Pitch;
               data7 += descMip.lPitch;
             }
             //Logger::debug(str::format("BlitToD3D9Texture: Done blitting mip ", i, " row by row"));
           } else {
             const size_t size = static_cast<size_t>(descMip.dwHeight * descMip.lPitch);
-            memcpy(rect9mip.pBits, descMip.lpSurface, size);
+            memcpy(rectMip9.pBits, descMip.lpSurface, size);
             //Logger::debug(str::format("BlitToD3D9Texture: Done blitting mip ", i));
           }
           mipMap->Unlock(NULL);
@@ -885,7 +867,7 @@ namespace dxvk {
 
       // Skip the enumeration if we've reached the final mip
       if (likely(i < mipLevels - 1)) {
-        parentSurface = mipMap;
+        SurfaceType* parentSurface = mipMap;
         if constexpr (std::is_same<SurfaceType, IDirectDrawSurface7>::value) {
           parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces7Callback);
         } else if constexpr (std::is_same<SurfaceType, IDirectDrawSurface4>::value) {
@@ -919,8 +901,6 @@ namespace dxvk {
           memcpy(rect9.pBits, desc.lpSurface, size);
           //Logger::debug("BlitToD3D9Surface: Done blitting DXT surface");
         } else if (desc.lPitch != rect9.Pitch) {
-          //Logger::debug("BlitToD3D9Surface: Incompatible surface pitch");
-
           uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9.pBits);
           uint8_t* data7 = reinterpret_cast<uint8_t*>(desc.lpSurface);
 
@@ -964,8 +944,6 @@ namespace dxvk {
           memcpy(desc.lpSurface, rect9.pBits, size);
           //Logger::debug("BlitToDDrawSurface: Done blitting DXT surface");
         } else if (desc.lPitch != rect9.Pitch) {
-          //Logger::debug("BlitToDDrawSurface: Incompatible surface pitch");
-
           uint8_t* data7 = reinterpret_cast<uint8_t*>(desc.lpSurface);
           uint8_t* data9 = reinterpret_cast<uint8_t*>(rect9.pBits);
 
@@ -1033,8 +1011,8 @@ namespace dxvk {
     DDCOLORKEY g = GetColorChannel(colorKey, fmt->dwGBitMask);
     DDCOLORKEY r = GetColorChannel(colorKey, fmt->dwRBitMask);
     static constexpr DDCOLORKEY DefaultAlphaColorKey = { 255u, 255u };
-    DDCOLORKEY a = (fmt->dwFlags & DDPF_ALPHAPIXELS) ? GetColorChannel(colorKey, fmt->dwRGBAlphaBitMask)
-                                                     : DefaultAlphaColorKey;
+    DDCOLORKEY a = fmt->dwFlags & DDPF_ALPHAPIXELS ? GetColorChannel(colorKey, fmt->dwRGBAlphaBitMask)
+                                                   : DefaultAlphaColorKey;
 
     rgbColorKey.dwColorSpaceLowValue  = b.dwColorSpaceLowValue |
                                        (g.dwColorSpaceLowValue << 8) |
