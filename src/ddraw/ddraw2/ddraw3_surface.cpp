@@ -821,11 +821,9 @@ namespace dxvk {
 
       // Retrieve a hWnd, if needed, during clipper attachment
       HWND hWnd = nullptr;
-      hr = ddrawClipper->GetProxied()->GetHWnd(&hWnd);
-      if (unlikely(FAILED(hr)))
-        return DD_OK;
-
-      m_commonIntf->SetHWND(hWnd);
+      ddrawClipper->GetProxied()->GetHWnd(&hWnd);
+      if (hWnd != nullptr)
+        m_commonIntf->SetHWND(hWnd);
     }
 
     return DD_OK;

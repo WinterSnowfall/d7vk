@@ -126,7 +126,7 @@ namespace dxvk {
     }
 
     uint8_t GetColorBitCount() const {
-      return (m_desc.dwFlags & DDSD_PIXELFORMAT) ? m_desc.ddpfPixelFormat.dwRGBBitCount : 0u;
+      return m_desc.dwFlags & DDSD_PIXELFORMAT ? m_desc.ddpfPixelFormat.dwRGBBitCount : 0u;
     }
 
     bool IsAlphaFormat() const {
@@ -495,8 +495,8 @@ namespace dxvk {
       else if (IsOffScreenPlainSurface()) type = "offscreen plain surface";
       else if (Is3DSurface())             type = "render target";
 
-      const DWORD mipMapCount    = (m_desc.dwFlags & DDSD_MIPMAPCOUNT) ? m_desc.dwMipMapCount : 0u;
-      const DWORD backBuferCount = (m_desc.dwFlags & DDSD_BACKBUFFERCOUNT) ? m_desc.dwBackBufferCount : 0u;
+      const DWORD mipMapCount    = m_desc.dwFlags & DDSD_MIPMAPCOUNT ? m_desc.dwMipMapCount : 0u;
+      const DWORD backBuferCount = m_desc.dwFlags & DDSD_BACKBUFFERCOUNT ? m_desc.dwBackBufferCount : 0u;
 
       Logger::debug(str::format("   Type:        ", type,
                               "\n   Dimensions:  ", m_rect.right, "x", m_rect.bottom,
@@ -565,8 +565,8 @@ namespace dxvk {
     }
 
     inline DDCOLORKEY UpdateColorKeyNormalized() const {
-      const DDPIXELFORMAT* pixelFormat = (m_desc.dwFlags & DDSD_PIXELFORMAT) ? &m_desc.ddpfPixelFormat : nullptr;
-      const DDCOLORKEY*    colorKey    = (m_desc.dwFlags & DDSD_CKSRCBLT) ? &m_desc.ddckCKSrcBlt : nullptr;
+      const DDPIXELFORMAT* pixelFormat = m_desc.dwFlags & DDSD_PIXELFORMAT ? &m_desc.ddpfPixelFormat : nullptr;
+      const DDCOLORKEY*    colorKey    = m_desc.dwFlags & DDSD_CKSRCBLT ? &m_desc.ddckCKSrcBlt : nullptr;
 
       // Empire of the Ants relies on us using the "Low" color space DWORD
       return ColorKeyToARGB(pixelFormat, colorKey != nullptr ? colorKey->dwColorSpaceLowValue : 0u);

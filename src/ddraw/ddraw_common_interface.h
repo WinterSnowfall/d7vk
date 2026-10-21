@@ -112,6 +112,7 @@ namespace dxvk {
 
     void SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
       m_hWnd = hWnd;
+      m_skipHWNDOverride = m_hWnd != nullptr;
       m_cooperativeLevel = dwFlags;
     }
 
@@ -124,11 +125,12 @@ namespace dxvk {
              (m_cooperativeLevel & DDSCL_EXCLUSIVE);
     }
 
-    // Used to hook the hWnd during SetClipper calls,
+    // Used to hook the HWND during SetClipper calls,
+    // or during SetHWnd calls on the clipper itself,
     // and use that on device creation if no other
-    // hWnd is specified through SetCooperativeLevel
+    // HWND is specified through SetCooperativeLevel
     void SetHWND(HWND hWnd) {
-      if (unlikely(m_hWnd == nullptr && hWnd != nullptr))
+      if (unlikely(!m_skipHWNDOverride))
         m_hWnd = hWnd;
     }
 
@@ -212,6 +214,7 @@ namespace dxvk {
 
     bool                              m_isInitialized      = false;
     bool                              m_waitForVBlank      = true;
+    bool                              m_skipHWNDOverride   = false;
 
     D3DCommonDevice*                  m_commonD3DDevice    = nullptr;
 
