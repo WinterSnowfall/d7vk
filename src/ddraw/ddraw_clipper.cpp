@@ -62,8 +62,8 @@ namespace dxvk {
 
     // The Eschalon: Book I launcher creates a device before attaching the clipper to
     // the primary surface, but right after it sets a HWND on the newly created clipper
-    if (unlikely(m_commonIntf != nullptr && m_commonIntf->GetHWND() == nullptr)) {
-      // Only set the cached hWnd if it's absent
+    if (unlikely(hWnd != nullptr && m_commonIntf != nullptr && m_commonIntf->GetHWND() == nullptr)) {
+      // Only set the cached HWND if it's absent
       m_commonIntf->SetHWND(hWnd);
     }
 
