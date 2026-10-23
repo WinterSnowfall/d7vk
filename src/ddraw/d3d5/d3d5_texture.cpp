@@ -110,13 +110,7 @@ namespace dxvk {
       return hr;
 
     DDrawCommonSurface* commonSurf = m_commonTex->GetCommonSurface();
-
-    hr = commonSurf->RefreshSurfaceDescripton(true);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("D3D5Texture::Load: Failed to refresh surface description");
-      return hr;
-    }
-
+    commonSurf->RefreshSurfaceDescripton(true);
     commonSurf->DirtyDDrawSurface();
 
     return D3D_OK;
