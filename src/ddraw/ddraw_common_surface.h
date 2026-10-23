@@ -39,7 +39,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
-    HRESULT RefreshSurfaceDescripton(const bool refreshFormat);
+    void RefreshSurfaceDescripton(const bool refreshFormat);
 
     void RefreshD3DDevice();
 
