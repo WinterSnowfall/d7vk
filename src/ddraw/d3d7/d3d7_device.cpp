@@ -1488,12 +1488,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    hr = dstCommonSurf->RefreshSurfaceDescripton(true);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("D3D7Device::Load: Failed to refresh surface description");
-      return hr;
-    }
-
+    dstCommonSurf->RefreshSurfaceDescripton(true);
     dstCommonSurf->DirtyDDrawSurface();
 
     return D3D_OK;

@@ -131,7 +131,7 @@ namespace dxvk {
 
     void DownloadSurfaceData();
 
-    IDirectDrawSurface7* GetShadowOrProxied() {
+    IDirectDrawSurface7* GetProxiedOrShadow() {
       // Non-renderable surfaces will never have shadow surfaces, nor will
       // they be at risk of copying back invalid D3D9 surface data
       if (!m_commonSurf->IsRenderTarget())
@@ -143,7 +143,7 @@ namespace dxvk {
       // D3D9 surface data unless we validate/refresh the device pointer regularly
       d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->GetRefreshedD3D9Device();
 
-      if (unlikely(m_shadowSurf != nullptr && d3d9Device != nullptr))
+      if (m_shadowSurf != nullptr && d3d9Device != nullptr)
         return m_shadowSurf->GetProxied();
 
       return m_proxy.ptr();
