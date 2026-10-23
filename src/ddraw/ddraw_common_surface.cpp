@@ -28,38 +28,27 @@ namespace dxvk {
     return S_OK;
   }
 
-  HRESULT DDrawCommonSurface::RefreshSurfaceDescripton(const bool refreshFormat) {
+  void DDrawCommonSurface::RefreshSurfaceDescripton(const bool refreshFormat) {
     if (m_surf7 != nullptr) {
       DDSURFACEDESC2 desc;
       desc.dwSize = sizeof(DDSURFACEDESC2);
-      HRESULT hr = m_surf7->GetProxied()->GetSurfaceDesc(&desc);
-      if (unlikely(FAILED(hr)))
-        return hr;
+      m_surf7->GetProxied()->GetSurfaceDesc(&desc);
       m_desc = desc;
-      RefreshStaticDescData(refreshFormat);
     } else if (m_surf4 != nullptr) {
       DDSURFACEDESC2 desc;
       desc.dwSize = sizeof(DDSURFACEDESC2);
-      HRESULT hr = m_surf4->GetProxied()->GetSurfaceDesc(&desc);
-      if (unlikely(FAILED(hr)))
-        return hr;
+      m_surf4->GetProxied()->GetSurfaceDesc(&desc);
       m_desc = desc;
-      RefreshStaticDescData(refreshFormat);
-    }
-
     // IDirectDrawSurface2/3 surfaces will always keep their IDirectDrawSurface parent surface around
-    if (m_surf != nullptr) {
+    } else if (m_surf != nullptr) {
       DDSURFACEDESC desc;
       desc.dwSize = sizeof(DDSURFACEDESC);
-      HRESULT hr = m_surf->GetProxied()->GetSurfaceDesc(&desc);
-      if (unlikely(FAILED(hr)))
-        return hr;
+      m_surf->GetProxied()->GetSurfaceDesc(&desc);
       // DDSURFACEDESC is aligned with DDSURFACEDESC2
       memcpy(&m_desc, &desc, sizeof(DDSURFACEDESC));
-      RefreshStaticDescData(refreshFormat);
     }
 
-    return DD_OK;
+    RefreshStaticDescData(refreshFormat);
   }
 
   void DDrawCommonSurface::RefreshD3DDevice() {
