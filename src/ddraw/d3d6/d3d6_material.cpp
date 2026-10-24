@@ -49,9 +49,9 @@ namespace dxvk {
     if (unlikely(!data->dwSize))
       return DDERR_INVALIDPARAMS;
 
-    D3DCommonDevice* commonDevice = m_parent->GetCommonInterface()->GetCommonD3DDevice();
+    D3DCommonDevice* commonD3DDevice = m_parent->GetCommonInterface()->GetCommonD3DDevice();
 
-    return m_commonMaterial->SetMaterialCommon(data, commonDevice);
+    return m_commonMaterial->SetMaterialCommon(data, commonD3DDevice);
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Material::GetMaterial(D3DMATERIAL* data) {

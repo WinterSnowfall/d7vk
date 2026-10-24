@@ -61,10 +61,10 @@ namespace dxvk {
     if (unlikely(!m_isGammaRampSet)) {
       DDrawCommonInterface* commonIntf = m_commonSurf->GetCommonInterface();
 
-      D3DCommonDevice* commonDevice = commonIntf->GetCommonD3DDevice();
+      D3DCommonDevice* commonD3DDevice = commonIntf->GetCommonD3DDevice();
 
-      if (likely(commonDevice != nullptr)) {
-        d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
+      if (likely(commonD3DDevice != nullptr)) {
+        d3d9::IDirect3DDevice9* d3d9Device = commonD3DDevice->GetD3D9Device();
 
         d3d9Device->GetGammaRamp(0, reinterpret_cast<d3d9::D3DGAMMARAMP*>(&m_gammaRamp));
       } else {
@@ -87,13 +87,13 @@ namespace dxvk {
     DDrawCommonInterface* commonIntf = m_commonSurf->GetCommonInterface();
 
     if (likely(!commonIntf->GetOptions()->ignoreGammaRamp)) {
-      D3DCommonDevice* commonDevice = commonIntf->GetCommonD3DDevice();
+      D3DCommonDevice* commonD3DDevice = commonIntf->GetCommonD3DDevice();
 
-      if (likely(commonDevice != nullptr)) {
+      if (likely(commonD3DDevice != nullptr)) {
         // Skip setting the gamma ramp on a non-primary surface or if we aren't in a full screen mode
         if (likely(m_commonSurf->IsPrimarySurface()
                && (commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE))) {
-          d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
+          d3d9::IDirect3DDevice9* d3d9Device = commonD3DDevice->GetD3D9Device();
 
           d3d9Device->SetGammaRamp(0, ConvertGammaRampFlags(dwFlags),
                                    reinterpret_cast<d3d9::D3DGAMMARAMP*>(&m_gammaRamp));

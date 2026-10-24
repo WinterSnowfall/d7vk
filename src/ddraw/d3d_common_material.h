@@ -20,7 +20,7 @@ namespace dxvk {
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
-    HRESULT SetMaterialCommon(D3DMATERIAL* data, D3DCommonDevice* commonDevice);
+    HRESULT SetMaterialCommon(D3DMATERIAL* data, D3DCommonDevice* commonD3DDevice);
 
     HRESULT GetMaterialCommon(D3DMATERIAL* data);
 

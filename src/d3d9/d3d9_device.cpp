@@ -9325,4 +9325,10 @@ namespace dxvk {
     return true;
   }
 
+
+  void D3D9DeviceEx::UpdatePresentInterval(uint32_t presentInterval) {
+    if (likely(m_d3dCompatibility.test(D3DCompatibility::D3D7)))
+      m_implicitSwapchain->UpdatePresentInterval(presentInterval);
+  }
+
 }

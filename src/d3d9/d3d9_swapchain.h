@@ -130,6 +130,11 @@ namespace dxvk {
 
     const D3DPRESENT_PARAMETERS* GetPresentParams() const { return &m_presentParams; }
 
+    // DDraw-driven presentation can update the present interval on each present
+    void UpdatePresentInterval(uint32_t presentInterval) {
+      m_presentParams.PresentationInterval = presentInterval;
+    }
+
     void SyncFrameLatency();
 
     void DestroyBackBuffers();

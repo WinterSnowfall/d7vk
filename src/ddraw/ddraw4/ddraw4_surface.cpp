@@ -593,34 +593,25 @@ namespace dxvk {
       if (unlikely(overrideSurf != nullptr && !overrideSurf->GetCommonSurface()->IsBackBufferOrFlippable()))
         return DDERR_NOTFLIPPABLE;
 
-      // If the interface is waiting for VBlank and we get a no VSync flip, switch
-      // to doing immediate presents by resetting the swapchain appropriately
-      if (unlikely(m_commonIntf->GetWaitForVBlank() && (dwFlags & DDFLIP_NOVSYNC))) {
-        Logger::info("DDraw4Surface::Flip: Switching to D3DPRESENT_INTERVAL_IMMEDIATE for presentation");
+      D3DCommonDevice* commonD3DDevice = m_commonSurf->GetCommonD3DDevice();
 
-        D3DCommonDevice* commonD3DDevice = m_commonSurf->GetCommonD3DDevice();
+      const bool waitsForVBlank         = m_commonIntf->GetWaitForVBlank();
+      const bool shouldNotWaitForVBlank = waitsForVBlank && (dwFlags & DDFLIP_NOVSYNC);
+      const bool shouldWaitForVBlank    = !waitsForVBlank && IsVSyncFlipFlag(dwFlags);
 
-        d3d9::D3DPRESENT_PARAMETERS resetParams = *commonD3DDevice->GetPresentParameters();
-        resetParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-        HRESULT hrReset = commonD3DDevice->ResetD3D9Swapchain(&resetParams);
-        if (unlikely(FAILED(hrReset))) {
-          Logger::warn("DDraw4Surface::Flip: Failed D3D9 swapchain reset");
-        } else {
+      if (unlikely(shouldNotWaitForVBlank || shouldWaitForVBlank)) {
+        IDxvkLegacyD3DDeviceBridge* deviceBridge = commonD3DDevice->GetD3D9DeviceBridge();
+        // If the interface is waiting for VBlank and we get a no VSync flip, switch
+        // to doing immediate presents by resetting the swapchain appropriately
+        if (shouldNotWaitForVBlank) {
+          Logger::info("DDraw4Surface::Flip: Switching to D3DPRESENT_INTERVAL_IMMEDIATE for presentation");
+          deviceBridge->UpdatePresentInterval(D3DPRESENT_INTERVAL_IMMEDIATE);
           m_commonIntf->SetWaitForVBlank(false);
-        }
-      // If the interface is not waiting for VBlank and we stop getting DDFLIP_NOVSYNC
-      // flags, reset the swapchain in order to return to VSync presentation using DEFAULT
-      } else if (unlikely(!m_commonIntf->GetWaitForVBlank() && IsVSyncFlipFlag(dwFlags))) {
-        Logger::info("DDraw4Surface::Flip: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
-
-        D3DCommonDevice* commonD3DDevice = m_commonSurf->GetCommonD3DDevice();
-
-        d3d9::D3DPRESENT_PARAMETERS resetParams = *commonD3DDevice->GetPresentParameters();
-        resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
-        HRESULT hrReset = commonD3DDevice->ResetD3D9Swapchain(&resetParams);
-        if (unlikely(FAILED(hrReset))) {
-          Logger::warn("DDraw4Surface::Flip: Failed D3D9 swapchain reset");
-        } else {
+        // If the interface is not waiting for VBlank and we stop getting DDFLIP_NOVSYNC
+        // flags, reset the swapchain in order to return to VSync presentation using DEFAULT
+        } else if (shouldWaitForVBlank) {
+          Logger::info("DDraw4Surface::Flip: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
+          deviceBridge->UpdatePresentInterval(D3DPRESENT_INTERVAL_DEFAULT);
           m_commonIntf->SetWaitForVBlank(true);
         }
       }
@@ -630,7 +621,7 @@ namespace dxvk {
       // Workaround for The Sims/other games flipping a different
       // swapchain than the one set on the current D3D device
       if (unlikely(d3dOptions->forceRTFlip && m_commonSurf->IsPrimarySurface())) {
-        m_nextFlippable = m_commonSurf->GetCommonD3DDevice()->GetCurrentRenderTarget4();
+        m_nextFlippable = commonD3DDevice->GetCurrentRenderTarget4();
       }
 
       if (likely(m_nextFlippable != nullptr)) {
@@ -645,7 +636,7 @@ namespace dxvk {
         InitializeOrUploadD3D9();
       }
 
-      const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+      const RECT* presentRect = commonD3DDevice->GetPresentRect();
       d3d9Device->Present(NULL, presentRect, NULL, NULL);
 
     } else {
