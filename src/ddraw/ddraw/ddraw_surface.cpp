@@ -1323,7 +1323,7 @@ namespace dxvk {
       return hr;
     }
 
-    try{
+    try {
       m_device3 = new D3D3Device(nullptr, this, rclsidOverride, &params,
                                  std::move(device9), deviceCreationFlags9);
 

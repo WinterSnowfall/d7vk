@@ -2,6 +2,8 @@
 
 #include "ddraw_include.h"
 
+#include "../d3d9/d3d9_bridge.h"
+
 #include <unordered_map>
 
 namespace dxvk {
@@ -17,7 +19,9 @@ namespace dxvk {
 
   public:
 
-    D3DCommonInterface();
+    D3DCommonInterface(
+          Com<d3d9::IDirect3D9>&& d3d9Intf,
+          Com<IDxvkLegacyD3DInterfaceBridge>&& intfBridge);
 
     ~D3DCommonInterface();
 
@@ -37,6 +41,10 @@ namespace dxvk {
 
     d3d9::IDirect3D9* GetD3D9Interface() const {
       return m_d3d9Intf.ptr();
+    }
+
+    IDxvkLegacyD3DInterfaceBridge* GetD3D9InterfaceBridge() const {
+      return m_bridge.ptr();
     }
 
     void SetD3D7Interface(D3D7Interface* d3d7Intf) {
@@ -73,12 +81,13 @@ namespace dxvk {
 
   private:
 
-    Com<d3d9::IDirect3D9> m_d3d9Intf = nullptr;
+    Com<d3d9::IDirect3D9>              m_d3d9Intf;
+    Com<IDxvkLegacyD3DInterfaceBridge> m_bridge;
 
-    D3D7Interface*        m_d3d7Intf = nullptr;
-    D3D6Interface*        m_d3d6Intf = nullptr;
-    D3D5Interface*        m_d3d5Intf = nullptr;
-    D3D3Interface*        m_d3d3Intf = nullptr;
+    D3D7Interface*                     m_d3d7Intf = nullptr;
+    D3D6Interface*                     m_d3d6Intf = nullptr;
+    D3D5Interface*                     m_d3d5Intf = nullptr;
+    D3D3Interface*                     m_d3d3Intf = nullptr;
 
     // Tests have indicated that once created, material handles are shared across
     // all devices and D3D interfaces, regardless of their relation
