@@ -38,7 +38,13 @@ namespace dxvk {
     d3d9::IDirect3DDevice9* device9;
 
     if (likely(m_commonD3DDevice == nullptr)) {
-      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, deviceGUID, pParams9, CreationFlags9);
+      // Get the bridge interface to D3D9
+      Com<IDxvkLegacyD3DDeviceBridge> deviceBridgeInst;
+      HRESULT hr = pDevice9->QueryInterface(__uuidof(IDxvkLegacyD3DDeviceBridge), reinterpret_cast<void**>(&deviceBridgeInst));
+      if (unlikely(FAILED(hr)))
+        throw DxvkError("D3D7Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+
+      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, std::move(deviceBridgeInst), deviceGUID, pParams9, CreationFlags9);
 
       m_commonD3DDevice->SetD3D9Device(std::move(pDevice9));
       device9 = m_commonD3DDevice->GetD3D9Device();
@@ -47,6 +53,13 @@ namespace dxvk {
         Logger::warn("D3D7Device: Force enabling FSAA emulation may introduce artifacting");
         device9->SetRenderState(d3d9::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
       }
+
+      IDxvkLegacyD3DDeviceBridge* deviceBridge = m_commonD3DDevice->GetD3D9DeviceBridge();
+      m_commonD3DDevice->SetTotalTextureMemory(deviceBridge->DetermineInitialTextureMemory());
+      // Update D3D9 legacy light state
+      deviceBridge->SetLegacyLightsState(false);
+      // Update D3D9 alternate pixel center
+      deviceBridge->SetAlternatePixelCenter(d3dOptions->alternatePixelCenter == AlternatePixelCenter::Enabled);
     } else {
       device9 = m_commonD3DDevice->GetD3D9Device();
       // Very important, otherwise the depth stencil isn't dirtied on draws
@@ -64,20 +77,6 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         throw DxvkError("D3D7Device: ERROR! Failed to initialize D3D9 index buffers.");
     }
-
-    // Get the bridge interface to D3D9
-    if (unlikely(FAILED(device9->QueryInterface(__uuidof(IDxvkLegacyD3DDeviceBridge), reinterpret_cast<void**>(&m_bridge))))) {
-      throw DxvkError("D3D7Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
-    }
-
-    if (unlikely(!m_commonD3DDevice->GetTotalTextureMemory()))
-      m_commonD3DDevice->SetTotalTextureMemory(m_bridge->DetermineInitialTextureMemory());
-
-    // Update D3D9 legacy light state
-    m_bridge->SetLegacyLightsState(false);
-
-    // Update D3D9 alternate pixel center
-    m_bridge->SetAlternatePixelCenter(d3dOptions->alternatePixelCenter == AlternatePixelCenter::Enabled);
 
     if (m_commonD3DDevice->GetOrigin() == nullptr)
       m_commonD3DDevice->SetOrigin(this);
@@ -624,17 +623,19 @@ namespace dxvk {
       case D3DRENDERSTATE_COLORKEYENABLE: {
         m_commonD3DDevice->SetColorKeyEnable(dwRenderState);
 
+        IDxvkLegacyD3DDeviceBridge* deviceBridge = m_commonD3DDevice->GetD3D9DeviceBridge();
+
         for (DWORD stage = 0; stage < ddrawCaps::TextureStageCount; stage++) {
           if (m_textures[stage] == nullptr)
             continue;
 
           const bool validColorKey = m_textures[stage]->GetCommonSurface()->HasValidColorKey();
-          m_bridge->SetColorKeyState(stage, dwRenderState && validColorKey);
+          deviceBridge->SetColorKeyState(stage, dwRenderState && validColorKey);
 
           if (dwRenderState && validColorKey) {
             const DDCOLORKEY* normalizedColorKey = m_textures[stage]->GetCommonSurface()->GetColorKeyNormalized();
-            m_bridge->SetColorKey(stage, normalizedColorKey->dwColorSpaceLowValue,
-                                  normalizedColorKey->dwColorSpaceHighValue);
+            deviceBridge->SetColorKey(stage, normalizedColorKey->dwColorSpaceLowValue,
+                                      normalizedColorKey->dwColorSpaceHighValue);
           }
         }
 
@@ -1281,6 +1282,7 @@ namespace dxvk {
       return m_recorder->SetTexture(stage, surface);
 
     d3d9::IDirect3DDevice9* device9 = m_commonD3DDevice->GetD3D9Device();
+    IDxvkLegacyD3DDeviceBridge* deviceBridge = m_commonD3DDevice->GetD3D9DeviceBridge();
 
     // Unbinding texture stages
     if (surface == nullptr) {
@@ -1291,7 +1293,7 @@ namespace dxvk {
       }
 
       m_textures[stage] = nullptr;
-      m_bridge->SetColorKeyState(stage, false);
+      deviceBridge->SetColorKeyState(stage, false);
 
       return D3D_OK;
     }
@@ -1338,12 +1340,12 @@ namespace dxvk {
         if (likely(tex9 != nullptr)) {
           const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
           const bool validColorKey = commonSurface->HasValidColorKey();
-          m_bridge->SetColorKeyState(stage, colorKeyEnable && validColorKey);
+          deviceBridge->SetColorKeyState(stage, colorKeyEnable && validColorKey);
 
           if (colorKeyEnable && validColorKey) {
             const DDCOLORKEY* normalizedColorKey = commonSurface->GetColorKeyNormalized();
-            m_bridge->SetColorKey(stage, normalizedColorKey->dwColorSpaceLowValue,
-                                  normalizedColorKey->dwColorSpaceHighValue);
+            deviceBridge->SetColorKey(stage, normalizedColorKey->dwColorSpaceLowValue,
+                                      normalizedColorKey->dwColorSpaceHighValue);
           }
         }
 
@@ -1361,7 +1363,7 @@ namespace dxvk {
 
         const bool colorKeyEnable = m_commonD3DDevice->GetColorKeyEnable();
         const bool validColorKey = commonSurface->HasValidColorKey();
-        m_bridge->SetColorKeyState(stage, false);
+        deviceBridge->SetColorKeyState(stage, false);
 
         if (unlikely(colorKeyEnable && validColorKey)) {
           static bool s_cubeTextureColorKeyWarningShown;
@@ -1594,7 +1596,9 @@ namespace dxvk {
   HRESULT D3D7Device::ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params) {
     Logger::info("D3D7Device::ResetD3D9Swapchain: Resetting the D3D9 swapchain");
 
-    HRESULT hr = m_bridge->ResetSwapChain(params);
+    IDxvkLegacyD3DDeviceBridge* deviceBridge = m_commonD3DDevice->GetD3D9DeviceBridge();
+
+    HRESULT hr = deviceBridge->ResetSwapChain(params);
     if (unlikely(FAILED(hr))) {
       Logger::err("D3D7Device::ResetD3D9Swapchain: Failed to reset the D3D9 swapchain");
       return hr;
