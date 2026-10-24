@@ -54,42 +54,17 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // Standard way of retrieving a D3D6 interface
-    if (riid == __uuidof(IDirect3D3)) {
-      // GTA 2 queries for IDirect3D3 on IDirectDraw, after creating a
-      // IDirectDraw4 interface and a ton of surfaces... so forward the call
-      if (m_commonIntf->GetDD4Interface() != nullptr)
-        return m_commonIntf->GetDD4Interface()->QueryInterface(riid, ppvObject);
+    // Standard way of getting a DDraw2 interface
+    if (riid == __uuidof(IDirectDraw2)) {
+      if (m_commonIntf->GetDD2Interface() != nullptr)
+        return m_commonIntf->GetDD2Interface()->QueryInterface(riid, ppvObject);
 
-      Com<IDirect3D3> ppvProxyObject;
+      Com<IDirectDraw2> ppvProxyObject;
       HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
       if (unlikely(FAILED(hr)))
         return hr;
 
-      Com<D3D6Interface> d3d6Intf = new D3D6Interface(nullptr, m_commonIntf.ptr(), std::move(ppvProxyObject), this);
-      *ppvObject = d3d6Intf.ref();
-
-      return S_OK;
-    }
-    // Standard way of retrieving a D3D5 interface
-    if (unlikely(riid == __uuidof(IDirect3D2))) {
-      // Initialize the IDirect3D2 interlocked object
-      if (unlikely(m_d3d5Intf == nullptr))
-        m_d3d5Intf = new D3D5Interface(nullptr, m_commonIntf.ptr(), this);
-
-      *ppvObject = m_d3d5Intf.ref();
-
-      return S_OK;
-    }
-    // Standard way of retrieving a D3D3 interface
-    if (unlikely(riid == __uuidof(IDirect3D))) {
-      // Initialize the IDirect3D interlocked object
-      if (unlikely(m_d3d3Intf == nullptr)) {
-        m_d3d3Intf = new D3D3Interface(nullptr, m_commonIntf.ptr(), this);
-        m_commonIntf->SetD3D3Interface(m_d3d3Intf.ptr());
-      }
-
-      *ppvObject = m_d3d3Intf.ref();
+      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
 
       return S_OK;
     }
@@ -107,20 +82,6 @@ namespace dxvk {
 
       return S_OK;
     }
-    // Standard way of getting a DDraw2 interface
-    if (riid == __uuidof(IDirectDraw2)) {
-      if (m_commonIntf->GetDD2Interface() != nullptr)
-        return m_commonIntf->GetDD2Interface()->QueryInterface(riid, ppvObject);
-
-      Com<IDirectDraw2> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
-      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
-
-      return S_OK;
-    }
     // Legacy way of getting a DDraw7 interface
     if (unlikely(riid == __uuidof(IDirectDraw7))) {
       if (m_commonIntf->GetDD7Interface() != nullptr)
@@ -132,6 +93,64 @@ namespace dxvk {
         return hr;
 
       *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+
+      return S_OK;
+    }
+    // Standard way of retrieving a D3D3 interface
+    if (riid == __uuidof(IDirect3D)) {
+      // Initialize the IDirect3D interlocked object
+      if (unlikely(m_d3d3Intf == nullptr)) {
+        try {
+          m_d3d3Intf = new D3D3Interface(nullptr, m_commonIntf.ptr(), this);
+        } catch (const DxvkError& e) {
+          Logger::err(e.message());
+          return DDERR_GENERIC;
+        }
+
+        m_commonIntf->SetD3D3Interface(m_d3d3Intf.ptr());
+      }
+
+      *ppvObject = m_d3d3Intf.ref();
+
+      return S_OK;
+    }
+    // Standard way of retrieving a D3D5 interface
+    if (riid == __uuidof(IDirect3D2)) {
+      // Initialize the IDirect3D2 interlocked object
+      if (unlikely(m_d3d5Intf == nullptr)) {
+        try {
+          m_d3d5Intf = new D3D5Interface(nullptr, m_commonIntf.ptr(), this);
+        } catch (const DxvkError& e) {
+          Logger::err(e.message());
+          return DDERR_GENERIC;
+        }
+      }
+
+      *ppvObject = m_d3d5Intf.ref();
+
+      return S_OK;
+    }
+    // Standard way of retrieving a D3D6 interface
+    if (unlikely(riid == __uuidof(IDirect3D3))) {
+      // GTA 2 queries for IDirect3D3 on IDirectDraw, after creating a
+      // IDirectDraw4 interface and a ton of surfaces... so forward the call
+      if (m_commonIntf->GetDD4Interface() != nullptr)
+        return m_commonIntf->GetDD4Interface()->QueryInterface(riid, ppvObject);
+
+      Com<IDirect3D3> ppvProxyObject;
+      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      Com<D3D6Interface> d3d6Intf;
+      try {
+        d3d6Intf = new D3D6Interface(nullptr, m_commonIntf.ptr(), std::move(ppvProxyObject), this);
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+
+      *ppvObject = d3d6Intf.ref();
 
       return S_OK;
     }
@@ -281,7 +300,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    try{
+    try {
       // Surfaces created from IDirectDraw and IDirectDraw2 do not ref their parent interfaces
       Com<DDrawSurface> surface = new DDrawSurface(nullptr, std::move(ddrawSurfaceProxied), this, nullptr, false);
 
