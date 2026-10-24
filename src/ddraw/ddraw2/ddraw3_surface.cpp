@@ -508,6 +508,13 @@ namespace dxvk {
 
       D3DCommonDevice* commonD3DDevice = m_commonSurf->GetCommonD3DDevice();
 
+      if (unlikely(!m_commonIntf->GetWaitForVBlank())) {
+        Logger::info("DDraw3Surface::Flip: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
+        IDxvkLegacyD3DDeviceBridge* deviceBridge = commonD3DDevice->GetD3D9DeviceBridge();
+        deviceBridge->UpdatePresentInterval(D3DPRESENT_INTERVAL_DEFAULT);
+        m_commonIntf->SetWaitForVBlank(true);
+      }
+
       const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
       DDrawSurface* nextFlippable;

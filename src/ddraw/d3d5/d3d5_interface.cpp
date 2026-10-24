@@ -525,6 +525,9 @@ namespace dxvk {
                                                       m_commonD3DIntf->GetMultiSampleType(backBufferFormat) :
                                                       d3d9::D3DMULTISAMPLE_NONE;
 
+    // Always appears to be enabled when running in non-exclusive mode
+    const bool vBlankStatus = m_commonIntf->GetWaitForVBlank();
+
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = backBufferWidth;
     params.BackBufferHeight   = backBufferHeight;
@@ -539,7 +542,7 @@ namespace dxvk {
     params.AutoDepthStencilFormat     = d3d9::D3DFMT_UNKNOWN;
     params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // Needed for back buffer locks
     params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by DDraw, just play along
-    params.PresentationInterval       = D3DPRESENT_INTERVAL_DEFAULT; // A D3D5 device always uses VSync
+    params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
     Com<d3d9::IDirect3DDevice9> device9;
     hr = m_commonD3DIntf->GetD3D9Interface()->CreateDevice(
