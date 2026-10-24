@@ -668,6 +668,13 @@ namespace dxvk {
 
       D3DCommonDevice* commonD3DDevice = m_commonSurf->GetCommonD3DDevice();
 
+      if (unlikely(!m_commonIntf->GetWaitForVBlank())) {
+        Logger::info("DDrawSurface::Flip: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
+        IDxvkLegacyD3DDeviceBridge* deviceBridge = commonD3DDevice->GetD3D9DeviceBridge();
+        deviceBridge->UpdatePresentInterval(D3DPRESENT_INTERVAL_DEFAULT);
+        m_commonIntf->SetWaitForVBlank(true);
+      }
+
       const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
       // Workaround for The Sims/other games flipping a different
@@ -1296,12 +1303,15 @@ namespace dxvk {
                                                       commonD3DIntf->GetMultiSampleType(backBufferFormat) :
                                                       d3d9::D3DMULTISAMPLE_NONE;
 
+    // Always appears to be enabled when running in non-exclusive mode
+    const bool vBlankStatus = m_commonIntf->GetWaitForVBlank();
+
     d3d9::D3DPRESENT_PARAMETERS params;
     params.BackBufferWidth    = backBufferWidth;
     params.BackBufferHeight   = backBufferHeight;
     params.BackBufferFormat   = backBufferFormat;
     params.BackBufferCount    = backBufferCount;
-    params.MultiSampleType    = multiSampleType;
+    params.MultiSampleType    = multiSampleType; // Controlled through D3DRENDERSTATE_ANTIALIAS
     params.MultiSampleQuality = 0;
     params.SwapEffect         = d3d9::D3DSWAPEFFECT_DISCARD;
     params.hDeviceWindow      = hWnd;
@@ -1310,7 +1320,7 @@ namespace dxvk {
     params.AutoDepthStencilFormat     = d3d9::D3DFMT_UNKNOWN;
     params.Flags                      = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // Needed for back buffer locks
     params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by DDraw, just play along
-    params.PresentationInterval       = D3DPRESENT_INTERVAL_DEFAULT; // A D3D3 device always uses VSync
+    params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
     Com<d3d9::IDirect3DDevice9> device9;
     hr = commonD3DIntf->GetD3D9Interface()->CreateDevice(
