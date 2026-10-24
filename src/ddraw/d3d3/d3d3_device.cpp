@@ -48,10 +48,9 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         throw DxvkError("D3D3Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
 
-      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, std::move(deviceBridgeInst),
+      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, std::move(pDevice9), std::move(deviceBridgeInst),
                                               deviceGUID, multiSampeType9, CreationFlags9);
 
-      m_commonD3DDevice->SetD3D9Device(std::move(pDevice9));
       device9 = m_commonD3DDevice->GetD3D9Device();
 
       if (unlikely(d3dOptions->emulateFSAA == FSAAEmulation::Forced)) {
