@@ -9,8 +9,6 @@
 #include "../ddraw_common_interface.h"
 #include "../d3d_common_interface.h"
 
-#include "../../d3d9/d3d9_bridge.h"
-
 namespace dxvk {
 
   /**
@@ -53,8 +51,6 @@ namespace dxvk {
     }
 
   private:
-
-    Com<IDxvkLegacyD3DInterfaceBridge> m_bridge;
 
     Com<D3DCommonInterface>            m_commonD3DIntf;
 
