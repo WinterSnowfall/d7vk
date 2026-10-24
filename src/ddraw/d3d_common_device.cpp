@@ -19,6 +19,7 @@ namespace dxvk {
 
   D3DCommonDevice::D3DCommonDevice(
         DDrawCommonInterface* commonIntf,
+        Com<d3d9::IDirect3DDevice9>&& device9,
         Com<IDxvkLegacyD3DDeviceBridge>&& deviceBridge,
         GUID deviceGUID,
         d3d9::D3DMULTISAMPLE_TYPE multiSampeType9,
@@ -27,6 +28,7 @@ namespace dxvk {
     , m_deviceGUID      ( deviceGUID )
     , m_multiSampeType9 ( multiSampeType9 )
     , m_creationFlags9  ( creationFlags9 )
+    , m_device9         ( std::move(device9) )
     , m_bridge          ( std::move(deviceBridge) ) {
   }
 
