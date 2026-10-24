@@ -30,7 +30,6 @@ IDxvkLegacyD3DDeviceBridge : public IUnknown {
   #ifdef DXVK_D3D9_NAMESPACE
     using IDirect3DSurface9 = d3d9::IDirect3DSurface9;
     using D3DFORMAT = d3d9::D3DFORMAT;
-    using D3DPRESENT_PARAMETERS = d3d9::D3DPRESENT_PARAMETERS;
   #endif
 
   /**
