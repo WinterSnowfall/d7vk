@@ -30,6 +30,7 @@ namespace dxvk {
 
     D3DCommonDevice(
           DDrawCommonInterface* commonIntf,
+          Com<d3d9::IDirect3DDevice9>&& device9,
           Com<IDxvkLegacyD3DDeviceBridge>&& deviceBridge,
           GUID deviceGUID,
           d3d9::D3DMULTISAMPLE_TYPE multiSampeType9,
@@ -189,10 +190,6 @@ namespace dxvk {
 
     DWORD GetD3D9CreationFlags() const {
       return m_creationFlags9;
-    }
-
-    void SetD3D9Device(Com<d3d9::IDirect3DDevice9>&& device9) {
-      m_device9 = device9;
     }
 
     d3d9::IDirect3DDevice9* GetD3D9Device() const {
