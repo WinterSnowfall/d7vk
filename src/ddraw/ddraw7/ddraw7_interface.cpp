@@ -62,24 +62,8 @@ namespace dxvk {
 
     InitReturnPtr(ppvObject);
 
-    // Standard way of retrieving a D3D7 interface
-    if (riid == __uuidof(IDirect3D7)) {
-      // Initialize the IDirect3D7 interlocked object
-      if (unlikely(m_d3d7Intf == nullptr)) {
-        Com<IDirect3D7> ppvProxyObject;
-        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-        if (unlikely(FAILED(hr)))
-          return hr;
-
-        m_d3d7Intf = new D3D7Interface(nullptr, m_commonIntf.ptr(), std::move(ppvProxyObject), this);
-      }
-
-      *ppvObject = m_d3d7Intf.ref();
-
-      return S_OK;
-    }
     // Some games query for legacy ddraw interfaces
-    if (unlikely(riid == __uuidof(IDirectDraw))) {
+    if (riid == __uuidof(IDirectDraw)) {
       if (m_commonIntf->GetDDInterface() != nullptr)
         return m_commonIntf->GetDDInterface()->QueryInterface(riid, ppvObject);
 
@@ -115,6 +99,27 @@ namespace dxvk {
         return hr;
 
       *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+
+      return S_OK;
+    }
+    // Standard way of retrieving a D3D7 interface
+    if (riid == __uuidof(IDirect3D7)) {
+      // Initialize the IDirect3D7 interlocked object
+      if (unlikely(m_d3d7Intf == nullptr)) {
+        Com<IDirect3D7> ppvProxyObject;
+        HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
+        if (unlikely(FAILED(hr)))
+          return hr;
+
+        try {
+          m_d3d7Intf = new D3D7Interface(nullptr, m_commonIntf.ptr(), std::move(ppvProxyObject), this);
+        } catch (const DxvkError& e) {
+          Logger::err(e.message());
+          return DDERR_GENERIC;
+        }
+      }
+
+      *ppvObject = m_d3d7Intf.ref();
 
       return S_OK;
     }
@@ -265,7 +270,7 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    try{
+    try {
       Com<DDraw7Surface> surface7 = new DDraw7Surface(nullptr, std::move(ddraw7SurfaceProxied), this, nullptr, true);
 
       DDrawCommonSurface* commonSurf = surface7->GetCommonSurface();

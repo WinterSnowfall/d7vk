@@ -6,8 +6,11 @@ namespace dxvk {
 
   std::atomic<D3DMATERIALHANDLE> D3DCommonInterface::s_materialHandle = { 0u };
 
-  D3DCommonInterface::D3DCommonInterface()
-    : m_d3d9Intf ( d3d9::Direct3DCreate9(D3D_SDK_VERSION) ) {
+  D3DCommonInterface::D3DCommonInterface(
+        Com<d3d9::IDirect3D9>&& d3d9Intf,
+        Com<IDxvkLegacyD3DInterfaceBridge>&& intfBridge)
+    : m_d3d9Intf ( std::move(d3d9Intf) )
+    , m_bridge   ( std::move(intfBridge) ) {
   }
 
   D3DCommonInterface::~D3DCommonInterface() {
