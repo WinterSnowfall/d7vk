@@ -154,7 +154,7 @@ namespace dxvk {
     }
 
     // Use the MSAA type that was determined to be supported during device creation
-    const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = m_commonD3DDevice->GetMultiSampleType();
+    const d3d9::D3DMULTISAMPLE_TYPE multiSampleType = m_commonD3DDevice->GetD3D9MultiSampleType();
     d3d9::IDirect3DDevice9* d3d9Device = m_commonD3DDevice->GetD3D9Device();
 
     m_surfaceType9 = DetermineD3D9SurfaceType(initRenderTarget);

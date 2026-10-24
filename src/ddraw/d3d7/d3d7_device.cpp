@@ -14,7 +14,7 @@ namespace dxvk {
         Com<IDirect3DDevice7>&& d3d7DeviceProxy,
         D3D7Interface* pParent,
         GUID deviceGUID,
-        const d3d9::D3DPRESENT_PARAMETERS* pParams9,
+        d3d9::D3DMULTISAMPLE_TYPE multiSampeType9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DDraw7Surface* pSurface,
         DWORD CreationFlags9)
@@ -44,7 +44,8 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         throw DxvkError("D3D7Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
 
-      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, std::move(deviceBridgeInst), deviceGUID, pParams9, CreationFlags9);
+      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, std::move(deviceBridgeInst),
+                                              deviceGUID, multiSampeType9, CreationFlags9);
 
       m_commonD3DDevice->SetD3D9Device(std::move(pDevice9));
       device9 = m_commonD3DDevice->GetD3D9Device();

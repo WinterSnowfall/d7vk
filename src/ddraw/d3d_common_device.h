@@ -32,7 +32,7 @@ namespace dxvk {
           DDrawCommonInterface* commonIntf,
           Com<IDxvkLegacyD3DDeviceBridge>&& deviceBridge,
           GUID deviceGUID,
-          const d3d9::D3DPRESENT_PARAMETERS* pParams9,
+          d3d9::D3DMULTISAMPLE_TYPE multiSampeType9,
           DWORD creationFlags9);
 
     ~D3DCommonDevice();
@@ -175,20 +175,16 @@ namespace dxvk {
       m_textureMapBlend = textureMapBlend;
     }
 
-    const d3d9::D3DPRESENT_PARAMETERS* GetPresentParameters() const {
-      return &m_params9;
-    }
-
-    d3d9::D3DMULTISAMPLE_TYPE GetMultiSampleType() const {
-      return m_params9.MultiSampleType;
-    }
-
     void SetCurrentViewportInternal(D3DViewport* currentViewport) {
       m_currentViewport = currentViewport;
     }
 
     D3DViewport* GetCurrentViewportInternal() const {
       return m_currentViewport.ptr();
+    }
+
+    d3d9::D3DMULTISAMPLE_TYPE GetD3D9MultiSampleType() const {
+      return m_multiSampeType9;
     }
 
     DWORD GetD3D9CreationFlags() const {
@@ -277,7 +273,7 @@ namespace dxvk {
     // D3DRENDERSTATE_TEXTUREMAPBLEND
     DWORD                           m_textureMapBlend       = D3DTBLEND_MODULATE;
 
-    d3d9::D3DPRESENT_PARAMETERS     m_params9;
+    d3d9::D3DMULTISAMPLE_TYPE       m_multiSampeType9       = d3d9::D3DMULTISAMPLE_NONE;
     DWORD                           m_creationFlags9        = 0u;
 
     Com<D3DViewport>                m_currentViewport;
