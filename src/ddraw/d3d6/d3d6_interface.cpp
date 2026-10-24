@@ -23,23 +23,29 @@ namespace dxvk {
     : DDrawWrappedObject<IUnknown, IDirect3D3>(pParent, std::move(d3d6IntfProxy))
     , m_commonD3DIntf ( commonD3DIntf )
     , m_commonIntf ( commonIntf ) {
-    if (m_commonD3DIntf == nullptr)
-      m_commonD3DIntf = new D3DCommonInterface();
+    if (m_commonD3DIntf == nullptr) {
+      Com<d3d9::IDirect3D9> d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
+      if (unlikely(d3d9Intf == nullptr))
+        throw DxvkError("D3D6Interface:: Failed to create the D3D9 interface");
+
+      // Get the bridge interface to D3D9
+      Com<IDxvkLegacyD3DInterfaceBridge> intfBridgeInst;
+      HRESULT hr = d3d9Intf->QueryInterface(__uuidof(IDxvkLegacyD3DInterfaceBridge), reinterpret_cast<void**>(&intfBridgeInst));
+      if (unlikely(FAILED(hr)))
+        throw DxvkError("D3D6Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
+
+      m_commonD3DIntf = new D3DCommonInterface(std::move(d3d9Intf), std::move(intfBridgeInst));
+    }
 
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
     // Retrieve and cache the base capabilities
     m_desc = GetD3D6BaseCaps(d3dOptions);
 
-    d3d9::IDirect3D9* d3d9Intf = m_commonD3DIntf->GetD3D9Interface();
-
-    // Get the bridge interface to D3D9
-    if (unlikely(FAILED(d3d9Intf->QueryInterface(__uuidof(IDxvkLegacyD3DInterfaceBridge), reinterpret_cast<void**>(&m_bridge))))) {
-      throw DxvkError("D3D6Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
-    }
-
     m_commonD3DIntf->SetD3D6Interface(this);
 
-    m_bridge->SetD3DCompatibility(D3DCompatibility::D3D6);
+    IDxvkLegacyD3DInterfaceBridge* intfBridge = m_commonD3DIntf->GetD3D9InterfaceBridge();
+
+    intfBridge->SetD3DCompatibility(D3DCompatibility::D3D6);
   }
 
   D3D6Interface::~D3D6Interface() {
@@ -476,7 +482,7 @@ namespace dxvk {
       return hr;
     }
 
-    try{
+    try {
       Com<D3D6Device> device6 = new D3D6Device(nullptr, this, rclsidOverride, &params,
                                                std::move(device9), rt4.ptr(), deviceCreationFlags9);
 

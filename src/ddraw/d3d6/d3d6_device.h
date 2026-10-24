@@ -8,8 +8,6 @@
 
 #include "../d3d_common_device.h"
 
-#include "../../d3d9/d3d9_bridge.h"
-
 #include "../../util/sync/sync_scoped.h"
 
 #include "../d3d5/d3d5_texture.h"
@@ -20,10 +18,9 @@
 
 namespace dxvk {
 
-  class D3DCommonDevice;
+  class D3DCommonTexture;
   class DDrawCommonInterface;
   class DDraw4Surface;
-  class DDraw4Interface;
   class D3D5Device;
   class D3D3Device;
 
@@ -189,8 +186,6 @@ namespace dxvk {
     Com<D3DCommonDevice>            m_commonD3DDevice;
 
     DDrawCommonInterface*           m_commonIntf       = nullptr;
-
-    Com<IDxvkLegacyD3DDeviceBridge> m_bridge;
 
     Com<D3D5Device, false>          m_device5;
     Com<D3D3Device, false>          m_device3;
