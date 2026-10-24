@@ -32,6 +32,7 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         throw DxvkError("DDraw2Interface: ERROR! Failed to retrieve a parent IDirectDraw interface!");
 
+      // If this fails, we'll catch it in the DDraw2Interface creation call
       m_parentIntf = new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject));
     }
 
@@ -60,7 +61,15 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+      Com<DDrawInterface> ddrawIntf;
+      try {
+        ddrawIntf = new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+
+      *ppvObject = ddrawIntf.ref();
 
       return S_OK;
     }
@@ -74,7 +83,15 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+      Com<DDraw4Interface> ddraw4Intf;
+      try {
+        ddraw4Intf = new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+
+      *ppvObject = ddraw4Intf.ref();
 
       return S_OK;
     }
@@ -88,7 +105,15 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+      Com<DDraw7Interface> ddraw7Intf;
+      try {
+        ddraw7Intf = new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+
+      *ppvObject = ddraw7Intf.ref();
 
       return S_OK;
     }

@@ -26,7 +26,7 @@ namespace dxvk {
     if (m_commonD3DIntf == nullptr) {
       Com<d3d9::IDirect3D9> d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
       if (unlikely(d3d9Intf == nullptr))
-        throw DxvkError("D3D5Interface:: Failed to create the D3D9 interface");
+        throw DxvkError("D3D5Interface: ERROR! Failed to create the D3D9 interface!");
 
       // Get the bridge interface to D3D9
       Com<IDxvkLegacyD3DInterfaceBridge> intfBridgeInst;
