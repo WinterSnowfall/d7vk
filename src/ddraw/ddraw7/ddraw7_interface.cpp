@@ -24,22 +24,22 @@ namespace dxvk {
     // We need a temporary D3D9 interface at this point to retrieve the
     // adapter identifier, as well as (potentially) the options through a bridge
     Com<d3d9::IDirect3D9> d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
+    if (unlikely(d3d9Intf == nullptr))
+      throw DxvkError("DDraw7Interface: ERROR! Failed to create the D3D9 interface!");
 
     if (m_commonIntf == nullptr) {
       Com<IDxvkLegacyD3DInterfaceBridge> d3d9Bridge;
-
-      if (unlikely(FAILED(d3d9Intf->QueryInterface(__uuidof(IDxvkLegacyD3DInterfaceBridge), reinterpret_cast<void**>(&d3d9Bridge))))) {
+      HRESULT hr = d3d9Intf->QueryInterface(__uuidof(IDxvkLegacyD3DInterfaceBridge), reinterpret_cast<void**>(&d3d9Bridge));
+      if (unlikely(FAILED(hr)))
         throw DxvkError("DDraw7Interface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
-      }
 
       m_commonIntf = new DDrawCommonInterface(D3DOptions(*d3d9Bridge->GetConfig()));
     }
 
     d3d9::D3DADAPTER_IDENTIFIER9 adapterIdentifier9;
     HRESULT hr = d3d9Intf->GetAdapterIdentifier(0, 0, &adapterIdentifier9);
-    if (unlikely(FAILED(hr))) {
+    if (unlikely(FAILED(hr)))
       throw DxvkError("DDraw7Interface: ERROR! Failed to get D3D9 adapter identifier!");
-    }
 
     m_commonIntf->SetAdapterIdentifier(adapterIdentifier9);
 
@@ -72,7 +72,15 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+      Com<DDrawInterface> ddrawIntf;
+      try {
+        ddrawIntf = new DDrawInterface(m_commonIntf.ptr(), std::move(ppvProxyObject));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+
+      *ppvObject = ddrawIntf.ref();
 
       return S_OK;
     }
@@ -85,7 +93,15 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+      Com<DDraw2Interface> ddraw2Intf;
+      try {
+        ddraw2Intf = new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+
+      *ppvObject = ddraw2Intf.ref();
 
       return S_OK;
     }
@@ -98,7 +114,15 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+      Com<DDraw4Interface> ddraw4Intf;
+      try {
+        ddraw4Intf = new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+
+      *ppvObject = ddraw4Intf.ref();
 
       return S_OK;
     }
