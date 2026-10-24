@@ -2103,52 +2103,6 @@ namespace dxvk {
     }
   }
 
-  HRESULT D3D6Device::ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params) {
-    Logger::info("D3D6Device::ResetD3D9Swapchain: Resetting the D3D9 swapchain");
-
-    IDxvkLegacyD3DDeviceBridge* deviceBridge = m_commonD3DDevice->GetD3D9DeviceBridge();
-
-    HRESULT hr = deviceBridge->ResetSwapChain(params);
-    if (unlikely(FAILED(hr))) {
-      Logger::err("D3D6Device::ResetD3D9Swapchain: Failed to reset the D3D9 swapchain");
-      return hr;
-    }
-
-    DDrawCommonSurface* commonSurface = m_rt->GetCommonSurface();
-    commonSurface->ResetD3D9Objects();
-    // Ensure the DDraw surface content gets re-uploaded if needed
-    commonSurface->DirtyDDrawSurface();
-
-    // Reset the D3D9 objects for all the following surfaces in the swapchain
-    DDraw4Surface* nextFlippable = m_rt->GetNextFlippable();
-
-    while (nextFlippable != nullptr) {
-      commonSurface = nextFlippable->GetCommonSurface();
-      commonSurface->ResetD3D9Objects();
-      // Ensure the DDraw surface content gets re-uploaded if needed
-      commonSurface->DirtyDDrawSurface();
-
-      nextFlippable = nextFlippable->GetNextFlippable();
-    }
-
-    // Reset the D3D9 objects for all the previous surfaces in the swapchain
-    DDraw4Surface* parentSurf = m_rt->GetParentSurface();
-
-    while (parentSurf != nullptr) {
-      commonSurface = parentSurf->GetCommonSurface();
-      commonSurface->ResetD3D9Objects();
-      // Ensure the DDraw surface content gets re-uploaded if needed
-      commonSurface->DirtyDDrawSurface();
-
-      parentSurf = parentSurf->GetParentSurface();
-    }
-
-    // Note that the D3D9 depth stencil survives a swapchain reset,
-    // so there's no need to worry about it in this case
-
-    return D3D_OK;
-  }
-
   inline void D3D6Device::DDrawDirtySurfaceUpload() {
     // Render target
     m_rt->InitializeOrUploadD3D9();
