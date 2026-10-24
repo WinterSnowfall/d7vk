@@ -26,11 +26,13 @@ namespace dxvk {
     if (likely(m_commonIntf == nullptr)) {
       // We need a temporary D3D9 interface to retrieve the options
       Com<d3d9::IDirect3D9> d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
-      Com<IDxvkLegacyD3DInterfaceBridge> d3d9Bridge;
+      if (unlikely(d3d9Intf == nullptr))
+        throw DxvkError("DDrawInterface: ERROR! Failed to create the D3D9 interface!");
 
-      if (unlikely(FAILED(d3d9Intf->QueryInterface(__uuidof(IDxvkLegacyD3DInterfaceBridge), reinterpret_cast<void**>(&d3d9Bridge))))) {
+      Com<IDxvkLegacyD3DInterfaceBridge> d3d9Bridge;
+      HRESULT hr = d3d9Intf->QueryInterface(__uuidof(IDxvkLegacyD3DInterfaceBridge), reinterpret_cast<void**>(&d3d9Bridge));
+      if (unlikely(FAILED(hr)))
         throw DxvkError("DDrawInterface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
-      }
 
       m_commonIntf = new DDrawCommonInterface(D3DOptions(*d3d9Bridge->GetConfig()));
     }
@@ -64,7 +66,15 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+      Com<DDraw2Interface> ddraw2Intf;
+      try {
+        ddraw2Intf = new DDraw2Interface(m_commonIntf.ptr(), std::move(ppvProxyObject));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+
+      *ppvObject = ddraw2Intf.ref();
 
       return S_OK;
     }
@@ -78,7 +88,15 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+      Com<DDraw4Interface> ddraw4Intf;
+      try {
+        ddraw4Intf = new DDraw4Interface(m_commonIntf.ptr(), std::move(ppvProxyObject));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+
+      *ppvObject = ddraw4Intf.ref();
 
       return S_OK;
     }
@@ -92,7 +110,15 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
-      *ppvObject = ref(new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject)));
+      Com<DDraw7Interface> ddraw7Intf;
+      try {
+        ddraw7Intf = new DDraw7Interface(m_commonIntf.ptr(), std::move(ppvProxyObject));
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+
+      *ppvObject = ddraw7Intf.ref();
 
       return S_OK;
     }
