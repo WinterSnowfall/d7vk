@@ -322,24 +322,24 @@ namespace dxvk {
     return initialTextureMemory > 0 ? static_cast<uint32_t>(initialTextureMemory) : 0;
   }
 
-  HRESULT DxvkLegacyD3DDeviceBridge::ResetSwapChain(D3DPRESENT_PARAMETERS* Params) {
-    return m_device->ResetSwapChain(Params, nullptr);
+  void DxvkLegacyD3DDeviceBridge::UpdatePresentInterval(uint32_t presentInterval) {
+    m_device->UpdatePresentInterval(presentInterval);
   }
 
-  HRESULT DxvkLegacyD3DDeviceBridge::SetColorKeyState(DWORD stage, bool colorKeyState) {
-    return m_device->SetColorKeyState(stage, colorKeyState);
+  void DxvkLegacyD3DDeviceBridge::SetColorKeyState(DWORD stage, bool colorKeyState) {
+    m_device->SetColorKeyState(stage, colorKeyState);
   }
 
-  HRESULT DxvkLegacyD3DDeviceBridge::SetColorKey(DWORD stage, DWORD colorKeyLow, DWORD colorKeyHigh) {
-    return m_device->SetColorKey(stage, colorKeyLow, colorKeyHigh);
+  void DxvkLegacyD3DDeviceBridge::SetColorKey(DWORD stage, DWORD colorKeyLow, DWORD colorKeyHigh) {
+    m_device->SetColorKey(stage, colorKeyLow, colorKeyHigh);
   }
 
-  HRESULT DxvkLegacyD3DDeviceBridge::SetLegacyLightsState(bool legacyLightsState) {
-    return m_device->SetLegacyLightsState(legacyLightsState);
+  void DxvkLegacyD3DDeviceBridge::SetLegacyLightsState(bool legacyLightsState) {
+    m_device->SetLegacyLightsState(legacyLightsState);
   }
 
-  HRESULT DxvkLegacyD3DDeviceBridge::SetAlternatePixelCenter(bool alternatePixelCenter) {
-    return m_device->SetAlternatePixelCenter(alternatePixelCenter);
+  void DxvkLegacyD3DDeviceBridge::SetAlternatePixelCenter(bool alternatePixelCenter) {
+    m_device->SetAlternatePixelCenter(alternatePixelCenter);
   }
 
   DxvkLegacyD3DInterfaceBridge::DxvkLegacyD3DInterfaceBridge(D3D9InterfaceEx* pObject)

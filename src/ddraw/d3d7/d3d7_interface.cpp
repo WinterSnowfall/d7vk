@@ -443,9 +443,9 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
-    if (likely(commonDevice != nullptr)) {
-      d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
+    D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
+    if (likely(commonD3DDevice != nullptr)) {
+      d3d9::IDirect3DDevice9* d3d9Device = commonD3DDevice->GetD3D9Device();
 
       // Note: This doesn't do anything in the D3D9 backend at the moment
       hr = d3d9Device->EvictManagedResources();

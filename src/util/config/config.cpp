@@ -1872,8 +1872,11 @@ namespace dxvk {
       { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.ignoreGammaRamp",            "True" },
     }} },
-    /* Re-Volt                                    */
+    /* Re-Volt                                    *
+     * Prevents loading screens from being        *
+     * presented by the DDraw swapchain           */
     { R"(\\revolt\.exe$)", {{
+      { "ddraw.forceLegacyPresent",         "True" },
       { "ddraw.emulateFSAA",                "True" },
     }} },
     /* Sea Dogs                                   */

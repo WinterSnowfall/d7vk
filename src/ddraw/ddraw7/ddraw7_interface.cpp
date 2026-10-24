@@ -421,11 +421,11 @@ namespace dxvk {
     DWORD total9 = 0;
     DWORD free9  = 0;
 
-    D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
-    if (likely(commonDevice != nullptr)) {
-      d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
+    D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
+    if (likely(commonD3DDevice != nullptr)) {
+      d3d9::IDirect3DDevice9* d3d9Device = commonD3DDevice->GetD3D9Device();
 
-      total9 = static_cast<DWORD>(commonDevice->GetTotalTextureMemory());
+      total9 = static_cast<DWORD>(commonD3DDevice->GetTotalTextureMemory());
       free9  = static_cast<DWORD>(d3d9Device->GetAvailableTextureMem());
 
       if (likely(total9 >= MaxMemory)) {
@@ -632,15 +632,12 @@ namespace dxvk {
 
     // Switch to a default presentation interval when an application
     // tries to wait for vertical blank, if we're not already doing so
-    D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
-    if (unlikely(commonDevice != nullptr && !m_commonIntf->GetWaitForVBlank())) {
+    D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
+    if (unlikely(commonD3DDevice != nullptr && !m_commonIntf->GetWaitForVBlank())) {
       Logger::info("DDraw7Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
-
-      d3d9::D3DPRESENT_PARAMETERS resetParams = *commonDevice->GetPresentParameters();
-      resetParams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
-      HRESULT hr = commonDevice->ResetD3D9Swapchain(&resetParams);
-      if (likely(SUCCEEDED(hr)))
-        m_commonIntf->SetWaitForVBlank(true);
+      IDxvkLegacyD3DDeviceBridge* deviceBridge = commonD3DDevice->GetD3D9DeviceBridge();
+      deviceBridge->UpdatePresentInterval(D3DPRESENT_INTERVAL_DEFAULT);
+      m_commonIntf->SetWaitForVBlank(true);
     }
 
     return DD_OK;
@@ -654,11 +651,11 @@ namespace dxvk {
     static constexpr DWORD MaxMemory = ddrawCaps::MaxTextureMemory * Megabytes;
     static constexpr DWORD ReservedMemory = ddrawCaps::ReservedTextureMemory * Megabytes;
 
-    D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
-    if (likely(commonDevice != nullptr)) {
-      d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
+    D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
+    if (likely(commonD3DDevice != nullptr)) {
+      d3d9::IDirect3DDevice9* d3d9Device = commonD3DDevice->GetD3D9Device();
 
-      DWORD total9 = static_cast<DWORD>(commonDevice->GetTotalTextureMemory());
+      DWORD total9 = static_cast<DWORD>(commonD3DDevice->GetTotalTextureMemory());
       DWORD free9  = static_cast<DWORD>(d3d9Device->GetAvailableTextureMem());
 
       if (likely(total9 >= MaxMemory)) {
@@ -742,12 +739,12 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::TestCooperativeLevel() {
-    D3DCommonDevice* commonDevice = m_commonIntf->GetCommonD3DDevice();
+    D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
 
-    if (unlikely(commonDevice == nullptr))
+    if (unlikely(commonD3DDevice == nullptr))
       return m_proxy->TestCooperativeLevel();
 
-    d3d9::IDirect3DDevice9* d3d9Device = commonDevice->GetD3D9Device();
+    d3d9::IDirect3DDevice9* d3d9Device = commonD3DDevice->GetD3D9Device();
 
     HRESULT hr = d3d9Device->TestCooperativeLevel();
     if (unlikely(FAILED(hr)))
