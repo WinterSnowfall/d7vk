@@ -837,6 +837,8 @@ namespace dxvk {
     const DDSURFACEDESC2* surfaceDesc = m_commonSurf->GetDesc();
     // DDSURFACEDESC is aligned with DDSURFACEDESC2
     memcpy(lpDDSurfaceDesc, surfaceDesc, sizeof(DDSURFACEDESC));
+    // Update the struct size to DDSURFACEDESC
+    lpDDSurfaceDesc->dwSize = sizeof(DDSURFACEDESC);
 
     return DD_OK;
   }
