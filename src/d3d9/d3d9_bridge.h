@@ -62,11 +62,11 @@ IDxvkLegacyD3DDeviceBridge : public IUnknown {
   virtual uint32_t DetermineInitialTextureMemory() = 0;
 
   /**
-   * \brief Resets the D3D9 swapchain, skipping a general device reset
+   * \brief Updates the D3D9 presentation interval of the implicit swapchain
    *
-   * \param [in] Params D3DPRESENT_PARAMETERS* value to be used
+   * \param [in] presentInterval D3DPRESENT value to be used
    */
-  virtual HRESULT ResetSwapChain(D3DPRESENT_PARAMETERS* Params) = 0;
+  virtual void UpdatePresentInterval(uint32_t presentInterval) = 0;
 
   /**
    * \brief Updates the color key transparency state in D3D9
@@ -74,7 +74,7 @@ IDxvkLegacyD3DDeviceBridge : public IUnknown {
    * \param [in] stage DWORD texture stage to be used
    * \param [in] colorKeyState bool value to be used
    */
-  virtual HRESULT SetColorKeyState(DWORD stage, bool colorKeyState) = 0;
+  virtual void SetColorKeyState(DWORD stage, bool colorKeyState) = 0;
 
   /**
    * \brief Updates the color key transparency value in D3D9
@@ -83,21 +83,21 @@ IDxvkLegacyD3DDeviceBridge : public IUnknown {
    * \param [in] colorKeyLow DWORD low color key range boundary
    * \param [in] colorKeyHigh DWORR high color key range boundary
    */
-  virtual HRESULT SetColorKey(DWORD stage, DWORD colorKeyLow, DWORD colorKeyHigh) = 0;
+  virtual void SetColorKey(DWORD stage, DWORD colorKeyLow, DWORD colorKeyHigh) = 0;
 
   /**
    * \brief Updates the legacy light state in D3D9
    *
    * \param [in] legacyLightsState bool value to be used
    */
-  virtual HRESULT SetLegacyLightsState(bool legacyLightsState) = 0;
+  virtual void SetLegacyLightsState(bool legacyLightsState) = 0;
 
   /**
    * \brief Updates the alternate pixel center state in D3D9
    *
    * \param [in] alternatePixelCenter bool value to be used
    */
-  virtual HRESULT SetAlternatePixelCenter(bool alternatePixelCenter) = 0;
+  virtual void SetAlternatePixelCenter(bool alternatePixelCenter) = 0;
 };
 
 /**
@@ -164,15 +164,15 @@ namespace dxvk {
 
     uint32_t DetermineInitialTextureMemory();
 
-    HRESULT ResetSwapChain(D3DPRESENT_PARAMETERS* Params);
+    void UpdatePresentInterval(uint32_t presentInterval);
 
-    HRESULT SetColorKeyState(DWORD stage, bool colorKeyState);
+    void SetColorKeyState(DWORD stage, bool colorKeyState);
 
-    HRESULT SetColorKey(DWORD stage, DWORD colorKeyLow, DWORD colorKeyHigh);
+    void SetColorKey(DWORD stage, DWORD colorKeyLow, DWORD colorKeyHigh);
 
-    HRESULT SetLegacyLightsState(bool legacyLightsState);
+    void SetLegacyLightsState(bool legacyLightsState);
 
-    HRESULT SetAlternatePixelCenter(bool alternatePixelCenter);
+    void SetAlternatePixelCenter(bool alternatePixelCenter);
 
   private:
 
