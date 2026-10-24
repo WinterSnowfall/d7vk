@@ -336,7 +336,7 @@ namespace dxvk {
 
     try {
       Com<D3D7Device> device7 = new D3D7Device(nullptr, std::move(d3d7DeviceProxy), this,
-                                               rclsidOverride, &params, std::move(device9),
+                                               rclsidOverride, multiSampleType, std::move(device9),
                                                rt7.ptr(), deviceCreationFlags9);
 
       // Set the common device on the common interface

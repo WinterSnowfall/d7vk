@@ -1328,7 +1328,7 @@ namespace dxvk {
     }
 
     try {
-      m_device3 = new D3D3Device(nullptr, this, rclsidOverride, &params,
+      m_device3 = new D3D3Device(nullptr, this, rclsidOverride, multiSampleType,
                                  std::move(device9), deviceCreationFlags9);
 
       // Set the common device on the common interface

@@ -18,7 +18,7 @@ namespace dxvk {
         D3DCommonDevice* commonD3DDevice,
         D3D6Interface* pParent,
         GUID deviceGUID,
-        const d3d9::D3DPRESENT_PARAMETERS* pParams9,
+        d3d9::D3DMULTISAMPLE_TYPE multiSampeType9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DDraw4Surface* pSurface,
         DWORD CreationFlags9)
@@ -48,7 +48,8 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         throw DxvkError("D3D6Device: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
 
-      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, std::move(deviceBridgeInst), deviceGUID, pParams9, CreationFlags9);
+      m_commonD3DDevice = new D3DCommonDevice(m_commonIntf, std::move(deviceBridgeInst),
+                                              deviceGUID, multiSampeType9, CreationFlags9);
 
       m_commonD3DDevice->SetD3D9Device(std::move(pDevice9));
       device9 = m_commonD3DDevice->GetD3D9Device();
@@ -139,7 +140,7 @@ namespace dxvk {
       // Reuse the existing D3D9 device in situations where games want
       // to get access only to D3D3 execute buffers on a D3D6 device
       m_device3 = new D3D3Device(m_commonD3DDevice.ptr(), rt.ptr(), m_commonD3DDevice->GetDeviceGUID(),
-                                 m_commonD3DDevice->GetPresentParameters(),
+                                 m_commonD3DDevice->GetD3D9MultiSampleType(),
                                  nullptr, m_commonD3DDevice->GetD3D9CreationFlags());
       m_commonD3DDevice->SetD3D3Device(m_device3.ptr());
       *ppvObject = m_device3.ref();
@@ -161,7 +162,7 @@ namespace dxvk {
       }
 
       m_device5 = new D3D5Device(m_commonD3DDevice.ptr(), m_commonD3DDevice->GetCommonD3DInterface()->GetD3D5Interface(),
-                                 m_commonD3DDevice->GetDeviceGUID(), m_commonD3DDevice->GetPresentParameters(),
+                                 m_commonD3DDevice->GetDeviceGUID(), m_commonD3DDevice->GetD3D9MultiSampleType(),
                                  nullptr, rt.ptr(), m_commonD3DDevice->GetD3D9CreationFlags());
       m_commonD3DDevice->SetD3D5Device(m_device5.ptr());
       *ppvObject = m_device5.ref();
