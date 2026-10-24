@@ -113,6 +113,8 @@ namespace dxvk {
     void SetDesc(const DDSURFACEDESC& desc) {
       // DDSURFACEDESC is aligned with DDSURFACEDESC2
       memcpy(&m_desc, &desc, sizeof(DDSURFACEDESC));
+      // Update the struct size to DDSURFACEDESC2
+      m_desc.dwSize = sizeof(DDSURFACEDESC2);
       RefreshStaticDescData(true);
     }
 
