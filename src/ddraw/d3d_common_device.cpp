@@ -60,17 +60,6 @@ namespace dxvk {
     return nullptr;
   }
 
-  // D3D5/3 has no way of disabling/re-enabling VSync, so skip the D3D5/3 devices
-  HRESULT D3DCommonDevice::ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params) {
-    if (m_device7 != nullptr) {
-      return m_device7->ResetD3D9Swapchain(params);
-    } else if (m_device6 != nullptr) {
-      return m_device6->ResetD3D9Swapchain(params);
-    }
-
-    return DDERR_UNSUPPORTED;
-  }
-
   DDrawSurface* D3DCommonDevice::GetCurrentRenderTarget() const {
     return m_device5 != nullptr ? m_device5->GetRenderTarget() :
            m_device3 != nullptr ? m_device3->GetRenderTarget() : nullptr;

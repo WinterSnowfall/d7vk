@@ -132,8 +132,6 @@ namespace dxvk {
 
     void UpdateSurfaceDirtyTracking(bool dirtyRenderTarget, bool dirtyDepthStencil, bool dirtyPrimarySurface);
 
-    HRESULT ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params);
-
     D3DCommonDevice* GetCommonD3DDevice() {
       return m_commonD3DDevice.ptr();
     }

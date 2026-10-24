@@ -666,12 +666,14 @@ namespace dxvk {
       if (unlikely(overrideSurf != nullptr && !overrideSurf->GetCommonSurface()->IsBackBufferOrFlippable()))
         return DDERR_NOTFLIPPABLE;
 
+      D3DCommonDevice* commonD3DDevice = m_commonSurf->GetCommonD3DDevice();
+
       const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
       // Workaround for The Sims/other games flipping a different
       // swapchain than the one set on the current D3D device
       if (unlikely(d3dOptions->forceRTFlip && m_commonSurf->IsPrimarySurface())) {
-        m_nextFlippable = m_commonSurf->GetCommonD3DDevice()->GetCurrentRenderTarget();
+        m_nextFlippable = commonD3DDevice->GetCurrentRenderTarget();
       }
 
       if (likely(m_nextFlippable != nullptr)) {
@@ -686,7 +688,7 @@ namespace dxvk {
         InitializeOrUploadD3D9();
       }
 
-      const RECT* presentRect = m_commonSurf->GetCommonD3DDevice()->GetPresentRect();
+      const RECT* presentRect = commonD3DDevice->GetPresentRect();
       d3d9Device->Present(NULL, presentRect, NULL, NULL);
 
     } else {

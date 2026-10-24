@@ -41,8 +41,6 @@ namespace dxvk {
 
     D3DCommonInterface* GetCommonD3DInterface() const;
 
-    HRESULT ResetD3D9Swapchain(d3d9::D3DPRESENT_PARAMETERS* params);
-
     DDrawSurface* GetCurrentRenderTarget() const;
 
     DDraw4Surface* GetCurrentRenderTarget4() const;
