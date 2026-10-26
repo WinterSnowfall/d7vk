@@ -26,6 +26,7 @@ namespace dxvk {
     this->forceDCForwarding       = config.getOption<bool>   ("ddraw.forceDCForwarding",       false);
     this->emulateFrontBuffer      = config.getOption<bool>   ("ddraw.emulateFrontBuffer",      false);
     this->ignoreGammaRamp         = config.getOption<bool>   ("ddraw.ignoreGammaRamp",         false);
+    this->forceProxiedGammaRamp   = config.getOption<bool>   ("ddraw.forceProxiedGammaRamp",   false);
     this->autoGenMipMaps          = config.getOption<bool>   ("ddraw.autoGenMipMaps",          false);
     this->deviceResourceSharing   = config.getOption<bool>   ("ddraw.deviceResourceSharing",   false);
     this->colorKeyMasking         = config.getOption<bool>   ("ddraw.colorKeyMasking",         false);

@@ -97,6 +97,9 @@ namespace dxvk {
     /// Ignore any application set gamma ramp
     bool ignoreGammaRamp;
 
+    /// Always use the DDraw swapchain to set the gamma ramp
+    bool forceProxiedGammaRamp;
+
     /// Automatically generate all texture mip maps on the GPU
     bool autoGenMipMaps;
 
