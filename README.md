@@ -6,7 +6,7 @@ A Vulkan-based translation layer for Direct3D 7, 6, 5 and 3, which allows runnin
 > D3D retained-mode applications are NOT supported, since the project only aims to implement immediate-mode.
 
 > [!TIP]
-> There is no benefit to using D7VK with DirectDraw-only (2D accelerated) games, as calls will simply be proxied to the underlying DDraw implementation. Projects such as [cnc-ddraw](https://github.com/FunkyFr3sh/cnc-ddraw) may also be helpful in such cases, should Wine/Windows exibit issues.
+> There is no benefit to using D7VK with DirectDraw-only (2D accelerated) games, as calls will simply be proxied to the underlying DDraw implementation. Projects such as [cnc-ddraw](https://github.com/FunkyFr3sh/cnc-ddraw) may also be helpful in such cases, should Wine/Windows exhibit issues.
 
 > [!NOTE]
 > D3D7/6/5/3 support is also available in [DXVK-Sarek](https://github.com/pythonlover02/DXVK-Sarek), in case you are using older graphics hardware.
@@ -78,6 +78,16 @@ Should you encounter any situation in which AA support is listed as unavailable 
 
 > [!WARNING]
 > In [DXVK-Sarek](https://github.com/pythonlover02/DXVK-Sarek) you'll only be able to (optionally) force enable FSAA emulation, as the backend functionality required to let games dynamically control the AA state is missing.
+
+### Does D7VK support 4K+ resolutions?
+
+Generally speaking, DDraw and early D3D games won't take kindly to anything above 2048 x 1536 pixels in terms of screen resolution and 2048 pixels on any texture dimension, however, if you insist and want to try out your luck anyway, you can use `legacySurfaceDimensions = False` to get around this limitation. In truth, when using Wine/Linux, some games will likely work without issues at just about any resolution you throw at them, assuming they are able to handle the display mode enumeration properly to begin with.
+
+> [!NOTE]
+> D7VK does NOT support forcing a desired resolution. You must use either in-game options or configuration utilities to pick something from the list of provided resolutions, if at all possible.
+
+> [!CAUTION]
+> The Windows native DDraw implementation is known to rely on the above mentioned limits, so lifting them will most likely cause severe issues, ranging from serious instability to outright crashing.
 
 ### Will it work on Windows?
 

@@ -719,7 +719,7 @@ namespace dxvk {
     desc.dwDeviceRenderBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
     desc.dwDeviceZBufferBitDepth = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc.dwMaxBufferSize         = 0;
-    desc.dwMaxVertexCount        = D3DMAXNUMVERTICES;
+    desc.dwMaxVertexCount        = ddrawCaps::MaxVertexCount;
 
     return desc;
   }
@@ -919,14 +919,17 @@ namespace dxvk {
     desc.dpcLineCaps          = prim;
     desc.dpcTriCaps           = prim;
 
+    const uint32_t maxTextureDimension = options->legacySurfaceDimensions ? ddrawCaps::MaxTextureDimensionLegacy
+                                                                          : ddrawCaps::MaxTextureDimension;
+
     desc.dwDeviceRenderBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
     desc.dwDeviceZBufferBitDepth = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc.dwMaxBufferSize         = 0;
-    desc.dwMaxVertexCount        = D3DMAXNUMVERTICES;
+    desc.dwMaxVertexCount        = ddrawCaps::MaxVertexCount;
     desc.dwMinTextureWidth       = 1;
     desc.dwMinTextureHeight      = 1;
-    desc.dwMaxTextureWidth       = ddrawCaps::MaxTextureDimension;
-    desc.dwMaxTextureHeight      = ddrawCaps::MaxTextureDimension;
+    desc.dwMaxTextureWidth       = maxTextureDimension;
+    desc.dwMaxTextureHeight      = maxTextureDimension;
     desc.dwMinStippleWidth       = 0;
     desc.dwMinStippleHeight      = 0;
     desc.dwMaxStippleWidth       = 0;
@@ -1142,20 +1145,23 @@ namespace dxvk {
     desc.dpcLineCaps          = prim;
     desc.dpcTriCaps           = prim;
 
+    const uint32_t maxTextureDimension = options->legacySurfaceDimensions ? ddrawCaps::MaxTextureDimensionLegacy
+                                                                          : ddrawCaps::MaxTextureDimension;
+
     desc.dwDeviceRenderBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
     desc.dwDeviceZBufferBitDepth = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc.dwMaxBufferSize         = 0;
-    desc.dwMaxVertexCount        = D3DMAXNUMVERTICES;
+    desc.dwMaxVertexCount        = ddrawCaps::MaxVertexCount;
     desc.dwMinTextureWidth       = 1;
     desc.dwMinTextureHeight      = 1;
-    desc.dwMaxTextureWidth       = ddrawCaps::MaxTextureDimension;
-    desc.dwMaxTextureHeight      = ddrawCaps::MaxTextureDimension;
+    desc.dwMaxTextureWidth       = maxTextureDimension;
+    desc.dwMaxTextureHeight      = maxTextureDimension;
     desc.dwMinStippleWidth       = 0;
     desc.dwMinStippleHeight      = 0;
     desc.dwMaxStippleWidth       = 0;
     desc.dwMaxStippleHeight      = 0;
     desc.dwMaxTextureRepeat      = 8192;
-    desc.dwMaxTextureAspectRatio = ddrawCaps::MaxTextureDimension;
+    desc.dwMaxTextureAspectRatio = maxTextureDimension;
     desc.dwMaxAnisotropy         = 16;
     desc.dvGuardBandLeft         = -32768.0f;
     desc.dvGuardBandTop          = -32768.0f;
@@ -1388,14 +1394,17 @@ namespace dxvk {
     desc7.dpcLineCaps         = prim;
     desc7.dpcTriCaps          = prim;
 
+    const uint32_t maxTextureDimension = options->legacySurfaceDimensions ? ddrawCaps::MaxTextureDimensionLegacy
+                                                                          : ddrawCaps::MaxTextureDimension;
+
     desc7.dwDeviceRenderBitDepth  = DDBD_16 | DDBD_24 | DDBD_32;
     desc7.dwDeviceZBufferBitDepth = options->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
     desc7.dwMinTextureWidth       = 1;
     desc7.dwMinTextureHeight      = 1;
-    desc7.dwMaxTextureWidth       = ddrawCaps::MaxTextureDimension;
-    desc7.dwMaxTextureHeight      = ddrawCaps::MaxTextureDimension;
+    desc7.dwMaxTextureWidth       = maxTextureDimension;
+    desc7.dwMaxTextureHeight      = maxTextureDimension;
     desc7.dwMaxTextureRepeat      = 8192;
-    desc7.dwMaxTextureAspectRatio = 8192;
+    desc7.dwMaxTextureAspectRatio = maxTextureDimension;
     desc7.dwMaxAnisotropy         = 16;
     desc7.dvGuardBandLeft         = -32768.0f;
     desc7.dvGuardBandTop          = -32768.0f;

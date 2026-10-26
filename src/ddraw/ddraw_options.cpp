@@ -4,36 +4,37 @@ namespace dxvk {
 
   D3DOptions::D3DOptions(const Config& config) {
     // D3D7/6/5/3/DDraw options
-    this->forceMultiThreaded     = config.getOption<bool>   ("ddraw.forceMultiThreaded",     false);
-    this->forceSWVP              = config.getOption<bool>   ("ddraw.forceSWVP",              false);
-    this->managedVertexBuffers   = config.getOption<bool>   ("ddraw.managedVertexBuffers",   false);
-    this->supportR3G3B2          = config.getOption<bool>   ("ddraw.supportR3G3B2",          false);
-    this->supportD16             = config.getOption<bool>   ("ddraw.supportD16",              true);
-    this->support32BitDepth      = config.getOption<bool>   ("ddraw.support32BitDepth",       true);
-    this->useD24X8forD32         = config.getOption<bool>   ("ddraw.useD24X8forD32",         false);
-    this->useD16forD24X8         = config.getOption<bool>   ("ddraw.useD16forD24X8",         false);
-    this->mask8BitModes          = config.getOption<bool>   ("ddraw.mask8BitModes",          false);
-    this->viewportZCorrection    = config.getOption<bool>   ("ddraw.viewportZCorrection",    false);
-    this->forceLegacyBuffers     = config.getOption<bool>   ("ddraw.forceLegacyBuffers",     false);
-    this->cpuProcessVertices     = config.getOption<bool>   ("ddraw.cpuProcessVertices",      true);
-    this->ignoreDisplayModes     = config.getOption<bool>   ("ddraw.ignoreDisplayModes",     false);
-    this->backBufferResize       = config.getOption<bool>   ("ddraw.backBufferResize",       false);
-    this->preserveAspectRatio    = config.getOption<bool>   ("ddraw.preserveAspectRatio",     true);
-    this->forceLegacyPresent     = config.getOption<bool>   ("ddraw.forceLegacyPresent",     false);
-    this->systemMemoryShadow     = config.getOption<bool>   ("ddraw.systemMemoryShadow",      true);
-    this->forceRTFlip            = config.getOption<bool>   ("ddraw.forceRTFlip",            false);
-    this->forceDCForwarding      = config.getOption<bool>   ("ddraw.forceDCForwarding",      false);
-    this->emulateFrontBuffer     = config.getOption<bool>   ("ddraw.emulateFrontBuffer",     false);
-    this->ignoreGammaRamp        = config.getOption<bool>   ("ddraw.ignoreGammaRamp",        false);
-    this->autoGenMipMaps         = config.getOption<bool>   ("ddraw.autoGenMipMaps",         false);
-    this->deviceResourceSharing  = config.getOption<bool>   ("ddraw.deviceResourceSharing",  false);
-    this->colorKeyMasking        = config.getOption<bool>   ("ddraw.colorKeyMasking",        false);
-    this->legacyDeviceNames      = config.getOption<bool>   ("ddraw.legacyDeviceNames",      false);
-    this->nonLocalVideoMemory    = config.getOption<bool>   ("ddraw.nonLocalVideoMemory",     true);
-    this->inverseLodBiasScale    = config.getOption<bool>   ("ddraw.inverseLodBiasScale",    false);
-    this->robustTextureLifeCycle = config.getOption<bool>   ("ddraw.robustTextureLifeCycle", false);
-    this->supportOverlays        = config.getOption<bool>   ("ddraw.supportOverlays",         true);
-    this->apitraceMode           = config.getOption<bool>   ("ddraw.apitraceMode",           false);
+    this->forceMultiThreaded      = config.getOption<bool>   ("ddraw.forceMultiThreaded",      false);
+    this->forceSWVP               = config.getOption<bool>   ("ddraw.forceSWVP",               false);
+    this->legacySurfaceDimensions = config.getOption<bool>   ("ddraw.legacySurfaceDimensions",  true);
+    this->managedVertexBuffers    = config.getOption<bool>   ("ddraw.managedVertexBuffers",    false);
+    this->supportR3G3B2           = config.getOption<bool>   ("ddraw.supportR3G3B2",           false);
+    this->supportD16              = config.getOption<bool>   ("ddraw.supportD16",               true);
+    this->support32BitDepth       = config.getOption<bool>   ("ddraw.support32BitDepth",        true);
+    this->useD24X8forD32          = config.getOption<bool>   ("ddraw.useD24X8forD32",          false);
+    this->useD16forD24X8          = config.getOption<bool>   ("ddraw.useD16forD24X8",          false);
+    this->mask8BitModes           = config.getOption<bool>   ("ddraw.mask8BitModes",           false);
+    this->viewportZCorrection     = config.getOption<bool>   ("ddraw.viewportZCorrection",     false);
+    this->forceLegacyBuffers      = config.getOption<bool>   ("ddraw.forceLegacyBuffers",      false);
+    this->cpuProcessVertices      = config.getOption<bool>   ("ddraw.cpuProcessVertices",       true);
+    this->ignoreDisplayModes      = config.getOption<bool>   ("ddraw.ignoreDisplayModes",      false);
+    this->backBufferResize        = config.getOption<bool>   ("ddraw.backBufferResize",        false);
+    this->preserveAspectRatio     = config.getOption<bool>   ("ddraw.preserveAspectRatio",      true);
+    this->forceLegacyPresent      = config.getOption<bool>   ("ddraw.forceLegacyPresent",      false);
+    this->systemMemoryShadow      = config.getOption<bool>   ("ddraw.systemMemoryShadow",       true);
+    this->forceRTFlip             = config.getOption<bool>   ("ddraw.forceRTFlip",             false);
+    this->forceDCForwarding       = config.getOption<bool>   ("ddraw.forceDCForwarding",       false);
+    this->emulateFrontBuffer      = config.getOption<bool>   ("ddraw.emulateFrontBuffer",      false);
+    this->ignoreGammaRamp         = config.getOption<bool>   ("ddraw.ignoreGammaRamp",         false);
+    this->autoGenMipMaps          = config.getOption<bool>   ("ddraw.autoGenMipMaps",          false);
+    this->deviceResourceSharing   = config.getOption<bool>   ("ddraw.deviceResourceSharing",   false);
+    this->colorKeyMasking         = config.getOption<bool>   ("ddraw.colorKeyMasking",         false);
+    this->legacyDeviceNames       = config.getOption<bool>   ("ddraw.legacyDeviceNames",       false);
+    this->nonLocalVideoMemory     = config.getOption<bool>   ("ddraw.nonLocalVideoMemory",      true);
+    this->inverseLodBiasScale     = config.getOption<bool>   ("ddraw.inverseLodBiasScale",     false);
+    this->robustTextureLifeCycle  = config.getOption<bool>   ("ddraw.robustTextureLifeCycle",  false);
+    this->supportOverlays         = config.getOption<bool>   ("ddraw.supportOverlays",          true);
+    this->apitraceMode            = config.getOption<bool>   ("ddraw.apitraceMode",            false);
 
     std::string alternatePixelCenterStr = Config::toLower(config.getOption<std::string>("ddraw.alternatePixelCenter", "false"));
     if (alternatePixelCenterStr == "true") {
