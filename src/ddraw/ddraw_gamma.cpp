@@ -63,12 +63,14 @@ namespace dxvk {
 
       D3DCommonDevice* commonD3DDevice = commonIntf->GetCommonD3DDevice();
 
-      if (likely(commonD3DDevice != nullptr)) {
+      if (likely(!commonIntf->GetOptions()->forceProxiedGammaRamp && commonD3DDevice != nullptr)) {
         d3d9::IDirect3DDevice9* d3d9Device = commonD3DDevice->GetD3D9Device();
 
         d3d9Device->GetGammaRamp(0, reinterpret_cast<d3d9::D3DGAMMARAMP*>(&m_gammaRamp));
       } else {
-        m_proxy->GetGammaRamp(dwFlags, &m_gammaRamp);
+        HRESULT hr = m_proxy->GetGammaRamp(dwFlags, &m_gammaRamp);
+        if (unlikely(FAILED(hr)))
+          return hr;
       }
     }
 
@@ -81,27 +83,31 @@ namespace dxvk {
     if (unlikely(lpRampData == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    m_gammaRamp = *lpRampData;
-    m_isGammaRampSet = true;
-
     DDrawCommonInterface* commonIntf = m_commonSurf->GetCommonInterface();
 
-    if (likely(!commonIntf->GetOptions()->ignoreGammaRamp)) {
+    const D3DOptions* d3dOptions = commonIntf->GetOptions();
+
+    if (likely(!d3dOptions->ignoreGammaRamp)) {
       D3DCommonDevice* commonD3DDevice = commonIntf->GetCommonD3DDevice();
 
-      if (likely(commonD3DDevice != nullptr)) {
+      if (likely(!d3dOptions->forceProxiedGammaRamp && commonD3DDevice != nullptr)) {
         // Skip setting the gamma ramp on a non-primary surface or if we aren't in a full screen mode
         if (likely(m_commonSurf->IsPrimarySurface()
                && (commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE))) {
           d3d9::IDirect3DDevice9* d3d9Device = commonD3DDevice->GetD3D9Device();
 
           d3d9Device->SetGammaRamp(0, ConvertGammaRampFlags(dwFlags),
-                                   reinterpret_cast<d3d9::D3DGAMMARAMP*>(&m_gammaRamp));
+                                   reinterpret_cast<d3d9::D3DGAMMARAMP*>(lpRampData));
         }
       } else {
-        return m_proxy->SetGammaRamp(dwFlags, lpRampData);
+        HRESULT hr = m_proxy->SetGammaRamp(dwFlags, lpRampData);
+        if (unlikely(FAILED(hr)))
+          return hr;
       }
     }
+
+    m_gammaRamp = *lpRampData;
+    m_isGammaRampSet = true;
 
     return DD_OK;
   }
