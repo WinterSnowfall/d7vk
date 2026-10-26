@@ -393,31 +393,25 @@ namespace dxvk {
 
     hr = DDENUMRET_OK;
 
-    auto displayModeIt = displayModes.begin();
-    while (displayModeIt != displayModes.end() && hr == DDENUMRET_OK) {
-      DDSURFACEDESC dmDesc = *displayModeIt;
-
-      //Logger::debug(str::format("DDrawInterface::EnumDisplayModes: ", dmDesc.dwWidth, " x ", dmDesc.dwHeight,
-      //                                                         " @ ", dmDesc.dwRefreshRate,
-      //                                                         " : ", dmDesc.ddpfPixelFormat.dwRGBBitCount, " bpp"));
+    for (auto& displayMode : displayModes) {
+      if (hr != DDENUMRET_OK)
+        break;
 
       if (d3dOptions->legacySurfaceDimensions &&
-          (dmDesc.dwWidth  > ddrawCaps::MaxTextureDimensionLegacy
-        || dmDesc.dwHeight > ddrawCaps::MaxTextureDimensionLegacy)) {
+          (displayMode.dwWidth  > ddrawCaps::MaxTextureDimensionLegacy
+        || displayMode.dwHeight > ddrawCaps::MaxTextureDimensionLegacy)) {
         static bool s_modeDimensionsWarningShown;
 
         if (!std::exchange(s_modeDimensionsWarningShown, true))
           Logger::info("DDrawInterface::EnumDisplayModes: Masking display modes with exceeding dimensions");
-      } else if (unlikely(d3dOptions->mask8BitModes && dmDesc.ddpfPixelFormat.dwRGBBitCount == 8)) {
+      } else if (unlikely(d3dOptions->mask8BitModes && displayMode.ddpfPixelFormat.dwRGBBitCount == 8)) {
         static bool s_maskModeWarningShown;
 
         if (!std::exchange(s_maskModeWarningShown, true))
           Logger::warn("DDrawInterface::EnumDisplayModes: Masking 8-bit display modes");
       } else {
-        hr = lpEnumModesCallback(&dmDesc, lpContext);
+        hr = lpEnumModesCallback(&displayMode, lpContext);
       }
-
-      ++displayModeIt;
     }
 
     return DD_OK;
