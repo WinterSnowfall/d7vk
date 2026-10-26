@@ -153,8 +153,8 @@ namespace dxvk {
     ApplyD3D5DeviceCaps(&desc2RAMP_HEL, guidRAMP);
     D3DDEVICEDESC descRAMP_HAL = { };
     D3DDEVICEDESC descRAMP_HEL = { };
-    desc2RAMP_HAL.dwFlags = 0;
-    desc2RAMP_HAL.dcmColorModel = 0;
+    desc2RAMP_HAL.dwFlags = 0u;
+    desc2RAMP_HAL.dcmColorModel = 0u;
     // RAMP devices use a monochrome color model
     desc2RAMP_HEL.dcmColorModel = D3DCOLOR_MONO;
     // Some applications apparently care about HAL texture caps
@@ -188,8 +188,8 @@ namespace dxvk {
     ApplyD3D5DeviceCaps(&desc2RGB_HEL, guidRGB);
     D3DDEVICEDESC descRGB_HAL = { };
     D3DDEVICEDESC descRGB_HEL = { };
-    desc2RGB_HAL.dwFlags = 0;
-    desc2RGB_HAL.dcmColorModel = 0;
+    desc2RGB_HAL.dwFlags = 0u;
+    desc2RGB_HAL.dcmColorModel = 0u;
     // Some applications apparently care about HAL texture caps
     desc2RGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
                                             & ~D3DPTEXTURECAPS_POW2
@@ -222,7 +222,7 @@ namespace dxvk {
     ApplyD3D5DeviceCaps(&desc2HAL_HEL, guidHAL);
     D3DDEVICEDESC descHAL_HAL = { };
     D3DDEVICEDESC descHAL_HEL = { };
-    desc2HAL_HEL.dcmColorModel = 0;
+    desc2HAL_HEL.dcmColorModel = 0u;
     // Some applications apparently care about HEL texture caps
     desc2HAL_HEL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
                                             & ~D3DPTEXTURECAPS_POW2
@@ -299,8 +299,8 @@ namespace dxvk {
     ApplyD3D5DeviceCaps(&descRGB_HAL, IID_IDirect3DRGBDevice);
     D3DDEVICEDESC2 descRGB_HEL = m_desc;
     ApplyD3D5DeviceCaps(&descRGB_HEL, IID_IDirect3DRGBDevice);
-    descRGB_HAL.dwFlags = 0;
-    descRGB_HAL.dcmColorModel = 0;
+    descRGB_HAL.dwFlags = 0u;
+    descRGB_HAL.dcmColorModel = 0u;
     // Some applications apparently care about HAL texture caps
     descRGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
                                            & ~D3DPTEXTURECAPS_POW2
@@ -314,7 +314,7 @@ namespace dxvk {
     ApplyD3D5DeviceCaps(&descHAL_HAL, IID_IDirect3DHALDevice);
     D3DDEVICEDESC2 descHAL_HEL = m_desc;
     ApplyD3D5DeviceCaps(&descHAL_HEL, IID_IDirect3DHALDevice);
-    descHAL_HEL.dcmColorModel = 0;
+    descHAL_HEL.dcmColorModel = 0u;
     // Some applications apparently care about HEL texture caps
     descHAL_HEL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
                                            & ~D3DPTEXTURECAPS_POW2
@@ -364,7 +364,7 @@ namespace dxvk {
       lpD3DFRD2.ddSwDesc = descHAL_HEL;
 
       memcpy(lpD3DFDR, &lpD3DFRD2, sizeof(D3DFINDDEVICERESULT2));
-    } else if (lpD3DFDS->dwFlags == 0) {
+    } else if (lpD3DFDS->dwFlags == 0u) {
       lpD3DFRD2.guid = IID_IDirect3DHALDevice;
       lpD3DFRD2.ddHwDesc = descHAL_HAL;
       lpD3DFRD2.ddSwDesc = descHAL_HEL;
