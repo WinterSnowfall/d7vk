@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ddraw_include.h"
+#include "ddraw_options.h"
+#include "ddraw_caps.h"
 
 #include <vector>
 #include <cmath>
@@ -523,6 +525,19 @@ namespace dxvk {
     }
 
     return zformat;
+  }
+
+  template <typename DescType>
+  inline HRESULT ValidateSurfaceSize(DescType* desc, const D3DOptions* d3dOptions) {
+    const uint32_t maxTextureDimension = d3dOptions->legacySurfaceDimensions ? ddrawCaps::MaxTextureDimensionLegacy
+                                                                             : ddrawCaps::MaxTextureDimension;
+
+    if (unlikely(desc->dwWidth > maxTextureDimension || desc->dwHeight > maxTextureDimension)) {
+      Logger::err("ValidateSurfaceSize: Surface exceeds maximum allowed dimensions");
+      return DDERR_INVALIDCAPS;
+    }
+
+    return DD_OK;
   }
 
   template <typename DescType>

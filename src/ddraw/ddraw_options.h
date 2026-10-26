@@ -37,6 +37,9 @@ namespace dxvk {
     /// Use SWVP mode for all D3D9 devices
     bool forceSWVP;
 
+    /// Enforce legacy/traditional DDraw surface and mode dimension limits
+    bool legacySurfaceDimensions;
+
     /// Use MANAGED vertex buffers instead of DEFAULT vertex buffers
     bool managedVertexBuffers;
 

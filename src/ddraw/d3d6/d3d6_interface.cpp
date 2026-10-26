@@ -144,8 +144,8 @@ namespace dxvk {
     ApplyD3D6DeviceCaps(&descRGB_HAL, guidRGB);
     D3DDEVICEDESC descRGB_HEL = m_desc;
     ApplyD3D6DeviceCaps(&descRGB_HEL, guidRGB);
-    descRGB_HAL.dwFlags = 0;
-    descRGB_HAL.dcmColorModel = 0;
+    descRGB_HAL.dwFlags = 0u;
+    descRGB_HAL.dcmColorModel = 0u;
     // Some applications apparently care about HAL texture caps
     descRGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
                                            & ~D3DPTEXTURECAPS_POW2
@@ -174,7 +174,7 @@ namespace dxvk {
     ApplyD3D6DeviceCaps(&descHAL_HAL, guidHAL);
     D3DDEVICEDESC descHAL_HEL = m_desc;
     ApplyD3D6DeviceCaps(&descHAL_HEL, guidHAL);
-    descHAL_HEL.dcmColorModel = 0;
+    descHAL_HEL.dcmColorModel = 0u;
     // Some applications apparently care about RGB texture caps
     descHAL_HEL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
                                            & ~D3DPTEXTURECAPS_POW2
@@ -249,8 +249,8 @@ namespace dxvk {
     ApplyD3D6DeviceCaps(&descRGB_HAL, IID_IDirect3DRGBDevice);
     D3DDEVICEDESC descRGB_HEL = m_desc;
     ApplyD3D6DeviceCaps(&descRGB_HEL, IID_IDirect3DRGBDevice);
-    descRGB_HAL.dwFlags = 0;
-    descRGB_HAL.dcmColorModel = 0;
+    descRGB_HAL.dwFlags = 0u;
+    descRGB_HAL.dcmColorModel = 0u;
     // Some applications apparently care about HAL texture caps
     descRGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
                                            & ~D3DPTEXTURECAPS_POW2
@@ -264,7 +264,7 @@ namespace dxvk {
     ApplyD3D6DeviceCaps(&descHAL_HAL, IID_IDirect3DHALDevice);
     D3DDEVICEDESC descHAL_HEL = m_desc;
     ApplyD3D6DeviceCaps(&descHAL_HEL, IID_IDirect3DHALDevice);
-    descHAL_HEL.dcmColorModel = 0;
+    descHAL_HEL.dcmColorModel = 0u;
     // Some applications apparently care about HEL texture caps
     descHAL_HEL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
                                            & ~D3DPTEXTURECAPS_POW2
@@ -309,7 +309,7 @@ namespace dxvk {
       lpD3DFDR->guid = IID_IDirect3DHALDevice;
       lpD3DFDR->ddHwDesc = descHAL_HAL;
       lpD3DFDR->ddSwDesc = descHAL_HEL;
-    } else if (lpD3DFDS->dwFlags == 0) {
+    } else if (lpD3DFDS->dwFlags == 0u) {
       lpD3DFDR->guid = IID_IDirect3DHALDevice;
       lpD3DFDR->ddHwDesc = descHAL_HAL;
       lpD3DFDR->ddSwDesc = descHAL_HEL;

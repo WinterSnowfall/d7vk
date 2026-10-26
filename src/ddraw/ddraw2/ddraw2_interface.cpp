@@ -239,11 +239,20 @@ namespace dxvk {
 
     InitReturnPtr(lplpDDSurface);
 
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
+    // Some surfaces won't pass any dimesions, so skip validations in this case
+    if (likely((lpDDSurfaceDesc->dwFlags & DDSD_WIDTH) && (lpDDSurfaceDesc->dwFlags & DDSD_HEIGHT))) {
+      HRESULT hr = ValidateSurfaceSize(lpDDSurfaceDesc, d3dOptions);
+      if (unlikely(FAILED(hr)))
+        return hr;
+    }
+
     if (likely(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)) {
       // Disabling support for overlays fixes issues with intro
       // video playback in games such as NFS: Porsche Unleashed
       if (unlikely((lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_OVERLAY)
-                 && !m_commonIntf->GetOptions()->supportOverlays)) {
+                 && !d3dOptions->supportOverlays)) {
         Logger::info("DDraw2Interface::CreateSurface: Overlay support is disabled, skipping");
         return DDERR_UNSUPPORTED;
       }
@@ -287,7 +296,7 @@ namespace dxvk {
       }
 
       if (unlikely(lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)) {
-        if (unlikely(m_commonIntf->GetOptions()->useD16forD24X8
+        if (unlikely(d3dOptions->useD16forD24X8
                   && lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFF
                   && lpDDSurfaceDesc->ddpfPixelFormat.dwStencilBitMask == 0x0)) {
           // Games such as Need for Speed: Porsche are broken with 32-bit color
@@ -298,7 +307,7 @@ namespace dxvk {
           lpDDSurfaceDesc->ddpfPixelFormat.dwZBufferBitDepth = 16;
           lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask = 0xFFFF;
         } else if (unlikely(lpDDSurfaceDesc->ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF)) {
-          if (m_commonIntf->GetOptions()->useD24X8forD32) {
+          if (d3dOptions->useD24X8forD32) {
             // In case of up-front unsupported and unadvertised D32 depth stencil use,
             // replace it with D24X8, as some games, such as Sacrifice, rely on it
             // to properly enable 32-bit display modes (and revert to 16-bit otherwise)
@@ -381,7 +390,18 @@ namespace dxvk {
     while (displayModeIt != displayModes.end() && hr == DDENUMRET_OK) {
       DDSURFACEDESC dmDesc = *displayModeIt;
 
-      if (unlikely(d3dOptions->mask8BitModes && dmDesc.ddpfPixelFormat.dwRGBBitCount == 8)) {
+      //Logger::debug(str::format("DDraw2Interface::EnumDisplayModes: ", dmDesc.dwWidth, " x ", dmDesc.dwHeight,
+      //                                                          " @ ", dmDesc.dwRefreshRate,
+      //                                                          " : ", dmDesc.ddpfPixelFormat.dwRGBBitCount, " bpp"));
+
+      if (d3dOptions->legacySurfaceDimensions &&
+          (dmDesc.dwWidth  > ddrawCaps::MaxTextureDimensionLegacy
+        || dmDesc.dwHeight > ddrawCaps::MaxTextureDimensionLegacy)) {
+        static bool s_modeDimensionsWarningShown;
+
+        if (!std::exchange(s_modeDimensionsWarningShown, true))
+          Logger::info("DDraw2Interface::EnumDisplayModes: Masking display modes with exceeding dimensions");
+      } else if (unlikely(d3dOptions->mask8BitModes && dmDesc.ddpfPixelFormat.dwRGBBitCount == 8)) {
         static bool s_maskModeWarningShown;
 
         if (!std::exchange(s_maskModeWarningShown, true))
