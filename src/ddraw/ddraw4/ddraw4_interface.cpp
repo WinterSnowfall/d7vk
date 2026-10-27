@@ -395,6 +395,12 @@ namespace dxvk {
 
         if (!std::exchange(s_modeDimensionsWarningShown, true))
           Logger::info("DDraw4Interface::EnumDisplayModes: Masking display modes with exceeding dimensions");
+      } else if (d3dOptions->forceLegacyAspectRatio &&
+                !IsLegacyAspectRatioMode(displayMode.dwWidth, displayMode.dwHeight)) {
+        static bool s_modeAspectRatioWarningShown;
+
+        if (!std::exchange(s_modeAspectRatioWarningShown, true))
+          Logger::warn("DDraw4Interface::EnumDisplayModes: Masking display modes with non-legacy aspect ratio");
       } else if (unlikely(d3dOptions->mask8BitModes && displayMode.ddpfPixelFormat.dwRGBBitCount == 8)) {
         static bool s_maskModeWarningShown;
 
