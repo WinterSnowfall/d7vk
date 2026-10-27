@@ -4,6 +4,8 @@
 #include "ddraw_options.h"
 #include "ddraw_caps.h"
 
+#include "../util/util_ratio.h"
+
 #include <vector>
 #include <cmath>
 #include <utility>
@@ -538,6 +540,17 @@ namespace dxvk {
     }
 
     return DD_OK;
+  }
+
+  inline bool IsLegacyAspectRatioMode(DWORD width, DWORD height) {
+    static Ratio displayMode4By3Ratio = Ratio<DWORD>(4u, 3u);
+    static Ratio displayMode5By4Ratio = Ratio<DWORD>(5u, 4u);
+
+    const Ratio displayModeRatio = Ratio<DWORD>(width, height);
+    if (displayModeRatio != displayMode4By3Ratio && displayModeRatio != displayMode5By4Ratio)
+      return false;
+
+    return true;
   }
 
   template <typename DescType>

@@ -40,6 +40,9 @@ namespace dxvk {
     /// Enforce legacy/traditional DDraw surface and mode dimension limits
     bool legacySurfaceDimensions;
 
+    /// Only report modes with 4:3 and 5:4 aspect ratios
+    bool forceLegacyAspectRatio;
+
     /// Use MANAGED vertex buffers instead of DEFAULT vertex buffers
     bool managedVertexBuffers;
 
