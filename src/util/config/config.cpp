@@ -2011,6 +2011,31 @@ namespace dxvk {
     { R"(\\Mortyr\.exe$)", {{
       { "d3d9.maxFrameRate",                  "40" },
     }} },
+    /* Earth 2150 : Escape from the Blue Planet   *
+     * Crashes with 16:9 aspect ratio resolutions *
+     * and runaway animation speed above 20 FPS   */
+    { R"(\\Earth2150\.exe$)", {{
+      { "ddraw.forceLegacyAspectRatio",     "True" },
+      { "d3d9.maxFrameRate",                 "-30" },
+    }} },
+    /* Earth 2150: The Moon Project               *
+     * Crashes with 16:9 aspect ratio resolutions *
+     * and runaway animation speed above 20 FPS   */
+    { R"(\\TheMoonProject\.exe$)", {{
+      { "ddraw.forceLegacyAspectRatio",     "True" },
+      { "d3d9.maxFrameRate",                 "-30" },
+    }} },
+    /* Earth 2150: Lost Souls                     *
+     * Crashes with 16:9 aspect ratio resolutions *
+     * and runaway animation speed above 20 FPS   */
+    { R"(\\LostSouls\.exe$)", {{
+      { "ddraw.forceLegacyAspectRatio",     "True" },
+      { "d3d9.maxFrameRate",                 "-30" },
+    }} },
+    /* Earth 2150 & Addons graphic setup utility  */
+    { R"(\\Earth 2150.*\\Setup.exe$)", {{
+      { "ddraw.forceLegacyAspectRatio",     "True" },
+    }} },
 
     /**********************************************/
     /* D3D5 GAMES                                 */
