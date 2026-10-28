@@ -1,5 +1,6 @@
 #include "ddraw_clipper.h"
 
+#include "ddraw_common_interface.h"
 #include "ddraw_common_surface.h"
 
 namespace dxvk {

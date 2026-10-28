@@ -2,6 +2,8 @@
 
 #include "d3d7_device.h"
 
+#include "../ddraw7/ddraw7_surface.h"
+
 namespace dxvk {
 
   D3D7StateBlock::D3D7StateBlock(
@@ -64,6 +66,13 @@ namespace dxvk {
     }
 
     return res;
+  }
+
+  HRESULT D3D7StateBlock::SetTexture(DWORD Stage, IDirectDrawSurface7* pTexture) {
+    m_state.textures[Stage] = pTexture;
+    m_captures.flags.set(D3D7CapturedStateFlag::Textures);
+    m_captures.textures.set(Stage, true);
+    return D3D_OK;
   }
 
 }
