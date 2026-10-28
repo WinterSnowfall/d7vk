@@ -4,6 +4,7 @@
 #include "ddraw_format.h"
 
 #include "ddraw_common_interface.h"
+
 #include "d3d_common_device.h"
 
 #include "ddraw_clipper.h"
@@ -20,8 +21,6 @@ namespace dxvk {
     OffscreenPlainSurface,
     RenderTarget
   };
-
-  class D3DCommonDevice;
 
   class DDraw7Surface;
   class DDraw4Surface;
