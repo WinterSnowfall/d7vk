@@ -4,9 +4,9 @@
 #include "ddraw_wrapped_object.h"
 #include "ddraw_util.h"
 
-#include "ddraw_common_surface.h"
-
 namespace dxvk {
+
+  class DDrawCommonSurface;
 
   class DDrawGammaControl final : public DDrawWrappedObject<IUnknown, IDirectDrawGammaControl> {
 

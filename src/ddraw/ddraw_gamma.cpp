@@ -1,5 +1,7 @@
 #include "ddraw_gamma.h"
 
+#include "ddraw_common_surface.h"
+
 #include "d3d_common_device.h"
 
 namespace dxvk {

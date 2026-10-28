@@ -14,6 +14,8 @@
 #include "../d3d7/d3d7_interface.h"
 #include "../d3d7/d3d7_device.h"
 
+#include "../../d3d9/d3d9_bridge.h"
+
 namespace dxvk {
 
   DDraw7Interface::DDraw7Interface(

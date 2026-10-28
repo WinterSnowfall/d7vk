@@ -7,13 +7,9 @@
 
 #include "../ddraw_common_interface.h"
 
-#include "../../d3d9/d3d9_bridge.h"
-
 #include "../ddraw/ddraw_interface.h"
 
 namespace dxvk {
-
-  class DDrawSurface;
 
   /**
   * \brief DirectDraw2 interface implementation

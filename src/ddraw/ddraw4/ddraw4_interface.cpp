@@ -15,6 +15,8 @@
 #include "../d3d5/d3d5_interface.h"
 #include "../d3d6/d3d6_interface.h"
 
+#include "../../d3d9/d3d9_bridge.h"
+
 namespace dxvk {
 
   DDraw4Interface::DDraw4Interface(
