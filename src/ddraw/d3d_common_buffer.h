@@ -7,7 +7,6 @@
 
 namespace dxvk {
 
-  class DDrawCommonInterface;
   class D3DCommonDevice;
 
   class D3DCommonBuffer : public ComObjectClamp<IUnknown> {

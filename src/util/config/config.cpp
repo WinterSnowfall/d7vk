@@ -1785,6 +1785,10 @@ namespace dxvk {
     { R"(\\Rage Rally\\rally\.exe$)", {{
       { "ddraw.ignoreGammaRamp",            "True" },
     }} },
+    /* eRacer - Works around gamma issues         */
+    { R"(\\eRacer\.exe$)", {{
+      { "ddraw.ignoreGammaRamp",            "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */
