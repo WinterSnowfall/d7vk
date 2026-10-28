@@ -6,13 +6,10 @@
 
 #include "../ddraw_common_interface.h"
 
-#include "../../d3d9/d3d9_bridge.h"
-
 namespace dxvk {
 
   class D3D3Interface;
   class D3D5Interface;
-  class DDrawSurface;
 
   /**
   * \brief DirectDraw interface implementation

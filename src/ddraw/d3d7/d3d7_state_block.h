@@ -6,8 +6,6 @@
 #include "../util/util_bit.h"
 #include "../util/util_flags.h"
 
-#include "../ddraw7/ddraw7_surface.h"
-
 #include <array>
 
 namespace dxvk {
@@ -26,7 +24,6 @@ namespace dxvk {
     bit::bitset<ddrawCaps::TextureStageCount> textures;
 
     D3D7StateCaptures() {
-      // Ensure all bits are initialized to false
       textures.clearAll();
     }
   };
@@ -52,8 +49,7 @@ namespace dxvk {
     }
   }
 
-  // Wrapper class for D3D9 state blocks. Captures D3D7-specific state.
-  class D3D7StateBlock  {
+  class D3D7StateBlock final {
 
   public:
 
@@ -70,12 +66,7 @@ namespace dxvk {
 
     HRESULT Apply();
 
-    inline HRESULT SetTexture(DWORD Stage, IDirectDrawSurface7* pTexture) {
-      m_state.textures[Stage] = pTexture;
-      m_captures.flags.set(D3D7CapturedStateFlag::Textures);
-      m_captures.textures.set(Stage, true);
-      return D3D_OK;
-    }
+    HRESULT SetTexture(DWORD Stage, IDirectDrawSurface7* pTexture);
 
   private:
 
