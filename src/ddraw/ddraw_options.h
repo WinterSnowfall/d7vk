@@ -37,8 +37,8 @@ namespace dxvk {
     /// Use SWVP mode for all D3D9 devices
     bool forceSWVP;
 
-    /// Enforce legacy/traditional DDraw surface and mode dimension limits
-    bool legacySurfaceDimensions;
+    /// Enforce legacy/traditional DDraw mode dimension limits
+    bool forceLegacyModeFilter;
 
     /// Only report modes with 4:3 and 5:4 aspect ratios
     bool forceLegacyAspectRatio;
