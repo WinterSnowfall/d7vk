@@ -475,34 +475,30 @@ namespace dxvk {
     DWORD backBufferHeight = desc.dwHeight;
     RECT presentRect = { };
 
-    if (d3dOptions->backBufferResize) {
-      const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+    const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
 
-      // Ignore any mode size dimensions when in windowed present mode
-      if (exclusiveMode) {
-        DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
-        // Wayland apparently needs this for somewhat proper back buffer sizing
-        if ((modeSize->width  && modeSize->width  < desc.dwWidth)
-         || (modeSize->height && modeSize->height < desc.dwHeight)) {
-          Logger::warn("D3D5Interface::CreateDevice: Back buffer resizing has known limitations");
+    // Ignore any mode size dimensions when in windowed present mode
+    if (d3dOptions->backBufferResize && (cooperativeLevel & DDSCL_EXCLUSIVE)) {
+      DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
+      // Wayland apparently needs this for somewhat proper back buffer sizing
+      if ((modeSize->width  && modeSize->width  < desc.dwWidth)
+       || (modeSize->height && modeSize->height < desc.dwHeight)) {
+        Logger::warn("D3D5Interface::CreateDevice: Back buffer resizing has known limitations");
 
-          // Note: The DDraw surface will remain larger than our back buffer,
-          // which will cause issues on any locks and blits done to it...
-          backBufferWidth  = modeSize->width;
-          backBufferHeight = modeSize->height;
+        // Note: The DDraw surface will remain larger than our back buffer,
+        // which will cause issues on any locks and blits done to it...
+        backBufferWidth  = modeSize->width;
+        backBufferHeight = modeSize->height;
 
-          if (d3dOptions->preserveAspectRatio) {
-            GetCenteredRect(&presentRect, desc.dwWidth, desc.dwHeight, modeSize->width, modeSize->height);
-          } else {
-            GetStretchedRect(&presentRect, desc.dwWidth, desc.dwHeight);
-          }
+        if (d3dOptions->preserveAspectRatio) {
+          GetCenteredRect(&presentRect, desc.dwWidth, desc.dwHeight, modeSize->width, modeSize->height);
+        } else {
+          GetStretchedRect(&presentRect, desc.dwWidth, desc.dwHeight);
         }
       }
     }
 
     const d3d9::D3DFORMAT backBufferFormat = ConvertFormat(desc.ddpfPixelFormat);
-
-    const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
 
     if ((cooperativeLevel & DDSCL_MULTITHREADED) || d3dOptions->forceMultiThreaded) {
       Logger::info("D3D5Interface::CreateDevice: Using thread safe runtime synchronization");

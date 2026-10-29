@@ -326,6 +326,10 @@ namespace dxvk {
     m_device->UpdatePresentInterval(presentInterval);
   }
 
+  void DxvkLegacyD3DDeviceBridge::UpdateFullScreenWindowSize() {
+    m_device->UpdateFullScreenWindowSize();
+  }
+
   void DxvkLegacyD3DDeviceBridge::SetColorKeyState(DWORD stage, bool colorKeyState) {
     m_device->SetColorKeyState(stage, colorKeyState);
   }

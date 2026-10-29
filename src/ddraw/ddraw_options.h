@@ -43,6 +43,9 @@ namespace dxvk {
     /// Only report modes with 4:3 and 5:4 aspect ratios
     bool forceLegacyAspectRatio;
 
+    /// Resize the current window to fit the back buffer before flips
+    bool forceWindowResize;
+
     /// Use MANAGED vertex buffers instead of DEFAULT vertex buffers
     bool managedVertexBuffers;
 
