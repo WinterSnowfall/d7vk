@@ -1435,6 +1435,8 @@ namespace dxvk {
     // DDraw-driven presentation can update the present interval on each present
     void UpdatePresentInterval(uint32_t presentInterval);
 
+    void UpdateFullScreenWindowSize();
+
     // To simplify the implementation, disregard all but stage 0. The only known
     // use of multi-stage color keying is in Arx Fatalis, but it, thankfully,
     // relies on pure black color key transparency for all texture stages.

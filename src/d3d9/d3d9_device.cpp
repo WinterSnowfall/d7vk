@@ -9331,4 +9331,10 @@ namespace dxvk {
       m_implicitSwapchain->UpdatePresentInterval(presentInterval);
   }
 
+
+  void D3D9DeviceEx::UpdateFullScreenWindowSize() {
+    if (likely(m_d3dCompatibility.test(D3DCompatibility::D3D7)))
+      m_implicitSwapchain->UpdateFullScreenWindowSize();
+  }
+
 }

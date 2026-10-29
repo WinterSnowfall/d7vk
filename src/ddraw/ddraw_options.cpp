@@ -8,6 +8,7 @@ namespace dxvk {
     this->forceSWVP               = config.getOption<bool>   ("ddraw.forceSWVP",               false);
     this->legacySurfaceDimensions = config.getOption<bool>   ("ddraw.legacySurfaceDimensions",  true);
     this->forceLegacyAspectRatio  = config.getOption<bool>   ("ddraw.forceLegacyAspectRatio",  false);
+    this->forceWindowResize       = config.getOption<bool>   ("ddraw.forceWindowResize",       false);
     this->managedVertexBuffers    = config.getOption<bool>   ("ddraw.managedVertexBuffers",    false);
     this->supportR3G3B2           = config.getOption<bool>   ("ddraw.supportR3G3B2",           false);
     this->supportD16              = config.getOption<bool>   ("ddraw.supportD16",               true);

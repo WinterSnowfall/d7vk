@@ -1789,6 +1789,12 @@ namespace dxvk {
     { R"(\\eRacer\.exe$)", {{
       { "ddraw.ignoreGammaRamp",            "True" },
     }} },
+    /* Breath of Fire IV                          *
+     * Works around the game causing window size  *
+     * overrides on any resolution change         */
+    { R"(\\BOF4\.exe$)", {{
+      { "ddraw.forceWindowResize",          "True" },
+    }} },
 
     /**********************************************/
     /* D3D6 GAMES                                 */

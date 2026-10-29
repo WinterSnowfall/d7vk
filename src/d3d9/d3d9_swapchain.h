@@ -135,6 +135,21 @@ namespace dxvk {
       m_presentParams.PresentationInterval = presentInterval;
     }
 
+    // DDraw can sometimes fail to scale the window properly when in full screen mode
+    void UpdateFullScreenWindowSize() {
+      if (likely(m_window != nullptr)) {
+        UINT width, height;
+        wsi::getWindowSize(m_window, &width, &height);
+
+        if (unlikely(width  != m_presentParams.BackBufferWidth ||
+                     height != m_presentParams.BackBufferHeight)) {
+          wsi::resizeWindow(m_window, &m_windowState,
+                            m_presentParams.BackBufferWidth,
+                            m_presentParams.BackBufferHeight);
+        }
+      }
+    }
+
     void SyncFrameLatency();
 
     void DestroyBackBuffers();

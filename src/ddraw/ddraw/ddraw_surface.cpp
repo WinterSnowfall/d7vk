@@ -695,6 +695,9 @@ namespace dxvk {
         InitializeOrUploadD3D9();
       }
 
+      if (unlikely(exclusiveMode && d3dOptions->forceWindowResize))
+        commonD3DDevice->GetD3D9DeviceBridge()->UpdateFullScreenWindowSize();
+
       const RECT* presentRect = commonD3DDevice->GetPresentRect();
       d3d9Device->Present(NULL, presentRect, NULL, NULL);
 
@@ -1244,34 +1247,30 @@ namespace dxvk {
     DWORD backBufferHeight = desc->dwHeight;
     RECT presentRect = { };
 
-    if (d3dOptions->backBufferResize) {
-      const bool exclusiveMode = m_commonIntf->GetCooperativeLevel() & DDSCL_EXCLUSIVE;
+    const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
 
-      // Ignore any mode size dimensions when in windowed present mode
-      if (exclusiveMode) {
-        DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
-        // Wayland apparently needs this for somewhat proper back buffer sizing
-        if ((modeSize->width  && modeSize->width  < desc->dwWidth)
-         || (modeSize->height && modeSize->height < desc->dwHeight)) {
-          Logger::warn("DDrawSurface::CreateDeviceInternal: Back buffer resizing has known limitations");
+    // Ignore any mode size dimensions when in windowed present mode
+    if (d3dOptions->backBufferResize && (cooperativeLevel & DDSCL_EXCLUSIVE)) {
+      DDrawModeSize* modeSize = m_commonIntf->GetModeSize();
+      // Wayland apparently needs this for somewhat proper back buffer sizing
+      if ((modeSize->width  && modeSize->width  < desc->dwWidth)
+       || (modeSize->height && modeSize->height < desc->dwHeight)) {
+        Logger::warn("DDrawSurface::CreateDeviceInternal: Back buffer resizing has known limitations");
 
-          // Note: The DDraw surface will remain larger than our back buffer,
-          // which will cause issues on any locks and blits done to it...
-          backBufferWidth  = modeSize->width;
-          backBufferHeight = modeSize->height;
+        // Note: The DDraw surface will remain larger than our back buffer,
+        // which will cause issues on any locks and blits done to it...
+        backBufferWidth  = modeSize->width;
+        backBufferHeight = modeSize->height;
 
-          if (d3dOptions->preserveAspectRatio) {
-            GetCenteredRect(&presentRect, desc->dwWidth, desc->dwHeight, modeSize->width, modeSize->height);
-          } else {
-            GetStretchedRect(&presentRect, desc->dwWidth, desc->dwHeight);
-          }
+        if (d3dOptions->preserveAspectRatio) {
+          GetCenteredRect(&presentRect, desc->dwWidth, desc->dwHeight, modeSize->width, modeSize->height);
+        } else {
+          GetStretchedRect(&presentRect, desc->dwWidth, desc->dwHeight);
         }
       }
     }
 
     const d3d9::D3DFORMAT backBufferFormat = m_commonSurf->GetD3D9Format();
-
-    const DWORD cooperativeLevel = m_commonIntf->GetCooperativeLevel();
 
     if ((cooperativeLevel & DDSCL_MULTITHREADED) || d3dOptions->forceMultiThreaded) {
       Logger::info("DDrawSurface::CreateDeviceInternal: Using thread safe runtime synchronization");
