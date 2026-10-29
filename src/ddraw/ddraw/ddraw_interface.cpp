@@ -252,13 +252,6 @@ namespace dxvk {
 
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
-    // Some surfaces won't pass any dimesions, so skip validations in this case
-    if (likely((lpDDSurfaceDesc->dwFlags & DDSD_WIDTH) && (lpDDSurfaceDesc->dwFlags & DDSD_HEIGHT))) {
-      HRESULT hr = ValidateSurfaceSize(lpDDSurfaceDesc, d3dOptions);
-      if (unlikely(FAILED(hr)))
-        return hr;
-    }
-
     if (likely(lpDDSurfaceDesc->dwFlags & DDSD_CAPS)) {
       // Disabling support for overlays fixes issues with intro
       // video playback in games such as NFS: Porsche Unleashed
@@ -399,7 +392,7 @@ namespace dxvk {
       if (hr != DDENUMRET_OK)
         break;
 
-      if (d3dOptions->legacySurfaceDimensions &&
+      if (d3dOptions->forceLegacyModeFilter &&
           (displayMode.dwWidth  > ddrawCaps::MaxTextureDimensionLegacy
         || displayMode.dwHeight > ddrawCaps::MaxTextureDimensionLegacy)) {
         static bool s_modeDimensionsWarningShown;

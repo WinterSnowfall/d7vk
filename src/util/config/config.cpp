@@ -1477,9 +1477,11 @@ namespace dxvk {
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.forceLegacyPresent",         "True" },
     }} },
-    /* Blade of Darkness - broken physics         */
+    /* Blade of Darkness - broken physics as well *
+     * as crashing with resolutions above 1080p   */
     { R"(\\Blade\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
+      { "ddraw.forceLegacyModeFilter",      "True" },
     }} },
     /* Hogs of War - Fixes animation speed        */
     { R"(\\warhogs_\.exe$)", {{
@@ -1794,6 +1796,11 @@ namespace dxvk {
      * overrides on any resolution change         */
     { R"(\\BOF4\.exe$)", {{
       { "ddraw.forceWindowResize",          "True" },
+    }} },
+    /* Conquest: Frontier Wars                    *
+     * Doesn't work with resolutions above 1080p  */
+    { R"(\\Conquest\.exe$)", {{
+      { "ddraw.forceLegacyModeFilter",      "True" },
     }} },
 
     /**********************************************/
