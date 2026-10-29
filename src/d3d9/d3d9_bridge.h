@@ -68,6 +68,11 @@ IDxvkLegacyD3DDeviceBridge : public IUnknown {
   virtual void UpdatePresentInterval(uint32_t presentInterval) = 0;
 
   /**
+   * \brief Updates the D3D9 window size before a DDraw flip
+   */
+  virtual void UpdateFullScreenWindowSize() = 0;
+
+  /**
    * \brief Updates the color key transparency state in D3D9
    *
    * \param [in] stage DWORD texture stage to be used
@@ -164,6 +169,8 @@ namespace dxvk {
     uint32_t DetermineInitialTextureMemory();
 
     void UpdatePresentInterval(uint32_t presentInterval);
+
+    void UpdateFullScreenWindowSize();
 
     void SetColorKeyState(DWORD stage, bool colorKeyState);
 
