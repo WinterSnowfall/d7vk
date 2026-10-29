@@ -81,13 +81,10 @@ Should you encounter any situation in which AA support is listed as unavailable 
 
 ### Does D7VK support 4K+ resolutions?
 
-Generally speaking, DDraw and early D3D games won't take kindly to anything above 2048 x 1536 pixels in terms of screen resolution and 2048 pixels on any texture dimension, however, if you insist and want to try out your luck anyway, you can use `legacySurfaceDimensions = False` to get around this limitation. In truth, when using Wine/Linux, some games will likely work without issues at just about any resolution you throw at them, assuming they are able to handle the display mode enumeration properly to begin with.
+Yes, however, generally speaking, DDraw and early D3D games won't take kindly to anything above 2048 x 1536 pixels in terms of screen resolution. Some games may not even work at all outside of these limits, and will have to be run with `forceLegacyModeFilter = True` in order to recreate a more familiar and constrained environment. Also note that the use of high resolutions in some early D3D games is known to scale poorly, so performance may suffer in consequence.
 
 > [!NOTE]
 > D7VK does NOT support forcing a desired resolution. You must use either in-game options or configuration utilities to pick something from the list of provided resolutions, if at all possible.
-
-> [!CAUTION]
-> The Windows native DDraw implementation is known to rely on the above mentioned limits, so lifting them will most likely cause severe issues, ranging from serious instability to outright crashing.
 
 ### Will it work on Windows?
 

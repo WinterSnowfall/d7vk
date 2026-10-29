@@ -529,19 +529,6 @@ namespace dxvk {
     return zformat;
   }
 
-  template <typename DescType>
-  inline HRESULT ValidateSurfaceSize(DescType* desc, const D3DOptions* d3dOptions) {
-    const uint32_t maxTextureDimension = d3dOptions->legacySurfaceDimensions ? ddrawCaps::MaxTextureDimensionLegacy
-                                                                             : ddrawCaps::MaxTextureDimension;
-
-    if (unlikely(desc->dwWidth > maxTextureDimension || desc->dwHeight > maxTextureDimension)) {
-      Logger::err("ValidateSurfaceSize: Surface exceeds maximum allowed dimensions");
-      return DDERR_INVALIDCAPS;
-    }
-
-    return DD_OK;
-  }
-
   inline bool IsLegacyAspectRatioMode(DWORD width, DWORD height) {
     static Ratio displayMode4By3Ratio = Ratio<DWORD>(4u, 3u);
     static Ratio displayMode5By4Ratio = Ratio<DWORD>(5u, 4u);
