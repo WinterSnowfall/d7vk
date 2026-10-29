@@ -676,10 +676,14 @@ namespace dxvk {
     if (unlikely(dwFlags & DDWAITVB_BLOCKBEGINEVENT))
       return DDERR_UNSUPPORTED;
 
+    D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
+
+    if (unlikely(commonD3DDevice == nullptr))
+      return m_proxy->WaitForVerticalBlank(dwFlags, hEvent);
+
     // Switch to a default presentation interval when an application
     // tries to wait for vertical blank, if we're not already doing so
-    D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
-    if (unlikely(commonD3DDevice != nullptr && !m_commonIntf->GetWaitForVBlank())) {
+    if (unlikely(!m_commonIntf->GetWaitForVBlank())) {
       Logger::info("DDraw7Interface::WaitForVerticalBlank: Switching to D3DPRESENT_INTERVAL_DEFAULT for presentation");
       IDxvkLegacyD3DDeviceBridge* deviceBridge = commonD3DDevice->GetD3D9DeviceBridge();
       deviceBridge->UpdatePresentInterval(D3DPRESENT_INTERVAL_DEFAULT);
@@ -785,18 +789,9 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::TestCooperativeLevel() {
-    D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
-
-    if (unlikely(commonD3DDevice == nullptr))
-      return m_proxy->TestCooperativeLevel();
-
-    d3d9::IDirect3DDevice9* d3d9Device = commonD3DDevice->GetD3D9Device();
-
-    HRESULT hr = d3d9Device->TestCooperativeLevel();
-    if (unlikely(FAILED(hr)))
-      return DDERR_NOEXCLUSIVEMODE;
-
-    return DD_OK;
+    // This needs to be forwarded to DDraw in all cases,
+    // because D3D9 won't have visibility over DDraw mode switches
+    return m_proxy->TestCooperativeLevel();
   }
 
   HRESULT STDMETHODCALLTYPE DDraw7Interface::GetDeviceIdentifier(LPDDDEVICEIDENTIFIER2 pDDDI, DWORD dwFlags) {

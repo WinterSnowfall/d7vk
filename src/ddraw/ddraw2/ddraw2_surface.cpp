@@ -536,6 +536,9 @@ namespace dxvk {
         InitializeOrUploadD3D9();
       }
 
+      if (unlikely(exclusiveMode && d3dOptions->forceWindowResize))
+        commonD3DDevice->GetD3D9DeviceBridge()->UpdateFullScreenWindowSize();
+
       const RECT* presentRect = commonD3DDevice->GetPresentRect();
       d3d9Device->Present(NULL, presentRect, NULL, NULL);
 
