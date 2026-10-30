@@ -15,8 +15,6 @@
 #include "../d3d5/d3d5_interface.h"
 #include "../d3d6/d3d6_interface.h"
 
-#include "../../d3d9/d3d9_bridge.h"
-
 namespace dxvk {
 
   DDraw4Interface::DDraw4Interface(
@@ -24,18 +22,6 @@ namespace dxvk {
         Com<IDirectDraw4>&& proxyIntf)
     : DDrawWrappedObject<IUnknown, IDirectDraw4>(nullptr, std::move(proxyIntf))
     , m_commonIntf ( commonIntf ) {
-    // We need a temporary D3D9 interface at this point to retrieve the adapter identifier
-    Com<d3d9::IDirect3D9> d3d9Intf = d3d9::Direct3DCreate9(D3D_SDK_VERSION);
-    if (unlikely(d3d9Intf == nullptr))
-      throw DxvkError("DDraw4Interface: ERROR! Failed to create the D3D9 interface!");
-
-    d3d9::D3DADAPTER_IDENTIFIER9 adapterIdentifier9;
-    HRESULT hr = d3d9Intf->GetAdapterIdentifier(0, 0, &adapterIdentifier9);
-    if (unlikely(FAILED(hr)))
-      throw DxvkError("DDraw4Interface: ERROR! Failed to get D3D9 adapter identifier!");
-
-    m_commonIntf->SetAdapterIdentifier(adapterIdentifier9);
-
     // Note: IDirectDraw4 can never be the origin interface
 
     m_commonIntf->SetDD4Interface(this);
@@ -370,40 +356,14 @@ namespace dxvk {
     if (unlikely(lpEnumModesCallback == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    std::vector<DDSURFACEDESC2> displayModes;
-    HRESULT hr = m_proxy->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, reinterpret_cast<void*>(&displayModes), EnumDisplayModesCallback2);
-    if (unlikely(FAILED(hr)))
-      return hr;
+    HRESULT hr = DDENUMRET_OK;
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
-
-    hr = DDENUMRET_OK;
-
-    for (auto& displayMode : displayModes) {
+    for (auto& displayMode : m_commonIntf->GetDisplayModes()) {
       if (hr != DDENUMRET_OK)
         break;
 
-      if (d3dOptions->forceLegacyModeFilter &&
-          (displayMode.dwWidth  > ddrawCaps::MaxTextureDimensionLegacy
-        || displayMode.dwHeight > ddrawCaps::MaxTextureDimensionLegacy)) {
-        static bool s_modeDimensionsWarningShown;
-
-        if (!std::exchange(s_modeDimensionsWarningShown, true))
-          Logger::info("DDraw4Interface::EnumDisplayModes: Masking display modes with exceeding dimensions");
-      } else if (d3dOptions->forceLegacyAspectRatio &&
-                !IsLegacyAspectRatioMode(displayMode.dwWidth, displayMode.dwHeight)) {
-        static bool s_modeAspectRatioWarningShown;
-
-        if (!std::exchange(s_modeAspectRatioWarningShown, true))
-          Logger::warn("DDraw4Interface::EnumDisplayModes: Masking display modes with non-legacy aspect ratio");
-      } else if (unlikely(d3dOptions->mask8BitModes && displayMode.ddpfPixelFormat.dwRGBBitCount == 8)) {
-        static bool s_maskModeWarningShown;
-
-        if (!std::exchange(s_maskModeWarningShown, true))
-          Logger::warn("DDraw4Interface::EnumDisplayModes: Masking 8-bit display modes");
-      } else {
-        hr = lpEnumModesCallback(&displayMode, lpContext);
-      }
+      DDSURFACEDESC2 returnDisplayMode = displayMode;
+      hr = lpEnumModesCallback(&returnDisplayMode, lpContext);
     }
 
     return DD_OK;
@@ -543,23 +503,23 @@ namespace dxvk {
     if (unlikely(lpDDSurfaceDesc == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    HRESULT hr = m_proxy->GetDisplayMode(lpDDSurfaceDesc);
-    if (unlikely(FAILED(hr)))
-      return hr;
+    d3d9::IDirect3D9* d3d9Intf = m_commonIntf->GetD3D9Interface();
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+    d3d9::D3DDISPLAYMODE displayMode9;
+    d3d9Intf->GetAdapterDisplayMode(0, &displayMode9);
 
-    if (unlikely(d3dOptions->mask8BitModes
-              && lpDDSurfaceDesc->dwFlags & DDSD_PIXELFORMAT
-              && lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount == 8)) {
-      // Report a fake D3DFMT_R5G6B5 back buffer scenario
-      lpDDSurfaceDesc->ddpfPixelFormat.dwFlags = DDPF_RGB;
-      lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = 16;
-      lpDDSurfaceDesc->ddpfPixelFormat.dwRGBAlphaBitMask = 0x0000;
-      lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask = 0xf800;
-      lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask = 0x07e0;
-      lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask = 0x001f;
-    }
+    DDSURFACEDESC2 displayMode = { };
+    displayMode.dwSize = sizeof(DDSURFACEDESC2);
+    displayMode.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT;
+    displayMode.dwWidth = displayMode9.Width;
+    displayMode.dwHeight = displayMode9.Height;
+    displayMode.dwRefreshRate = displayMode9.RefreshRate;
+    if (!m_commonIntf->In8BitDisplayMode() || m_commonIntf->GetOptions()->mask8BitModes)
+      displayMode.ddpfPixelFormat = GetPixelFormatForD3D9AdapterFormat(displayMode9.Format);
+    else
+      displayMode.ddpfPixelFormat = GetPixelFormatForD3D9AdapterFormat(d3d9::D3DFMT_P8);
+
+    *lpDDSurfaceDesc = displayMode;
 
     return DD_OK;
   }
@@ -608,7 +568,17 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::GetMonitorFrequency(LPDWORD lpdwFrequency) {
-    return m_proxy->GetMonitorFrequency(lpdwFrequency);
+    if (unlikely(lpdwFrequency == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    d3d9::IDirect3D9* d3d9Intf = m_commonIntf->GetD3D9Interface();
+
+    d3d9::D3DDISPLAYMODE displayMode9;
+    d3d9Intf->GetAdapterDisplayMode(0, &displayMode9);
+
+    *lpdwFrequency = displayMode9.RefreshRate;
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::GetScanLine(LPDWORD lpdwScanLine) {
@@ -616,7 +586,21 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::GetVerticalBlankStatus(LPBOOL lpbIsInVB) {
-    return m_proxy->GetVerticalBlankStatus(lpbIsInVB);
+    if (unlikely(lpbIsInVB == nullptr))
+      return DDERR_INVALIDPARAMS;
+
+    D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
+
+    if (commonD3DDevice == nullptr)
+      return m_proxy->GetVerticalBlankStatus(lpbIsInVB);
+
+    static bool isInVB = false;
+    // Use an alternating pattern here, since some games will, for whatever
+    // reason, use this call to wait for a VBlank to happen while others
+    // will wait for a VBlank interval to pass before they continue
+    *lpbIsInVB = std::exchange(isInVB, !isInVB);
+
+    return DD_OK;
   }
 
   // Should technically always return DDERR_ALREADYINITIALIZED, unless the
@@ -635,6 +619,8 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDraw4Interface::RestoreDisplayMode() {
+    m_commonIntf->UpdateIn8BitDisplayMode(m_commonIntf->WasIn8BitDisplayMode());
+
     return m_proxy->RestoreDisplayMode();
   }
 
@@ -666,6 +652,17 @@ namespace dxvk {
       HRESULT hr = m_proxy->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
       if (unlikely(FAILED(hr)))
         return hr;
+
+      if (unlikely(dwBPP == 8u)) {
+        static bool s_8bitDisplayModeWarningShown;
+
+        if (!std::exchange(s_8bitDisplayModeWarningShown, true))
+          Logger::warn("DDraw4Interface::SetDisplayMode: Use of unsupported 8-bit mode");
+
+        m_commonIntf->UpdateIn8BitDisplayMode(true);
+      } else {
+        m_commonIntf->UpdateIn8BitDisplayMode(false);
+      }
 
       DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();
 
