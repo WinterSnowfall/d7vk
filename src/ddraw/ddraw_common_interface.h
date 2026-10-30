@@ -2,9 +2,13 @@
 
 #include "ddraw_include.h"
 #include "ddraw_options.h"
+#include "ddraw_format.h"
 
+#include <vector>
 #include <unordered_set>
 #include <unordered_map>
+
+#include "../d3d9/d3d9_bridge.h"
 
 namespace dxvk {
 
@@ -102,6 +106,19 @@ namespace dxvk {
       return m_waitForVBlank;
     }
 
+    void UpdateIn8BitDisplayMode(bool in8BitDisplayMode) {
+      m_old8BitDisplayMode = m_in8BitDisplayMode;
+      m_in8BitDisplayMode = in8BitDisplayMode;
+    }
+
+    bool In8BitDisplayMode() const {
+      return m_in8BitDisplayMode;
+    }
+
+    bool WasIn8BitDisplayMode() const {
+      return m_old8BitDisplayMode;
+    }
+
     void SetCommonD3DDevice(D3DCommonDevice* commonD3DDevice) {
       m_commonD3DDevice = commonD3DDevice;
     }
@@ -150,16 +167,31 @@ namespace dxvk {
       return &m_modeSize;
     }
 
-    void SetAdapterIdentifier(const d3d9::D3DADAPTER_IDENTIFIER9& adapterIdentifier9) {
-      m_adapterIdentifier9 = adapterIdentifier9;
+    const d3d9::D3DADAPTER_IDENTIFIER9* GetAdapterIdentifier() {
+      // We will always have a valid D3D9 interface at this point
+      if (unlikely(m_adapterIdentifier9.DeviceIdentifier == GUID_NULL))
+        m_d3d9Intf->GetAdapterIdentifier(0, 0, &m_adapterIdentifier9);
+
+      return &m_adapterIdentifier9;
     }
 
-    const d3d9::D3DADAPTER_IDENTIFIER9* GetAdapterIdentifier() const {
-      return &m_adapterIdentifier9;
+    const std::vector<DDSURFACEDESC2>& GetDisplayModes() {
+      if (!m_displayModes.size())
+        CacheDisplayModes();
+
+      return m_displayModes;
     }
 
     const D3DOptions* GetOptions() const {
       return &m_d3dOptions;
+    }
+
+    void SetD3D9Interface(Com<d3d9::IDirect3D9>&& d3d9Intf) {
+      m_d3d9Intf = std::move(d3d9Intf);
+    }
+
+    d3d9::IDirect3D9* GetD3D9Interface() const {
+      return m_d3d9Intf.ptr();
     }
 
     void SetD3D3Interface(D3D3Interface* d3d3Intf) {
@@ -212,9 +244,96 @@ namespace dxvk {
 
   private:
 
+    inline void CacheDisplayModes() {
+      // Enumerate the 32-bit color modes first, followed by 16-bit color modes
+      static d3d9::D3DFORMAT adapterFormats[2] = { d3d9::D3DFMT_X8R8G8B8, d3d9::D3DFMT_R5G6B5 };
+
+      std::vector<DDSURFACEDESC2> displayModes8Bit;
+
+      for (auto& adapterformat : adapterFormats) {
+        uint32_t lastWidth = 0u;
+        uint32_t lastHeight = 0u;
+
+        // We will always have a valid D3D9 interface at this point
+        uint32_t modeCount = m_d3d9Intf->GetAdapterModeCount(0, adapterformat);
+
+        for (uint32_t modeIndex = 0; modeIndex < modeCount; modeIndex++) {
+          d3d9::D3DDISPLAYMODE mode;
+          m_d3d9Intf->EnumAdapterModes(0, adapterformat, modeIndex, &mode);
+
+          // We get an ordered list here from D3D9, desceding by refresh rate for each mode,
+          // so we can simply ignore refresh rate differences as they aren't relevant for DDraw,
+          // as well as any resolutions with only below 60 Hz refresh rates
+          if (mode.RefreshRate >= 60 && (lastWidth != mode.Width || lastHeight != mode.Height)) {
+            lastWidth = mode.Width;
+            lastHeight = mode.Height;
+
+            //Logger::debug(str::format("DDrawCommonInterface::CacheDisplayModes: Format: ", mode.Format));
+            //Logger::debug(str::format("DDrawCommonInterface::CacheDisplayModes: Width: ", mode.Width));
+            //Logger::debug(str::format("DDrawCommonInterface::CacheDisplayModes: Height: ", mode.Height));
+            //Logger::debug(str::format("DDrawCommonInterface::CacheDisplayModes: RefreshRate: ", mode.RefreshRate));
+
+            if (m_d3dOptions.forceLegacyModeFilter &&
+              (mode.Width  > ddrawCaps::MaxTextureDimensionLegacy
+            || mode.Height > ddrawCaps::MaxTextureDimensionLegacy)) {
+              static bool s_modeDimensionsWarningShown;
+
+              if (!std::exchange(s_modeDimensionsWarningShown, true))
+                Logger::info("DDrawCommonInterface::CacheDisplayModes: Masking display modes with exceeding dimensions");
+
+              continue;
+            }
+
+            if (m_d3dOptions.forceLegacyAspectRatio &&
+                !IsLegacyAspectRatioMode(mode.Width, mode.Height)) {
+              static bool s_modeAspectRatioWarningShown;
+
+              if (!std::exchange(s_modeAspectRatioWarningShown, true))
+                Logger::warn("DDrawCommonInterface::CacheDisplayModes: Masking display modes with non-legacy aspect ratio");
+
+              continue;
+            }
+
+            DDSURFACEDESC2 modeDesc = { };
+            modeDesc.dwSize = sizeof(DDSURFACEDESC2);
+            modeDesc.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;
+            modeDesc.dwWidth = mode.Width;
+            modeDesc.dwHeight = mode.Height;
+            modeDesc.ddpfPixelFormat = GetPixelFormatForD3D9AdapterFormat(adapterformat);
+
+            m_displayModes.push_back(modeDesc);
+
+            // Also construct a list of fake 8-bit P8 modes, mimicking real 16-bit modes
+            if (!m_d3dOptions.mask8BitModes && mode.Format == d3d9::D3DFMT_R5G6B5) {
+              DDSURFACEDESC2 modeDesc8Bit = { };
+              modeDesc8Bit.dwSize = sizeof(DDSURFACEDESC2);
+              modeDesc8Bit.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;
+              modeDesc8Bit.dwWidth = mode.Width;
+              modeDesc8Bit.dwHeight = mode.Height;
+              modeDesc8Bit.ddpfPixelFormat = GetPixelFormatForD3D9AdapterFormat(d3d9::D3DFMT_P8);
+
+              displayModes8Bit.push_back(modeDesc8Bit);
+            }
+          }
+        }
+      }
+
+      if (!m_d3dOptions.mask8BitModes) {
+        // Append the fake 8-bit modes at the end of the display mode list
+        for (auto& displayMode8Bit : displayModes8Bit)
+          m_displayModes.push_back(displayMode8Bit);
+      } else {
+        Logger::warn("DDrawCommonInterface::CacheDisplayModes: Masking 8-bit display modes");
+      }
+    }
+
     bool                              m_isInitialized      = false;
     bool                              m_waitForVBlank      = true;
     bool                              m_skipHWNDOverride   = false;
+
+    bool                              m_in8BitDisplayMode  = false;
+    // We also need to track the old state for RestoreDisplayMode()
+    bool                              m_old8BitDisplayMode = false;
 
     D3DCommonDevice*                  m_commonD3DDevice    = nullptr;
 
@@ -225,8 +344,13 @@ namespace dxvk {
     DDrawModeSize                     m_modeSize           = { };
 
     d3d9::D3DADAPTER_IDENTIFIER9      m_adapterIdentifier9 = { };
+    std::vector<DDSURFACEDESC2>       m_displayModes;
 
     D3DOptions                        m_d3dOptions;
+
+    // We need to keep a D3D9 interface around in order to get access
+    // to adapter as well as mode information for the DDraw endpoints
+    Com<d3d9::IDirect3D9>             m_d3d9Intf;
 
     D3D3Interface*                    m_d3d3Intf           = nullptr;
 

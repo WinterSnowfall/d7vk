@@ -540,6 +540,37 @@ namespace dxvk {
     return true;
   }
 
+  inline DDPIXELFORMAT GetPixelFormatForD3D9AdapterFormat(const d3d9::D3DFORMAT format9) {
+    DDPIXELFORMAT returnPixelFormat = { };
+
+    switch (format9) {
+      case d3d9::D3DFMT_X8R8G8B8:
+        returnPixelFormat.dwFlags = DDPF_RGB;
+        returnPixelFormat.dwRGBBitCount = 32;
+        returnPixelFormat.dwRGBAlphaBitMask = 0x00000000;
+        returnPixelFormat.dwRBitMask = 0x00ff0000;
+        returnPixelFormat.dwGBitMask = 0x0000ff00;
+        returnPixelFormat.dwBBitMask = 0x000000ff;
+        break;
+      case d3d9::D3DFMT_R5G6B5:
+        returnPixelFormat.dwFlags = DDPF_RGB;
+        returnPixelFormat.dwRGBBitCount = 16;
+        returnPixelFormat.dwRGBAlphaBitMask = 0x0000;
+        returnPixelFormat.dwRBitMask = 0xf800;
+        returnPixelFormat.dwGBitMask = 0x07e0;
+        returnPixelFormat.dwBBitMask = 0x001f;
+        break;
+      case d3d9::D3DFMT_P8:
+        returnPixelFormat.dwFlags = DDPF_RGB | DDPF_PALETTEINDEXED8;
+        returnPixelFormat.dwRGBBitCount = 8;
+        break;
+      default:
+        break;
+    }
+
+    return returnPixelFormat;
+  }
+
   template <typename DescType>
   inline HRESULT ValidateSurfaceFlags(DescType* desc) {
     const bool isInVideoMemory  = desc->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY;
@@ -557,22 +588,6 @@ namespace dxvk {
     }
 
     return DD_OK;
-  }
-
-  inline HRESULT STDMETHODCALLTYPE EnumDisplayModesCallback(DDSURFACEDESC* desc, void* ctx) {
-    auto& displayModes = *static_cast<std::vector<DDSURFACEDESC>*>(ctx);
-
-    displayModes.push_back(*desc);
-
-    return DDENUMRET_OK;
-  }
-
-  inline HRESULT STDMETHODCALLTYPE EnumDisplayModesCallback2(DDSURFACEDESC2* desc, void* ctx) {
-    auto& displayModes = *static_cast<std::vector<DDSURFACEDESC2>*>(ctx);
-
-    displayModes.push_back(*desc);
-
-    return DDENUMRET_OK;
   }
 
   inline HRESULT STDMETHODCALLTYPE ListBackBufferSurfacesCallback(IDirectDrawSurface* subsurf, DDSURFACEDESC* desc, void* ctx) {
