@@ -12,20 +12,20 @@ FILESUBTYPE VFT2_UNKNOWN
 BEGIN
   BLOCK "StringFileInfo"
   BEGIN
-    BLOCK "080904b0"
+    BLOCK "040904b0"
     BEGIN
-      VALUE "CompanyName",      "DXVK"
+      VALUE "CompanyName",      "D7VK"
       VALUE "FileDescription",  "DirectDraw Runtime"
       VALUE "FileVersion",      "4.07.00.0700"
       VALUE "InternalName",     "DDraw.dll"
       VALUE "LegalCopyright",   "zlib/libpng license"
       VALUE "OriginalFilename", "DDraw.dll"
-      VALUE "ProductName",      "DXVK"
+      VALUE "ProductName",      "D7VK"
       VALUE "ProductVersion",   "4.07.00.0700"
     END
   END
   BLOCK "VarFileInfo"
   BEGIN
-    VALUE "Translation", 0x0809, 1200
+    VALUE "Translation", 0x0409, 1200
   END
 END
