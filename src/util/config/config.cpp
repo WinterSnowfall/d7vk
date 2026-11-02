@@ -2168,6 +2168,14 @@ namespace dxvk {
     { R"(\\Interceptor\.exe$)", {{
       { "ddraw.legacyDeviceNames",          "True" },
     }} },
+    /* Turok: Dinosaur Hunter                     */
+    { R"(\\Turok\.exe$)", {{
+      { "ddraw.legacyDeviceNames",          "True" },
+    }} },
+    /* Turok 2: Seeds of Evil                     */
+    { R"(\\Turok2(MP)?\.exe$)", {{
+      { "ddraw.legacyDeviceNames",          "True" },
+    }} },
 
     /**********************************************/
     /* D3D3 GAMES                                 */
