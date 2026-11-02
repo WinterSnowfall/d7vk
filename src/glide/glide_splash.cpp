@@ -5989,7 +5989,7 @@ namespace dxvk {
   static void drawFaces(GlideDevice* device, int frame, int objnum) {
     int facenum;
     int material_index;
-    float intensity_factor[3];
+    float intensity_factor[3] = {1.0f, 1.0f, 1.0f};
     glide2x::GrVertex gvert[3];
     static int prev_mat_index = 0xffff;
     int i;

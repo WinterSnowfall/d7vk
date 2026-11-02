@@ -52,10 +52,9 @@ namespace dxvk {
       case(glide2x::GR_ASPECT_8x1):
         return glide3x::GR_ASPECT_LOG2_8x1;
       default:
-        break;
+        assert(0);
+        return glide3x::GR_ASPECT_LOG2_8x1;
     }
-
-    assert(0);
   }
 
   glide2x::GrAspectRatio_t UtilAspectRatioToLegacy(glide3x::GrAspectRatio_t aspectRatio) {
@@ -74,9 +73,10 @@ namespace dxvk {
         return glide2x::GR_ASPECT_4x1;
       case(glide3x::GR_ASPECT_LOG2_8x1):
         return glide2x::GR_ASPECT_8x1;
+      default:
+        assert(0);
+        return glide2x::GR_ASPECT_8x1;
     }
-
-    assert(0);
   }
 
   glide3x::GrLOD_t UtilLodToLOG2(glide2x::GrLOD_t lod) {
@@ -100,10 +100,9 @@ namespace dxvk {
       case(glide2x::GR_LOD_256):
         return glide3x::GR_LOD_LOG2_256;
       default:
-        break;
+        assert(0);
+        return glide3x::GR_LOD_LOG2_256;
     }
-
-    assert(0);
   }
 
   glide2x::GrLOD_t UtilLodToLegacy(glide3x::GrLOD_t lod) {
@@ -127,10 +126,9 @@ namespace dxvk {
       case(glide3x::GR_LOD_LOG2_256):
         return glide2x::GR_LOD_256;
       default:
-        break;
+        assert(0);
+        return glide2x::GR_LOD_256;
     }
-
-    assert(0);
   }
 
   void UtilTextureFormatSize(GrIntFmt_t format, FxU32* BlockSize, FxU32* BlockWidth, FxU32* BlockHeight) {
@@ -349,8 +347,6 @@ namespace dxvk {
         else
           return GlideBoards[5];
     }
-
-    return GlideBoards[2];
   }
 
   VkSamplerAddressMode UtilGlideClampToVKSamplerAddressMode(GrTextureClampMode_t mode) {
@@ -361,9 +357,9 @@ namespace dxvk {
         return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
       case GR_TEXTURECLAMP_MIRROR_EXT:
         return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
+      default:
+        return VK_SAMPLER_ADDRESS_MODE_REPEAT;
     }
-
-    return VK_SAMPLER_ADDRESS_MODE_REPEAT;
   }
 
   VkCullModeFlags UtilCullModeVKCullModeFlags(GrCullMode_t mode) {
@@ -375,10 +371,9 @@ namespace dxvk {
         return VK_CULL_MODE_BACK_BIT;
       case GR_CULL_POSITIVE:
         return VK_CULL_MODE_FRONT_BIT;
-      return VK_CULL_MODE_BACK_BIT;
+      default:
+        return VK_CULL_MODE_NONE;
     }
-
-    return VK_CULL_MODE_NONE;
   }
 
   VkCompareOp UtilCompareModeToVKCompareMode(GrCmpFnc_t fnc) {
@@ -399,9 +394,9 @@ namespace dxvk {
         return VK_COMPARE_OP_GREATER_OR_EQUAL;
       case GR_CMP_ALWAYS:
         return VK_COMPARE_OP_ALWAYS;
+      default:
+        return VK_COMPARE_OP_NEVER;
     }
-
-    return VK_COMPARE_OP_NEVER;
   }
 
   FxBool UtilRefreshRateToNumber(GrScreenRefresh_t refreshRate, FxU32& number, FxBool extended) {
@@ -594,10 +589,8 @@ namespace dxvk {
       default:
         Logger::err(str::format("Unknown Glide texture format: ", format));
         assert(0);
-        break;
+        return GR_FMT_UNKNOWN;
     }
-
-    return GR_FMT_UNKNOWN;
   }
 
   GrTextureFormat_t UtilInternalFormatToTexFormat(GrIntFmt_t format) {
@@ -655,10 +648,8 @@ namespace dxvk {
       default:
         Logger::err(str::format("Unknown internal texture format: ", format));
         assert(0);
-        break;
+        return GR_TEXFMT_RGB_332;
     }
-
-    return GR_TEXFMT_RGB_332;
   }
 
   GrIntFmt_t UtilLFBSrcFormatToIFormat(GrLfbSrcFmt_t format) {
@@ -686,7 +677,7 @@ namespace dxvk {
       default:
         Logger::err(str::format("Unknown Glide source LFB format: ", format));
         assert(0);
-        break;
+        return GR_FMT_UNKNOWN;
     }
   }
 
@@ -714,10 +705,8 @@ namespace dxvk {
       default:
         Logger::err(str::format("Unknown Glide LFB writemode format: ", writeMode));
         assert(0);
-        break;
+        return GR_FMT_UNKNOWN;
     }
-
-    return GR_FMT_UNKNOWN;
   }
 
   GrLfbWriteMode_t UtilIFormatToLFBWriteMode(GrIntFmt_t format) {
@@ -743,7 +732,7 @@ namespace dxvk {
       default:
         Logger::err(str::format("Unknown Glide LFB writemode format: ", format));
         assert(0);
-        break;
+        return GR_LFBWRITEMODE_ANY;
     }
   }
 
@@ -795,6 +784,7 @@ namespace dxvk {
         color = (outR << 24) | (outG << 16) | (outB << 8)  | outA;
         break;
       default:
+        color = 0u;
         Logger::err(str::format("Unknown glide colorformat", format));
         assert(0);
     }
@@ -1378,9 +1368,9 @@ namespace dxvk {
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
       case glide3x::GR_TRIANGLES:
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+      default:
+        return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
     }
-
-    return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
   }
 
 }
