@@ -117,6 +117,13 @@ IDxvkLegacyD3DInterfaceBridge : public IUnknown {
   virtual void SetD3DCompatibility(DxvkD3DCompatibility d3dCompatibility) const = 0;
 
   /**
+   * \brief Test the current compatibilty level of the D3D9 interface
+   *
+   * \param [in] d3dCompatibility D3D compatibility level to be tested
+   */
+  virtual bool IsD3DCompatible(DxvkD3DCompatibility d3dCompatibility) const = 0;
+
+  /**
    * \brief Retrieves the DXVK configuration
    *
    * \returns The DXVK Config object
@@ -221,6 +228,8 @@ namespace dxvk {
             void** ppvObject);
 
     void SetD3DCompatibility(D3DCompatibility d3dCompatibility) const;
+
+    bool IsD3DCompatible(D3DCompatibility d3dCompatibility) const;
 
     const Config* GetConfig() const;
 

@@ -376,6 +376,15 @@ namespace dxvk {
     }
   }
 
+  bool DxvkLegacyD3DInterfaceBridge::IsD3DCompatible(D3DCompatibility d3dCompatibility) const {
+    // The D3D9Ex compatibility flag is internal only, and can't be used by the bridge
+    if (likely(d3dCompatibility != D3DCompatibility::D3D9Ex))
+      return m_interface->IsD3DCompatibile(d3dCompatibility);
+
+    Logger::err("DxvkLegacyD3DInterfaceBridge::IsD3DCompatible: Invalid compatibility level: D3D9Ex");
+    return false;
+  }
+
   const Config* DxvkLegacyD3DInterfaceBridge::GetConfig() const {
     return &m_interface->GetInstance()->config();
   }
