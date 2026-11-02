@@ -1321,6 +1321,14 @@ namespace dxvk {
     params.FullScreen_RefreshRateInHz = 0; // We'll get the right mode/refresh rate set by DDraw, just play along
     params.PresentationInterval       = vBlankStatus ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
+    // Validate that the underlying interface is indeed operating
+    // on the proper compatibility level before creating a D3D9 device,
+    // since games may create a variety of D3D interfaces before deciding
+    // which interface version to actually create a device from
+    IDxvkLegacyD3DInterfaceBridge* intfBridge = commonD3DIntf->GetD3D9InterfaceBridge();
+    if (unlikely(!intfBridge->IsD3DCompatible(D3DCompatibility::D3D3)))
+      intfBridge->SetD3DCompatibility(D3DCompatibility::D3D3);
+
     Com<d3d9::IDirect3DDevice9> device9;
     hr = commonD3DIntf->GetD3D9Interface()->CreateDevice(
       D3DADAPTER_DEFAULT,
