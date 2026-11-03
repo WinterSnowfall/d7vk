@@ -820,16 +820,33 @@ namespace dxvk {
       return hr;
 
     const d3d9::D3DADAPTER_IDENTIFIER9* adapterIdentifier9 = m_commonIntf->GetAdapterIdentifier();
-    // This is typically the "2D accelerator" in the system
+    // This is the "2D accelerator" device in the system
     if (unlikely(dwFlags & DDGDI_GETHOSTIDENTIFIER)) {
-      CopyToStringArray(pDDDI->szDriver, "vga.dll");
+      static const char* CompatHostDriver = "vga.dll";
       // The Matrox G400 TechDemo expects the description to be aligned with native
-      CopyToStringArray(pDDDI->szDescription, "DirectDraw HAL");
+      static const char* CompatHostDescription = "DirectDraw HAL";
+
+      CopyToStringArray(pDDDI->szDriver, CompatHostDriver);
+      CopyToStringArray(pDDDI->szDescription, CompatHostDescription);
       pDDDI->liDriverVersion.QuadPart = 0;
       pDDDI->dwVendorId               = 0;
       pDDDI->dwDeviceId               = 0;
       pDDDI->dwSubSysId               = 0;
       pDDDI->dwRevision               = 0;
+      pDDDI->guidDeviceIdentifier     = pDDDIproxy.guidDeviceIdentifier;
+    } else if (unlikely(m_commonIntf->GetOptions()->glideCompatibilityMode)) {
+      static const char* Compat3dfxDriver = "3dfx32vs.dll"; // TODO: Check on an actual/emulated Voodoo card
+      static const char* Compat3dfxDescription = "3dfx Voodoo Series";
+      static constexpr uint32_t Compat3dfxVendorID = 0x121A;
+      static constexpr uint32_t Compat3dfXDeviceID = 0x0009; // Voodoo 4 4500
+
+      CopyToStringArray(pDDDI->szDriver, Compat3dfxDriver);
+      CopyToStringArray(pDDDI->szDescription, Compat3dfxDescription);
+      pDDDI->liDriverVersion.QuadPart = 0;
+      pDDDI->dwVendorId               = Compat3dfxVendorID;
+      pDDDI->dwDeviceId               = Compat3dfXDeviceID;
+      pDDDI->dwSubSysId               = adapterIdentifier9->SubSysId;
+      pDDDI->dwRevision               = adapterIdentifier9->Revision;
       pDDDI->guidDeviceIdentifier     = pDDDIproxy.guidDeviceIdentifier;
     } else {
       memcpy(&pDDDI->szDriver,      &adapterIdentifier9->Driver,      sizeof(adapterIdentifier9->Driver));
