@@ -31,6 +31,9 @@ namespace dxvk {
 
     D3DOptions(const Config& config);
 
+    /// Report a 3dfx Voodoo card to signal support for the Glide API
+    bool glideCompatibilityMode;
+
     /// Enforces the use of DDSCL_MULTITHREADED
     bool forceMultiThreaded;
 
