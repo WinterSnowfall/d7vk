@@ -3,7 +3,7 @@
 namespace dxvk {
 
   D3DOptions::D3DOptions(const Config& config) {
-    // D3D7/6/5/3/DDraw options
+    this->glideCompatibilityMode = config.getOption<bool>   ("ddraw.glideCompatibilityMode",  false);
     this->forceMultiThreaded     = config.getOption<bool>   ("ddraw.forceMultiThreaded",      false);
     this->forceSWVP              = config.getOption<bool>   ("ddraw.forceSWVP",               false);
     this->forceLegacyModeFilter  = config.getOption<bool>   ("ddraw.forceLegacyModeFilter",   false);
