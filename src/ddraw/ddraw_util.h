@@ -11,6 +11,12 @@
 
 namespace dxvk {
 
+  enum class DDrawGpuVendor : uint16_t {
+    ATI    = 0x1002,
+    Nvidia = 0x10DE,
+    C3dfx  = 0x121A,
+  };
+
   struct PackedVertexBuffer {
     size_t stride;
     std::vector<uint8_t> vertexData;
@@ -116,6 +122,34 @@ namespace dxvk {
       release();
     }
   };
+
+  inline uint16_t GetDriverVendorID(uint16_t vendor) {
+    switch (DDrawGpuVendor(vendor)) {
+      // Nvidia and ATI(/AMD) were consecrated vendors in the early
+      // days of D3D, and the only two surviving major vendors
+      case DDrawGpuVendor::Nvidia:
+      case DDrawGpuVendor::ATI:
+        return vendor;
+      // Any other modern vendors would be out of place, including
+      // Intel, so fall back to an ATI vendor ID regardless of what
+      // gets passed down from the D3D9 vendor filter/masking logic
+      default:
+        return static_cast<uint16_t>(DDrawGpuVendor::ATI);
+    }
+  }
+
+  inline const char* GetDriverDLL(uint16_t vendor) {
+    switch (DDrawGpuVendor(vendor)) {
+      // Windows XP Nvidia driver dll name
+      case DDrawGpuVendor::Nvidia: return "nv4_disp.dll";
+      default:
+      // Radeon era ATI(/AMD) driver dll name
+      case DDrawGpuVendor::ATI:    return "ati2dvag.dll";
+      // 3dfx driver dll name
+      // TODO: Check on an actual/emulated Voodoo card
+      case DDrawGpuVendor::C3dfx:  return "3dfx32vs.dll";
+    }
+  }
 
   inline bool IsValidDDrawCapsSize(DWORD size) {
     static_assert(sizeof(DDCAPS_DX7) == sizeof(DDCAPS_DX6));
