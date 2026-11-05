@@ -372,7 +372,7 @@ namespace dxvk {
 
     HRESULT hr = DDENUMRET_OK;
 
-    for (auto& displayMode : m_commonIntf->GetDisplayModes()) {
+    for (auto& displayMode : m_commonIntf->GetDisplayModes(dwFlags & DDEDM_REFRESHRATES)) {
       if (hr != DDENUMRET_OK)
         break;
 

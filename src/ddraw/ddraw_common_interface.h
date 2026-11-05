@@ -175,9 +175,14 @@ namespace dxvk {
       return &m_adapterIdentifier9;
     }
 
-    const std::vector<DDSURFACEDESC2>& GetDisplayModes() {
+    const std::vector<DDSURFACEDESC2>& GetDisplayModes(bool enumRefreshRates) {
+      if (m_enumRefreshRates != enumRefreshRates) {
+        m_displayModes.clear();
+        m_enumRefreshRates = enumRefreshRates;
+      }
+
       if (!m_displayModes.size())
-        CacheDisplayModes();
+        CacheDisplayModes(m_enumRefreshRates);
 
       return m_displayModes;
     }
@@ -244,7 +249,7 @@ namespace dxvk {
 
   private:
 
-    inline void CacheDisplayModes() {
+    inline void CacheDisplayModes(bool enumRefreshRates) {
       // Enumerate 8-bit color modes first, followed by 16-bit color modes and then
       // 32-bit color modes, mimicking Nvidia's order of mode enumeration at the time
       static d3d9::D3DFORMAT adapterFormats[3] = { d3d9::D3DFMT_P8, d3d9::D3DFMT_R5G6B5, d3d9::D3DFMT_X8R8G8B8 };
@@ -264,6 +269,9 @@ namespace dxvk {
         // We will always have a valid D3D9 interface at this point
         uint32_t modeCount = m_d3d9Intf->GetAdapterModeCount(0, enumFormat);
 
+        uint32_t lastWidth  = 0u;
+        uint32_t lastHeight = 0u;
+
         for (uint32_t modeIndex = 0; modeIndex < modeCount; modeIndex++) {
           d3d9::D3DDISPLAYMODE mode;
           m_d3d9Intf->EnumAdapterModes(0, enumFormat, modeIndex, &mode);
@@ -273,45 +281,56 @@ namespace dxvk {
           //Logger::debug(str::format("DDrawCommonInterface::CacheDisplayModes: Height: ", mode.Height));
           //Logger::debug(str::format("DDrawCommonInterface::CacheDisplayModes: RefreshRate: ", mode.RefreshRate));
 
-          if (m_d3dOptions.maskLowRefreshRateModes && mode.RefreshRate < 60) {
-            static bool s_modeLowRefreshRateWarningShown;
+          // The modes we get from D3D9 are already sorted by size,
+          // so we can compact modes based on refresh rates if needed
+          if (enumRefreshRates || (lastWidth != mode.Width || lastHeight != mode.Height)) {
+            if (m_d3dOptions.maskLowRefreshRateModes && mode.RefreshRate < 60) {
+              static bool s_modeLowRefreshRateWarningShown;
 
-            if (!std::exchange(s_modeLowRefreshRateWarningShown, true))
-              Logger::info("DDrawCommonInterface::CacheDisplayModes: Masking display modes with under 60 Hz refresh rates");
+              if (!std::exchange(s_modeLowRefreshRateWarningShown, true))
+                Logger::info("DDrawCommonInterface::CacheDisplayModes: Masking display modes with under 60 Hz refresh rates");
 
-            continue;
+              continue;
+            }
+
+            if (m_d3dOptions.forceLegacyModeFilter &&
+              (mode.Width  > ddrawCaps::MaxTextureDimensionLegacy
+            || mode.Height > ddrawCaps::MaxTextureDimensionLegacy)) {
+              static bool s_modeDimensionsWarningShown;
+
+              if (!std::exchange(s_modeDimensionsWarningShown, true))
+                Logger::info("DDrawCommonInterface::CacheDisplayModes: Masking display modes with exceeding dimensions");
+
+              continue;
+            }
+
+            if (m_d3dOptions.forceLegacyAspectRatio &&
+              !IsLegacyAspectRatioMode(mode.Width, mode.Height)) {
+              static bool s_modeAspectRatioWarningShown;
+
+              if (!std::exchange(s_modeAspectRatioWarningShown, true))
+                Logger::warn("DDrawCommonInterface::CacheDisplayModes: Masking display modes with non-legacy aspect ratio");
+
+              continue;
+            }
+
+            DDSURFACEDESC2 modeDesc = { };
+            modeDesc.dwSize = sizeof(DDSURFACEDESC2);
+            modeDesc.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;
+            modeDesc.dwWidth = mode.Width;
+            modeDesc.dwHeight = mode.Height;
+            modeDesc.ddpfPixelFormat = GetPixelFormatForD3D9AdapterFormat(adapterformat);
+
+            if (enumRefreshRates) {
+              modeDesc.dwFlags |= DDSD_REFRESHRATE;
+              modeDesc.dwRefreshRate = mode.RefreshRate;
+            }
+
+            m_displayModes.push_back(modeDesc);
+
+            lastWidth  = mode.Width;
+            lastHeight = mode.Height;
           }
-
-          if (m_d3dOptions.forceLegacyModeFilter &&
-            (mode.Width  > ddrawCaps::MaxTextureDimensionLegacy
-          || mode.Height > ddrawCaps::MaxTextureDimensionLegacy)) {
-            static bool s_modeDimensionsWarningShown;
-
-            if (!std::exchange(s_modeDimensionsWarningShown, true))
-              Logger::info("DDrawCommonInterface::CacheDisplayModes: Masking display modes with exceeding dimensions");
-
-            continue;
-          }
-
-          if (m_d3dOptions.forceLegacyAspectRatio &&
-             !IsLegacyAspectRatioMode(mode.Width, mode.Height)) {
-            static bool s_modeAspectRatioWarningShown;
-
-            if (!std::exchange(s_modeAspectRatioWarningShown, true))
-              Logger::warn("DDrawCommonInterface::CacheDisplayModes: Masking display modes with non-legacy aspect ratio");
-
-            continue;
-          }
-
-          DDSURFACEDESC2 modeDesc = { };
-          modeDesc.dwSize = sizeof(DDSURFACEDESC2);
-          modeDesc.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT;
-          modeDesc.dwWidth = mode.Width;
-          modeDesc.dwHeight = mode.Height;
-          modeDesc.dwRefreshRate = mode.RefreshRate;
-          modeDesc.ddpfPixelFormat = GetPixelFormatForD3D9AdapterFormat(adapterformat);
-
-          m_displayModes.push_back(modeDesc);
         }
       }
 
@@ -339,6 +358,8 @@ namespace dxvk {
     bool                              m_in8BitDisplayMode  = false;
     // We also need to track the old state for RestoreDisplayMode()
     bool                              m_old8BitDisplayMode = false;
+
+    bool                              m_enumRefreshRates   = false;
 
     D3DCommonDevice*                  m_commonD3DDevice    = nullptr;
 
