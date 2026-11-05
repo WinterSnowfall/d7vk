@@ -814,7 +814,7 @@ namespace dxvk {
 
     // We need to share the device identifier with the underlying
     // DDraw implementation, as some games validate it in various places
-    DDDEVICEIDENTIFIER pDDDIproxy = { };
+    DDDEVICEIDENTIFIER pDDDIproxy;
     HRESULT hr = m_proxy->GetDeviceIdentifier(&pDDDIproxy, dwFlags);
     if (unlikely(FAILED(hr)))
       return hr;
@@ -835,10 +835,10 @@ namespace dxvk {
       pDDDI->dwRevision               = 0;
       pDDDI->guidDeviceIdentifier     = pDDDIproxy.guidDeviceIdentifier;
     } else if (unlikely(m_commonIntf->GetOptions()->glideCompatibilityMode)) {
-      static const char* Compat3dfxDriver = "3dfx32vs.dll"; // TODO: Check on an actual/emulated Voodoo card
+      static constexpr uint16_t Compat3dfxVendorID = static_cast<uint16_t>(DDrawGpuVendor::C3dfx);
+      static constexpr uint16_t Compat3dfXDeviceID = 0x0009; // Voodoo 4 4500
+      static const char* Compat3dfxDriver = GetDriverDLL(Compat3dfxVendorID);
       static const char* Compat3dfxDescription = "3dfx Voodoo Series";
-      static constexpr uint32_t Compat3dfxVendorID = 0x121A;
-      static constexpr uint32_t Compat3dfXDeviceID = 0x0009; // Voodoo 4 4500
 
       CopyToStringArray(pDDDI->szDriver, Compat3dfxDriver);
       CopyToStringArray(pDDDI->szDescription, Compat3dfxDescription);
@@ -849,11 +849,16 @@ namespace dxvk {
       pDDDI->dwRevision               = adapterIdentifier9->Revision;
       pDDDI->guidDeviceIdentifier     = pDDDIproxy.guidDeviceIdentifier;
     } else {
-      memcpy(&pDDDI->szDriver,      &adapterIdentifier9->Driver,      sizeof(adapterIdentifier9->Driver));
+      const uint16_t vendorId = GetDriverVendorID(adapterIdentifier9->VendorId);
+      const char* driver = GetDriverDLL(vendorId);
+
+      CopyToStringArray(pDDDI->szDriver, driver);
+      // MAX_DDDEVICEID_STRING is identical to MAX_DEVICE_IDENTIFIER_STRING
+      static_assert(MAX_DDDEVICEID_STRING == MAX_DEVICE_IDENTIFIER_STRING);
       memcpy(&pDDDI->szDescription, &adapterIdentifier9->Description, sizeof(adapterIdentifier9->Description));
       // Neither ATI, nor Nvidia (Windows XP) native drivers at the time reported a version
       pDDDI->liDriverVersion.QuadPart = 0;
-      pDDDI->dwVendorId               = adapterIdentifier9->VendorId;
+      pDDDI->dwVendorId               = vendorId;
       pDDDI->dwDeviceId               = adapterIdentifier9->DeviceId;
       pDDDI->dwSubSysId               = adapterIdentifier9->SubSysId;
       pDDDI->dwRevision               = adapterIdentifier9->Revision;
