@@ -42,6 +42,12 @@ namespace dxvk {
     // Don't allow copies, since they aren't handled
     VertexStream(const VertexStream&) = delete;
     VertexStream& operator=(const VertexStream&) = delete;
+    VertexStream(VertexStream&&) = delete;
+    VertexStream& operator=(VertexStream&&) = delete;
+
+    ~VertexStream() {
+      release();
+    }
 
     bool isInitialized() const {
       return initialized;
@@ -87,7 +93,7 @@ namespace dxvk {
           break;
         default:
           Logger::err(str::format("VertexStream: Unknown vertex type: ", d3dvt));
-          break;
+          return;
       }
 
       initialized = true;
@@ -116,10 +122,6 @@ namespace dxvk {
           break;
       }
       cvt = D3DVERTEXTYPE(0);
-    }
-
-    ~VertexStream() {
-      release();
     }
   };
 
