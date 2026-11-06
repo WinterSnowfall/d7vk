@@ -12,20 +12,20 @@ FILESUBTYPE VFT2_UNKNOWN
 BEGIN
   BLOCK "StringFileInfo"
   BEGIN
-    BLOCK "040904b0"
+    BLOCK "040904e4"
     BEGIN
-      VALUE "CompanyName",      "GXVK"
-      VALUE "FileDescription",  "Glide 1x Runtime"
-      VALUE "FileVersion",      "Glide(tm) Version 2.1.1"
-      VALUE "InternalName",     "glide.dll"
-      VALUE "LegalCopyright",   "zlib/libpng license"
-      VALUE "OriginalFilename", "glide.dll"
-      VALUE "ProductName",      "GXVK"
-      VALUE "ProductVersion",   "Glide(tm) Version 2.1.1"
+      VALUE "CompanyName",        "GXVK"
+      VALUE "FileDescription",    "3Dfx Interactive, Inc. Glide DLL"
+      VALUE "FileVersion",        "Glide(tm) Version 2.1.1"
+      VALUE "InternalName",       "glide.dll"
+      VALUE "LegalCopyright",     "zlib/libpng license"
+      VALUE "OriginalFilename",   "glide.dll"
+      VALUE "ProductName",        "GXVK"
+      VALUE "ProductVersion",     "Glide(tm) Version 2.1.1"
     END
   END
   BLOCK "VarFileInfo"
   BEGIN
-    VALUE "Translation", 0x0409, 1200
+    VALUE "Translation", 0x0409, 1252
   END
 END

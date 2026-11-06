@@ -12,20 +12,21 @@ FILESUBTYPE VFT2_UNKNOWN
 BEGIN
   BLOCK "StringFileInfo"
   BEGIN
-    BLOCK "040904b0"
+    BLOCK "040904e4"
     BEGIN
-      VALUE "CompanyName",      "GXVK"
-      VALUE "FileDescription",  "Glide 3x Runtime"
-      VALUE "FileVersion",      "3.10.00.0658"
-      VALUE "InternalName",     "glide3x.dll"
-      VALUE "LegalCopyright",   "zlib/libpng license"
-      VALUE "OriginalFilename", "glide3x.dll"
-      VALUE "ProductName",      "GXVK"
-      VALUE "ProductVersion",   "3.10.00.0658"
+      VALUE "CompanyName",        "GXVK"
+      VALUE "FileDescription",    "3Dfx Interactive, Inc. Glide DLL"
+      VALUE "FileVersion",        "3.10.00.0658"
+      VALUE "InternalName",       "glide3x.dll"
+      VALUE "LegalCopyright",     "zlib/libpng license"
+      VALUE "OriginalFilename",   "glide3x.dll"
+      VALUE "ProductName",        "GXVK"
+      VALUE "ProductVersion",     "3.10.00.0658"
+      VALUE "Graphics Subsystem", "GXVK Voodoo Series, Glide 3x"
     END
   END
   BLOCK "VarFileInfo"
   BEGIN
-    VALUE "Translation", 0x0409, 1200
+    VALUE "Translation", 0x0409, 1252
   END
 END
