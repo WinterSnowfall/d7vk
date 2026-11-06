@@ -941,39 +941,39 @@ namespace dxvk {
     std::vector<PVLIGHT> lights;
     if (useLighting && (pvData->outFVF & (D3DFVF_DIFFUSE | D3DFVF_SPECULAR))) {
       for (const d3d9::D3DLIGHT9& light : *pvData->lights) {
-        PVLIGHT* l = new PVLIGHT;
+        PVLIGHT& l = lights.emplace_back();
+        l.Type     = D3DLIGHTTYPE(light.Type);
+        l.Ambient  = light.Ambient;
+        l.Diffuse  = light.Diffuse;
+        l.Specular = light.Specular;
 
-        l->Type     = D3DLIGHTTYPE(light.Type);
-        l->Ambient  = light.Ambient;
-        l->Diffuse  = light.Diffuse;
-        l->Specular = light.Specular;
-
-        switch (l->Type) {
+        switch (l.Type) {
             case D3DLIGHT_DIRECTIONAL:
-              l->LightDirection = D3DVec3Normalize(D3DVec4to3Transform(view9, {-light.Direction.x, -light.Direction.y, -light.Direction.z, 0.0f}));
+              l.LightDirection = D3DVec3Normalize(D3DVec4to3Transform(view9, {-light.Direction.x, -light.Direction.y, -light.Direction.z, 0.0f}));
               break;
             case D3DLIGHT_POINT:
-              l->LightPosition = D3DVec4to3Transform(view9, {light.Position.x, light.Position.y, light.Position.z, 1.0f});
-              l->Attenuation0 = light.Attenuation0;
-              l->Attenuation1 = light.Attenuation1;
-              l->Attenuation2 = light.Attenuation2;
-              l->Range = light.Range;
+              l.LightPosition = D3DVec4to3Transform(view9, {light.Position.x, light.Position.y, light.Position.z, 1.0f});
+              l.Attenuation0 = light.Attenuation0;
+              l.Attenuation1 = light.Attenuation1;
+              l.Attenuation2 = light.Attenuation2;
+              l.Range = light.Range;
               break;
             case D3DLIGHT_SPOT:
-              l->LightDirection = D3DVec3Normalize(D3DVec4to3Transform(view9, {light.Direction.x, light.Direction.y, light.Direction.z, 0.0f}));
-              l->LightPosition = D3DVec4to3Transform(view9, {light.Position.x, light.Position.y, light.Position.z, 1.0f});
-              l->cosHalfPhi = cosf(light.Phi / 2.0f);
-              l->cosHalfTheta = cosf(light.Theta / 2.0f);
-              l->Attenuation0 = light.Attenuation0;
-              l->Attenuation1 = light.Attenuation1;
-              l->Attenuation2 = light.Attenuation2;
-              l->Range = light.Range;
-              l->Falloff = light.Falloff;
+              l.LightDirection = D3DVec3Normalize(D3DVec4to3Transform(view9, {light.Direction.x, light.Direction.y, light.Direction.z, 0.0f}));
+              l.LightPosition = D3DVec4to3Transform(view9, {light.Position.x, light.Position.y, light.Position.z, 1.0f});
+              l.cosHalfPhi = cosf(light.Phi / 2.0f);
+              l.cosHalfTheta = cosf(light.Theta / 2.0f);
+              l.Attenuation0 = light.Attenuation0;
+              l.Attenuation1 = light.Attenuation1;
+              l.Attenuation2 = light.Attenuation2;
+              l.Range = light.Range;
+              l.Falloff = light.Falloff;
               break;
+            // D3D9 doesn't support any other light types, so this won't be hit
             default:
+              lights.pop_back();
               continue;
         }
-        lights.push_back(*l);
       }
     }
 
