@@ -11,9 +11,6 @@ namespace dxvk {
   class D3D3Interface;
   class D3D5Interface;
 
-  /**
-  * \brief DirectDraw interface implementation
-  */
   class DDrawInterface final : public DDrawWrappedObject<IUnknown, IDirectDraw> {
 
   public:

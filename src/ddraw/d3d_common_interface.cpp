@@ -1,6 +1,11 @@
 #include "d3d_common_interface.h"
 
+#include "ddraw_common_interface.h"
+
 #include "d3d_common_material.h"
+
+#include "ddraw7/ddraw7_interface.h"
+#include "ddraw4/ddraw4_interface.h"
 
 namespace dxvk {
 
@@ -19,6 +24,36 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3DCommonInterface::QueryInterface(REFIID riid, void** ppvObject) {
     *ppvObject = ref(this);
     return S_OK;
+  }
+
+  // Calling EvictManagedTextures can be done with the same end effect
+  // on any proxied IDirect3D7/3 object, so simply query for one on demand
+  HRESULT D3DCommonInterface::EvictManagedTextures(DDrawCommonInterface* commonIntf) {
+    DDraw7Interface* intf7 = commonIntf->GetDD7Interface();
+    if (intf7 != nullptr) {
+      Com<IDirect3D7> d3d7IntfProxied;
+      intf7->GetProxied()->QueryInterface(__uuidof(IDirect3D7), reinterpret_cast<void**>(&d3d7IntfProxied));
+
+      if (likely(d3d7IntfProxied != nullptr)) {
+        HRESULT hr = d3d7IntfProxied->EvictManagedTextures();
+        if (unlikely(FAILED(hr)))
+          return hr;
+      }
+    } else {
+      DDraw4Interface* intf4 = commonIntf->GetDD4Interface();
+      if (intf4 != nullptr) {
+        Com<IDirect3D3> d3d6IntfProxied;
+        intf4->GetProxied()->QueryInterface(__uuidof(IDirect3D3), reinterpret_cast<void**>(&d3d6IntfProxied));
+
+        if (likely(d3d6IntfProxied != nullptr)) {
+          HRESULT hr = d3d6IntfProxied->EvictManagedTextures();
+          if (unlikely(FAILED(hr)))
+            return hr;
+        }
+      }
+    }
+
+    return D3D_OK;
   }
 
   D3DCommonMaterial* D3DCommonInterface::GetCommonMaterialFromHandle(D3DMATERIALHANDLE handle) {

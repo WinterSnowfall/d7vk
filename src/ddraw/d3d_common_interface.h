@@ -8,6 +8,8 @@
 
 namespace dxvk {
 
+  class DDrawCommonInterface;
+
   class D3DCommonMaterial;
 
   class D3D7Interface;
@@ -26,6 +28,8 @@ namespace dxvk {
     ~D3DCommonInterface();
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+
+    HRESULT EvictManagedTextures(DDrawCommonInterface* commonIntf);
 
     static D3DCommonMaterial* GetCommonMaterialFromHandle(D3DMATERIALHANDLE handle);
 

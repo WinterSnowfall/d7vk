@@ -15,9 +15,6 @@
 
 namespace dxvk {
 
-  /**
-  * \brief IDirectDrawSurface3 interface implementation
-  */
   class DDraw3Surface final : public DDrawWrappedObject<DDrawSurface, IDirectDrawSurface3> {
 
   public:
