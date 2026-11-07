@@ -523,33 +523,36 @@ namespace dxvk {
     hr = DDENUMRET_OK;
 
     // Wrap surfaces as needed and perform the actual callback the application is requesting
-    auto surfaceIt = attachedSurfaces.begin();
-    while (surfaceIt != attachedSurfaces.end() && hr == DDENUMRET_OK) {
-      Com<IDirectDrawSurface4> surface4 = surfaceIt->surface4;
-
-      try {
-        auto attachedSurfaceIter = m_attachedSurfaces.find(surface4.ptr());
-        if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
-          // Return the already attached depth surface if it exists
-          if (unlikely(m_depthStencil != nullptr && surface4.ptr() == m_depthStencil->GetProxied())) {
-            hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->desc, lpContext);
+    for (auto& attachedSurface : attachedSurfaces) {
+      if (likely(hr == DDENUMRET_OK)) {
+        try {
+          auto attachedSurfaceIter = m_attachedSurfaces.find(attachedSurface.surface4);
+          if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
+            // Return the already attached depth surface if it exists
+            if (unlikely(m_depthStencil != nullptr && attachedSurface.surface4 == m_depthStencil->GetProxied())) {
+              hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &attachedSurface.desc, lpContext);
+            } else {
+              Com<IDirectDrawSurface4> surface4 = attachedSurface.surface4;
+              Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface4),
+                                                                   m_commonIntf->GetDD4Interface(), this, false);
+              m_attachedSurfaces.emplace(std::piecewise_construct,
+                                         std::forward_as_tuple(ddraw4Surface->GetProxied()),
+                                         std::forward_as_tuple(ddraw4Surface.ref()));
+              hr = lpEnumSurfacesCallback(ddraw4Surface.ref(), &attachedSurface.desc, lpContext);
+            }
           } else {
-            Com<DDraw4Surface> ddraw4Surface = new DDraw4Surface(nullptr, std::move(surface4),
-                                                                 m_commonIntf->GetDD4Interface(), this, false);
-            m_attachedSurfaces.emplace(std::piecewise_construct,
-                                       std::forward_as_tuple(ddraw4Surface->GetProxied()),
-                                       std::forward_as_tuple(ddraw4Surface.ref()));
-            hr = lpEnumSurfacesCallback(ddraw4Surface.ref(), &surfaceIt->desc, lpContext);
+            hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &attachedSurface.desc, lpContext);
           }
-        } else {
-          hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->desc, lpContext);
+        } catch (const DxvkError& e) {
+          Logger::err(e.message());
+          return DDERR_GENERIC;
         }
-      } catch (const DxvkError& e) {
-        Logger::err(e.message());
-        return DDERR_GENERIC;
       }
 
-      ++surfaceIt;
+      if (likely(attachedSurface.surface4 != nullptr)) {
+        // Release the refcount which was added during proxied callback enumeration
+        attachedSurface.surface4->Release();
+      }
     }
 
     return DD_OK;

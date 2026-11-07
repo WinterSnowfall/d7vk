@@ -11,14 +11,13 @@ namespace dxvk {
 
   D3D7Device::D3D7Device(
         D3DCommonDevice* commonD3DDevice,
-        Com<IDirect3DDevice7>&& d3d7DeviceProxy,
         D3D7Interface* pParent,
         GUID deviceGUID,
         d3d9::D3DMULTISAMPLE_TYPE multiSampeType9,
         Com<d3d9::IDirect3DDevice9>&& pDevice9,
         DDraw7Surface* pSurface,
         DWORD CreationFlags9)
-    : DDrawWrappedObject<D3D7Interface, IDirect3DDevice7>(pParent, std::move(d3d7DeviceProxy))
+    : DDrawChildObject<D3D7Interface, IDirect3DDevice7>(pParent)
     , m_commonD3DDevice ( commonD3DDevice )
     , m_multithread ( CreationFlags9 & D3DCREATE_MULTITHREADED )
     , m_rt ( pSurface ) {
@@ -1450,7 +1449,7 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  // This is a precursor of our ol' D3D8 pal CopyRects
+  // This is a wrapper around traditional BltFast calls, and a precursor of our ol' D3D8 pal CopyRects
   HRESULT STDMETHODCALLTYPE D3D7Device::Load(IDirectDrawSurface7 *dst_surface, POINT *dst_point, IDirectDrawSurface7 *src_surface, RECT *src_rect, DWORD flags) {
     if (unlikely(dst_surface == nullptr || src_surface == nullptr))
       return DDERR_INVALIDPARAMS;
@@ -1471,6 +1470,12 @@ namespace dxvk {
     DDraw7Surface* ddraw7SurfaceDst = static_cast<DDraw7Surface*>(dst_surface);
     DDrawCommonSurface* dstCommonSurf = ddraw7SurfaceDst->GetCommonSurface();
 
+    // TODO: Implement cube face handling and cube texture loads
+    if (unlikely(flags || srcCommonSurf->IsCubeTexture() || dstCommonSurf->IsCubeTexture())) {
+      Logger::err("D3D7Device::Load: Cube texture loading is not implemented");
+      return DD_OK;
+    }
+
     // "The source and destination surface pointers must point to top-level surfaces."
     if (unlikely(srcCommonSurf->IsMipSublevel() || dstCommonSurf->IsMipSublevel()))
       return DDERR_INVALIDPARAMS;
@@ -1485,12 +1490,70 @@ namespace dxvk {
       ddraw7SurfaceDst->DownloadSurfaceData();
     }
 
-    HRESULT hr = m_proxy->Load(ddraw7SurfaceDst->GetProxied(), dst_point,
-                               ddraw7SurfaceSrc->GetProxied(), src_rect, flags);
-    if (unlikely(FAILED(hr)))
-      return hr;
+    // "This method copies all mip-levels, cubemap faces, palettes and
+    //  color keys from the source texture to the destination texture."
 
-    dstCommonSurf->RefreshSurfaceDescripton(true);
+    // Copy the palettes, if present (although we don't currently support P8 textures)
+    DDrawPalette* ddrawPaletteSrc = srcCommonSurf->GetPalette();
+    DDrawPalette* ddrawPaletteDst = dstCommonSurf->GetPalette();
+    // Both surfaces must have existing palette entries for them to be copied
+    if (unlikely(ddrawPaletteSrc != nullptr && ddrawPaletteDst != nullptr)) {
+      PALETTEENTRY srcPaletteEntries[256];
+      ddrawPaletteSrc->GetProxied()->GetEntries(0, 0, 256, &srcPaletteEntries[0]);
+      ddrawPaletteDst->GetProxied()->SetEntries(0, 0, 256, &srcPaletteEntries[0]);
+    }
+
+    // Copy any color keys, if present
+    static constexpr DWORD colorKeyFlags[4] = { DDCKEY_DESTBLT, DDCKEY_DESTOVERLAY, DDCKEY_SRCBLT, DDCKEY_SRCOVERLAY };
+    for (auto& colorKeyFlag : colorKeyFlags) {
+      DDCOLORKEY ddrawColorKeySrc;
+      // Returns DDERR_NOCOLORKEY if absent
+      HRESULT hr = ddraw7SurfaceSrc->GetColorKey(colorKeyFlag, &ddrawColorKeySrc);
+      if (FAILED(hr))
+        continue;
+      ddraw7SurfaceDst->SetColorKey(colorKeyFlag, &ddrawColorKeySrc);
+    }
+
+    // Copy all the (matching) mip levels
+    Com<IDirectDrawSurface7> ddraw7SurfaceDstMip = ddraw7SurfaceDst->GetProxied();
+    Com<IDirectDrawSurface7> ddraw7SurfaceSrcMip = ddraw7SurfaceSrc->GetProxied();
+
+    RECT bltSrcRect = src_rect != nullptr ? *src_rect : *sourceFullSurfaceRect;
+    DWORD dstPointX = dst_point != nullptr ? dst_point->x : 0u;
+    DWORD dstPointY = dst_point != nullptr ? dst_point->y : 0u;
+
+    DDSCAPS2 mipCaps;
+    mipCaps.dwCaps  = DDSCAPS_TEXTURE;
+    mipCaps.dwCaps2 = DDSCAPS2_MIPMAPSUBLEVEL;
+
+    // Traverse the dst_surface mip chain and copy all mips using BltFast
+    while (true) {
+      HRESULT hr = ddraw7SurfaceDstMip->BltFast(dstPointX, dstPointY, ddraw7SurfaceSrcMip.ptr(),
+                                                &bltSrcRect, DDBLTFAST_NOCOLORKEY);
+      if (unlikely(FAILED(hr)))
+        return hr;
+
+      Com<IDirectDrawSurface7> ddraw7SurfaceNextDstMip;
+      HRESULT hrNextDstMip = ddraw7SurfaceDstMip->GetAttachedSurface(&mipCaps, &ddraw7SurfaceNextDstMip);
+      if (unlikely(FAILED(hrNextDstMip)))
+        break;
+      ddraw7SurfaceDstMip = std::move(ddraw7SurfaceNextDstMip);
+
+      Com<IDirectDrawSurface7> ddraw7SurfaceNextSrcMip;
+      HRESULT hrNextSrcMip = ddraw7SurfaceSrcMip->GetAttachedSurface(&mipCaps, &ddraw7SurfaceNextSrcMip);
+      if (unlikely(FAILED(hrNextSrcMip)))
+        break;
+      ddraw7SurfaceSrcMip = std::move(ddraw7SurfaceNextSrcMip);
+
+      dstPointX = dstPointX / 2;
+      dstPointY = dstPointY / 2;
+
+      bltSrcRect.left   = bltSrcRect.left / 2;
+      bltSrcRect.top    = bltSrcRect.top / 2;
+      bltSrcRect.right  = (bltSrcRect.right + 1) / 2;
+      bltSrcRect.bottom = (bltSrcRect.bottom + 1) / 2;
+    }
+
     dstCommonSurf->DirtyDDrawSurface();
 
     return D3D_OK;
