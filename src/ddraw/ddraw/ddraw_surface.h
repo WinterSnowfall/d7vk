@@ -19,9 +19,6 @@ namespace dxvk {
 
   class D3D3Device;
 
-  /**
-  * \brief IDirectDrawSurface interface implementation
-  */
   class DDrawSurface final : public DDrawWrappedObject<DDrawInterface, IDirectDrawSurface> {
 
   public:

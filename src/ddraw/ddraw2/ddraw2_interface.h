@@ -11,9 +11,6 @@
 
 namespace dxvk {
 
-  /**
-  * \brief DirectDraw2 interface implementation
-  */
   class DDraw2Interface final : public DDrawWrappedObject<IUnknown, IDirectDraw2> {
 
   public:

@@ -154,14 +154,9 @@ namespace dxvk {
     }
     // Standard way of retrieving a D3D6 interface
     if (unlikely(riid == __uuidof(IDirect3D3))) {
-      Com<IDirect3D3> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
       Com<D3D6Interface> d3d6Intf;
       try {
-        d3d6Intf = new D3D6Interface(nullptr, m_commonIntf.ptr(), std::move(ppvProxyObject), this);
+        d3d6Intf = new D3D6Interface(nullptr, m_commonIntf.ptr(), this);
       } catch (const DxvkError& e) {
         Logger::err(e.message());
         return DDERR_GENERIC;

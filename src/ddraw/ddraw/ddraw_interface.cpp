@@ -163,14 +163,9 @@ namespace dxvk {
       if (m_commonIntf->GetDD4Interface() != nullptr)
         return m_commonIntf->GetDD4Interface()->QueryInterface(riid, ppvObject);
 
-      Com<IDirect3D3> ppvProxyObject;
-      HRESULT hr = m_proxy->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
-
       Com<D3D6Interface> d3d6Intf;
       try {
-        d3d6Intf = new D3D6Interface(nullptr, m_commonIntf.ptr(), std::move(ppvProxyObject), this);
+        d3d6Intf = new D3D6Interface(nullptr, m_commonIntf.ptr(), this);
       } catch (const DxvkError& e) {
         Logger::err(e.message());
         return DDERR_GENERIC;
@@ -415,13 +410,10 @@ namespace dxvk {
           Logger::warn("DDrawInterface::EnumSurfaces: Failed to create wrapped surface");
           Logger::warn(e.message());
         }
-      } else if (likely(attachedSurface.surface != nullptr)) {
-        // "If the DDENUMSURFACES_CANBECREATED flag is set, this method attempts to
-        //  temporarily create a surface that meets the search criterion."
-        // "When using the DDENUMSURFACES_DOESEXIST flag, an enumerated
-        //  surface's reference count is incremented."
-        // Docs suggest the surface refcounts are increased in both cases,
-        // so handle this, should the application send DDENUMRET_CANCEL.
+      }
+
+      if (likely(attachedSurface.surface != nullptr)) {
+        // Release the refcount which was added during proxied callback enumeration
         attachedSurface.surface->Release();
       }
     }
