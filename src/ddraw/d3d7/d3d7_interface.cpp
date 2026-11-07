@@ -11,9 +11,8 @@ namespace dxvk {
   D3D7Interface::D3D7Interface(
         D3DCommonInterface* commonD3DIntf,
         DDrawCommonInterface* commonIntf,
-        Com<IDirect3D7>&& d3d7IntfProxy,
         IUnknown* pParent)
-    : DDrawWrappedObject<IUnknown, IDirect3D7>(pParent, std::move(d3d7IntfProxy))
+    : DDrawChildObject<IUnknown, IDirect3D7>(pParent)
     , m_commonD3DIntf ( commonD3DIntf )
     , m_commonIntf ( commonIntf ) {
     if (m_commonD3DIntf == nullptr) {
@@ -234,13 +233,6 @@ namespace dxvk {
     if (unlikely(FAILED(hr)))
       return hr;
 
-    Com<IDirect3DDevice7> d3d7DeviceProxy;
-    hr = m_proxy->CreateDevice(rclsidOverride, rt7->GetProxied(), &d3d7DeviceProxy);
-    if (unlikely(FAILED(hr))) {
-      Logger::warn("D3D7Interface::CreateDevice: Failed to create the proxy device");
-      return hr;
-    }
-
     DDSURFACEDESC2 desc;
     desc.dwSize = sizeof(DDSURFACEDESC2);
     surface->GetSurfaceDesc(&desc);
@@ -340,9 +332,8 @@ namespace dxvk {
     }
 
     try {
-      Com<D3D7Device> device7 = new D3D7Device(nullptr, std::move(d3d7DeviceProxy), this,
-                                               rclsidOverride, multiSampleType, std::move(device9),
-                                               rt7.ptr(), deviceCreationFlags9);
+      Com<D3D7Device> device7 = new D3D7Device(nullptr, this, rclsidOverride, multiSampleType,
+                                               std::move(device9), rt7.ptr(), deviceCreationFlags9);
 
       // Set the common device on the common interface
       m_commonIntf->SetCommonD3DDevice(device7->GetCommonD3DDevice());
@@ -444,7 +435,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D7Interface::EvictManagedTextures() {
-    HRESULT hr = m_proxy->EvictManagedTextures();
+    HRESULT hr = m_commonD3DIntf->EvictManagedTextures(m_commonIntf);
     if (unlikely(FAILED(hr)))
       return hr;
 

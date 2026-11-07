@@ -11,9 +11,6 @@
 
 namespace dxvk {
 
-  /**
-  * \brief D3D5 interface implementation
-  */
   class D3D5Interface final : public DDrawChildObject<IUnknown, IDirect3D2> {
 
   public:

@@ -598,6 +598,9 @@ namespace dxvk {
       return DDENUMRET_CANCEL;
     }
 
+    if (likely(subsurf != nullptr))
+      subsurf->Release();
+
     return DDENUMRET_OK;
   }
 
@@ -608,6 +611,9 @@ namespace dxvk {
       *nextBackBuffer = subsurf;
       return DDENUMRET_CANCEL;
     }
+
+    if (likely(subsurf != nullptr))
+      subsurf->Release();
 
     return DDENUMRET_OK;
   }
@@ -620,6 +626,9 @@ namespace dxvk {
       return DDENUMRET_CANCEL;
     }
 
+    if (likely(subsurf != nullptr))
+      subsurf->Release();
+
     return DDENUMRET_OK;
   }
 
@@ -631,17 +640,22 @@ namespace dxvk {
       return DDENUMRET_CANCEL;
     }
 
+    if (likely(subsurf != nullptr))
+      subsurf->Release();
+
     return DDENUMRET_OK;
   }
 
   inline HRESULT STDMETHODCALLTYPE ListMipChainSurfaces4Callback(IDirectDrawSurface4* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     IDirectDrawSurface4** nextMip = static_cast<IDirectDrawSurface4**>(ctx);
 
-    if ((desc->ddsCaps.dwCaps  & DDSCAPS_MIPMAP)
-     || (desc->ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL)) {
+    if (desc->ddsCaps.dwCaps & DDSCAPS_MIPMAP) {
       *nextMip = subsurf;
       return DDENUMRET_CANCEL;
     }
+
+    if (likely(subsurf != nullptr))
+      subsurf->Release();
 
     return DDENUMRET_OK;
   }
@@ -649,11 +663,13 @@ namespace dxvk {
   inline HRESULT STDMETHODCALLTYPE ListMipChainSurfaces7Callback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
     IDirectDrawSurface7** nextMip = static_cast<IDirectDrawSurface7**>(ctx);
 
-    if ((desc->ddsCaps.dwCaps  & DDSCAPS_MIPMAP)
-     || (desc->ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL)) {
+    if (desc->ddsCaps.dwCaps & DDSCAPS_MIPMAP) {
       *nextMip = subsurf;
       return DDENUMRET_CANCEL;
     }
+
+    if (likely(subsurf != nullptr))
+      subsurf->Release();
 
     return DDENUMRET_OK;
   }
@@ -710,6 +726,8 @@ namespace dxvk {
         cubeMapAttachedSurfaces->negativeZ = subsurf;
         break;
       default:
+        if (likely(subsurf != nullptr))
+          subsurf->Release();
         break;
     }
 
@@ -721,25 +739,24 @@ namespace dxvk {
   // guessing it was intended more as a hint, not necessarily a set number.
   template <typename SurfaceType, typename DescType>
   inline uint32_t DetermineMipMapCount(SurfaceType* surface) {
-    SurfaceType* mipMap = surface;
+    Com<SurfaceType> mipMap = surface;
     uint32_t mipCount = 1u;
 
     // Don't worry about maximum supported mip map levels validation,
     // because D3D9 will handle this for us and cap them appropriately
     while (mipMap != nullptr) {
-      SurfaceType* parentSurface = mipMap;
-      mipMap = nullptr;
-
+      Com<SurfaceType> mipMapNext;
       if constexpr (std::is_same<SurfaceType, IDirectDrawSurface7>::value) {
-        parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces7Callback);
+        mipMap->EnumAttachedSurfaces(&mipMapNext, ListMipChainSurfaces7Callback);
       } else if constexpr (std::is_same<SurfaceType, IDirectDrawSurface4>::value) {
-        parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces4Callback);
+        mipMap->EnumAttachedSurfaces(&mipMapNext, ListMipChainSurfaces4Callback);
       } else if constexpr (std::is_same<SurfaceType, IDirectDrawSurface>::value) {
-        parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
+        mipMap->EnumAttachedSurfaces(&mipMapNext, ListMipChainSurfacesCallback);
       } else {
         Logger::err("DetermineMipMapCount: Unsupported surface type");
         break;
       }
+      mipMap = std::move(mipMapNext);
 
       if (mipMap != nullptr) {
         mipCount++;
@@ -759,24 +776,22 @@ namespace dxvk {
 
   template <typename SurfaceType>
   inline DWORD DetermineBackBufferCount(SurfaceType* renderTarget) {
+    Com<SurfaceType> backBuffer = renderTarget;
     DWORD backBufferCount = 0u;
 
-    SurfaceType* backBuffer = renderTarget;
-
     while (backBuffer != nullptr) {
-      SurfaceType* parentSurface = backBuffer;
-      backBuffer = nullptr;
-
+      Com<SurfaceType> backBufferNext;
       if constexpr (std::is_same<SurfaceType, IDirectDrawSurface7>::value) {
-        parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfaces7Callback);
+        backBuffer->EnumAttachedSurfaces(&backBufferNext, ListBackBufferSurfaces7Callback);
       } else if constexpr (std::is_same<SurfaceType, IDirectDrawSurface4>::value) {
-        parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfaces4Callback);
+        backBuffer->EnumAttachedSurfaces(&backBufferNext, ListBackBufferSurfaces4Callback);
       } else if constexpr (std::is_same<SurfaceType, IDirectDrawSurface>::value) {
-        parentSurface->EnumAttachedSurfaces(&backBuffer, ListBackBufferSurfacesCallback);
+        backBuffer->EnumAttachedSurfaces(&backBufferNext, ListBackBufferSurfacesCallback);
       } else {
         Logger::err("DetermineBackBufferCount: Unsupported surface type");
         break;
       }
+      backBuffer = std::move(backBufferNext);
 
       // The swapchain will eventually return to its origin
       if (backBuffer == renderTarget)
@@ -799,7 +814,7 @@ namespace dxvk {
     desc.dwSize = sizeof(DescType);
     surface->GetSurfaceDesc(&desc);
     const d3d9::D3DCUBEMAP_FACES face = GetCubemapFace(&desc);
-    SurfaceType* mipMap = surface;
+    Com<SurfaceType> mipMap = surface;
 
     for (uint32_t i = 0; i < mipLevels; i++) {
       d3d9::D3DLOCKED_RECT rectMip9;
@@ -842,8 +857,9 @@ namespace dxvk {
 
       // Skip the enumeration if we've reached the final mip
       if (likely(i < mipLevels - 1)) {
-        SurfaceType* parentSurface = mipMap;
-        parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces7Callback);
+        Com<SurfaceType> mipMapNext;
+        mipMap->EnumAttachedSurfaces(&mipMapNext, ListMipChainSurfaces7Callback);
+        mipMap = std::move(mipMapNext);
       }
     }
   }
@@ -854,7 +870,7 @@ namespace dxvk {
         SurfaceType* surface,
         const uint32_t mipLevels,
         const bool isDXTFormat) {
-    SurfaceType* mipMap = surface;
+    Com<SurfaceType> mipMap = surface;
 
     for (uint32_t i = 0; i < mipLevels; i++) {
       d3d9::D3DLOCKED_RECT rectMip9;
@@ -897,17 +913,18 @@ namespace dxvk {
 
       // Skip the enumeration if we've reached the final mip
       if (likely(i < mipLevels - 1)) {
-        SurfaceType* parentSurface = mipMap;
+        Com<SurfaceType> mipMapNext;
         if constexpr (std::is_same<SurfaceType, IDirectDrawSurface7>::value) {
-          parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces7Callback);
+          mipMap->EnumAttachedSurfaces(&mipMapNext, ListMipChainSurfaces7Callback);
         } else if constexpr (std::is_same<SurfaceType, IDirectDrawSurface4>::value) {
-          parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfaces4Callback);
+          mipMap->EnumAttachedSurfaces(&mipMapNext, ListMipChainSurfaces4Callback);
         } else if constexpr (std::is_same<SurfaceType, IDirectDrawSurface>::value) {
-          parentSurface->EnumAttachedSurfaces(&mipMap, ListMipChainSurfacesCallback);
+          mipMap->EnumAttachedSurfaces(&mipMapNext, ListMipChainSurfacesCallback);
         } else {
           Logger::err("BlitToD3D9Texture: Unsupported surface type");
           break;
         }
+        mipMap = std::move(mipMapNext);
       }
     }
   }

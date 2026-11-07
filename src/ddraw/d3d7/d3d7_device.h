@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../ddraw_include.h"
-#include "../ddraw_wrapped_object.h"
+#include "../ddraw_child_object.h"
 #include "../ddraw_options.h"
 #include "../ddraw_util.h"
 #include "../ddraw_caps.h"
@@ -25,17 +25,13 @@ namespace dxvk {
   using D3DMultithread = sync::ScopedDeviceLock;
   using D3DDeviceLock  = sync::ScopedDeviceGuard;
 
-  /**
-  * \brief D3D7 device implementation
-  */
-  class D3D7Device final : public DDrawWrappedObject<D3D7Interface, IDirect3DDevice7> {
+  class D3D7Device final : public DDrawChildObject<D3D7Interface, IDirect3DDevice7> {
 
   friend class D3D7StateBlock;
 
   public:
     D3D7Device(
           D3DCommonDevice* commonD3DDevice,
-          Com<IDirect3DDevice7>&& d3d7DeviceProxy,
           D3D7Interface* pParent,
           GUID deviceGUID,
           d3d9::D3DMULTISAMPLE_TYPE multiSampeType9,

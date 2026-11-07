@@ -487,33 +487,36 @@ namespace dxvk {
     hr = DDENUMRET_OK;
 
     // Wrap surfaces as needed and perform the actual callback the application is requesting
-    auto surfaceIt = attachedSurfaces.begin();
-    while (surfaceIt != attachedSurfaces.end() && hr == DDENUMRET_OK) {
-      Com<IDirectDrawSurface7> surface7 = surfaceIt->surface7;
-
-      try {
-        auto attachedSurfaceIter = m_attachedSurfaces.find(surface7.ptr());
-        if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
-          // Return the already attached depth surface if it exists
-          if (unlikely(m_depthStencil != nullptr && surface7.ptr() == m_depthStencil->GetProxied())) {
-            hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &surfaceIt->desc, lpContext);
+    for (auto& attachedSurface : attachedSurfaces) {
+      if (likely(hr == DDENUMRET_OK)) {
+        try {
+          auto attachedSurfaceIter = m_attachedSurfaces.find(attachedSurface.surface7);
+          if (unlikely(attachedSurfaceIter == m_attachedSurfaces.end())) {
+            // Return the already attached depth surface if it exists
+            if (unlikely(m_depthStencil != nullptr && attachedSurface.surface7 == m_depthStencil->GetProxied())) {
+              hr = lpEnumSurfacesCallback(m_depthStencil.ref(), &attachedSurface.desc, lpContext);
+            } else {
+              Com<IDirectDrawSurface7> surface7 = attachedSurface.surface7;
+              Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7),
+                                                                   m_commonIntf->GetDD7Interface(), this, false);
+              m_attachedSurfaces.emplace(std::piecewise_construct,
+                                         std::forward_as_tuple(ddraw7Surface->GetProxied()),
+                                         std::forward_as_tuple(ddraw7Surface.ref()));
+              hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &attachedSurface.desc, lpContext);
+            }
           } else {
-            Com<DDraw7Surface> ddraw7Surface = new DDraw7Surface(nullptr, std::move(surface7),
-                                                                 m_commonIntf->GetDD7Interface(), this, false);
-            m_attachedSurfaces.emplace(std::piecewise_construct,
-                                       std::forward_as_tuple(ddraw7Surface->GetProxied()),
-                                       std::forward_as_tuple(ddraw7Surface.ref()));
-            hr = lpEnumSurfacesCallback(ddraw7Surface.ref(), &surfaceIt->desc, lpContext);
+            hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &attachedSurface.desc, lpContext);
           }
-        } else {
-          hr = lpEnumSurfacesCallback(attachedSurfaceIter->second.ref(), &surfaceIt->desc, lpContext);
+        } catch (const DxvkError& e) {
+          Logger::err(e.message());
+          return DDERR_GENERIC;
         }
-      } catch (const DxvkError& e) {
-        Logger::err(e.message());
-        return DDERR_GENERIC;
       }
 
-      ++surfaceIt;
+      if (likely(attachedSurface.surface7 != nullptr)) {
+        // Release the refcount which was added during proxied callback enumeration
+        attachedSurface.surface7->Release();
+      }
     }
 
     return DD_OK;
@@ -1218,6 +1221,8 @@ namespace dxvk {
     Com<DDraw7Surface> face7;
 
     Com<IDirectDrawSurface7> faceProxied = surface;
+    // Release the refcount which was added during proxied callback enumeration
+    surface->Release();
     try {
       face7 = new DDraw7Surface(nullptr, std::move(faceProxied),
                                 m_commonIntf->GetDD7Interface(), this, false);
