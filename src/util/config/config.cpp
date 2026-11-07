@@ -1540,68 +1540,50 @@ namespace dxvk {
       { "ddraw.forceMultiThreaded",         "True" },
       { "ddraw.managedVertexBuffers",       "True" },
     }} },
-    /* Unreal                                     *
-     * Fixes missing mip map uploads and physics  */
+    /* Unreal - Physics issues above 60 FPS       */
     { R"(\\Unreal\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.autoGenMipMaps",             "True" },
     }} },
-    /* Unreal Tournament                          *
-     * Fixes missing mip map uploads              */
-    { R"(\\UnrealTournament\.exe$)", {{
-      { "ddraw.autoGenMipMaps",             "True" },
-    }} },
-    /* Rune                                       *
-     * Fixes missing mip map uploads and physics  */
+    /* Rune - Physics issues above 60 FPS         */
     { R"(\\Rune\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.autoGenMipMaps",             "True" },
     }} },
-    /* Deus Ex                                    *
-     * Fixes missing mip map uploads and physics  */
+    /* Deus Ex - Physics issues above 60 FPS      */
     { R"(\\DeusEx\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Clive Barker's Undying                     *
-     * Fixes missing mip map uploads, and broken  *
-     * cutscene playback at high frame rates      */
+     * Fixes broken cutscene timings and audio    */
     { R"(\\Undying\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* X-COM: Enforcer                            *
-     * Fixes missing mip map uploads and physics  */
+     * Physics issues above 60 FPS                */
     { R"(\\XCom\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* The Wheel of Time                          *
-     * Fixes missing mip map uploads, physics     *
-     * and Z-fighting on distant objects          */
+     * Physics issues above 60 FPS and            *
+     * Z-fighting on distant objects              */
     { R"(\\WoT\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.autoGenMipMaps",             "True" },
       { "ddraw.supportD16",                "False" },
     }} },
     /* Harry Potter and the Chamber of Secrets    *
-     * Fixes missing mip map uploads and physics  */
+     * Physics issues above 60 FPS                */
     { R"(\\Harry Potter.*\\system\\Game\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Harry Potter and the Philosopher's Stone   *
-     * Fixes missing mip map uploads and physics  */
+     * Physics issues above 60 FPS                */
     { R"(\\HP\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.autoGenMipMaps",             "True" },
     }} },
-    /* Messiah - Fixes missing mip map uploads    *
-     * and broken cutscene playback / physics     */
+    /* Messiah                                    *
+     * Fixes broken cutscene playback / physics   */
     { R"(\\MessiahD3D\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
       { "ddraw.emulateFSAA",                "True" },
-      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Might and Magic IX / No One Lives Forever  */
     { R"(\\lithtech\.exe$)", {{
@@ -1656,19 +1638,12 @@ namespace dxvk {
       { "ddraw.legacyPresentGuard",       "Strict" },
     }} },
     /* Need for Speed: Porsche Unleashed          *
-     * Fixes missing mip maps on car models       *
-     * and Z-fighting with projected lights.      *
+     * Fixes Z-fighting with projected lights.    *
      * Disabling overlay support makes the intro  *
      * videos play back properly.                 */
     { R"(\\(Porsche|nfs5)\.exe$)", {{
       { "ddraw.supportOverlays",           "False" },
-      { "ddraw.autoGenMipMaps",             "True" },
       { "ddraw.useD16forD24X8",             "True" },
-    }} },
-    /* Star Trek: Deep Space Nine - The Fallen    *
-     * Fixes missing mip map uploads              */
-    { R"(\\DS9\.exe$)", {{
-      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* Sacred                                     */
     { R"(\\Sacred\.exe$)", {{
@@ -1734,7 +1709,6 @@ namespace dxvk {
      * and Z-fighting issues on some objects      */
     { R"(\\nerf\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
-      { "ddraw.autoGenMipMaps",             "True" },
       { "ddraw.supportD16",                "False" },
     }} },
     /* Evolva - Fixes character camera flickers   */
@@ -1824,10 +1798,6 @@ namespace dxvk {
     /* Urban Chaos                                */
     { R"(\\fallen\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
-    }} },
-    /* Redline - Fixes missing weapon mip maps    */
-    { R"(\\Redline\.exe$)", {{
-      { "ddraw.autoGenMipMaps",             "True" },
     }} },
     /* 3DMark 99 (Max) - Enables VSync by default *
      * (probably due to hardware and/or driver    *
