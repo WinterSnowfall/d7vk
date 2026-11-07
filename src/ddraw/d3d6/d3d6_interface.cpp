@@ -18,9 +18,8 @@ namespace dxvk {
   D3D6Interface::D3D6Interface(
         D3DCommonInterface* commonD3DIntf,
         DDrawCommonInterface* commonIntf,
-        Com<IDirect3D3>&& d3d6IntfProxy,
         IUnknown* pParent)
-    : DDrawWrappedObject<IUnknown, IDirect3D3>(pParent, std::move(d3d6IntfProxy))
+    : DDrawChildObject<IUnknown, IDirect3D3>(pParent)
     , m_commonD3DIntf ( commonD3DIntf )
     , m_commonIntf ( commonIntf ) {
     if (m_commonD3DIntf == nullptr) {
@@ -99,9 +98,14 @@ namespace dxvk {
       if (m_commonD3DIntf->GetD3D3Interface() != nullptr)
         return m_commonD3DIntf->GetD3D3Interface()->QueryInterface(riid, ppvObject);
 
-      m_d3d3Intf = new D3D3Interface(m_commonD3DIntf.ptr(), m_commonIntf, m_parent);
-      m_commonIntf->SetD3D3Interface(m_d3d3Intf.ptr());
-      *ppvObject = m_d3d3Intf.ref();
+      try {
+        m_d3d3Intf = new D3D3Interface(m_commonD3DIntf.ptr(), m_commonIntf, m_parent);
+        m_commonIntf->SetD3D3Interface(m_d3d3Intf.ptr());
+        *ppvObject = m_d3d3Intf.ref();
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
 
       return S_OK;
     }
@@ -109,8 +113,13 @@ namespace dxvk {
       if (m_commonD3DIntf->GetD3D5Interface() != nullptr)
         return m_commonD3DIntf->GetD3D5Interface()->QueryInterface(riid, ppvObject);
 
-      m_d3d5Intf = new D3D5Interface(m_commonD3DIntf.ptr(), m_commonIntf, m_parent);
-      *ppvObject = m_d3d5Intf.ref();
+      try {
+        m_d3d5Intf = new D3D5Interface(m_commonD3DIntf.ptr(), m_commonIntf, m_parent);
+        *ppvObject = m_d3d5Intf.ref();
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
 
       return S_OK;
     }
@@ -593,7 +602,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D6Interface::EvictManagedTextures() {
-    HRESULT hr = m_proxy->EvictManagedTextures();
+    HRESULT hr = m_commonD3DIntf->EvictManagedTextures(m_commonIntf);
     if (unlikely(FAILED(hr)))
       return hr;
 

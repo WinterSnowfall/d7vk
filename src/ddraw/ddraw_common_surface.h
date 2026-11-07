@@ -359,8 +359,7 @@ namespace dxvk {
     }
 
     bool IsTextureMip() const {
-      return m_desc.ddsCaps.dwCaps  & DDSCAPS_MIPMAP
-          || m_desc.ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL;
+      return m_desc.ddsCaps.dwCaps & DDSCAPS_MIPMAP;
     }
 
     bool IsMipSublevel() const {

@@ -27,9 +27,6 @@ namespace dxvk {
   using D3DMultithread = sync::ScopedDeviceLock;
   using D3DDeviceLock  = sync::ScopedDeviceGuard;
 
-  /**
-  * \brief D3D6 device implementation
-  */
   class D3D6Device final : public DDrawChildObject<D3D6Interface, IDirect3DDevice3> {
 
   public:

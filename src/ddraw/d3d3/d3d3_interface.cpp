@@ -97,8 +97,14 @@ namespace dxvk {
       if (likely(m_commonD3DIntf->GetD3D5Interface() != nullptr))
         return m_commonD3DIntf->GetD3D5Interface()->QueryInterface(riid, ppvObject);
 
-      m_d3d5Intf = new D3D5Interface(m_commonD3DIntf.ptr(), m_commonIntf, m_parent);
-      *ppvObject = m_d3d5Intf.ref();
+      try {
+        m_d3d5Intf = new D3D5Interface(m_commonD3DIntf.ptr(), m_commonIntf, m_parent);
+        *ppvObject = m_d3d5Intf.ref();
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
+
       return S_OK;
     }
     // ... and Final Fantasy VIII queries for IDirect3D3, because why not...
@@ -106,15 +112,14 @@ namespace dxvk {
       if (likely(m_commonD3DIntf->GetD3D6Interface() != nullptr))
         return m_commonD3DIntf->GetD3D6Interface()->QueryInterface(riid, ppvObject);
 
-      // We don't have a proxied object on D3D3Interface, so use the parent
-      // DDraw interface to get a proxied object for the queried D3D6Interface
-      Com<IDirect3D3> ppvProxyObject;
-      HRESULT hr = m_parent->QueryInterface(riid, reinterpret_cast<void**>(&ppvProxyObject));
-      if (unlikely(FAILED(hr)))
-        return hr;
+      try {
+        m_d3d6Intf = new D3D6Interface(m_commonD3DIntf.ptr(), m_commonIntf, m_parent);
+        *ppvObject = m_d3d6Intf.ref();
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return DDERR_GENERIC;
+      }
 
-      m_d3d6Intf = new D3D6Interface(m_commonD3DIntf.ptr(), m_commonIntf, std::move(ppvProxyObject), m_parent);
-      *ppvObject = m_d3d6Intf.ref();
       return S_OK;
     }
 
