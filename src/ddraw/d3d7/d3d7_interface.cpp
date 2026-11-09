@@ -170,6 +170,19 @@ namespace dxvk {
     if (unlikely(surface == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    Com<DDraw7Surface> rt7;
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
+      Logger::err("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
+      return DDERR_UNSUPPORTED;
+    } else {
+      rt7 = static_cast<DDraw7Surface*>(surface);
+    }
+
+    // Clean up any previous device use, otherwise we can end up blitting
+    // on stale images from D3D9, as is observed in the case of 3DMark 2000.
+    // This is only relevant in the context of later swapchain resets.
+    rt7->GetCommonSurface()->RefreshD3DDevice();
+
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
@@ -211,23 +224,6 @@ namespace dxvk {
 
     const IID rclsidOverride = halFallback ? IID_IDirect3DHALDevice :
                                rgbFallback ? IID_IDirect3DRGBDevice : rclsid;
-
-    HWND hWnd = m_commonIntf->GetHWND();
-    if (unlikely(hWnd == nullptr))
-      Logger::debug("D3D7Interface::CreateDevice: HWND is NULL");
-
-    Com<DDraw7Surface> rt7;
-    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(surface))) {
-      Logger::err("D3D7Interface::CreateDevice: Unwrapped surface passed as RT");
-      return DDERR_UNSUPPORTED;
-    } else {
-      rt7 = static_cast<DDraw7Surface*>(surface);
-    }
-
-    // Clean up any previous device use, otherwise we can end up blitting
-    // on stale images from D3D9, as is observed in the case of 3DMark 2000.
-    // This is only relevant in the context of later swapchain resets.
-    rt7->GetCommonSurface()->RefreshD3DDevice();
 
     HRESULT hr = rt7->GetCommonSurface()->ValidateRTUsage7(isHALOrTNLHALDevice, true);
     if (unlikely(FAILED(hr)))
@@ -288,6 +284,10 @@ namespace dxvk {
                                                       m_commonD3DIntf->GetMultiSampleType(backBufferFormat) :
                                                       d3d9::D3DMULTISAMPLE_NONE;
 
+    HWND hWnd = m_commonIntf->GetHWND();
+    if (unlikely(hWnd == nullptr))
+      Logger::debug("D3D7Interface::CreateDevice: HWND is NULL");
+
     // Always appears to be enabled when running in non-exclusive mode
     const bool vBlankStatus = m_commonIntf->GetWaitForVBlank();
 
@@ -340,8 +340,10 @@ namespace dxvk {
       // Now that we have a valid common D3D device on the DDraw interface,
       // we can initialize the render target and depth stencil (if any)
       hr = device7->InitializeRTAndDS();
-      if (unlikely(FAILED(hr)))
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D7Interface::CreateDevice: Failed to initialize the render target");
         return hr;
+      }
 
       device7->GetCommonD3DDevice()->SetPresentRect(&presentRect);
 
