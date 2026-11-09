@@ -1194,6 +1194,11 @@ namespace dxvk {
   }
 
   inline HRESULT DDrawSurface::CreateDeviceInternal(REFIID riid, void** ppvObject) {
+    // Clean up any previous device use, otherwise we can end up blitting
+    // on stale images from D3D9, as is observed in the case of 3DMark 2000.
+    // This is only relevant in the context of later swapchain resets.
+    m_commonSurf->RefreshD3DDevice();
+
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
@@ -1230,15 +1235,6 @@ namespace dxvk {
 
     const IID rclsidOverride = halFallback ? IID_IDirect3DHALDevice :
                                rgbFallback ? IID_IDirect3DRGBDevice : riid;
-
-    HWND hWnd = m_commonIntf->GetHWND();
-    if (unlikely(hWnd == nullptr))
-      Logger::debug("DDrawSurface::CreateDeviceInternal: HWND is NULL");
-
-    // Clean up any previous device use, otherwise we can end up blitting
-    // on stale images from D3D9, as is observed in the case of 3DMark 2000.
-    // This is only relevant in the context of later swapchain resets.
-    m_commonSurf->RefreshD3DDevice();
 
     HRESULT hr = m_commonSurf->ValidateRTUsage(isHALDevice, true, true);
     if (unlikely(FAILED(hr)))
@@ -1305,6 +1301,10 @@ namespace dxvk {
                                                       commonD3DIntf->GetMultiSampleType(backBufferFormat) :
                                                       d3d9::D3DMULTISAMPLE_NONE;
 
+    HWND hWnd = m_commonIntf->GetHWND();
+    if (unlikely(hWnd == nullptr))
+      Logger::debug("DDrawSurface::CreateDeviceInternal: HWND is NULL");
+
     // Always appears to be enabled when running in non-exclusive mode
     const bool vBlankStatus = m_commonIntf->GetWaitForVBlank();
 
@@ -1356,8 +1356,10 @@ namespace dxvk {
       // Now that we have a valid common D3D device on the DDraw interface,
       // we can initialize the render target and depth stencil (if any)
       hr = m_device3->InitializeRTAndDS();
-      if (unlikely(FAILED(hr)))
+      if (unlikely(FAILED(hr))) {
+        Logger::err("DDrawSurface::CreateDeviceInternal: Failed to initialize the render target");
         return hr;
+      }
 
       m_device3->GetCommonD3DDevice()->SetPresentRect(&presentRect);
     } catch (const DxvkError& e) {

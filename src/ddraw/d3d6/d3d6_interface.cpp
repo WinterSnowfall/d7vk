@@ -339,6 +339,19 @@ namespace dxvk {
     if (unlikely(lpDDS == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    Com<DDraw4Surface> rt4;
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDS))) {
+      Logger::err("D3D6Interface::CreateDevice: Unwrapped surface passed as RT");
+      return DDERR_UNSUPPORTED;
+    } else {
+      rt4 = static_cast<DDraw4Surface*>(lpDDS);
+    }
+
+    // Clean up any previous device use, otherwise we can end up blitting
+    // on stale images from D3D9, as is observed in the case of 3DMark 2000.
+    // This is only relevant in the context of later swapchain resets.
+    rt4->GetCommonSurface()->RefreshD3DDevice();
+
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
@@ -377,23 +390,6 @@ namespace dxvk {
 
     const IID rclsidOverride = halFallback ? IID_IDirect3DHALDevice :
                                rgbFallback ? IID_IDirect3DRGBDevice : rclsid;
-
-    HWND hWnd = m_commonIntf->GetHWND();
-    if (unlikely(hWnd == nullptr))
-      Logger::debug("D3D6Interface::CreateDevice: HWND is NULL");
-
-    Com<DDraw4Surface> rt4;
-    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDS))) {
-      Logger::err("D3D6Interface::CreateDevice: Unwrapped surface passed as RT");
-      return DDERR_UNSUPPORTED;
-    } else {
-      rt4 = static_cast<DDraw4Surface*>(lpDDS);
-    }
-
-    // Clean up any previous device use, otherwise we can end up blitting
-    // on stale images from D3D9, as is observed in the case of 3DMark 2000.
-    // This is only relevant in the context of later swapchain resets.
-    rt4->GetCommonSurface()->RefreshD3DDevice();
 
     HRESULT hr = rt4->GetCommonSurface()->ValidateRTUsage(isHALDevice, true, false);
     if (unlikely(FAILED(hr)))
@@ -453,6 +449,10 @@ namespace dxvk {
                                                       m_commonD3DIntf->GetMultiSampleType(backBufferFormat) :
                                                       d3d9::D3DMULTISAMPLE_NONE;
 
+    HWND hWnd = m_commonIntf->GetHWND();
+    if (unlikely(hWnd == nullptr))
+      Logger::debug("D3D6Interface::CreateDevice: HWND is NULL");
+
     // Always appears to be enabled when running in non-exclusive mode
     const bool vBlankStatus = m_commonIntf->GetWaitForVBlank();
 
@@ -505,8 +505,10 @@ namespace dxvk {
       // Now that we have a valid common D3D device on the DDraw interface,
       // we can initialize the render target and depth stencil (if any)
       hr = device6->InitializeRTAndDS();
-      if (unlikely(FAILED(hr)))
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D6Interface::CreateDevice: Failed to initialize the render target");
         return hr;
+      }
 
       device6->GetCommonD3DDevice()->SetPresentRect(&presentRect);
 
