@@ -390,6 +390,41 @@ namespace dxvk {
     if (unlikely(lpDDS == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    Com<DDrawSurface> rt;
+    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDS))) {
+      // Nightmare Creatures passes an IDirectDrawSurface3 surface as RT
+      if (unlikely(DDrawCommonInterface::IsWrappedSurface(reinterpret_cast<IDirectDrawSurface3*>(lpDDS)))) {
+        DDraw3Surface* ddraw3Surface = reinterpret_cast<DDraw3Surface*>(lpDDS);
+        // A DDrawSurface usually exists, because a DDraw3Surface is obtained from it via
+        // QueryInterface, however the passed surface can be obtained by GetAttachedSurface() calls
+        // on IDirectDrawSurface3, in which case it will NOT have a preexisting DDrawSurface
+        rt = ddraw3Surface->GetCommonSurface()->GetDDSurface();
+        if (unlikely(rt == nullptr)) {
+          Com<IDirectDrawSurface> surface;
+          ddraw3Surface->GetProxied()->QueryInterface(__uuidof(IDirectDrawSurface), reinterpret_cast<void**>(&surface));
+          try {
+            rt = new DDrawSurface(ddraw3Surface->GetCommonSurface(), std::move(surface),
+                                  ddraw3Surface->GetCommonInterface()->GetDDInterface(), nullptr, false);
+          } catch (const DxvkError& e) {
+            Logger::err(e.message());
+            return DDERR_UNSUPPORTED;
+          }
+          // Treat the new surface as the previously non-existent parent for our DDraw3Surface
+          ddraw3Surface->UpdateParent(rt.ptr());
+        }
+      } else {
+        Logger::err("D3D5Interface::CreateDevice: Unwrapped surface passed as RT");
+        return DDERR_UNSUPPORTED;
+      }
+    } else {
+      rt = static_cast<DDrawSurface*>(lpDDS);
+    }
+
+    // Clean up any previous device use, otherwise we can end up blitting
+    // on stale images from D3D9, as is observed in the case of 3DMark 2000.
+    // This is only relevant in the context of later swapchain resets.
+    rt->GetCommonSurface()->RefreshD3DDevice();
+
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
 
     DWORD deviceCreationFlags9 = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
@@ -426,45 +461,6 @@ namespace dxvk {
 
     const IID rclsidOverride = halFallback ? IID_IDirect3DHALDevice :
                                rgbFallback ? IID_IDirect3DRGBDevice : rclsid;
-
-    HWND hWnd = m_commonIntf->GetHWND();
-    if (unlikely(hWnd == nullptr))
-      Logger::debug("D3D5Interface::CreateDevice: HWND is NULL");
-
-    Com<DDrawSurface> rt;
-    if (unlikely(!DDrawCommonInterface::IsWrappedSurface(lpDDS))) {
-      // Nightmare Creatures passes an IDirectDrawSurface3 surface as RT
-      if (unlikely(DDrawCommonInterface::IsWrappedSurface(reinterpret_cast<IDirectDrawSurface3*>(lpDDS)))) {
-        DDraw3Surface* ddraw3Surface = reinterpret_cast<DDraw3Surface*>(lpDDS);
-        // A DDrawSurface usually exists, because a DDraw3Surface is obtained from it via
-        // QueryInterface, however the passed surface can be obtained by GetAttachedSurface() calls
-        // on IDirectDrawSurface3, in which case it will NOT have a preexisting DDrawSurface
-        rt = ddraw3Surface->GetCommonSurface()->GetDDSurface();
-        if (unlikely(rt == nullptr)) {
-          Com<IDirectDrawSurface> surface;
-          ddraw3Surface->GetProxied()->QueryInterface(__uuidof(IDirectDrawSurface), reinterpret_cast<void**>(&surface));
-          try {
-            rt = new DDrawSurface(ddraw3Surface->GetCommonSurface(), std::move(surface),
-                                  ddraw3Surface->GetCommonInterface()->GetDDInterface(), nullptr, false);
-          } catch (const DxvkError& e) {
-            Logger::err(e.message());
-            return DDERR_UNSUPPORTED;
-          }
-          // Treat the new surface as the previously non-existent parent for our DDraw3Surface
-          ddraw3Surface->UpdateParent(rt.ptr());
-        }
-      } else {
-        Logger::err("D3D5Interface::CreateDevice: Unwrapped surface passed as RT");
-        return DDERR_UNSUPPORTED;
-      }
-    } else {
-      rt = static_cast<DDrawSurface*>(lpDDS);
-    }
-
-    // Clean up any previous device use, otherwise we can end up blitting
-    // on stale images from D3D9, as is observed in the case of 3DMark 2000.
-    // This is only relevant in the context of later swapchain resets.
-    rt->GetCommonSurface()->RefreshD3DDevice();
 
     HRESULT hr = rt->GetCommonSurface()->ValidateRTUsage(isHALDevice, true, true);
     if (unlikely(FAILED(hr)))
@@ -524,6 +520,10 @@ namespace dxvk {
                                                       m_commonD3DIntf->GetMultiSampleType(backBufferFormat) :
                                                       d3d9::D3DMULTISAMPLE_NONE;
 
+    HWND hWnd = m_commonIntf->GetHWND();
+    if (unlikely(hWnd == nullptr))
+      Logger::debug("D3D5Interface::CreateDevice: HWND is NULL");
+
     // Always appears to be enabled when running in non-exclusive mode
     const bool vBlankStatus = m_commonIntf->GetWaitForVBlank();
 
@@ -576,8 +576,10 @@ namespace dxvk {
       // Now that we have a valid common D3D device on the DDraw interface,
       // we can initialize the render target and depth stencil (if any)
       hr = device5->InitializeRTAndDS();
-      if (unlikely(FAILED(hr)))
+      if (unlikely(FAILED(hr))) {
+        Logger::err("D3D5Interface::CreateDevice: Failed to initialize the render target");
         return hr;
+      }
 
       device5->GetCommonD3DDevice()->SetPresentRect(&presentRect);
 
