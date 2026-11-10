@@ -106,19 +106,6 @@ namespace dxvk {
       return m_waitForVBlank;
     }
 
-    void UpdateIn8BitDisplayMode(bool in8BitDisplayMode) {
-      m_old8BitDisplayMode = m_in8BitDisplayMode;
-      m_in8BitDisplayMode = in8BitDisplayMode;
-    }
-
-    bool In8BitDisplayMode() const {
-      return m_in8BitDisplayMode;
-    }
-
-    bool WasIn8BitDisplayMode() const {
-      return m_old8BitDisplayMode;
-    }
-
     void SetCommonD3DDevice(D3DCommonDevice* commonD3DDevice) {
       m_commonD3DDevice = commonD3DDevice;
     }
@@ -247,6 +234,21 @@ namespace dxvk {
       return m_origin;
     }
 
+    static void SetDisplayModeBitDepth(DWORD displayModeBitDepth) {
+      s_prevDisplayModeBitDepth = s_displayModeBitDepth;
+      s_displayModeBitDepth = displayModeBitDepth;
+    }
+
+    static DWORD GetDisplayModeBitDepth() {
+      return s_displayModeBitDepth;
+    }
+
+    static void RestoreDisplayModeBitDepth() {
+      const DWORD currentDisplayModeBitDepth = s_displayModeBitDepth;
+      s_displayModeBitDepth = s_prevDisplayModeBitDepth;
+      s_prevDisplayModeBitDepth = currentDisplayModeBitDepth;
+    }
+
   private:
 
     inline void CacheDisplayModes(bool enumRefreshRates) {
@@ -316,15 +318,15 @@ namespace dxvk {
 
             DDSURFACEDESC2 modeDesc = { };
             modeDesc.dwSize = sizeof(DDSURFACEDESC2);
-            modeDesc.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;
+            // DDSD_REFRESHRATE appears to always be set, regardless of enumeration flags
+            modeDesc.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH | DDSD_PIXELFORMAT | DDSD_REFRESHRATE;
             modeDesc.dwWidth = mode.Width;
             modeDesc.dwHeight = mode.Height;
             modeDesc.ddpfPixelFormat = GetPixelFormatForD3D9AdapterFormat(adapterformat);
+            modeDesc.lPitch = mode.Width * (modeDesc.ddpfPixelFormat.dwRGBBitCount / 8u);
 
-            if (enumRefreshRates) {
-              modeDesc.dwFlags |= DDSD_REFRESHRATE;
+            if (enumRefreshRates)
               modeDesc.dwRefreshRate = mode.RefreshRate;
-            }
 
             m_displayModes.push_back(modeDesc);
 
@@ -355,10 +357,6 @@ namespace dxvk {
     bool                              m_waitForVBlank      = true;
     bool                              m_skipHWNDOverride   = false;
 
-    bool                              m_in8BitDisplayMode  = false;
-    // We also need to track the old state for RestoreDisplayMode()
-    bool                              m_old8BitDisplayMode = false;
-
     bool                              m_enumRefreshRates   = false;
 
     D3DCommonDevice*                  m_commonD3DDevice    = nullptr;
@@ -388,6 +386,10 @@ namespace dxvk {
     // Track the origin surface, as in the DDraw surface
     // that gets created through a DirectDrawCreate(Ex) call
     IUnknown*                         m_origin             = nullptr;
+
+    static DWORD                      s_displayModeBitDepth;
+    // We also need to track the old state for RestoreDisplayMode()
+    static DWORD                      s_prevDisplayModeBitDepth;
 
     // Tests have indicated that once created, texture handles are shared across
     // all devices and DDraw interfaces, regardless of their relation

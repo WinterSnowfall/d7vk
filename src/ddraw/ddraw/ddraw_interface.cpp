@@ -519,16 +519,18 @@ namespace dxvk {
     d3d9::D3DDISPLAYMODE displayMode9;
     d3d9Intf->GetAdapterDisplayMode(0, &displayMode9);
 
+    const DWORD currentDisplayModeBitDepth = DDrawCommonInterface::GetDisplayModeBitDepth();
+    const bool shouldMask8BitMode = currentDisplayModeBitDepth == 8u && m_commonIntf->GetOptions()->mask8BitModes;
+    const DWORD displayModeBitDepth = !shouldMask8BitMode ? currentDisplayModeBitDepth : 16u;
+
     DDSURFACEDESC displayMode = { };
     displayMode.dwSize = sizeof(DDSURFACEDESC);
-    displayMode.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT;
+    displayMode.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH | DDSD_REFRESHRATE | DDSD_PIXELFORMAT;
     displayMode.dwWidth = displayMode9.Width;
     displayMode.dwHeight = displayMode9.Height;
     displayMode.dwRefreshRate = displayMode9.RefreshRate;
-    if (!m_commonIntf->In8BitDisplayMode() || m_commonIntf->GetOptions()->mask8BitModes)
-      displayMode.ddpfPixelFormat = GetPixelFormatForD3D9AdapterFormat(displayMode9.Format);
-    else
-      displayMode.ddpfPixelFormat = GetPixelFormatForD3D9AdapterFormat(d3d9::D3DFMT_P8);
+    displayMode.ddpfPixelFormat = GetPixelFormatForBitDepth(displayModeBitDepth);
+    displayMode.lPitch = displayMode9.Width * (displayMode.ddpfPixelFormat.dwRGBBitCount / 8u);
 
     *lpDDSurfaceDesc = displayMode;
 
@@ -630,9 +632,13 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::RestoreDisplayMode() {
-    m_commonIntf->UpdateIn8BitDisplayMode(m_commonIntf->WasIn8BitDisplayMode());
+    HRESULT hr = m_proxy->RestoreDisplayMode();
+    if (unlikely(FAILED(hr)))
+      return hr;
 
-    return m_proxy->RestoreDisplayMode();
+    DDrawCommonInterface::RestoreDisplayModeBitDepth();
+
+    return DD_OK;
   }
 
   HRESULT STDMETHODCALLTYPE DDrawInterface::SetCooperativeLevel(HWND hWnd, DWORD dwFlags) {
@@ -664,15 +670,15 @@ namespace dxvk {
       if (unlikely(FAILED(hr)))
         return hr;
 
+      // Track the display mode bit depth, because Vulkan will only
+      // ever see 32-bit, since we are operating in windowed mode
+      DDrawCommonInterface::SetDisplayModeBitDepth(dwBPP);
+
       if (unlikely(dwBPP == 8u)) {
         static bool s_8bitDisplayModeWarningShown;
 
         if (!std::exchange(s_8bitDisplayModeWarningShown, true))
           Logger::warn("DDrawInterface::SetDisplayMode: Use of unsupported 8-bit mode");
-
-        m_commonIntf->UpdateIn8BitDisplayMode(true);
-      } else {
-        m_commonIntf->UpdateIn8BitDisplayMode(false);
       }
 
       DDrawCommonSurface* ps = m_commonIntf->GetPrimarySurface();

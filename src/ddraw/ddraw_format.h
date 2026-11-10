@@ -542,6 +542,7 @@ namespace dxvk {
 
   inline DDPIXELFORMAT GetPixelFormatForD3D9AdapterFormat(const d3d9::D3DFORMAT format9) {
     DDPIXELFORMAT returnPixelFormat = { };
+    returnPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
     switch (format9) {
       case d3d9::D3DFMT_X8R8G8B8:
@@ -569,6 +570,19 @@ namespace dxvk {
     }
 
     return returnPixelFormat;
+  }
+
+  inline DDPIXELFORMAT GetPixelFormatForBitDepth(DWORD bitDepth) {
+    switch (bitDepth) {
+      case 32u:
+        return GetPixelFormatForD3D9AdapterFormat(d3d9::D3DFMT_X8R8G8B8);
+      case 16u:
+        return GetPixelFormatForD3D9AdapterFormat(d3d9::D3DFMT_R5G6B5);
+      case 8u:
+        return GetPixelFormatForD3D9AdapterFormat(d3d9::D3DFMT_P8);
+      default:
+        return GetPixelFormatForD3D9AdapterFormat(d3d9::D3DFMT_UNKNOWN);
+    }
   }
 
   template <typename DescType>
