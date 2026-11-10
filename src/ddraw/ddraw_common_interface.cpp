@@ -14,6 +14,9 @@ namespace dxvk {
 
   std::atomic<D3DTEXTUREHANDLE> DDrawCommonInterface::s_textureHandle = { 0u };
 
+  DWORD DDrawCommonInterface::s_displayModeBitDepth     = 0u;
+  DWORD DDrawCommonInterface::s_prevDisplayModeBitDepth = 0u;
+
   DDrawCommonInterface::DDrawCommonInterface(const D3DOptions& d3dOptions)
     : m_d3dOptions ( d3dOptions ) {
   }
