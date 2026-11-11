@@ -63,7 +63,9 @@ namespace dxvk {
     DestroyBackBuffers();
 
     ResetWindowProc(m_window);
-    RestoreDisplayMode(m_monitor);
+    // In D3D7 and earlier we rely on DDraw to handle display modes
+    if (!m_parent->IsD3DCompatibile(D3DCompatibility::D3D7))
+      RestoreDisplayMode(m_monitor);
 
     for (auto& p : m_presenters) {
       if (p.second.presenter) {
