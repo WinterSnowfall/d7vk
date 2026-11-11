@@ -330,11 +330,26 @@ namespace dxvk {
     if (unlikely(lpEnumModesCallback == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    const bool filterDisplayModes = lpDDSurfaceDesc != nullptr;
+
     HRESULT hr = DDENUMRET_OK;
 
     for (auto& displayMode : m_commonIntf->GetDisplayModes(dwFlags & DDEDM_REFRESHRATES)) {
       if (hr != DDENUMRET_OK)
         break;
+
+      // Filter the available modes if we are required to do so
+      if (unlikely(filterDisplayModes)) {
+        if ((lpDDSurfaceDesc->dwFlags & DDSD_WIDTH) && lpDDSurfaceDesc->dwWidth != displayMode.dwWidth)
+          continue;
+        if ((lpDDSurfaceDesc->dwFlags & DDSD_HEIGHT) && lpDDSurfaceDesc->dwHeight != displayMode.dwHeight)
+          continue;
+        if ((lpDDSurfaceDesc->dwFlags & DDSD_PIXELFORMAT) && lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount !=
+                                                             displayMode.ddpfPixelFormat.dwRGBBitCount)
+          continue;
+        if ((lpDDSurfaceDesc->dwFlags & DDSD_REFRESHRATE) && lpDDSurfaceDesc->dwRefreshRate != displayMode.dwRefreshRate)
+          continue;
+      }
 
       DDSURFACEDESC2 returnDisplayMode = displayMode;
       hr = lpEnumModesCallback(&returnDisplayMode, lpContext);
