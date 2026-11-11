@@ -12,13 +12,27 @@
 
 namespace dxvk {
 
-  std::atomic<D3DTEXTUREHANDLE> DDrawCommonInterface::s_textureHandle = { 0u };
-
   DWORD DDrawCommonInterface::s_displayModeBitDepth     = 0u;
   DWORD DDrawCommonInterface::s_prevDisplayModeBitDepth = 0u;
 
-  DDrawCommonInterface::DDrawCommonInterface(const D3DOptions& d3dOptions)
-    : m_d3dOptions ( d3dOptions ) {
+  std::atomic<D3DTEXTUREHANDLE> DDrawCommonInterface::s_textureHandle = { 0u };
+
+  DDrawCommonInterface::DDrawCommonInterface(
+        Com<d3d9::IDirect3D9>&& d3d9Intf,
+        IDxvkLegacyD3DInterfaceBridge* intfBridge)
+    : m_d3dOptions ( D3DOptions(*intfBridge->GetConfig()) )
+    , m_d3d9Intf   ( std::move(d3d9Intf) ) {
+    if (unlikely(!s_displayModeBitDepth)) {
+      d3d9::D3DDISPLAYMODE displayMode9;
+      HRESULT hr = m_d3d9Intf->GetAdapterDisplayMode(0, &displayMode9);
+      if (unlikely(FAILED(hr)))
+        Logger::warn("DDrawCommonInterface: Failed to retrieve initial D3D9 adapter display mode");
+
+      // It's expected this will be 32-bit initially, but determine it based on actual reporting
+      const DDPIXELFORMAT modePixelFormat = GetPixelFormatForD3D9AdapterFormat(displayMode9.Format);
+      DDrawCommonInterface::s_displayModeBitDepth = modePixelFormat.dwRGBBitCount;
+      DDrawCommonInterface::s_prevDisplayModeBitDepth = modePixelFormat.dwRGBBitCount;
+    }
   }
 
   DDrawCommonInterface::~DDrawCommonInterface() {
