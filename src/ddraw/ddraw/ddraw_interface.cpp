@@ -27,14 +27,12 @@ namespace dxvk {
       if (unlikely(d3d9IntfInit == nullptr))
         throw DxvkError("DDrawInterface: ERROR! Failed to create the D3D9 interface!");
 
-      Com<IDxvkLegacyD3DInterfaceBridge> d3d9Bridge;
-      HRESULT hr = d3d9IntfInit->QueryInterface(__uuidof(IDxvkLegacyD3DInterfaceBridge), reinterpret_cast<void**>(&d3d9Bridge));
+      Com<IDxvkLegacyD3DInterfaceBridge> intfBridge;
+      HRESULT hr = d3d9IntfInit->QueryInterface(__uuidof(IDxvkLegacyD3DInterfaceBridge), reinterpret_cast<void**>(&intfBridge));
       if (unlikely(FAILED(hr)))
         throw DxvkError("DDrawInterface: ERROR! Failed to get D3D9 Bridge. d3d9.dll might not be DXVK!");
 
-      m_commonIntf = new DDrawCommonInterface(D3DOptions(*d3d9Bridge->GetConfig()));
-
-      m_commonIntf->SetD3D9Interface(std::move(d3d9IntfInit));
+      m_commonIntf = new DDrawCommonInterface(std::move(d3d9IntfInit), intfBridge.ptr());
     }
 
     if (m_commonIntf->GetOrigin() == nullptr)
