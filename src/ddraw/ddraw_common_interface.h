@@ -33,7 +33,9 @@ namespace dxvk {
 
   public:
 
-    DDrawCommonInterface(const D3DOptions& options);
+    DDrawCommonInterface(
+          Com<d3d9::IDirect3D9>&& d3d9Intf,
+          IDxvkLegacyD3DInterfaceBridge* intfBridge);
 
     ~DDrawCommonInterface();
 
@@ -178,10 +180,6 @@ namespace dxvk {
       return &m_d3dOptions;
     }
 
-    void SetD3D9Interface(Com<d3d9::IDirect3D9>&& d3d9Intf) {
-      m_d3d9Intf = std::move(d3d9Intf);
-    }
-
     d3d9::IDirect3D9* GetD3D9Interface() const {
       return m_d3d9Intf.ptr();
     }
@@ -235,8 +233,7 @@ namespace dxvk {
     }
 
     static void SetDisplayModeBitDepth(DWORD displayModeBitDepth) {
-      s_prevDisplayModeBitDepth = s_displayModeBitDepth;
-      s_displayModeBitDepth = displayModeBitDepth;
+      s_prevDisplayModeBitDepth = std::exchange(s_displayModeBitDepth, displayModeBitDepth);
     }
 
     static DWORD GetDisplayModeBitDepth() {
@@ -244,9 +241,7 @@ namespace dxvk {
     }
 
     static void RestoreDisplayModeBitDepth() {
-      const DWORD currentDisplayModeBitDepth = s_displayModeBitDepth;
-      s_displayModeBitDepth = s_prevDisplayModeBitDepth;
-      s_prevDisplayModeBitDepth = currentDisplayModeBitDepth;
+      std::swap(s_displayModeBitDepth, s_prevDisplayModeBitDepth);
     }
 
   private:
