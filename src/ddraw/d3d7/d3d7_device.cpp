@@ -1306,6 +1306,11 @@ namespace dxvk {
     DDraw7Surface* surface7 = static_cast<DDraw7Surface*>(surface);
     DDrawCommonSurface* commonSurface = surface7->GetCommonSurface();
 
+    if (unlikely(commonSurface->IsPalettedFormat())) {
+      Logger::err("D3D7Device::SetTexture: Unsupported use of paletted texture");
+      return DDERR_UNSUPPORTED;
+    }
+
     // If textures have been used on a different device, they
     // will get their D3D9 object reinitialized at this point
     if (unlikely(commonSurface->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))
