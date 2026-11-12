@@ -412,6 +412,10 @@ namespace dxvk {
       }
     }
 
+    bool IsPalettedFormat() const {
+      return m_format9 == d3d9::D3DFMT_P8;
+    }
+
     // D3D7 is a bit more sane here, as always, so handle it separately
     HRESULT ValidateRTUsage7(bool isHALOrTNLHALDevice, bool isDeviceCreation) const {
       // Render targets require the DDSCAPS_3DDEVICE flag
@@ -425,7 +429,7 @@ namespace dxvk {
         return isDeviceCreation ? DDERR_INVALIDCAPS : DDERR_INVALIDPIXELFORMAT;
       }
       // DXVK doesn't support P8 render targets, so pretend these are always invalid
-      if (unlikely(m_format9 == d3d9::D3DFMT_P8)) {
+      if (unlikely(IsPalettedFormat())) {
         Logger::err("DDrawCommonSurface::ValidateRTUsage: Invalid P8 render target");
         return isDeviceCreation ? DDERR_NOPALETTEATTACHED : DDERR_INVALIDPARAMS;
       }
@@ -453,7 +457,7 @@ namespace dxvk {
         return isDeviceCreation ? DDERR_INVALIDCAPS : DDERR_INVALIDPIXELFORMAT;
       }
       // DXVK doesn't support P8 render targets, so pretend these are always invalid
-      if (unlikely(m_format9 == d3d9::D3DFMT_P8)) {
+      if (unlikely(IsPalettedFormat())) {
         Logger::err("DDrawCommonSurface::ValidateRTUsage: Invalid P8 render target");
         return isDeviceCreation ? DDERR_NOPALETTEATTACHED : DDERR_INVALIDPARAMS;
       }
@@ -465,20 +469,6 @@ namespace dxvk {
       }
 
       return DD_OK;
-    }
-
-    bool SkipD3D9Operations() const {
-      // Skip all D3D9 operations on P8 textures/surfaces, since DXVK doesn't support them
-      if (unlikely(m_format9 == d3d9::D3DFMT_P8)) {
-        static bool s_formatP8ErrorShown;
-
-        if (!std::exchange(s_formatP8ErrorShown, true))
-          Logger::warn("DDrawCommonSurface: Unsupported format D3DFMT_P8");
-
-        return true;
-      }
-
-      return false;
     }
 
     void ListSurfaceDetails() const {
@@ -561,7 +551,7 @@ namespace dxvk {
       // refresh normalized color key range (if present)
       static constexpr DDCOLORKEY DefaultColorKey = { 0u, 0u };
       // ignore normalized color key calculations on P8 surfaces
-      m_ckNormalized = !SkipD3D9Operations() && HasValidColorKey() ? UpdateColorKeyNormalized() : DefaultColorKey;
+      m_ckNormalized = !IsPalettedFormat() && HasValidColorKey() ? UpdateColorKeyNormalized() : DefaultColorKey;
     }
 
     inline DDCOLORKEY UpdateColorKeyNormalized() const {

@@ -1543,6 +1543,11 @@ namespace dxvk {
     DDrawSurface* surface = commonTex->GetDDSurface();
     DDrawCommonSurface* commonSurface = surface->GetCommonSurface();
 
+    if (unlikely(commonSurface->IsPalettedFormat())) {
+      Logger::err("D3D3Device::SetTextureInternal: Unsupported use of paletted texture");
+      return DDERR_UNSUPPORTED;
+    }
+
     // If textures have been used on a different device, they
     // will get their D3D9 object reinitialized at this point
     if (unlikely(commonSurface->GetCommonD3DDevice() != m_commonD3DDevice.ptr()))

@@ -33,13 +33,9 @@ namespace dxvk {
       // Retrieve and cache the proxy surface desc
       DDSURFACEDESC desc;
       desc.dwSize = sizeof(DDSURFACEDESC);
-      HRESULT hr = m_proxy->GetSurfaceDesc(&desc);
+      m_proxy->GetSurfaceDesc(&desc);
 
-      if (unlikely(FAILED(hr))) {
-        throw DxvkError("DDraw3Surface: ERROR! Failed to retrieve new surface desc!");
-      } else {
-        m_commonSurf->SetDesc(desc);
-      }
+      m_commonSurf->SetDesc(desc);
     }
 
     // We need to keep the IDirectDrawSurface parent around, since we're entirely dependent on it.
@@ -66,7 +62,7 @@ namespace dxvk {
     if (unlikely(m_commonSurf->IsPrimarySurface() &&
                  m_commonIntf->GetOptions()->forceLegacyPresent &&
                  m_parent != nullptr &&
-                !m_commonSurf->SkipD3D9Operations())) {
+                !m_commonSurf->IsPalettedFormat())) {
       // For IDirectDrawSurface3, we'll use the parent's shadow surface as reference
       IDirectDrawSurface* ddrawShadowSurface = m_parent->GetShadowSurfaceProxied();
       if (likely(ddrawShadowSurface != nullptr)) {
@@ -831,19 +827,11 @@ namespace dxvk {
     DDrawPalette* ddrawPalette = static_cast<DDrawPalette*>(lpDDPalette);
 
     // A nullptr lpDDPalette gets the current palette detached
-    HRESULT hr = m_proxy->SetPalette(ddrawPalette != nullptr ? ddrawPalette->GetProxied() : nullptr);
+    HRESULT hr = GetProxiedOrShadow()->SetPalette(ddrawPalette != nullptr ? ddrawPalette->GetProxied() : nullptr);
     if (unlikely(FAILED(hr)))
       return hr;
 
     m_commonSurf->SetPalette(ddrawPalette);
-
-    // Palettes are used during blits, so make sure the shadow surface is in sync
-    if (unlikely(m_shadowSurf != nullptr)) {
-      hr = m_shadowSurf->GetProxied()->SetPalette(ddrawPalette != nullptr ? ddrawPalette->GetProxied() : nullptr);
-      if (unlikely(FAILED(hr)))
-        Logger::warn("DDraw3Surface::SetPalette: Failed to set shadow surface palette");
-    }
-
     m_commonSurf->DirtyDDrawSurface();
 
     // We don't currently support P8 primary surfaces
@@ -968,8 +956,7 @@ namespace dxvk {
   }
 
   HRESULT DDraw3Surface::InitializeOrUploadD3D9() {
-    // Currently ignores all P8 surfaces
-    if (unlikely(m_commonSurf->SkipD3D9Operations()))
+    if (unlikely(m_commonSurf->IsPalettedFormat()))
       return DD_OK;
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->GetRefreshedD3D9Device();

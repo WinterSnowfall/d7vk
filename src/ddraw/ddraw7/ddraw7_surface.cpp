@@ -36,13 +36,9 @@ namespace dxvk {
       // Retrieve and cache the proxy surface desc
       DDSURFACEDESC2 desc;
       desc.dwSize = sizeof(DDSURFACEDESC2);
-      HRESULT hr = m_proxy->GetSurfaceDesc(&desc);
+      m_proxy->GetSurfaceDesc(&desc);
 
-      if (unlikely(FAILED(hr))) {
-        throw DxvkError("DDraw7Surface: ERROR! Failed to retrieve new surface desc!");
-      } else {
-        m_commonSurf->SetDesc(desc);
-      }
+      m_commonSurf->SetDesc(desc);
     }
 
     // Retrieve and cache the next surface in a flippable chain
@@ -62,7 +58,7 @@ namespace dxvk {
     if (unlikely(m_commonSurf->IsPrimarySurface() &&
                  m_commonIntf->GetOptions()->forceLegacyPresent &&
                  ddraw7Intf != nullptr &&
-                !m_commonSurf->SkipD3D9Operations())) {
+                !m_commonSurf->IsPalettedFormat())) {
       const DDSURFACEDESC2* surfaceDesc = m_commonSurf->GetDesc();
 
       DDSURFACEDESC2 shadowDesc = { };
@@ -895,19 +891,11 @@ namespace dxvk {
     DDrawPalette* ddrawPalette = static_cast<DDrawPalette*>(lpDDPalette);
 
     // A nullptr lpDDPalette gets the current palette detached
-    HRESULT hr = m_proxy->SetPalette(ddrawPalette != nullptr ? ddrawPalette->GetProxied() : nullptr);
+    HRESULT hr = GetProxiedOrShadow()->SetPalette(ddrawPalette != nullptr ? ddrawPalette->GetProxied() : nullptr);
     if (unlikely(FAILED(hr)))
       return hr;
 
     m_commonSurf->SetPalette(ddrawPalette);
-
-    // Palettes are used during blits, so make sure the shadow surface is in sync
-    if (unlikely(m_shadowSurf != nullptr)) {
-      hr = m_shadowSurf->GetProxied()->SetPalette(ddrawPalette != nullptr ? ddrawPalette->GetProxied() : nullptr);
-      if (unlikely(FAILED(hr)))
-        Logger::warn("DDraw7Surface::SetPalette: Failed to set shadow surface palette");
-    }
-
     m_commonSurf->DirtyDDrawSurface();
 
     // We don't currently support P8 primary surfaces
@@ -1132,8 +1120,7 @@ namespace dxvk {
   }
 
   HRESULT DDraw7Surface::InitializeD3D9RenderTarget() {
-    // Currently ignores all P8 surfaces
-    if (unlikely(m_commonSurf->SkipD3D9Operations()))
+    if (unlikely(m_commonSurf->IsPalettedFormat()))
       return DD_OK;
 
     m_commonSurf->RefreshD3DDevice();
@@ -1171,8 +1158,7 @@ namespace dxvk {
   }
 
   HRESULT DDraw7Surface::InitializeOrUploadD3D9() {
-    // Currently ignores all P8 surfaces
-    if (unlikely(m_commonSurf->SkipD3D9Operations()))
+    if (unlikely(m_commonSurf->IsPalettedFormat()))
       return DD_OK;
 
     d3d9::IDirect3DDevice9* d3d9Device = m_commonSurf->GetRefreshedD3D9Device();
