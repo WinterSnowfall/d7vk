@@ -118,6 +118,9 @@ namespace dxvk {
     /// Allow cross-device resource (surfaces/textures) use
     bool deviceResourceSharing;
 
+    /// Reports an estimated free texture memory amount or simply reports 0
+    bool reportFreeTextureMemory;
+
     /// Masks the color key values based on surface format color depth
     bool colorKeyMasking;
 

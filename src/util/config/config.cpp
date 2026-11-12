@@ -1782,9 +1782,11 @@ namespace dxvk {
     /**********************************************/
 
     /* Drakan: Order of the Flame                 *
-     * Fixes physics glitches at over 60 FPS      */
+     * Fixes physics glitches at over 60 FPS      *
+     * and depth precision with lens flares       */
     { R"(\\Drakan\.exe$)", {{
       { "d3d9.maxFrameRate",                 "-60" },
+      { "ddraw.useD16forD24X8",             "True" },
     }} },
     /* O.R.B: Off-World Resource Base             */
     { R"(\\orb\.exe$)", {{
@@ -2161,9 +2163,13 @@ namespace dxvk {
     { R"(\\ResidentEvil\.exe$)", {{
       { "ddraw.alternatePixelCenter",     "Legacy" },
     }} },
-    /* Star Trek: Starfleet Academy               */
+    /* Star Trek: Starfleet Academy               *
+     * Works around a game bug that releases      *
+     * VRAM textures if it detects too much       *
+     * remaining free texture memory              */
     { R"(\\sfad3d\.exe$)", {{
       { "ddraw.forceLegacyPresent",         "True" },
+      { "ddraw.reportFreeTextureMemory",   "False" },
     }} },
 
   };

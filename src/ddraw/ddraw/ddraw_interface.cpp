@@ -469,8 +469,8 @@ namespace dxvk {
 
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
     // Properly fill in the dwVidMemTotal / dwVidMemFree fields
-    DWORD total9 = 0;
-    DWORD free9  = 0;
+    DWORD total9 = 0u;
+    DWORD free9  = 0u;
 
     D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
     if (likely(commonD3DDevice != nullptr)) {
@@ -482,14 +482,14 @@ namespace dxvk {
       if (likely(total9 >= MaxMemory)) {
         const DWORD delta = total9 - MaxMemory;
         total9 = MaxMemory - ReservedMemory;
-        free9 = free9 > delta + ReservedMemory ? free9 - (delta + ReservedMemory) : 0;
+        free9 = free9 > delta + ReservedMemory ? free9 - (delta + ReservedMemory) : 0u;
       }
 
       //Logger::debug(str::format("DDrawInterface::GetCaps: Total: ", total9));
       //Logger::debug(str::format("DDrawInterface::GetCaps: Free : ", free9));
     } else {
-      const DWORD total3 = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemTotal : 0;
-      const DWORD free3  = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemFree  : 0;
+      const DWORD total3 = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemTotal : 0u;
+      const DWORD free3  = lpDDDriverCaps != nullptr ? lpDDDriverCaps->dwVidMemFree  : 0u;
 
       //Logger::debug(str::format("DDrawInterface::GetCaps: DDraw Total: ", total3));
       //Logger::debug(str::format("DDrawInterface::GetCaps: DDraw Free : ", free3));
@@ -500,7 +500,7 @@ namespace dxvk {
       } else {
         const DWORD delta = total3 - MaxMemory;
         total9 = MaxMemory - ReservedMemory;
-        free9 = free3 > delta + ReservedMemory ? free3 - (delta + ReservedMemory) : 0;
+        free9 = free3 > delta + ReservedMemory ? free3 - (delta + ReservedMemory) : 0u;
       }
 
       //Logger::debug(str::format("DDrawInterface::GetCaps: Total: ", total9));
@@ -510,13 +510,13 @@ namespace dxvk {
     if (lpDDDriverCaps != nullptr) {
       lpDDDriverCaps->dwZBufferBitDepths = d3dOptions->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
       lpDDDriverCaps->dwVidMemTotal = total9;
-      lpDDDriverCaps->dwVidMemFree  = free9;
+      lpDDDriverCaps->dwVidMemFree  = d3dOptions->reportFreeTextureMemory ? free9 : 0u;
       lpDDDriverCaps->dwNumFourCCCodes = ddrawCaps::NumberOfFOURCCCodes;
     }
     if (lpDDHELCaps != nullptr) {
       lpDDHELCaps->dwZBufferBitDepths = d3dOptions->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
       lpDDHELCaps->dwVidMemTotal = total9;
-      lpDDHELCaps->dwVidMemFree  = free9;
+      lpDDHELCaps->dwVidMemFree  = d3dOptions->reportFreeTextureMemory ? free9 : 0u;
       lpDDHELCaps->dwNumFourCCCodes = ddrawCaps::NumberOfFOURCCCodes;
     }
 

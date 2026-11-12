@@ -427,8 +427,8 @@ namespace dxvk {
 
     const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
     // Properly fill in the dwVidMemTotal / dwVidMemFree fields
-    DWORD total9 = 0;
-    DWORD free9  = 0;
+    DWORD total9 = 0u;
+    DWORD free9  = 0u;
 
     D3DCommonDevice* commonD3DDevice = m_commonIntf->GetCommonD3DDevice();
     if (likely(commonD3DDevice != nullptr)) {
@@ -440,7 +440,7 @@ namespace dxvk {
       if (likely(total9 >= MaxMemory)) {
         const DWORD delta = total9 - MaxMemory;
         total9 = MaxMemory - ReservedMemory;
-        free9 = free9 > delta + ReservedMemory ? free9 - (delta + ReservedMemory) : 0;
+        free9 = free9 > delta + ReservedMemory ? free9 - (delta + ReservedMemory) : 0u;
       }
 
       //Logger::debug(str::format("DDraw7Interface::GetCaps: Total: ", total9));
@@ -458,7 +458,7 @@ namespace dxvk {
       } else {
         const DWORD delta = total7 - MaxMemory;
         total9 = MaxMemory - ReservedMemory;
-        free9 = free7 > delta + ReservedMemory ? free7 - (delta + ReservedMemory) : 0;
+        free9 = free7 > delta + ReservedMemory ? free7 - (delta + ReservedMemory) : 0u;
       }
 
       //Logger::debug(str::format("DDraw7Interface::GetCaps: Total: ", total9));
@@ -470,7 +470,7 @@ namespace dxvk {
       lpDDDriverCaps->dwCaps2 |= DDCAPS2_FLIPINTERVAL | DDCAPS2_FLIPNOVSYNC;
       lpDDDriverCaps->dwZBufferBitDepths = d3dOptions->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
       lpDDDriverCaps->dwVidMemTotal = total9;
-      lpDDDriverCaps->dwVidMemFree  = free9;
+      lpDDDriverCaps->dwVidMemFree  = d3dOptions->reportFreeTextureMemory ? free9 : 0u;
       lpDDDriverCaps->dwNumFourCCCodes = ddrawCaps::NumberOfFOURCCCodes;
     }
     if (lpDDHELCaps != nullptr) {
@@ -478,7 +478,7 @@ namespace dxvk {
       lpDDHELCaps->dwCaps2 |= DDCAPS2_FLIPINTERVAL | DDCAPS2_FLIPNOVSYNC;
       lpDDHELCaps->dwZBufferBitDepths = d3dOptions->supportD16 ? DDBD_16 | DDBD_24 : DDBD_24;
       lpDDHELCaps->dwVidMemTotal = total9;
-      lpDDHELCaps->dwVidMemFree  = free9;
+      lpDDHELCaps->dwVidMemFree  = d3dOptions->reportFreeTextureMemory ? free9 : 0u;
       lpDDHELCaps->dwNumFourCCCodes = ddrawCaps::NumberOfFOURCCCodes;
     }
 
@@ -703,6 +703,8 @@ namespace dxvk {
     if (unlikely(lpdwTotal == nullptr && lpdwFree == nullptr))
       return DD_OK;
 
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
     static constexpr DWORD Megabytes = 1024 * 1024;
     static constexpr DWORD MaxMemory = ddrawCaps::MaxTextureMemory * Megabytes;
     static constexpr DWORD ReservedMemory = ddrawCaps::ReservedTextureMemory * Megabytes;
@@ -717,7 +719,7 @@ namespace dxvk {
       if (likely(total9 >= MaxMemory)) {
         const DWORD delta = total9 - MaxMemory;
         total9 = MaxMemory - ReservedMemory;
-        free9 = free9 > delta + ReservedMemory ? free9 - (delta + ReservedMemory) : 0;
+        free9 = free9 > delta + ReservedMemory ? free9 - (delta + ReservedMemory) : 0u;
       }
 
       //Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: Total: ", total9));
@@ -726,27 +728,27 @@ namespace dxvk {
       if (lpdwTotal != nullptr)
         *lpdwTotal = total9;
       if (lpdwFree != nullptr)
-        *lpdwFree  = free9;
+        *lpdwFree  = d3dOptions->reportFreeTextureMemory ? free9 : 0u;
 
     } else {
-      DWORD total7 = 0;
-      DWORD free7  = 0;
+      DWORD total7 = 0u;
+      DWORD free7  = 0u;
 
       HRESULT hr = m_proxy->GetAvailableVidMem(lpDDCaps, &total7, &free7);
       if (unlikely(FAILED(hr))) {
         Logger::err("DDraw7Interface::GetAvailableVidMem: Failed proxied call");
         if (lpdwTotal != nullptr)
-          *lpdwTotal = 0;
+          *lpdwTotal = 0u;
         if (lpdwFree != nullptr)
-          *lpdwFree  = 0;
+          *lpdwFree  = 0u;
         return hr;
       }
 
       //Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: DDraw Total: ", total7));
       //Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: DDraw Free : ", free7));
 
-      DWORD total9 = 0;
-      DWORD free9  = 0;
+      DWORD total9 = 0u;
+      DWORD free9  = 0u;
 
       if (unlikely(total7 < MaxMemory)) {
         total9 = total7;
@@ -754,7 +756,7 @@ namespace dxvk {
       } else {
         const DWORD delta = total7 - MaxMemory;
         total9 = MaxMemory - ReservedMemory;
-        free9 = free7 > delta + ReservedMemory ? free7 - (delta + ReservedMemory) : 0;
+        free9 = free7 > delta + ReservedMemory ? free7 - (delta + ReservedMemory) : 0u;
       }
 
       //Logger::debug(str::format("DDraw7Interface::GetAvailableVidMem: Total: ", total9));
@@ -763,7 +765,7 @@ namespace dxvk {
       if (lpdwTotal != nullptr)
         *lpdwTotal = total9;
       if (lpdwFree != nullptr)
-        *lpdwFree  = free9;
+        *lpdwFree  = d3dOptions->reportFreeTextureMemory ? free9 : 0u;
     }
 
     return DD_OK;

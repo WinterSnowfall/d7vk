@@ -32,6 +32,7 @@ namespace dxvk {
     this->forceProxiedGammaRamp   = config.getOption<bool>("ddraw.forceProxiedGammaRamp",   false);
     this->autoGenMipMaps          = config.getOption<bool>("ddraw.autoGenMipMaps",          false);
     this->deviceResourceSharing   = config.getOption<bool>("ddraw.deviceResourceSharing",   false);
+    this->reportFreeTextureMemory = config.getOption<bool>("ddraw.reportFreeTextureMemory",  true);
     this->colorKeyMasking         = config.getOption<bool>("ddraw.colorKeyMasking",         false);
     this->legacyDeviceNames       = config.getOption<bool>("ddraw.legacyDeviceNames",       false);
     this->nonLocalVideoMemory     = config.getOption<bool>("ddraw.nonLocalVideoMemory",      true);
