@@ -281,7 +281,9 @@ namespace dxvk {
           // The modes we get from D3D9 are already sorted by size,
           // so we can compact modes based on refresh rates if needed
           if (enumRefreshRates || (lastWidth != mode.Width || lastHeight != mode.Height)) {
-            if (m_d3dOptions.maskLowRefreshRateModes && mode.RefreshRate < 60) {
+            // Some monitors may report a fractional 59.x Hz instead of
+            // a clear 60 Hz, so be a bit more lenient with the filter
+            if (m_d3dOptions.maskLowRefreshRateModes && mode.RefreshRate < 59u) {
               static bool s_modeLowRefreshRateWarningShown;
 
               if (!std::exchange(s_modeLowRefreshRateWarningShown, true))

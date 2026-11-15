@@ -370,6 +370,13 @@ namespace dxvk {
     if (unlikely(lpEnumModesCallback == nullptr))
       return DDERR_INVALIDPARAMS;
 
+    if (unlikely(dwFlags & DDEDM_STANDARDVGAMODES)) {
+      static bool s_standardVGAModesWarningShown;
+
+      if (!std::exchange(s_standardVGAModesWarningShown, true))
+        Logger::warn("DDrawInterface::EnumDisplayModes: Unhandled flag DDEDM_STANDARDVGAMODES");
+    }
+
     const bool filterDisplayModes = lpDDSurfaceDesc != nullptr;
 
     HRESULT hr = DDENUMRET_OK;
