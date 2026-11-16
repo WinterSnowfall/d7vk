@@ -701,7 +701,9 @@ namespace dxvk {
       d3d9Device->Present(NULL, presentRect, NULL, NULL);
 
     } else {
-      return m_proxy->Flip(overrideSurf != nullptr ? overrideSurf->GetProxied() : nullptr, dwFlags);
+      HRESULT hr = m_proxy->Flip(overrideSurf != nullptr ? overrideSurf->GetProxied() : nullptr, dwFlags);
+      if (unlikely(FAILED(hr)))
+        return hr;
     }
 
     return DD_OK;

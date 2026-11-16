@@ -642,10 +642,12 @@ namespace dxvk {
       d3d9Device->Present(NULL, presentRect, NULL, NULL);
 
     } else {
+      HRESULT hr = m_proxy->Flip(overrideSurf != nullptr ? overrideSurf->GetProxied() : nullptr, dwFlags);
+      if (unlikely(FAILED(hr)))
+        return hr;
+
       // Update the VBlank wait status based on the flip flags
       m_commonIntf->SetWaitForVBlank(IsVSyncFlipFlag(dwFlags));
-
-      return m_proxy->Flip(overrideSurf != nullptr ? overrideSurf->GetProxied() : nullptr, dwFlags);
     }
 
     return DD_OK;
