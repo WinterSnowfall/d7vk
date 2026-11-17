@@ -15,7 +15,7 @@ A Vulkan-based translation layer for Direct3D 7, 6, 5 and 3, which allows runnin
 
 ### Will D7VK work with every game out there?
 
-Sadly, no. DDraw and older D3D is a land of highly cursed API interoperability, and applications that for one reason or another mix and match D3D7/6/5/3/DDraw with GDI are generally not expected to work properly. In such cases, if games provide alternative renderers, based on Glide or OpenGL, I strongly recommend you use those, together with [nGlide](https://www.zeus-software.com/downloads/nglide) where applicable.
+Sadly, no. DDraw and older D3D is a land of highly cursed API interoperability, and applications that for one reason or another mix and match D3D7/6/5/3/DDraw with GDI are generally not expected to work properly. In such cases, if games provide alternative renderers, based on Glide or OpenGL, I strongly recommend you use those, together with [GXVK](https://github.com/CkNoSFeRaTU/gxvk/releases) or [nGlide](https://www.zeus-software.com/downloads/nglide) where applicable.
 
 > [!TIP]
 > If you're wondering about the current state of a certain game, a good starting point would be checking [the issue tracker](https://github.com/WinterSnowfall/d7vk/issues).
@@ -36,12 +36,7 @@ All APIs prior to D3D8 fall under the cursed umbrella of DDraw, so it makes abso
 
 ### I don't have a Vulkan 1.4 capable GPU, so I can't use D7VK!
 
-Then this is your lucky day, because through the efforts of [pythonlover02](https://github.com/pythonlover02), D7VK, aka D3D7/6/5/3 support for DXVK, was ported back to [DXVK-Sarek](https://github.com/pythonlover02/DXVK-Sarek). Apart from a few missing features (see below), you're getting everything D7VK has to offer, and you can now run it even on a Vulkan 1.1 capable GPU.
-
-> [!WARNING]
-> Support for the following D3D7/6/5/3 features is missing in the now ancient DXVK-Sarek backend:
-> - Dynamic (application-controlled) FSAA states
-> - 8-bit R3G3B2 surfaces
+Then this is your lucky day, because through the efforts of [pythonlover02](https://github.com/pythonlover02), D7VK, aka D3D7/6/5/3 support for DXVK, was ported back to [DXVK-Sarek](https://github.com/pythonlover02/DXVK-Sarek). Apart from a few features which are missing in Sarek's aging codebase, you're getting everything D7VK has to offer, and you can now run it even on a Vulkan 1.1 capable GPU.
 
 ### On Wayland all I get is a tiny picture on the top left corner of my screen, help!
 
@@ -54,14 +49,14 @@ The best way to address such issues is to either use Gamescope's resolution spoo
 
 ### Will DXVK's D3D9 config options, such as frame rate limits, work with D7VK?
 
-Yes, because D7VK relies on DXVK's D3D9 backend, so everything ends up there anyway.
+Yes, because D7VK relies on DXVK's D3D9 Vulkan backend, so everything ends up there anyway.
 
 ### VSync isn't turning off/on although the application lets me control it. What gives?
 
 VSync is enabled by default with older D3D, and thus also in D7VK. In fact, older D3D devices have to explicitly expose support for being able to _turn off_ VSync, since not all of them were capable of doing it back in the day. Due to problematic implementations, given limited hardware support at the time, changing the default behavior may simply not work reliably, even if an option is provided.
 
 > [!NOTE]
-> D7VK properly supports disabling VSync if applications consistently perform flips using the `DDFLIP_NOVSYNC` flag, e.g. _Unreal Tournament_ with the OldUnreal patch applied, _Re-Volt_, _3DMark 2000_ and others.
+> D7VK properly supports disabling VSync if applications perform flips using the `DDFLIP_NOVSYNC` flag, e.g. _Unreal Tournament_ with the OldUnreal patch applied, _Re-Volt_, _3DMark 2000_ and others.
 
 That being said, D7VK will also enforce various frame rate limits, provided as built-in config options, for games that are known to break or suffer from various bugs at high frame rates. These situations are very much an issue on high refresh rate displays, regardless of VSync.
 
@@ -106,7 +101,7 @@ Because DXVK's development team have made it clear they are not interested in me
 
 ## How to use
 
-Grab the latest release or compile the project manually if you want to be "on the bleeding edge".
+Grab the latest release or compile the project manually if you want to be "on the bleeding edge". CI builds are also available, for a limited duration, as part of the project's Actions tab.
 
 > [!WARNING]
 > Please keep in mind that ABSOLUTELY NO TESTING is done on Windows. D7VK is developed on and primarily aimed at use with Wine/Linux, so your mileage may vary in other situations.
@@ -121,7 +116,7 @@ On Linux, if you only want to give it a test in a Wine prefix of choice or only 
 The more permanent and recommended deployment approach on Linux, which is in fact required by some games, such as _GTA 2_, _StarLancer_, _Midtown Madness 2_ and others, is to rename the system path Wine `ddraw.dll` file to `ddraw_.dll` and then copy D7VK's `ddraw.dll` in your `system32` (for a 32-bit prefix) or `syswow64` (for a 64-bit prefix) system path, in order to stand in its place. D7VK will prioritize loading the `ddraw_.dll` file from its current path before trying to load `ddraw.dll` from the system path, in order to accommodate both methods of use. You will need to set up proper dll overrides in Wine even in this case, as described above.
 
 > [!CAUTION]
-> Simply copying D7VK's `ddraw.dll` in your system path and replacing Wine's will NOT work, as D7VK doesn't implement DDraw, and as such it needs access to an actual DDraw implementation for any level of D3D to work.
+> Simply copying D7VK's `ddraw.dll` in your system path and replacing Wine's will NOT work, since D7VK doesn't implement DDraw, and as such it needs access to an actual DDraw implementation for any level of D3D to work.
 
 > [!TIP]
 > Verify that your application uses D7VK instead of WineD3D by enabling the HUD (see notes below).

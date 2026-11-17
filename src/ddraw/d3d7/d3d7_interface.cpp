@@ -117,12 +117,12 @@ namespace dxvk {
     D3DDEVICEDESC7 desc7RGB = m_desc;
     ApplyD3D7DeviceCaps(&desc7RGB, IID_IDirect3DRGBDevice);
     if (likely(!d3dOptions->legacyDeviceNames)) {
-      static char deviceDescRGB[100] = "D7VK RGB";
-      static char deviceNameRGB[100] = "D7VK RGB";
+      static char deviceDescRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D7VK RGB";
+      static char deviceNameRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D7VK RGB";
       hr = cb(&deviceDescRGB[0], &deviceNameRGB[0], &desc7RGB, ctx);
     } else {
-      static char legacyDeviceDescRGB[100] = "RGB Emulation";
-      static char legacyDeviceNameRGB[100] = "RGB Emulation";
+      static char legacyDeviceDescRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "RGB Emulation";
+      static char legacyDeviceNameRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "RGB Emulation";
       hr = cb(&legacyDeviceDescRGB[0], &legacyDeviceNameRGB[0], &desc7RGB, ctx);
     }
     if (hr != D3DENUMRET_OK)
@@ -132,12 +132,12 @@ namespace dxvk {
     D3DDEVICEDESC7 desc7HAL = m_desc;
     ApplyD3D7DeviceCaps(&desc7HAL, IID_IDirect3DHALDevice);
     if (likely(!d3dOptions->legacyDeviceNames)) {
-      static char deviceDescHAL[100] = "D7VK HAL";
-      static char deviceNameHAL[100] = "D7VK HAL";
+      static char deviceDescHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D7VK HAL";
+      static char deviceNameHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D7VK HAL";
       hr = cb(&deviceDescHAL[0], &deviceNameHAL[0], &desc7HAL, ctx);
     } else {
-      static char legacyDeviceDescHAL[100] = "Direct3D HAL";
-      static char legacyDeviceNameHAL[100] = "Direct3D HAL";
+      static char legacyDeviceDescHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "Direct3D HAL";
+      static char legacyDeviceNameHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "Direct3D HAL";
       hr = cb(&legacyDeviceDescHAL[0], &legacyDeviceNameHAL[0], &desc7HAL, ctx);
     }
     if (hr != D3DENUMRET_OK)
@@ -147,12 +147,12 @@ namespace dxvk {
     D3DDEVICEDESC7 desc7TNL = m_desc;
     ApplyD3D7DeviceCaps(&desc7TNL, IID_IDirect3DTnLHalDevice);
     if (likely(!d3dOptions->legacyDeviceNames)) {
-      static char deviceDescTNL[100] = "D7VK T&L HAL";
-      static char deviceNameTNL[100] = "D7VK T&L HAL";
+      static char deviceDescTNL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D7VK T&L HAL";
+      static char deviceNameTNL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D7VK T&L HAL";
       hr = cb(&deviceDescTNL[0], &deviceNameTNL[0], &desc7TNL, ctx);
     } else {
-      static char legacyDeviceDescTNL[100] = "Direct3D T&L HAL";
-      static char legacyDeviceNameTNL[100] = "Direct3D T&L HAL";
+      static char legacyDeviceDescTNL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "Direct3D T&L HAL";
+      static char legacyDeviceNameTNL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "Direct3D T&L HAL";
       hr = cb(&legacyDeviceDescTNL[0], &legacyDeviceNameTNL[0], &desc7TNL, ctx);
     }
     if (hr != D3DENUMRET_OK)

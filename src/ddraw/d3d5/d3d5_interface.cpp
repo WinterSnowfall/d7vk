@@ -148,12 +148,11 @@ namespace dxvk {
     HRESULT hr;
 
     // RAMP device (monochrome), this is expected to be exposed
-    GUID guidRAMP = IID_IDirect3DRampDevice;
     // The caps of a RAMP device are mostly identical to an RGB device
     D3DDEVICEDESC2 desc2RAMP_HAL = m_desc;
-    ApplyD3D5DeviceCaps(&desc2RAMP_HAL, guidRAMP);
+    ApplyD3D5DeviceCaps(&desc2RAMP_HAL, IID_IDirect3DRampDevice);
     D3DDEVICEDESC2 desc2RAMP_HEL = m_desc;
-    ApplyD3D5DeviceCaps(&desc2RAMP_HEL, guidRAMP);
+    ApplyD3D5DeviceCaps(&desc2RAMP_HEL, IID_IDirect3DRampDevice);
     D3DDEVICEDESC descRAMP_HAL = { };
     D3DDEVICEDESC descRAMP_HEL = { };
     desc2RAMP_HAL.dwFlags = 0u;
@@ -169,26 +168,27 @@ namespace dxvk {
                                              & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
     memcpy(&descRAMP_HAL, &desc2RAMP_HAL, sizeof(D3DDEVICEDESC2));
     memcpy(&descRAMP_HEL, &desc2RAMP_HEL, sizeof(D3DDEVICEDESC2));
+
+    static GUID deviceGuidRAMP = IID_IDirect3DRampDevice;
     if (likely(!d3dOptions->legacyDeviceNames)) {
-      static char deviceDescRAMP[100] = "D5VK Ramp";
-      static char deviceNameRAMP[100] = "D5VK Ramp";
-      hr = lpEnumDevicesCallback(&guidRAMP, &deviceDescRAMP[0], &deviceNameRAMP[0],
+      static char deviceDescRAMP[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D5VK Ramp";
+      static char deviceNameRAMP[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D5VK Ramp";
+      hr = lpEnumDevicesCallback(&deviceGuidRAMP, &deviceDescRAMP[0], &deviceNameRAMP[0],
                                  &descRAMP_HAL, &descRAMP_HEL, lpUserArg);
     } else {
-      static char legacyDeviceDescRAMP[100] = "Ramp Emulation";
-      static char legacyDeviceNameRAMP[100] = "Ramp Emulation";
-      hr = lpEnumDevicesCallback(&guidRAMP, &legacyDeviceDescRAMP[0], &legacyDeviceNameRAMP[0],
+      static char legacyDeviceDescRAMP[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "Ramp Emulation";
+      static char legacyDeviceNameRAMP[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "Ramp Emulation";
+      hr = lpEnumDevicesCallback(&deviceGuidRAMP, &legacyDeviceDescRAMP[0], &legacyDeviceNameRAMP[0],
                                  &descRAMP_HAL, &descRAMP_HEL, lpUserArg);
     }
     if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
     // Software emulation, this is expected to be exposed
-    GUID guidRGB = IID_IDirect3DRGBDevice;
     D3DDEVICEDESC2 desc2RGB_HAL = m_desc;
-    ApplyD3D5DeviceCaps(&desc2RGB_HAL, guidRGB);
+    ApplyD3D5DeviceCaps(&desc2RGB_HAL, IID_IDirect3DRGBDevice);
     D3DDEVICEDESC2 desc2RGB_HEL = m_desc;
-    ApplyD3D5DeviceCaps(&desc2RGB_HEL, guidRGB);
+    ApplyD3D5DeviceCaps(&desc2RGB_HEL, IID_IDirect3DRGBDevice);
     D3DDEVICEDESC descRGB_HAL = { };
     D3DDEVICEDESC descRGB_HEL = { };
     desc2RGB_HAL.dwFlags = 0u;
@@ -203,26 +203,26 @@ namespace dxvk {
     memcpy(&descRGB_HAL, &desc2RGB_HAL, sizeof(D3DDEVICEDESC2));
     memcpy(&descRGB_HEL, &desc2RGB_HEL, sizeof(D3DDEVICEDESC2));
 
+    static GUID deviceGuidRGB = IID_IDirect3DRGBDevice;
     if (likely(!d3dOptions->legacyDeviceNames)) {
-      static char deviceDescRGB[100] = "D5VK RGB";
-      static char deviceNameRGB[100] = "D5VK RGB";
-      hr = lpEnumDevicesCallback(&guidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
+      static char deviceDescRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D5VK RGB";
+      static char deviceNameRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D5VK RGB";
+      hr = lpEnumDevicesCallback(&deviceGuidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
                                  &descRGB_HAL, &descRGB_HEL, lpUserArg);
     } else {
-      static char legacyDeviceDescRGB[100] = "RGB Emulation";
-      static char legacyDeviceNameRGB[100] = "RGB Emulation";
-      hr = lpEnumDevicesCallback(&guidRGB, &legacyDeviceDescRGB[0], &legacyDeviceNameRGB[0],
+      static char legacyDeviceDescRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "RGB Emulation";
+      static char legacyDeviceNameRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "RGB Emulation";
+      hr = lpEnumDevicesCallback(&deviceGuidRGB, &legacyDeviceDescRGB[0], &legacyDeviceNameRGB[0],
                                  &descRGB_HAL, &descRGB_HEL, lpUserArg);
     }
     if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
     // Hardware acceleration
-    GUID guidHAL = IID_IDirect3DHALDevice;
     D3DDEVICEDESC2 desc2HAL_HAL = m_desc;
-    ApplyD3D5DeviceCaps(&desc2HAL_HAL, guidHAL);
+    ApplyD3D5DeviceCaps(&desc2HAL_HAL, IID_IDirect3DHALDevice);
     D3DDEVICEDESC2 desc2HAL_HEL = m_desc;
-    ApplyD3D5DeviceCaps(&desc2HAL_HEL, guidHAL);
+    ApplyD3D5DeviceCaps(&desc2HAL_HEL, IID_IDirect3DHALDevice);
     D3DDEVICEDESC descHAL_HAL = { };
     D3DDEVICEDESC descHAL_HEL = { };
     desc2HAL_HEL.dcmColorModel = 0u;
@@ -239,15 +239,16 @@ namespace dxvk {
     memcpy(&descHAL_HAL, &desc2HAL_HAL, sizeof(D3DDEVICEDESC2));
     memcpy(&descHAL_HEL, &desc2HAL_HEL, sizeof(D3DDEVICEDESC2));
 
+    static GUID deviceGuidHAL = IID_IDirect3DHALDevice;
     if (likely(!d3dOptions->legacyDeviceNames)) {
-      static char deviceDescHAL[100] = "D5VK HAL";
-      static char deviceNameHAL[100] = "D5VK HAL";
-      hr = lpEnumDevicesCallback(&guidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
+      static char deviceDescHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D5VK HAL";
+      static char deviceNameHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D5VK HAL";
+      hr = lpEnumDevicesCallback(&deviceGuidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
                                  &descHAL_HAL, &descHAL_HEL, lpUserArg);
     } else {
-      static char legacyDeviceDescHAL[100] = "Direct3D HAL";
-      static char legacyDeviceNameHAL[100] = "Direct3D HAL";
-      hr = lpEnumDevicesCallback(&guidHAL, &legacyDeviceDescHAL[0], &legacyDeviceNameHAL[0],
+      static char legacyDeviceDescHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "Direct3D HAL";
+      static char legacyDeviceNameHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "Direct3D HAL";
+      hr = lpEnumDevicesCallback(&deviceGuidHAL, &legacyDeviceDescHAL[0], &legacyDeviceNameHAL[0],
                                  &descHAL_HAL, &descHAL_HEL, lpUserArg);
     }
     if (hr != D3DENUMRET_OK)
