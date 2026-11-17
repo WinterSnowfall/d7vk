@@ -197,6 +197,10 @@ __CRT_UUID_DECL(d3d9::IDirect3DDevice9Ex,          0xB18B10CE, 0x2649, 0x405A, 0
 // This render state got moved in D3D6 from 42 to 27 (replacing D3DRENDERSTATE_BLENDENABLE)
 #define D3DRENDERSTATE_ALPHABLENDENABLE_OLD D3DRENDERSTATETYPE(42)
 
+// Defined in D3D8/9 with a value of 512, but most likely
+// used in a more restrictive capacity in D3D7 and earlier
+#define MAX_ENUM_DEVICES_IDENTIFIER_STRING  64
+
 // D3DDEVICEDESC actually has 3 versions, one used in D3D2/3,
 // another in D3D5, and the last in D3D6. Headers only typically
 // contain the last, which is a problem because this struct
