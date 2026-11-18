@@ -18,6 +18,12 @@ namespace dxvk {
     str::strlcpy(dst, src, N);
   }
 
+  template <size_t N>
+  static void CopyToStringArrayAndPad(char (&dst)[N], const char* src) {
+    if (likely(N > 0))
+      std::strncpy(dst, src, N);
+  }
+
   struct CubeMapAttachedSurfaces {
     IDirectDrawSurface7* positiveX = nullptr;
     IDirectDrawSurface7* negativeX = nullptr;
