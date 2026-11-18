@@ -36,10 +36,6 @@ namespace dxvk {
       m_commonD3DIntf = new D3DCommonInterface(std::move(d3d9Intf), std::move(intfBridgeInst));
     }
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
-    // Retrieve and cache the base capabilities
-    m_desc = GetD3D6BaseCaps(d3dOptions);
-
     m_commonD3DIntf->SetD3D6Interface(this);
 
     IDxvkLegacyD3DInterfaceBridge* intfBridge = m_commonD3DIntf->GetD3D9InterfaceBridge();
@@ -147,65 +143,65 @@ namespace dxvk {
 
     HRESULT hr;
 
-    // Software emulation, this is expected to be exposed
-    D3DDEVICEDESC descRGB_HAL = m_desc;
-    ApplyD3D6DeviceCaps(&descRGB_HAL, IID_IDirect3DRGBDevice);
-    D3DDEVICEDESC descRGB_HEL = m_desc;
-    ApplyD3D6DeviceCaps(&descRGB_HEL, IID_IDirect3DRGBDevice);
-    descRGB_HAL.dwFlags = 0u;
-    descRGB_HAL.dcmColorModel = 0u;
-    // Some applications apparently care about HAL texture caps
-    descRGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                           & ~D3DPTEXTURECAPS_POW2
-                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
-    descRGB_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                           & ~D3DPTEXTURECAPS_POW2
-                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    // Tests have shown all returned variables and structs are expected
+    // to remain valid even after the enumeration completes. Moreover,
+    // some applications may choose to overwrite various elements in place,
+    // such as the device name/description, and reuse those strings.
 
-    static GUID deviceGuidRGB = IID_IDirect3DRGBDevice;
+    // Software emulation, this is expected to be exposed
+    static GUID deviceGuidRGB;
+    static char deviceDescRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING];
+    static char deviceNameRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING];
+    static D3DDEVICEDESC descDeviceRGB_HAL;
+    static D3DDEVICEDESC descDeviceRGB_HEL;
+
+    // Fetch and store a static local copy, adjusted for caps
+    static D3DDEVICEDESC descRGB_HAL = GetD3D6BaseCaps(d3dOptions);
+    ApplyD3D6DeviceCaps(&descRGB_HAL, IID_IDirect3DRGBDevice, true);
+    static D3DDEVICEDESC descRGB_HEL = GetD3D6BaseCaps(d3dOptions);
+    ApplyD3D6DeviceCaps(&descRGB_HEL, IID_IDirect3DRGBDevice, false);
+
+    deviceGuidRGB = IID_IDirect3DRGBDevice;
     if (likely(!d3dOptions->legacyDeviceNames)) {
-      static char deviceDescRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D6VK RGB";
-      static char deviceNameRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D6VK RGB";
-      hr = lpEnumDevicesCallback(&deviceGuidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
-                                 &descRGB_HAL, &descRGB_HEL, lpUserArg);
+      CopyToStringArrayAndPad(deviceDescRGB, "D6VK RGB");
+      CopyToStringArrayAndPad(deviceNameRGB, "D6VK RGB");
     } else {
-      static char legacyDeviceDescRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "RGB Emulation";
-      static char legacyDeviceNameRGB[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "RGB Emulation";
-      hr = lpEnumDevicesCallback(&deviceGuidRGB, &legacyDeviceDescRGB[0], &legacyDeviceNameRGB[0],
-                                 &descRGB_HAL, &descRGB_HEL, lpUserArg);
+      CopyToStringArrayAndPad(deviceDescRGB, "RGB Emulation");
+      CopyToStringArrayAndPad(deviceNameRGB, "RGB Emulation");
     }
+    descDeviceRGB_HAL = descRGB_HAL;
+    descDeviceRGB_HEL = descRGB_HEL;
+
+    hr = lpEnumDevicesCallback(&deviceGuidRGB, &deviceDescRGB[0], &deviceNameRGB[0],
+                               &descDeviceRGB_HAL, &descDeviceRGB_HEL, lpUserArg);
     if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
     // Hardware acceleration
-    D3DDEVICEDESC descHAL_HAL = m_desc;
-    ApplyD3D6DeviceCaps(&descHAL_HAL, IID_IDirect3DHALDevice);
-    D3DDEVICEDESC descHAL_HEL = m_desc;
-    ApplyD3D6DeviceCaps(&descHAL_HEL, IID_IDirect3DHALDevice);
-    descHAL_HEL.dcmColorModel = 0u;
-    // Some applications apparently care about RGB texture caps
-    descHAL_HEL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                           & ~D3DPTEXTURECAPS_POW2
-                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
-    descHAL_HEL.dpcTriCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                          & ~D3DPTEXTURECAPS_POW2
-                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
-    descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                           & ~D3DDEVCAPS_DRAWPRIMITIVES2
-                           & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+    static GUID deviceGuidHAL;
+    static char deviceDescHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING];
+    static char deviceNameHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING];
+    static D3DDEVICEDESC descDeviceHAL_HAL;
+    static D3DDEVICEDESC descDeviceHAL_HEL;
 
-    static GUID deviceGuidHAL = IID_IDirect3DHALDevice;
+    D3DDEVICEDESC descHAL_HAL = GetD3D6BaseCaps(d3dOptions);
+    ApplyD3D6DeviceCaps(&descHAL_HAL, IID_IDirect3DHALDevice, true);
+    D3DDEVICEDESC descHAL_HEL = GetD3D6BaseCaps(d3dOptions);
+    ApplyD3D6DeviceCaps(&descHAL_HEL, IID_IDirect3DHALDevice, false);
+
+    deviceGuidHAL = IID_IDirect3DHALDevice;
     if (likely(!d3dOptions->legacyDeviceNames)) {
-      static char deviceDescHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D6VK HAL";
-      static char deviceNameHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "D6VK HAL";
-      hr = lpEnumDevicesCallback(&deviceGuidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
-                                 &descHAL_HAL, &descHAL_HEL, lpUserArg);
+      CopyToStringArrayAndPad(deviceDescHAL, "D6VK HAL");
+      CopyToStringArrayAndPad(deviceNameHAL, "D6VK HAL");
     } else {
-      static char legacyDeviceDescHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "Direct3D HAL";
-      static char legacyDeviceNameHAL[MAX_ENUM_DEVICES_IDENTIFIER_STRING] = "Direct3D HAL";
-      hr = lpEnumDevicesCallback(&deviceGuidHAL, &legacyDeviceDescHAL[0], &legacyDeviceNameHAL[0],
-                                 &descHAL_HAL, &descHAL_HEL, lpUserArg);
+      CopyToStringArrayAndPad(deviceDescHAL, "Direct3D HAL");
+      CopyToStringArrayAndPad(deviceNameHAL, "Direct3D HAL");
     }
+    descDeviceHAL_HAL = descHAL_HAL;
+    descDeviceHAL_HEL = descHAL_HEL;
+
+    hr = lpEnumDevicesCallback(&deviceGuidHAL, &deviceDescHAL[0], &deviceNameHAL[0],
+                               &descDeviceHAL_HAL, &descDeviceHAL_HEL, lpUserArg);
     if (hr != D3DENUMRET_OK)
       return D3D_OK;
 
@@ -253,37 +249,19 @@ namespace dxvk {
     if (unlikely(!IsValidFindDeviceResultSize(lpD3DFDR->dwSize)))
       return DDERR_INVALIDPARAMS;
 
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
     // Software emulation, this is expected to be exposed
-    D3DDEVICEDESC descRGB_HAL = m_desc;
-    ApplyD3D6DeviceCaps(&descRGB_HAL, IID_IDirect3DRGBDevice);
-    D3DDEVICEDESC descRGB_HEL = m_desc;
-    ApplyD3D6DeviceCaps(&descRGB_HEL, IID_IDirect3DRGBDevice);
-    descRGB_HAL.dwFlags = 0u;
-    descRGB_HAL.dcmColorModel = 0u;
-    // Some applications apparently care about HAL texture caps
-    descRGB_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                           & ~D3DPTEXTURECAPS_POW2
-                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
-    descRGB_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                           & ~D3DPTEXTURECAPS_POW2
-                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    D3DDEVICEDESC descRGB_HAL = GetD3D6BaseCaps(d3dOptions);
+    ApplyD3D6DeviceCaps(&descRGB_HAL, IID_IDirect3DRGBDevice, true);
+    D3DDEVICEDESC descRGB_HEL = GetD3D6BaseCaps(d3dOptions);
+    ApplyD3D6DeviceCaps(&descRGB_HEL, IID_IDirect3DRGBDevice, false);
 
     // Hardware acceleration
-    D3DDEVICEDESC descHAL_HAL = m_desc;
-    ApplyD3D6DeviceCaps(&descHAL_HAL, IID_IDirect3DHALDevice);
-    D3DDEVICEDESC descHAL_HEL = m_desc;
-    ApplyD3D6DeviceCaps(&descHAL_HEL, IID_IDirect3DHALDevice);
-    descHAL_HEL.dcmColorModel = 0u;
-    // Some applications apparently care about HEL texture caps
-    descHAL_HEL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                           & ~D3DPTEXTURECAPS_POW2
-                                           & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
-    descHAL_HEL.dpcTriCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                          & ~D3DPTEXTURECAPS_POW2
-                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
-    descHAL_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                           & ~D3DDEVCAPS_DRAWPRIMITIVES2
-                           & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+    D3DDEVICEDESC descHAL_HAL = GetD3D6BaseCaps(d3dOptions);
+    ApplyD3D6DeviceCaps(&descHAL_HAL, IID_IDirect3DHALDevice, true);
+    D3DDEVICEDESC descHAL_HEL = GetD3D6BaseCaps(d3dOptions);
+    ApplyD3D6DeviceCaps(&descHAL_HEL, IID_IDirect3DHALDevice, false);
 
     lpD3DFDR->dwSize = sizeof(D3DFINDDEVICERESULT);
 

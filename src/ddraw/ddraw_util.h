@@ -760,17 +760,42 @@ namespace dxvk {
     return desc;
   }
 
-  inline void ApplyD3D3DeviceCaps(D3DDEVICEDESC3* desc, const IID rclsid) {
+  inline void ApplyD3D3DeviceCaps(D3DDEVICEDESC3* desc, const IID rclsid, bool isHALDesc) {
     if (rclsid == IID_IDirect3DHALDevice) {
       desc->dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
                        | D3DDEVCAPS_HWTRANSFORMANDLIGHT
                        | D3DDEVCAPS_DRAWPRIMITIVES2
                        | D3DDEVCAPS_DRAWPRIMITIVES2EX;
-    } else {
-      desc->dwDevCaps &= ~D3DDEVCAPS_HWRASTERIZATION
-                       & ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                       & ~D3DDEVCAPS_DRAWPRIMITIVES2
-                       & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+
+      if (!isHALDesc) {
+        // HEL color model is 0 on a HAL device
+        desc->dcmColorModel = 0u;
+        // Some applications apparently care about HEL texture caps
+        desc->dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                         & ~D3DPTEXTURECAPS_POW2
+                                         & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+        desc->dpcTriCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                        & ~D3DPTEXTURECAPS_POW2
+                                        & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+        // HEL doesn't expose HAL-specific caps
+        desc->dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                         & ~D3DDEVCAPS_DRAWPRIMITIVES2
+                         & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+      }
+    } else if (isHALDesc) {
+      // HAL flags and color model are both 0 on a RGB/Ramp device
+      desc->dwFlags = 0u;
+      desc->dcmColorModel = 0u;
+      // Some applications apparently care about HAL texture caps
+      desc->dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                       & ~D3DPTEXTURECAPS_POW2
+                                       & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+      desc->dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                       & ~D3DPTEXTURECAPS_POW2
+                                       & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    } else if (rclsid == IID_IDirect3DRampDevice) { // HEL desc
+      // RAMP devices use a monochrome color model
+      desc->dcmColorModel = D3DCOLOR_MONO;
     }
   }
 
@@ -971,17 +996,42 @@ namespace dxvk {
     return desc;
   }
 
-  inline void ApplyD3D5DeviceCaps(D3DDEVICEDESC2* desc, const IID rclsid) {
+  inline void ApplyD3D5DeviceCaps(D3DDEVICEDESC2* desc, const IID rclsid, bool isHALDesc) {
     if (rclsid == IID_IDirect3DHALDevice) {
       desc->dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
                        | D3DDEVCAPS_HWTRANSFORMANDLIGHT
                        | D3DDEVCAPS_DRAWPRIMITIVES2
                        | D3DDEVCAPS_DRAWPRIMITIVES2EX;
-    } else {
-      desc->dwDevCaps &= ~D3DDEVCAPS_HWRASTERIZATION
-                       & ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                       & ~D3DDEVCAPS_DRAWPRIMITIVES2
-                       & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+
+      if (!isHALDesc) {
+        // HEL color model is 0 on a HAL device
+        desc->dcmColorModel = 0u;
+        // Some applications apparently care about HEL texture caps
+        desc->dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                         & ~D3DPTEXTURECAPS_POW2
+                                         & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+        desc->dpcTriCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                        & ~D3DPTEXTURECAPS_POW2
+                                        & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+        // HEL doesn't expose HAL-specific caps
+        desc->dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                         & ~D3DDEVCAPS_DRAWPRIMITIVES2
+                         & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+      }
+    } else if (isHALDesc) {
+      // HAL flags and color model are both 0 on a RGB/Ramp device
+      desc->dwFlags = 0u;
+      desc->dcmColorModel = 0u;
+      // Some applications apparently care about HAL texture caps
+      desc->dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                       & ~D3DPTEXTURECAPS_POW2
+                                       & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+      desc->dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                       & ~D3DPTEXTURECAPS_POW2
+                                       & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+    } else if (rclsid == IID_IDirect3DRampDevice) { // HEL desc
+      // RAMP devices use a monochrome color model
+      desc->dcmColorModel = D3DCOLOR_MONO;
     }
   }
 
@@ -1242,17 +1292,39 @@ namespace dxvk {
     return desc;
   }
 
-  inline void ApplyD3D6DeviceCaps(D3DDEVICEDESC* desc, const IID rclsid) {
+  inline void ApplyD3D6DeviceCaps(D3DDEVICEDESC* desc, const IID rclsid, bool isHALDesc) {
     if (rclsid == IID_IDirect3DHALDevice) {
       desc->dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
                        | D3DDEVCAPS_HWTRANSFORMANDLIGHT
                        | D3DDEVCAPS_DRAWPRIMITIVES2
                        | D3DDEVCAPS_DRAWPRIMITIVES2EX;
-    } else {
-      desc->dwDevCaps &= ~D3DDEVCAPS_HWRASTERIZATION
-                       & ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                       & ~D3DDEVCAPS_DRAWPRIMITIVES2
-                       & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+
+      if (!isHALDesc) {
+        // HEL color model is 0 on a HAL device
+        desc->dcmColorModel = 0u;
+        // Some applications apparently care about HEL texture caps
+        desc->dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                         & ~D3DPTEXTURECAPS_POW2
+                                         & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+        desc->dpcTriCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                        & ~D3DPTEXTURECAPS_POW2
+                                        & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+        // HEL doesn't expose HAL-specific caps
+        desc->dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
+                         & ~D3DDEVCAPS_DRAWPRIMITIVES2
+                         & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
+      }
+    } else if (isHALDesc) {
+      // HAL flags and color model are both 0 on a RGB/Ramp device
+      desc->dwFlags = 0u;
+      desc->dcmColorModel = 0u;
+      // Some applications apparently care about HAL texture caps
+      desc->dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                       & ~D3DPTEXTURECAPS_POW2
+                                       & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
+      desc->dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
+                                       & ~D3DPTEXTURECAPS_POW2
+                                       & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
     }
   }
 
@@ -1513,11 +1585,6 @@ namespace dxvk {
       desc7->dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION
                         | D3DDEVCAPS_DRAWPRIMITIVES2
                         | D3DDEVCAPS_DRAWPRIMITIVES2EX;
-    } else {
-      desc7->dwDevCaps &= ~D3DDEVCAPS_HWRASTERIZATION
-                        & ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                        & ~D3DDEVCAPS_DRAWPRIMITIVES2
-                        & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
     }
   }
 

@@ -34,14 +34,11 @@ namespace dxvk {
 
     m_commonIntf = m_parent->GetCommonInterface();
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
-    // Retrieve and cache the device capabilities
-    m_desc = GetD3D3BaseCaps(d3dOptions);
-    ApplyD3D3DeviceCaps(&m_desc, deviceGUID);
-
-    d3d9::IDirect3DDevice9* device9;
+    d3d9::IDirect3DDevice9* device9 = nullptr;
 
     if (likely(m_commonD3DDevice == nullptr)) {
+      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
       // Get the bridge interface to D3D9
       Com<IDxvkLegacyD3DDeviceBridge> deviceBridgeInst;
       HRESULT hr = pDevice9->QueryInterface(__uuidof(IDxvkLegacyD3DDeviceBridge), reinterpret_cast<void**>(&deviceBridgeInst));
@@ -171,29 +168,13 @@ namespace dxvk {
               || !IsValidD3DDeviceDescSize(hel_desc->dwSize)))
       return DDERR_INVALIDPARAMS;
 
-    D3DDEVICEDESC3 desc_HAL = m_desc;
-    D3DDEVICEDESC3 desc_HEL = m_desc;
-
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
     const GUID deviceGUID = m_commonD3DDevice->GetDeviceGUID();
 
-    if (deviceGUID == IID_IDirect3DRGBDevice) {
-      desc_HAL.dwFlags = 0;
-      desc_HAL.dcmColorModel = 0;
-      // Some applications apparently care about HAL texture caps
-      desc_HAL.dpcLineCaps.dwTextureCaps &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                          & ~D3DPTEXTURECAPS_POW2
-                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
-      desc_HAL.dpcTriCaps.dwTextureCaps  &= ~D3DPTEXTURECAPS_PERSPECTIVE
-                                          & ~D3DPTEXTURECAPS_POW2
-                                          & ~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
-    } else if (deviceGUID == IID_IDirect3DHALDevice) {
-      desc_HEL.dcmColorModel = 0;
-      desc_HEL.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT
-                          & ~D3DDEVCAPS_DRAWPRIMITIVES2
-                          & ~D3DDEVCAPS_DRAWPRIMITIVES2EX;
-    } else {
-      Logger::warn("D3D3Device::GetCaps: Unhandled device type");
-    }
+    D3DDEVICEDESC3 desc_HAL = GetD3D3BaseCaps(d3dOptions);
+    ApplyD3D3DeviceCaps(&desc_HAL, deviceGUID, true);
+    D3DDEVICEDESC3 desc_HEL = GetD3D3BaseCaps(d3dOptions);
+    ApplyD3D3DeviceCaps(&desc_HAL, deviceGUID, false);
 
     memcpy(hal_desc, &desc_HAL, hal_desc->dwSize);
     memcpy(hel_desc, &desc_HEL, hel_desc->dwSize);

@@ -187,8 +187,6 @@ namespace dxvk {
 
     D3DMultithread                  m_multithread;
 
-    D3DDEVICEDESC                   m_desc;
-
     Com<DDraw4Surface>              m_rt;
     Com<DDraw4Surface, false>       m_ds;
 

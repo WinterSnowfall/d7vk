@@ -29,14 +29,11 @@ namespace dxvk {
       throw DxvkError("D3D7Device: ERROR! Failed to retrieve the common interface!");
     }
 
-    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
-    // Retrieve and cache the device capabilities
-    m_desc = GetD3D7BaseCaps(d3dOptions);
-    ApplyD3D7DeviceCaps(&m_desc, deviceGUID);
-
-    d3d9::IDirect3DDevice9* device9;
+    d3d9::IDirect3DDevice9* device9 = nullptr;
 
     if (likely(m_commonD3DDevice == nullptr)) {
+      const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+
       // Get the bridge interface to D3D9
       Com<IDxvkLegacyD3DDeviceBridge> deviceBridgeInst;
       HRESULT hr = pDevice9->QueryInterface(__uuidof(IDxvkLegacyD3DDeviceBridge), reinterpret_cast<void**>(&deviceBridgeInst));
@@ -126,7 +123,13 @@ namespace dxvk {
     if (unlikely(desc == nullptr))
       return DDERR_INVALIDPARAMS;
 
-    *desc = m_desc;
+    const D3DOptions* d3dOptions = m_commonIntf->GetOptions();
+    const GUID deviceGUID = m_commonD3DDevice->GetDeviceGUID();
+
+    D3DDEVICEDESC7 desc7 = GetD3D7BaseCaps(d3dOptions);
+    ApplyD3D7DeviceCaps(&desc7, deviceGUID);
+
+    *desc = desc7;
 
     return D3D_OK;
   }
