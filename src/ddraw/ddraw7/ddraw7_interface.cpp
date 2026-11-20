@@ -823,21 +823,22 @@ namespace dxvk {
     const d3d9::D3DADAPTER_IDENTIFIER9* adapterIdentifier9 = m_commonIntf->GetAdapterIdentifier();
     // This is the "2D accelerator" device in the system
     if (unlikely(dwFlags & DDGDI_GETHOSTIDENTIFIER)) {
-      static const char* CompatHostDriver = "vga.dll";
+      static constexpr uint16_t CompatHostVendorID = static_cast<uint16_t>(DDrawGpuVendor::VGA);
+      static const char* CompatHostDriver = GetDriverDLL(CompatHostVendorID);
       // The Matrox G400 TechDemo expects the description to be aligned with native
       static const char* CompatHostDescription = "DirectDraw HAL";
 
       CopyToStringArray(pDDDI->szDriver, CompatHostDriver);
       CopyToStringArray(pDDDI->szDescription, CompatHostDescription);
       pDDDI->liDriverVersion.QuadPart = 0;
-      pDDDI->dwVendorId               = 0;
+      pDDDI->dwVendorId               = CompatHostVendorID;
       pDDDI->dwDeviceId               = 0;
       pDDDI->dwSubSysId               = 0;
       pDDDI->dwRevision               = 0;
       pDDDI->guidDeviceIdentifier     = pDDDIproxy.guidDeviceIdentifier;
       pDDDI->dwWHQLLevel              = 0;
     } else if (unlikely(m_commonIntf->GetOptions()->glideCompatibilityMode)) {
-      static constexpr uint16_t Compat3dfxVendorID = static_cast<uint16_t>(DDrawGpuVendor::C3dfx);
+      static constexpr uint16_t Compat3dfxVendorID = static_cast<uint16_t>(DDrawGpuVendor::Зdfx);
       static constexpr uint16_t Compat3dfXDeviceID = 0x0009; // Voodoo 4 4500
       static const char* Compat3dfxDriver = GetDriverDLL(Compat3dfxVendorID);
       static const char* Compat3dfxDescription = "3dfx Voodoo Series";
