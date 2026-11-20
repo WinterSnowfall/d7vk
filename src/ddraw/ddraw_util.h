@@ -12,9 +12,11 @@
 namespace dxvk {
 
   enum class DDrawGpuVendor : uint16_t {
+    VGA    = 0x0000, // Standard 2D host adapter
     ATI    = 0x1002,
     Nvidia = 0x10DE,
-    C3dfx  = 0x121A,
+    Зdfx   = 0x121A,
+    Intel  = 0x8086,
   };
 
   struct PackedVertexBuffer {
@@ -142,14 +144,18 @@ namespace dxvk {
 
   inline const char* GetDriverDLL(uint16_t vendor) {
     switch (DDrawGpuVendor(vendor)) {
-      // Windows XP Nvidia driver dll name
-      case DDrawGpuVendor::Nvidia: return "nv4_disp.dll";
+      // Standard 2D host adapter driver dll name
+      case DDrawGpuVendor::VGA:    return "vga.dll";
       default:
       // Radeon era ATI(/AMD) driver dll name
       case DDrawGpuVendor::ATI:    return "ati2dvag.dll";
+      // Windows XP Nvidia driver dll name
+      case DDrawGpuVendor::Nvidia: return "nv4_disp.dll";
       // 3dfx driver dll name
       // TODO: Check on an actual/emulated Voodoo card
-      case DDrawGpuVendor::C3dfx:  return "3dfx32vs.dll";
+      case DDrawGpuVendor::Зdfx:   return "3dfx32vs.dll";
+      // Masked by default
+      case DDrawGpuVendor::Intel:  return "igxprd32.dll";
     }
   }
 

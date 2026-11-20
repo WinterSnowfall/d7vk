@@ -155,9 +155,9 @@ __CRT_UUID_DECL(d3d9::IDirect3DDevice9Ex,          0xB18B10CE, 0x2649, 0x405A, 0
   #define DLLEXPORT
 #endif
 
-// Don't use any SSE2 specific paths when compiling for ARM(64)
-#if !defined(_ARM_) && !defined(_M_ARM)
-  #define DXVK_SWVP_SSE2 TRUE
+// Don't use SSE2 specific paths when compiling for non x86(-64) architectures
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
+  #define DXVK_SWVP_SSE2
 #endif
 
 
